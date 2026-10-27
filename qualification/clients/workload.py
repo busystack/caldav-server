@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import caldav
+from sync_profile import verify_sync_profile
 
 
 def summary(values):
@@ -35,6 +36,7 @@ def main():
         nonce = uuid4().hex
         events = principal.make_calendar(name="Disposable measured events", cal_id="workload-events-" + nonce, supported_calendar_component_set=["VEVENT"])
         tasks = principal.make_calendar(name="Disposable measured tasks", cal_id="workload-tasks-" + nonce, supported_calendar_component_set=["VTODO"])
+        sync_profile = verify_sync_profile(client, events)
         objects = []
         anchor = datetime(2026, 11, 1, 10, tzinfo=timezone.utc)
         stored_bytes = 0
@@ -67,7 +69,7 @@ def main():
             delta = measure("incrementalSync", lambda: events.get_objects_by_sync_token(sync_token=first.sync_token, disable_fallback=True))
             assert {item.url.canonical() for item in objects[10:15]} <= delta.deleted_urls
             assert len(events.events()) == 215 and len(tasks.todos(include_completed=True)) == 50
-            print(json.dumps({"status": "passed", "client": "python-caldav", "version": caldav.__version__, "icalendar": importlib.metadata.version("icalendar"), "python": platform.python_version(), "platform": platform.system() + " " + platform.machine(), "transport": "HTTPS with isolated test-CA validation", "allowSyncDepthOne": True, "syncFallbackDisabled": True, "calendarQueryRepresentation": "stored resources; expand=False", "latencyScope": "End-to-end independent client calls, including serialization, TLS/network, server/database and response parsing", "dataset": {"collections": 2, "nonRecurringEvents": 200, "recurringResources": 20, "weeklyInstancesPerRecurringResource": 12, "tasks": 50, "undatedTasks": 25, "acceptedResourceBytes": stored_bytes}, "operations": {name: summary(values) for name, values in timings.items()}, "interpretation": "One bounded single-client workload; no scalability, high-availability or production sizing claim."}, sort_keys=True))
+            print(json.dumps({"status": "passed", "client": "python-caldav", "version": caldav.__version__, "icalendar": importlib.metadata.version("icalendar"), "python": platform.python_version(), "platform": platform.system() + " " + platform.machine(), "transport": "HTTPS with isolated test-CA validation", "syncConfiguration": sync_profile, "syncFallbackDisabled": True, "calendarQueryRepresentation": "stored resources; expand=False", "latencyScope": "End-to-end independent client calls, including serialization, TLS/network, server/database and response parsing", "dataset": {"collections": 2, "nonRecurringEvents": 200, "recurringResources": 20, "weeklyInstancesPerRecurringResource": 12, "tasks": 50, "undatedTasks": 25, "acceptedResourceBytes": stored_bytes}, "operations": {name: summary(values) for name, values in timings.items()}, "interpretation": "One bounded single-client workload; no scalability, high-availability or production sizing claim."}, sort_keys=True))
         finally:
             # Both namespaces are created by this process; never remove another user's data.
             events.delete()

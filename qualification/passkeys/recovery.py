@@ -7,6 +7,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as XML
+from uuid import uuid4
 import tls
 import workload_measurement
 
@@ -60,6 +61,7 @@ class Checkpoint:
         assert status == 201, 'Recovery VTODO creation failed'
         status, _, data = self.request(self.resource_path, headers=basic)
         assert status == 200 and data == self.content
+        self.store_language(self.saved['encoded'])
         status, _, data = self.report(self.saved['encoded'])
         assert status == 207
         document = XML.fromstring(data)
@@ -73,12 +75,37 @@ class Checkpoint:
         self.epoch = self.operations.sql(environment, 'SELECT recovery_epoch FROM system_state WHERE id=1;')
         if self.workload is not None:
             workload_measurement.observe(self, environment, self.workload['python'], self.workload['output'])
+        # Use the supported public-client refresh flow after long measurements; never extend token policy.
+        self.refresh_retained_grant()
+        # The dump must contain a demonstrably live authenticated session, not an expired cookie.
+        cookie=self.saved['snapshotCookie']
+        status,_,body=self.request('/', headers={'Cookie':'JSESSIONID='+cookie})
+        assert status==200 and b'BusyStack account' in body, 'Snapshot browser session must be valid at backup'
+        print('HTTPS_RECOVERY_LIVE_SNAPSHOT_SESSION_VERIFIED',flush=True)
         # Benchmarking must not turn the revoked-credential proof into an accidental expiry test.
         assert self.request(self.resource_path, headers=basic)[0] == 200, 'Snapshot DAV credential expired before backup'
         assert self.request(self.resource_path, headers={'Authorization': 'Bearer ' + self.saved['grant']['accessToken']})[0] == 200, 'Snapshot access token expired before backup; issue a fresh grant before qualification'
         self.archive = self.directory / 'https-recovery.dump'
         self.operations.execute(['./scripts/backup.sh', str(self.archive)], environment)
         print('HTTPS_RECOVERY_SNAPSHOT_WITH_VALID_DAV_OAUTH_AND_SYNC_CREATED', flush=True)
+
+    def refresh_retained_grant(self):
+        old=self.saved['grant']
+        status,_,body=self.request('/oauth2/token','POST',{'Content-Type':'application/x-www-form-urlencoded'},
+            urllib.parse.urlencode({'grant_type':'refresh_token','client_id':old['clientId'],
+                'refresh_token':old['refreshToken']}).encode())
+        assert status==200, 'Retained public grant must refresh through the real token endpoint'
+        current=json.loads(body)
+        assert current.get('token_type','').lower()=='bearer'
+        assert type(current.get('expires_in')) is int and current['expires_in']>0
+        for key,previous in [('access_token','accessToken'),('refresh_token','refreshToken')]:
+            assert isinstance(current.get(key),str) and len(current[key])>40 and current[key]!=old[previous], 'Expected actual opaque credential rotation'
+        if 'scope' in current: assert 'dav' in current['scope'].split()
+        self.saved['grant']={**old,'accessToken':current['access_token'],'refreshToken':current['refresh_token'],
+            'accessExpiresAt':int(time.time()*1000)+current['expires_in']*1000}
+        self.exchange.write_text(json.dumps(self.saved))
+        self.exchange.chmod(0o600)
+        print('HTTPS_RECOVERY_RETAINED_GRANT_REFRESHED_BEFORE_BACKUP',flush=True)
 
     def restore(self, environment):
         source = environment.copy()
@@ -100,7 +127,7 @@ class Checkpoint:
         self.operations.execute(['./scripts/restore.sh', str(self.archive)], restored)
         assert self.operations.sql(restored, 'SELECT count(*) FROM accounts WHERE enabled;') == '0'
         for table in ['dav_credentials', 'oauth2_authorization', 'oauth2_authorization_consent',
-            'spring_session', 'user_credentials', 'account_recovery_codes', 'webauthn_ceremonies']:
+            'spring_session', 'user_credentials', 'account_recovery_codes', 'webauthn_ceremonies', 'sync_continuations']:
             assert self.operations.sql(restored, 'SELECT count(*) FROM ' + table + ';') == '0', table
         assert self.operations.sql(restored, 'SELECT recovery_epoch FROM system_state WHERE id=1;') != self.epoch
         assert self.operations.sql(restored, "SELECT encode(sha256(content),'hex') FROM calendar_resources WHERE name='restoration-fixture.ics';") == hashlib.sha256(self.content).hexdigest()
@@ -127,6 +154,44 @@ class Checkpoint:
         self.operations.compose(restored, 'up', '-d', '--no-build', '--wait', '--wait-timeout', '240', 'reverse-proxy')
         return restored
 
+    def store_language(self, encoded):
+        headers={'Authorization':'Basic '+encoded,'Content-Type':'application/xml'}
+        body=('<D:propertyupdate xmlns:D="DAV:" xmlns:X="urn:busystack:recovery" xml:lang="en">'
+            '<D:set><D:prop><X:root> before <X:b xml:lang="fr">bonjour</X:b> after </X:root></D:prop></D:set>'
+            '<D:set xml:lang="fr"><D:prop><X:operation>operation</X:operation></D:prop></D:set>'
+            '<D:set><D:prop xml:lang="de"><X:prop>prop</X:prop><X:empty xml:lang="">empty</X:empty></D:prop></D:set>'
+            '</D:propertyupdate>').encode()
+        status,_,response=self.request(self.resource_path,'PROPPATCH',headers,body)
+        assert status==207 and b' 200 OK' in response
+        self.verify_language(encoded)
+        temporary=self.collection_path.rsplit('/',2)[0]+'/language-copy-'+uuid4().hex+'/'
+        create=('<C:mkcalendar xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:D="DAV:" xmlns:X="urn:busystack:recovery" xml:lang="es"><D:set><D:prop>'
+            '<C:supported-calendar-component-set><C:comp name="VTODO"/></C:supported-calendar-component-set><X:created>inherited</X:created>'
+            '</D:prop></D:set></C:mkcalendar>').encode()
+        assert self.request(temporary,'MKCALENDAR',headers,create)[0]==201
+        try:
+            copied=temporary+'copied.ics';moved=temporary+'moved.ics'
+            assert self.request(self.resource_path,'COPY',{**headers,'Destination':self.base+copied})[0]==201
+            self.verify_language(encoded,copied)
+            assert self.request(copied,'MOVE',{**headers,'Destination':self.base+moved})[0]==201
+            self.verify_language(encoded,moved)
+            status,_,data=self.request(temporary,'PROPFIND',{**headers,'Depth':'0'},
+                b'<D:propfind xmlns:D="DAV:" xmlns:X="urn:busystack:recovery"><D:prop><X:created/></D:prop></D:propfind>')
+            assert status==207 and XML.fromstring(data).find('.//{urn:busystack:recovery}created').attrib['{http://www.w3.org/XML/1998/namespace}lang']=='es'
+        finally:
+            assert self.request(temporary,'DELETE',headers)[0]==204
+        print('HTTPS_INHERITED_XML_LANGUAGE_MIXED_CONTENT_MKCALENDAR_PROPPATCH_COPY_MOVE_PASSED',flush=True)
+
+    def verify_language(self, encoded, path=None):
+        status,_,data=self.request(path or self.resource_path,'PROPFIND',
+            {'Authorization':'Basic '+encoded,'Content-Type':'application/xml','Depth':'0'},
+            b'<D:propfind xmlns:D="DAV:" xmlns:X="urn:busystack:recovery"><D:prop><X:root/><X:operation/><X:prop/><X:empty/></D:prop></D:propfind>')
+        assert status==207
+        doc=XML.fromstring(data);lang='{http://www.w3.org/XML/1998/namespace}lang';ns='{urn:busystack:recovery}'
+        for name,value in [('root','en'),('operation','fr'),('prop','de'),('empty','')]:
+            assert doc.find('.//'+ns+name).attrib[lang]==value
+        prop=doc.find('.//'+ns+'root');assert prop.text==' before ' and prop[0].text=='bonjour' and prop[0].tail==' after ' and prop[0].attrib[lang]=='fr'
+
     def permissions(self, environment):
         for account, permission in [(self.reader, 'READ'), (self.writer, 'WRITE')]:
             assert self.operations.sql(environment, "SELECT permission FROM collection_members WHERE collection_id='"
@@ -139,6 +204,8 @@ class Checkpoint:
 
     def verify(self):
         current = json.loads(self.exchange.read_text())
+        status,_,_=self.request('/', headers={'Cookie':'JSESSIONID='+self.saved['snapshotCookie']})
+        assert status in (302,303,401,403), 'The actual session valid at backup must not revive after restoration'
         assert self.request(self.resource_path, headers={'Authorization': 'Basic ' + self.saved['encoded']})[0] == 401
         assert time.time() * 1000 < self.saved['grant']['accessExpiresAt'], 'Restore access-token proof exceeded natural expiry; rerun with fresh credentials'
         assert self.request(self.resource_path, headers={'Authorization': 'Bearer ' + self.saved['grant']['accessToken']})[0] == 401
@@ -148,6 +215,7 @@ class Checkpoint:
         assert status == 400 and json.loads(data)['error'] == 'invalid_grant'
         status, _, data = self.request(self.resource_path, headers={'Authorization': 'Basic ' + current['recoveredEncoded']})
         assert status == 200 and data == self.content
+        self.verify_language(current['recoveredEncoded'])
         status, _, data = self.report(current['recoveredEncoded'], self.token)
         assert status == 403 and XML.fromstring(data).find('{DAV:}valid-sync-token') is not None
         status, _, data = self.report(current['recoveredEncoded'])

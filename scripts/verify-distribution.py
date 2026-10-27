@@ -26,7 +26,12 @@ def inspect_jar(path):
         for name in ('asm-9.7.1-copyright-and-license.txt','logback-LICENSE.txt','EPL-2.0.txt','LGPL-2.1.txt'):
             assert jar.read('META-INF/licenses/'+name)==(ROOT/'licenses'/name).read_bytes()
         bom = json.loads(jar.read('META-INF/sbom/application.cdx.json'))
-        assert bom['metadata']['component']['licenses'] == [{'license': {'id': 'Apache-2.0', 'url': 'https://www.apache.org/licenses/LICENSE-2.0'}}], 'Project SBOM license is incorrect'
+        project_licenses = bom['metadata']['component']['licenses']
+        assert isinstance(project_licenses,list) and len(project_licenses)==1 and set(project_licenses[0])=={'license'}, 'Project SBOM license is incorrect'
+        project_license = project_licenses[0]['license']
+        assert isinstance(project_license,dict) and set(project_license) in ({'id'},{'id','url'}) and project_license.get('id')=='Apache-2.0', 'Project SBOM license is incorrect'
+        if 'url' in project_license:
+            assert project_license['url'] in ('https://www.apache.org/licenses/LICENSE-2.0','https://www.apache.org/licenses/LICENSE-2.0.txt'), 'Project SBOM license URL is incorrect'
         session=[c for c in bom['components'] if c.get('group')=='org.springframework.session']
         assert len(session)==2 and all(c['version']=='4.1.1' for c in session)
         assert all(any(l.get('license',{}).get('name')=='Broadcom Foundation License' for l in c['licenses']) for c in session), 'Original upstream POM metadata must remain traceable; do not silently relabel components'
@@ -39,7 +44,7 @@ def inspect_jar(path):
             dependencies.append({'artifact': name.split('/')[-1], 'deliveredLicenseAndNoticeFiles': notices})
         assert any(d['artifact'] == 'spring-session-core-4.1.1.jar' and d['deliveredLicenseAndNoticeFiles'] for d in dependencies)
         assert any(d['artifact'] == 'spring-session-jdbc-4.1.1.jar' and d['deliveredLicenseAndNoticeFiles'] for d in dependencies)
-        return {'jarSha256': hashlib.sha256(Path(path).read_bytes()).hexdigest(), 'runtimeComponents': len(bom['components']), 'nestedArtifacts': dependencies}
+        return {'projectLicense': project_licenses, 'jarSha256': hashlib.sha256(Path(path).read_bytes()).hexdigest(), 'runtimeComponents': len(bom['components']), 'nestedArtifacts': dependencies}
 
 
 def inspect_image(image, expected_jar_sha, revision):

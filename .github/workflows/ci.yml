@@ -42,18 +42,28 @@ jobs:
           ./mvnw --batch-mode --no-transfer-progress -f investigation/oauth/pom.xml test
       - name: Build deployable container
         run: |
-          docker build --tag busystack-caldav:ci .
+          docker build --build-arg SOURCE_REVISION="$GITHUB_SHA" --tag busystack-caldav:ci .
           docker image inspect --format '{{.Id}}' busystack-caldav:ci | tee target/application-image-id.txt
           host_jar_sha=$(sha256sum target/caldav-server-0.0.1-SNAPSHOT.jar)
           image_jar_sha=$(docker run --rm --entrypoint sha256sum busystack-caldav:ci /opt/busystack/application.jar)
           test "${host_jar_sha%% *}" = "${image_jar_sha%% *}"
           printf '%s\n' "${host_jar_sha%% *}" > target/application-jar-sha256.txt
+      - name: Inspect actual source, JAR and container license delivery
+        run: |
+          python3 -m unittest discover -s qualification/distribution -p 'test_*.py'
+          python3 scripts/verify-distribution.py --image busystack-caldav:ci
+      - name: Scan final container OS packages with a pinned scanner and current database
+        run: python3 scripts/check-container-advisories.py --image busystack-caldav:ci
       - name: Verify packaged startup, restart, and database recovery
         run: python3 scripts/verify-operations.py --image busystack-caldav:ci | tee target/operations-qualification.txt
+      - name: Verify qualification refresh and private snapshot bookkeeping
+        run: python3 -m unittest discover -s qualification/passkeys -p 'test_*.py'
       - name: Build isolated browser qualification image
         run: docker build --tag busystack-passkey-browser:qualification qualification/passkeys
       - name: Verify browser WebAuthn and MFA over trusted test TLS
         run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --groups | tee target/browser-qualification.txt
+      - name: Verify explicit strict synchronization override over real HTTPS
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --groups --strict-sync-depth | tee target/strict-browser-qualification.txt
       - name: Verify HTTPS reverse proxy with preserved servlet path
         run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups | tee target/proxy-qualification.txt
       - name: Build disposable real Keycloak browser fixture
@@ -78,6 +88,7 @@ jobs:
             target/*-qualification.txt
             target/application-image-id.txt
             target/application-jar-sha256.txt
+            target/container-os-advisories*.json
             target/qualification/
             investigation/*/target/surefire-reports/
           if-no-files-found: error

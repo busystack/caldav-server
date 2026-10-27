@@ -21,6 +21,7 @@ import proxy
 import tls
 import oidc
 import recovery
+import sharing_capacity
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -75,11 +76,17 @@ def main():
     parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
     parser.add_argument("--client-python", default=os.environ.get("BUSYSTACK_CLIENT_PYTHON", str(ROOT / ".client-venv/bin/python")))
     parser.add_argument("--workload-output", default=str(ROOT / "target/qualification/workload.json"))
+    parser.add_argument("--strict-sync-depth", action="store_true", help="Explicit false override; default qualification leaves the setting absent")
+    parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
     args = parser.parse_args()
+    if args.workload and args.strict_sync_depth:
+        parser.error("Independent client workload requires the default sync accommodation; strict override has its own protocol checks")
     if args.workload and (not args.restore or args.oidc):
         parser.error("--workload requires the local --restore profile")
     if args.workload and not Path(args.client_python).is_file():
         parser.error("--workload requires the pinned independent-client Python environment")
+    if args.workload and not os.access(args.thunderbird_binary, os.X_OK):
+        parser.error("--workload requires the pinned native Thunderbird binary; use install-thunderbird.sh or --thunderbird-binary")
     if args.restore:
         args.proxy = True
     if args.oidc:
@@ -100,7 +107,7 @@ def main():
     print("BROWSER_PROFILE=" + ("proxy-cross-site-oidc" if args.oidc else "proxy-team" if args.proxy else "embedded-tls" + args.context_path), flush=True)
     print("BROWSER_GROUP_WORKFLOW=" + ("required" if args.groups else "unexecuted"), flush=True)
     print("HTTPS_RESTORE_WORKFLOW=" + ("required" if args.restore else "unexecuted"), flush=True)
-    print("DAV_SYNC_DEPTH_PROFILE=" + ("explicit compatibility for measured python-caldav workload" if args.workload else "strict"), flush=True)
+    print("DAV_SYNC_DEPTH_INPUT=" + ("explicit false strict override" if args.strict_sync_depth else "setting absent; Compose/application default"), flush=True)
     with tempfile.TemporaryDirectory(prefix="busystack-browser-") as temporary:
         directory = Path(temporary)
         directory.chmod(0o700)
@@ -140,8 +147,10 @@ def main():
             BUSYSTACK_ISSUER=base,
             BUSYSTACK_HTTP_PORT="8080",
             BUSYSTACK_ALLOW_INSECURE_LOCAL="false",
-            BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE="true" if args.workload else "false",
         )
+        environment.pop("BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE", None)
+        if args.strict_sync_depth:
+            environment["BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE"] = "false"
         issuer = None
         if args.oidc:
             operations.execute(["docker", "image", "inspect", oidc.IMAGE], environment)
@@ -152,8 +161,9 @@ def main():
         if checkpoint is not None:
             checkpoint.exchange.touch(mode=0o600)
             if args.workload:
-                checkpoint.workload = {"python": args.client_python, "output": args.workload_output}
+                checkpoint.workload = {"python": args.client_python, "output": args.workload_output, "thunderbird": args.thunderbird_binary}
         browser = None
+        sharing_load = None
         try:
             operations.compose(environment, "up", "-d", "--wait", "--wait-timeout", "120", "database")
             if args.oidc:
@@ -183,6 +193,9 @@ def main():
                     "--volume", f"{directory / 'upstream-password'}:/fixture/upstream-password:ro", "--env", "BUSYSTACK_BROWSER_OIDC=true",
                     "--env", "BUSYSTACK_UPSTREAM_USERNAME=" + oidc.USERNAME, "--env", "BUSYSTACK_FEDERATED_USERNAME=" + oidc.INTERNAL_USERNAME,
                     "--env", "BUSYSTACK_UPSTREAM_PASSWORD_FILE=/fixture/upstream-password"]
+            browser_command += ["--env", "BUSYSTACK_SYNC_DEPTH_INPUT=" + ("explicit false strict override" if args.strict_sync_depth else "setting absent; Compose/application default"), "--env", "BUSYSTACK_SYNC_DEPTH_EXPECTED=" + ("false" if args.strict_sync_depth else "true")]
+            if args.workload:
+                browser_command += ["--env", "BUSYSTACK_BROWSER_CAPACITY=true"]
             if args.groups:
                 browser_command += ["--env", "BUSYSTACK_BROWSER_GROUPS=true"]
             if checkpoint is not None:
@@ -220,7 +233,16 @@ def main():
                     line = raw.decode(errors="replace")
                     print(line.replace(password, "[redacted]"), flush=True)
                     signals.add(line)
-                    if line == "READY_RESTORE_BACKUP" and checkpoint is not None:
+                    if line == "READY_CAPACITY_SHARING" and checkpoint is not None and args.workload:
+                        sharing_load = sharing_capacity.SharingCapacity(checkpoint, environment)
+                        sharing_load.seed()
+                        browser.stdin.write(b"CAPACITY_SHARING_SEEDED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_CAPACITY_SHARING_CLEANUP" and sharing_load is not None:
+                        sharing_load.finish()
+                        browser.stdin.write(b"CAPACITY_SHARING_CLEANED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_RESTORE_BACKUP" and checkpoint is not None:
                         checkpoint.backup(environment)
                         browser.stdin.write(b"BACKED_UP\n")
                         browser.stdin.flush()
@@ -283,6 +305,10 @@ def main():
                     print("APPLICATION_DIAGNOSTIC " + line, flush=True)
             raise
         finally:
+            if sharing_load is not None:
+                sharing_load.stop.set()
+                if hasattr(sharing_load, "thread"):
+                    sharing_load.thread.join(timeout=12)
             try:
                 subprocess.run(["docker", "rm", "--force", browser_name], capture_output=True)
                 if browser is not None and browser.poll() is None:

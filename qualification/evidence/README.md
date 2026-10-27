@@ -1,4 +1,31 @@
-# Final qualification evidence — 2026-10-27
+# Qualification evidence
+
+## Completion pass: final artifact qualification pending
+
+The project license is now **Apache-2.0**, selected by the owner and committed in `69c0614`. The Spring Session publishing-metadata issue is resolved by its maintainer; original artifact metadata/hashes remain traceable in [the license inventory](../../docs/third-party-licenses.md). These are resolved decisions, not release blockers.
+
+The correction pass implements default narrow Depth 1 synchronization accommodation, bounded multi-request synchronization/history, selected metadata/property access, construction budgets, inherited language, namespace preflight, mixed-success report handling and manageable sharing. Implementation/regression coverage is maintained in [conformance](../../docs/conformance.md), [synchronization ADR](../../docs/adr/0004-resumable-synchronization.md), [operations](../../docs/operations.md) and [groups](../../docs/groups.md). The former 149/134 suite and image hashes below belong only to the reviewed checkpoint and do not qualify changed source.
+
+| Required current evidence | Status before the final source/image run |
+| --- | --- |
+| Exact source commit, clean full unit/PostgreSQL/security/native-client suite and static analysis | Pending final combined verification and source commit. The intermediate run below is not a pass. |
+| Actual source archive/JAR/container license delivery, canonical Apache-2.0 root SBOM, original third-party material, host/container JAR equality | Inspection entry point and archive regressions are present; final source/image inspection pending. |
+| Default independent clients plus explicit strict HTTPS override | Required fixtures omit the default setting, probe actual missing/0/1 behavior and record configuration input separately. Final image execution pending. |
+| PostgreSQL same-version and V9 restore→invalidation→startup upgrade, malformed migration-history rejection | Required in `scripts/verify-operations.py`; final image execution pending. |
+| Root HTTPS, strict override, proxy prefix, real OIDC, local/federated restoration | Required packaged profiles; final image execution pending. Old valid session replay, actual post-workload public refresh, fresh recent MFA and old credential/token denial remain asserted. |
+| Extended independent traversal and memory/work measurements | Required 10,037-resource/>32 MiB paging, concurrent writes/retries/restart, selected/large property requests and 12,500-grant browser maintenance. Final image measurements pending; see [performance](../../docs/performance.md). |
+| Maven advisories and final-container OS packages | Separate required gates with exact image/feed/scanner metadata; final artifact reports pending. Feed failures or missing severity cannot become clean results. |
+| Remote branch SHA and CI | Pending coherent runtime/harness commits and normal push on `release/v0.0.1`. |
+
+An [intermediate correction run](correction-intermediate-attempt1.json) passed 157 unit cases and ran 166 integration cases with one group-maintenance error. Its recorded JAR is an intermediate artifact. The group issue is being reverified after correction; that failed combined run is not relabeled as final qualification. Historical JSON/TXT results below remain unchanged. New final records must identify their exact source, artifact hashes, configuration, commands and executed results before this pending table is replaced.
+
+Manual graphical account setup, physical authenticators and additional platform clients remain unexecuted unless a new record explicitly executes them. Native headless Thunderbird is actual desktop-provider evidence with that stated boundary. An external security certification is not an added completion requirement.
+
+---
+
+The following section preserves the prior qualification cycle. Its use of “final”, its license-unresolved statement and its then-unexecuted OS scan describe **that historical checkpoint only**; they are not current project status.
+
+## Reviewed checkpoint `495989d` — historical results
 
 The final runtime source, commit `1ebff28026645a4c5570e4cb6d4b1d8ff306665e`, passed 149 unit and 134 integration tests with no failures, errors or skips, and SpotBugs zero findings. Its independently built host/container JAR bytes match. The actual PostgreSQL, independent native/Python clients, packaged browser/proxy/organization/recovery and measured workload results below passed. Historical and failed attempts follow separately; they are not relabeled as final passes.
 
@@ -8,7 +35,7 @@ The final runtime source, commit `1ebff28026645a4c5570e4cb6d4b1d8ff306665e`, pas
 * Root/proxy/organization browser fixture: `sha256:e17ee217a20278b58472fe40021a9de2d267a1927cf25f5f6a14a10737ca5213`.
 * Local/federated restore browser fixture, including the strict saved-request URL assertion fix: `sha256:5cf02b1154bb2c50bbd1d6d75623c6c8032451bad8e189c9d3d5d67a36baac1b`.
 
-## Final results
+### Historical checkpoint results
 
 | Record | Executed scope and result |
 | --- | --- |
@@ -25,22 +52,22 @@ Browser fixtures use Playwright 1.61.1/Chromium 149.0.7827.55 and virtual user-v
 
 The desktop result is the actual native headless provider, not a manual graphical account wizard. Physical authenticators, additional desktop/mobile platforms, container OS advisory coverage and independent security certification remain unexecuted. OSV runtime results are dated feed observations; the additional anonymous NVD scan failed before analysis. The owner has not chosen a project license, which remains a public-distribution blocker. Refer to [the standards matrix](../../docs/conformance.md), [ASVS self-assessment](../../docs/security-verification.md), [versions](../../docs/versions.md) and [advisory scope](../security/README.md).
 
-## Failed attempts retained
+### Earlier failed attempts retained
 
 * An initial combined run passed 123 unit and 120 integration cases but hit the 300-second real Keycloak startup deadline before that class's authentication assertions. The bounded deadline was changed to 480 seconds based on observed startup; complete reruns subsequently passed, including the final 149/134 run. A timeout is not recorded as an authentication pass.
 * The first V9 SQL smoke reached the restored application's Compose health gate and failed after its SQL invalidation/data/permission and offline-recovery assertions. No application diagnostics were retained before cleanup, so the cause is unclassified. Bounded sanitized failure diagnostics were added; serialized baseline and final-image reruns passed without a production change. That failed attempt is not converted into a pass or a startup performance guarantee.
 * [Local HTTPS restore attempt1](restore-local-final-date-attempt1.txt) stopped after restored password login because its fixture expected exactly `/team/`; Spring's legitimate saved request landed on `/team/?continue`. The corrected predicate accepts only the configured origin/root path and optional single empty continue parameter, rejects other origin/path/query/fragment values and requires the account heading. Both final local/federated restore profiles then passed without a production change. [The first benchmark](workload-final-date-attempt1.json) separately passed in 55.37 seconds; it does not make that surrounding restore attempt a pass.
 * An earlier remote CI run stopped before application tests because setup-java rejected Java's four-part 25.0.4.1+1 input as SemVer. The replacement installer extracts and validates the exact JDK from the pinned Temurin image. Current remote CI execution status is reported separately in the handoff; local runtime/profile records do not imply every historical CI run passed.
 
-## Historical checkpoints
+### Earlier checkpoints
 
 These records are superseded for final-artifact claims and retain their original limited scope.
 
-### V1–V4 initial package
+#### V1–V4 initial package
 
 Image `sha256:f0893fa6700b52023be3321a71fb482d7291e0fef8affdf97f1bd53b80f75e94` used Temurin 25.0.4.1+1, Boot 4.1.2/Security 7.1.2, PostgreSQL 18.6, migrations 1–4 and 107 Maven components. [Operations](operations-interim.txt) passed packaged probes/restart and SQL-seeded data/ownership/READ-share recovery with revoked access invalidation. [Browser](browser-interim.txt) passed virtual CTAP2/MFA/restart/disable, but the collection named “tasks” actually used default VEVENT. It did not qualify VTODO content, independent clients, production DAV routes, Keycloak or a reverse proxy. Later fixtures explicitly select and assert VTODO.
 
-### V7 account boundaries
+#### V7 account boundaries
 
 [SQL operations](operations-v7.txt) passed on image `sha256:fcc996eb65cb34449f35cda17a59698e59031befe1ad1d32b41b160a01aaf613`, including authenticated-TCP PostgreSQL readiness, browser/recovery/ceremony invalidation, account generations and rejected/matching external-subject recovery. Interactive restored-provider authentication and HTTP synchronization were outside that smoke test.
 
@@ -48,6 +75,6 @@ Image `sha256:f0893fa6700b52023be3321a71fb482d7291e0fef8affdf97f1bd53b80f75e94` 
 
 An earlier V7 consent attempt failed because the framework's default JDBC module list omitted WebAuthn; the supported mapper correction and regression later passed. An earlier proxy readiness assertion rejected expected backend restart 502; a bounded readiness poll subsequently passed. An earlier cross-site startup attempt failed before browser launch; the complete later run passed. These failures remain failures with the stated scope.
 
-### V9 pre-date baseline
+#### V9 pre-date baseline
 
 [Baseline build](application-baseline-v9.json), source 8da74b8, passed 123 unit/125 integration cases and SpotBugs 0, before the final HTTP date-condition increment. Its exact image was `sha256:461ca83649a45d8ca37ba1570584f567c0bbc95279b14a6662edfc9ce6987e89`. [Serialized operations](operations-v9-baseline.txt) additionally preserved V8 folders/dead properties and V9 groups/grants/retired principals. [Proxy/groups browser](browser-proxy-v9-baseline.txt) additionally passed group-management forms, negative consent-CSRF and the real ordinary recovery-code reset/replay workflow. These are historical baseline results, not substitutes for the final image records above.

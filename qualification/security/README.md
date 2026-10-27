@@ -35,3 +35,9 @@ mvn --batch-mode --no-transfer-progress -f /scan/pom.xml \
 ```
 
 It failed while updating NVD with `NvdApiException: Invalid API Key, length of 0 too short to provided a masked partial key`, followed by `NoDataException: No documents exist`. No NVD analysis completed and no passing NVD result is claimed. A working authenticated feed or separately verified fix/mirror is needed to qualify that additional source in this environment.
+
+## Required final-container OS package scan
+
+After building the final source image, run `python3 scripts/check-container-advisories.py --image busystack-caldav:ci`. The runner downloads **Trivy 0.76.1** from its official release, verifies archive SHA-256 `c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0`, then scans only the locally identified Docker image's OS packages. It records immutable image identity/labels, scanner version, complete package inventory, all reported findings, feed timestamps, database and raw-report hashes. The feed must be no more than 48 hours old and identify actual OS packages; update failures or missing output fail with exit 2. HIGH, CRITICAL and UNKNOWN findings fail with exit 1, including unfixed vulnerabilities. Missing or unrecognized severity fails closed; lower recognized severities remain visible for disposition. The scanner receives an empty private config/ignore file, all standard severities and explicit ignore-unfixed=false, with TRIVY_* shell overrides removed; no package exclusion or advisory suppression is used.
+
+This coverage concerns Ubuntu OS packages, distinct from the required Maven advisory gate. It is not an analysis of application source or a complete vulnerability analysis of manually installed JDK binaries. CI retains raw OS inventory/findings and the separate scan summary; a failed advisory download is never recorded as a clean scan. Trivy's own version source is the [official release](https://github.com/aquasecurity/trivy/releases/tag/v0.76.1).

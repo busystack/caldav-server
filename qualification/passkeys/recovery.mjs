@@ -3,8 +3,9 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {randomBytes} from 'node:crypto';
 import {call} from './transport.mjs';
 import {issueDavCredential} from './dav-credentials.mjs';
+import {qualifySharingCapacity} from './groups.mjs';
 import {qualifyOAuth} from './oauth.mjs';
-import {accountLocation, organizationPrimary, primaryCannotMutate} from './oidc.mjs';
+import {accountLocation, organizationPrimary, primaryCannotMutate, signOut} from './oidc.mjs';
 
 export async function qualifyRestoration({page, base, privateValues, administratorPage, username,
   collectionName, cdp, authenticatorId, waitFor}) {
@@ -42,10 +43,42 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     {clientId: 'browser-native-restore-qualification', clientName: 'Browser Native Restore', retainGrant: true});
   const oldCookie = (await page.context().cookies()).find(value => value.name === 'JSESSIONID')?.value;
   if (oldCookie) privateValues.push(oldCookie);
-  const initial = {username, collection, readerUsername, writerUsername, credential: credential.credential, encoded: credential.encoded, grant};
+  assert.ok(oldCookie, 'A live authenticated snapshot session is required');
+  const initial = {username, collection, readerUsername, writerUsername, credential: credential.credential, encoded: credential.encoded, grant, snapshotCookie: oldCookie};
   writeFileSync(exchange, JSON.stringify(initial), {mode: 0o600});
+  if (process.env.BUSYSTACK_BROWSER_CAPACITY === 'true') {
+    console.log('READY_CAPACITY_SHARING');
+    await waitFor('CAPACITY_SHARING_SEEDED');
+    const state = JSON.parse(readFileSync(exchange, 'utf8'));
+    state.sharingCapacity = await qualifySharingCapacity(page, administratorPage, base, state.sharingCapacity);
+    writeFileSync(exchange, JSON.stringify(state), {mode: 0o600});
+    console.log('READY_CAPACITY_SHARING_CLEANUP');
+    await waitFor('CAPACITY_SHARING_CLEANED');
+  }
   console.log('READY_RESTORE_BACKUP');
   await waitFor('BACKED_UP');
+  const backedUp = JSON.parse(readFileSync(exchange, 'utf8'));
+  assert.equal(backedUp.snapshotCookie, oldCookie);
+  assert.equal(backedUp.grant.clientId, grant.clientId);
+  privateValues.push(backedUp.grant.accessToken, backedUp.grant.refreshToken);
+  Object.assign(grant, backedUp.grant);
+  // A long measured workload must not bypass the normal recent password/organization + passkey requirement.
+  await signOut(page, base);
+  if (federated) {
+    await page.context().clearCookies({domain: /(^|\.)idp\.identity\.test$/});
+    await organizationPrimary(page, base, privateValues, true);
+  } else {
+    const primaryPassword = readFileSync(process.env.BUSYSTACK_BROWSER_PASSWORD_FILE, 'utf8').trimEnd();
+    privateValues.push(primaryPassword);
+    await page.locator('input[name=username]').fill(username);
+    await page.locator('input[name=password]').fill(primaryPassword);
+    await Promise.all([page.waitForURL(url => accountLocation(url, base)),
+      page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+  }
+  await page.goto(base + '/login');
+  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
+  assert.notEqual((await page.context().cookies()).find(value => value.name === 'JSESSIONID')?.value, oldCookie);
+  console.log('HTTPS_RECOVERY_RECENT_PRIMARY_AND_WEBAUTHN_REAUTHENTICATION_PASSED');
   await page.goto(base + '/');
   const device = page.locator('li').filter({hasText: 'Recovery snapshot device'});
   await Promise.all([page.waitForURL(base + '/'), device.getByRole('button', {name: 'Revoke', exact: true}).click()]);
@@ -56,6 +89,10 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Bearer ' + grant.accessToken}})).status, 401);
   console.log('READY_RESTORE_APPLY');
   await waitFor('RESTORED');
+  // Replay the exact cookie proven live at backup, separately from the later reauthenticated browser.
+  const replayedSession = await call(base, '/', {headers: {Cookie: 'JSESSIONID=' + oldCookie}});
+  assert.ok([302, 303, 401, 403].includes(replayedSession.status), 'The snapshot session must not revive after restore');
+  console.log('HTTPS_RECOVERY_SNAPSHOT_SESSION_COOKIE_REPLAY_REJECTED');
   // Restored session rows and factors cannot revive a browser which authenticated before backup.
   await page.goto(base + '/');
   await page.waitForURL(url => url.pathname === prefix + '/login');

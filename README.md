@@ -2,7 +2,7 @@
 
 Independent, self-hosted Java server for calendars and tasks, with PostgreSQL persistence and built-in accounts. Local deployment works without another identity service; an existing Keycloak installation can provide optional OIDC login.
 
-The final runtime passed 149 unit and 134 PostgreSQL/HTTPS integration tests, with no skips and zero SpotBugs findings. Packaged qualification passed startup/restart, trusted-CA root and reverse-proxy deployments, real browser passkey/MFA/recovery/OAuth workflows, real cross-site Keycloak login, and local/federated backup restoration with credential/token invalidation and shared task access. [Exact artifact, commands and results](qualification/evidence/README.md) are retained alongside the [standards matrix](docs/conformance.md).
+The maintained [qualification record](qualification/evidence/README.md) identifies exact source and artifact versions, executed tests, independent clients, packaged deployment/recovery checks and their results. It distinguishes current correction qualification from historical checkpoints. The [standards matrix](docs/conformance.md) connects capabilities and limits to their implementation and regression coverage.
 
 ## Capabilities
 
@@ -25,19 +25,19 @@ python3 -m venv .client-venv
 bash qualification/clients/install-thunderbird.sh .client-tools
 BUSYSTACK_CLIENT_PYTHON="$PWD/.client-venv/bin/python" \
 BUSYSTACK_THUNDERBIRD_BINARY="$PWD/.client-tools/thunderbird/thunderbird" ./mvnw verify
-docker build --tag busystack-caldav:local .
+docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:local .
 ```
 
 Java 25, Docker and the declared integration prerequisites are required; unavailable required fixtures fail visibly. CI also checks formatting/static analysis, runtime advisories with a vulnerable positive control, SBOM generation, packaged deployment and browser/restore profiles.
 
-Follow [operations](docs/operations.md) for the application-plus-PostgreSQL Compose deployment, HTTPS root/subpath proxy configuration, offline administrator bootstrap, secret files, upgrades and safe recovery. Restoring older state disables accounts and removes restored client/factor/session access before verified individual recovery. [Measured workload results](docs/performance.md) describe 270 synthetic resources on a shared host, including query latency, sampled memory/CPU and database behavior; no capacity or high-availability guarantee is inferred.
+Follow [operations](docs/operations.md) for the application-plus-PostgreSQL Compose deployment, HTTPS root/subpath proxy configuration, offline administrator bootstrap, secret files, upgrades and safe recovery. Restoring older state disables accounts and removes restored client/factor/session access before verified individual recovery. [Workload records](docs/performance.md) distinguish measured datasets and artifacts, including request latency, heap/container memory and database behavior; no capacity or high-availability guarantee is inferred.
 
 ## Connect clients and manage access
 
 Sign in through the account interface, enroll a passkey, complete MFA, create event/task collections and issue a named DAV credential. Use the displayed server address and username with that credential as the client's password. Capable registered clients can use browser OAuth instead; the account password is not the default DAV credential.
 
-Python-caldav 3.6.0 and Thunderbird 157.0.1's actual native desktop provider passed calendar/task CRUD, recurrence/alarm/extension round trips, task completion and synchronization, including four-resource cross-client edits. These versions require the explicit `BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=true` compatibility setting before connecting. The default remains strict RFC 6578 Depth 0; the tested Depth 1 behavior is a documented deviation. Desktop qualification used an isolated headless native provider, without a manual graphical account-wizard claim. Physical authenticators and additional client platforms remain unexecuted.
+Python-caldav 3.6.0 and Thunderbird 157.0.1's actual native desktop provider passed calendar/task CRUD, recurrence/alarm/extension round trips, task completion and synchronization, including four-resource cross-client edits. The default accepts their narrowly constrained `Depth: 1` sync reports only with XML sync-level 1; standard missing/Depth 0 headers remain supported. This is a documented RFC 6578 deviation. Set `BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=false` for strict mode. Independent qualification runs omit the setting and record actual effective behavior. Desktop qualification used an isolated headless native provider, without a manual graphical account-wizard claim. Physical authenticators and additional client platforms remain unexecuted.
 
 See [client qualification](qualification/clients/README.md), [account security](docs/account-security.md), [passkeys/MFA](docs/passkeys-and-mfa.md), [OAuth registration](docs/oauth.md), [optional Keycloak](docs/keycloak.md), [sharing groups](docs/groups.md), [security verification](docs/security-verification.md), and [architecture decisions](docs/adr/0001-protocol-engine.md). Security self-assessment is not external certification.
 
-The owner has not selected the repository's project license. That remains a public-distribution blocker; no license is inferred from dependencies. [Third-party inventory and notices](docs/third-party-licenses.md) record their separate licensing evidence and remaining distribution review.
+The project is licensed under [Apache License 2.0](LICENSE). [Third-party inventory and notices](docs/third-party-licenses.md) record separate dependency licenses, resolved upstream metadata provenance and actual source/JAR/container notice delivery.

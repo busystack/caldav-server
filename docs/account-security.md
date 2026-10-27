@@ -10,7 +10,7 @@ Spring Session JDBC **4.1.1**, selected by the Boot **4.1.2** BOM, persists brow
 sessions in PostgreSQL. Migration V6 installs its standard PostgreSQL tables;
 `spring.session.jdbc.initialize-schema=never` prevents automatic schema creation.
 The [module artifact](https://repo.maven.apache.org/maven2/org/springframework/session/spring-session-jdbc/4.1.1/)
-contains an Apache-2.0 license; its published POM metadata differs. See the [specific artifact license review](third-party-licenses.md). The application uses the documented
+contains an Apache-2.0 license; the maintainer resolved the published POM mismatch as an unintended publishing-tool error. See the [specific artifact license review](third-party-licenses.md). The application uses the documented
 [JDBC customization interface](https://docs.spring.io/spring-session/reference/configuration/jdbc.html)
 for concurrent attribute creation.
 
