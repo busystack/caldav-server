@@ -29,6 +29,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+// BusyStack modifications: namespace/class isolation and parameter-list callback correction. See docs/ical4j-parser-patch.md.
 package org.busystack.caldav.calendar.parser;
 
 import net.fortuna.ical4j.data.*;

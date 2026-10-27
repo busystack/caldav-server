@@ -1,6 +1,6 @@
 # Dependency and distribution baseline
 
-Verified on 2026-10-27. The application uses the exact dependency-management baseline below. Actual raw HTTPS, PostgreSQL, native OAuth and independent calendar/task client suites have passed; final packaged browser/restoration qualification is recorded separately in the [conformance matrix](conformance.md). The owner-selected project license remains unresolved.
+Verified on 2026-10-27. The application uses the exact dependency-management baseline below. Actual raw HTTPS, PostgreSQL, native OAuth and independent calendar/task client suites have passed; final packaged browser/restoration qualification is recorded separately in the [conformance matrix](conformance.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately.
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ Verified on 2026-10-27. The application uses the exact dependency-management bas
 | Maven Wrapper | 3.3.4 | [Wrapper](https://maven.apache.org/wrapper/): Apache-2.0; distribution and SHA-256 pinned in `.mvn/wrapper/maven-wrapper.properties` |
 | Spring Boot | 4.1.2 | [Published parent](https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-parent/4.1.2/), [requirements](https://docs.spring.io/spring-boot/system-requirements.html): Apache-2.0 |
 | Spring Security | 7.1.2 | Managed by [Boot BOM](https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.2/spring-boot-dependencies-4.1.2.pom): Apache-2.0 |
-| Spring Session JDBC/core | 4.1.1 | Boot BOM; published JAR/tagged source Apache-2.0, POM metadata differs; [specific artifact evidence](third-party-licenses.md) |
+| Spring Session JDBC/core | 4.1.1 | Boot BOM; Apache-2.0; upstream confirmed erroneous 4.1.1 POM metadata (resolved in publishing tooling for 4.1.2); [specific artifact evidence](third-party-licenses.md) |
 | Spring Framework | 7.0.10 | Boot BOM: Apache-2.0 |
 | Embedded Tomcat | 11.0.27; Jakarta Servlet 6.1 | Boot BOM: Apache-2.0 |
 | PostgreSQL server | 18.6 | [Supported releases](https://www.postgresql.org/support/versioning/), [license](https://www.postgresql.org/about/licence/): PostgreSQL License |
@@ -29,7 +29,7 @@ The required BSD-licensed iCal4j source corrections, provenance, exact changes a
 
 The Maven JVM timezone is pinned to UTC in `.mvn/jvm.config`, using the [supported Maven JVM options file](https://maven.apache.org/configure.html#jvm-options). Spring Boot 4.1.2 repackage otherwise emitted timezone-dependent NTFS extra timestamp fields despite a fixed `project.build.outputTimestamp`: the host UTC−07 and container UTC JARs had identical entry bytes/order but different ZIP metadata. UTC removes that environment difference without modifying archive bytes with a custom tool. Exact final host/container SHA256 comparison belongs to the packaged qualification record.
 
-Build plugins and formatting tools are explicitly versioned in [pom.xml](../pom.xml). `./mvnw package` generates `target/classes/META-INF/sbom/application.cdx.json`, a CycloneDX inventory of runtime dependencies and their declared licenses, which is included in the application artifact. This is evidence for review, not a legal opinion or a completed dependency/license audit. The embedded SBOM identifies each exact runtime Maven module with its group/name/version, package URL and declared license. Inspect it directly with `unzip -p target/caldav-server-0.0.1-SNAPSHOT.jar META-INF/sbom/application.cdx.json`; this avoids a second stale dependency inventory. Bedework and its probes stay under `investigation/protocol` and are absent from the application runtime dependency graph. Container operating-system packages require separate distribution review.
+Build plugins and formatting tools are explicitly versioned in [pom.xml](../pom.xml). `./mvnw package` generates `target/classes/META-INF/sbom/application.cdx.json`, a CycloneDX inventory of runtime dependencies and their declared licenses, which is included in the application artifact. This is evidence for review, an inventory of upstream declarations, with reviewed conclusions and actual notice delivery recorded in the third-party license document. The embedded SBOM identifies each exact runtime Maven module with its group/name/version, package URL and declared license. Inspect it directly with `unzip -p target/caldav-server-0.0.1-SNAPSHOT.jar META-INF/sbom/application.cdx.json`; this avoids a second stale dependency inventory. Bedework and its probes stay under `investigation/protocol` and are absent from the application runtime dependency graph. The final image OS packages have a separate pinned Trivy scan; their inventory/feed/image evidence is distinct from Maven advisories.
 
 ## Container pins
 
@@ -53,6 +53,6 @@ CI installs the exact JDK from the pinned Temurin image through `scripts/install
 
 CI actions use immutable Git commit references in [ci.yml](../.github/workflows/ci.yml). Updating a digest or dependency is a reviewed repository change followed by the required suites; pins do not remove the need to apply security updates.
 
-## Project license decision
+## Project license and distribution
 
-The owner has not selected a license for this repository. No license is inferred from dependencies or neighboring projects. Selection of a project license and review of required notices is an unresolved public-distribution requirement. Engineering and local verification can continue; an open-source release must not be represented as complete until the owner resolves this decision.
+The owner selected Apache License 2.0. The source, executable JAR and image deliver the project license and applicable notices independently of third-party licenses. See [reviewed inventory and artifact checks](third-party-licenses.md).

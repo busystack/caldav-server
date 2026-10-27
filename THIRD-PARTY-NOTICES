@@ -1,0 +1,64 @@
+Third-party distribution material
+=================================
+
+This project incorporates iCal4j 4.4.0 parser and time-zone source under
+BSD-3-Clause. Its Ben Fortuna copyright, full license and modifications remain
+in source and META-INF/licenses/ical4j-parser-BSD-3-Clause.txt. The exact source
+provenance and complete changes are in docs/ical4j-parser-patch.md,
+docs/ical4j-timezone-patch.md and their accompanying patches.
+
+Spring Security 7.1.2 / Spring Session 4.1.1 schemas are adapted under Apache-2.0.
+See META-INF/licenses/spring-derived-schemas.txt for original paths and changes.
+Do not edit already-applied migrations to adjust notices: additional notice
+material accompanies the immutable migrations.
+
+Spring Session core and JDBC 4.1.1 are Apache-2.0. Their published POM's
+"Broadcom Foundation License" is an unintended release-tool metadata error
+confirmed and corrected by the maintainer in:
+https://github.com/spring-projects/spring-session/issues/3910
+The already-published POM cannot change; 4.1.2 was the correction milestone.
+The original POM declarations are retained in the SBOM. The Apache conclusion,
+actual JAR/license/POM hashes and maintainer evidence are recorded separately in
+docs/third-party-licenses.md; dependencies are neither altered nor suppressed.
+
+The executable archive retains every original nested dependency JAR, including
+its original license, copyright, third-party and NOTICE files. The generated
+META-INF/sbom/application.cdx.json identifies exact production versions and
+POM-declared licenses. Runtime dependency archive and notice hashes are checked
+by scripts/verify-distribution.py, whose inspection report is retained in CI.
+
+Some artifacts omit license text from their JARs. The applicable unmodified
+Apache-2.0 license is delivered as META-INF/LICENSE for those Apache-licensed
+components; ASM's BSD copyright/conditions and Logback's dual-license text are
+also delivered separately in META-INF/licenses. This is not a replacement of
+their separate copyright or license. Upstream notices that are present remain
+in the nested artifacts without alteration.
+
+Logback 1.5.38 is dual licensed under EPL-2.0 OR LGPL-2.1-only. The distribution
+uses the EPL-2.0 alternative, retains both alternatives and upstream license-declaration
+material, and offers the exact unmodified sources via Maven Central:
+https://repo.maven.apache.org/maven2/ch/qos/logback/logback-core/1.5.38/logback-core-1.5.38-sources.jar
+https://repo.maven.apache.org/maven2/ch/qos/logback/logback-classic/1.5.38/logback-classic-1.5.38-sources.jar
+Jakarta Annotation API 3.0.0 is distributed under the EPL-2.0 alternative; its
+full original LICENSE.md and NOTICE.md remain in its nested JAR. Its source:
+https://repo.maven.apache.org/maven2/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0-sources.jar
+No source modifications are made to these separately linked dependencies.
+
+The final container additionally includes Eclipse Temurin OpenJDK 25.0.4.1+1,
+GPL-2.0 with Classpath Exception, its assembly exception and component notices
+under /opt/java/openjdk/legal. Exact upstream source distribution and license:
+https://github.com/adoptium/temurin25-binaries/releases/tag/jdk-25.0.4.1%2B1
+https://openjdk.org/legal/gplv2+ce.html
+The Classpath Exception applies to application linking; it does not relicense
+the JDK itself. Ubuntu OS package copyrights/licenses remain available under
+/usr/share/doc/<package>/copyright. The pinned parent image's original legal
+material is retained. Corresponding Ubuntu package sources are available through
+https://archive.ubuntu.com/ubuntu/pool/ and https://security.ubuntu.com/ubuntu/pool/;
+use the exact package/version inventory, Source field and repository listed in
+the image, not an unrelated current binary release. The container-package inventory and vulnerability report
+are separate from the Maven dependency SBOM and are retained as CI evidence.
+
+Bedework investigation modules, Testcontainers, JUnit, Python/Thunderbird,
+Chromium/Playwright, Nginx and Keycloak qualification fixtures are development
+and test tooling, absent from the production application runtime. Their
+separate upstream licenses are not covered by this project's license grant.

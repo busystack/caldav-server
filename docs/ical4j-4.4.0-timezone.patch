@@ -1,6 +1,6 @@
 --- upstream/net/fortuna/ical4j/model/ZoneRulesBuilder.java
 +++ src/main/java/org/busystack/caldav/calendar/timezone/Ical4jZoneRulesBuilder.java
-@@ -1,4 +1,37 @@
+@@ -1,4 +1,38 @@
 -package net.fortuna.ical4j.model;
 +/**
 + * Copyright (c) 2012, Ben Fortuna
@@ -33,13 +33,14 @@
 + * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 + * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 + */
++// BusyStack modifications: namespace/class isolation and finite/horizon observance corrections. See docs/ical4j-timezone-patch.md.
 +package org.busystack.caldav.calendar.timezone;
 +
 +import net.fortuna.ical4j.model.*;
  
  import net.fortuna.ical4j.model.component.Observance;
  import net.fortuna.ical4j.model.component.Standard;
-@@ -30,11 +63,24 @@
+@@ -30,11 +64,24 @@
  /**
   * Construct a {@link java.time.zone.ZoneRules} instance from a {@link net.fortuna.ical4j.model.component.VTimeZone}.
   */
@@ -66,7 +67,7 @@
          this.vTimeZone = vTimeZone;
          return this;
      }
-@@ -106,7 +152,8 @@
+@@ -106,7 +153,8 @@
                  if (periodEnd.isBefore(startDate)) {
                      periodEnd = startDate.plusYears(5);
                  }
@@ -76,7 +77,7 @@
  
                  // Generate onset instances with offset-aware recurrence seeding. The generic
                  // Component.calculateRecurrenceSet anchors recurrence on the floating DTSTART, so when
-@@ -135,7 +182,7 @@
+@@ -135,7 +183,7 @@
                      final Stream<LocalDateTime> rdateOnsets = rdate.getPeriods().isPresent()
                              ? rdate.getPeriods().get().stream().map(p -> LocalDateTime.from(p.getStart()))
                              : rdate.getDates().stream();
@@ -85,7 +86,7 @@
                              .forEach(onsets::add);
                  }
  
-@@ -172,7 +219,7 @@
+@@ -172,7 +220,7 @@
              Temporal until = r.get().getRecur().getUntil();
              return until != null && TemporalComparator.INSTANCE.compare(now, until) > 0;
          });
@@ -94,7 +95,7 @@
              return transitionRules;
          }
  
-@@ -183,10 +230,13 @@
+@@ -183,10 +231,13 @@
              DtStart<LocalDateTime> startDate = observance.getRequiredProperty(Property.DTSTART);
  
              // ignore invalid rules and no-effect transitions (mirrors buildDSTTransitions)

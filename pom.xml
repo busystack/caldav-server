@@ -6,8 +6,7 @@
   <name>BusyStack CalDAV Server</name>
   <description>Independent calendar and task server</description>
   <url>https://github.com/busystack/caldav-server</url>
-  <!-- Do not inherit Spring Boot's project license as a license grant for BusyStack. -->
-  <licenses><license><name>NOASSERTION</name><comments>The repository owner has not selected a project license; no public distribution permission is asserted.</comments></license></licenses>
+  <licenses><license><name>Apache License, Version 2.0</name><url>https://www.apache.org/licenses/LICENSE-2.0</url><distribution>repo</distribution></license></licenses>
   <developers><developer><name>BusyStack contributors</name></developer></developers>
   <scm><connection>scm:git:https://github.com/busystack/caldav-server.git</connection><developerConnection>scm:git:ssh://git@github.com/busystack/caldav-server.git</developerConnection><url>https://github.com/busystack/caldav-server</url></scm>
   <properties><java.version>25</java.version><project.build.outputTimestamp>2026-10-27T00:00:00Z</project.build.outputTimestamp></properties>
@@ -34,6 +33,11 @@
     <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-junit-jupiter</artifactId><scope>test</scope></dependency>
   </dependencies>
   <build>
+    <resources>
+      <resource><directory>src/main/resources</directory></resource>
+      <resource><directory>${project.basedir}</directory><targetPath>META-INF</targetPath><includes><include>LICENSE</include><include>NOTICE</include><include>THIRD-PARTY-NOTICES</include></includes></resource>
+      <resource><directory>licenses</directory><targetPath>META-INF/licenses</targetPath></resource>
+    </resources>
     <plugins>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.5.0</version></plugin>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>

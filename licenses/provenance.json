@@ -1,0 +1,23 @@
+{
+  "EPL-2.0.txt": {
+    "conclusion": "EPL-2.0",
+    "sha256": "0becf16567beb77fa252b7664631dd177c8f9a1889e48995b45379c7130e5303",
+    "source": "https://www.eclipse.org/org/documents/epl-2.0/EPL-2.0.txt"
+  },
+  "LGPL-2.1.txt": {
+    "conclusion": "LGPL-2.1-only alternative delivered without changing the selected EPL conclusion",
+    "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+    "source": "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt"
+  },
+  "asm-9.7.1-copyright-and-license.txt": {
+    "conclusion": "BSD-3-Clause",
+    "entry": "org/objectweb/asm/ClassReader.java initial copyright/license comment, retained verbatim",
+    "sha256": "34b8dd2e1b4b5f822ba633602676297fa82328d9438ba4d7336ec7393d212e06",
+    "source": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1-sources.jar"
+  },
+  "logback-LICENSE.txt": {
+    "conclusion": "EPL-2.0 OR LGPL-2.1-only; this distribution selects EPL-2.0",
+    "sha256": "f1eedf4f2cb9e901d6ae549a06d0c20dcde0136d37e38b50adaf51d4673f66d2",
+    "source": "https://raw.githubusercontent.com/qos-ch/logback/v_1.5.38/LICENSE.txt"
+  }
+}
