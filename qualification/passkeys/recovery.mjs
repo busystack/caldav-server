@@ -4,7 +4,7 @@ import {randomBytes} from 'node:crypto';
 import {call} from './transport.mjs';
 import {issueDavCredential} from './dav-credentials.mjs';
 import {qualifyOAuth} from './oauth.mjs';
-import {organizationPrimary, primaryCannotMutate} from './oidc.mjs';
+import {accountLocation, organizationPrimary, primaryCannotMutate} from './oidc.mjs';
 
 export async function qualifyRestoration({page, base, privateValues, administratorPage, username,
   collectionName, cdp, authenticatorId, waitFor}) {
@@ -79,7 +79,9 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     privateValues.push(password);
     await page.locator('input[name=username]').fill(username);
     await page.locator('input[name=password]').fill(password);
-    await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+    await Promise.all([page.waitForURL(url => accountLocation(url, base)),
+      page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+    await page.getByRole('heading', {name: 'BusyStack account', exact: true}).waitFor();
   }
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');

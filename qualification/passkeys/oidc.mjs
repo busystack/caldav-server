@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
+export function accountLocation(url, base) {
+  const publicUrl = new URL(base);
+  const prefix = publicUrl.pathname.replace(/\/$/, '');
+  return url.origin === publicUrl.origin && url.pathname === prefix + '/' && !url.hash
+    && (url.search === '' || (url.searchParams.size === 1 && url.searchParams.get('continue') === ''));
+}
+
 export async function organizationPrimary(page, base, privateValues, requirePasswordForm = false) {
   const password = readFileSync(process.env.BUSYSTACK_UPSTREAM_PASSWORD_FILE, 'utf8').trimEnd();
   privateValues.push(password);
@@ -20,8 +27,9 @@ export async function organizationPrimary(page, base, privateValues, requirePass
       else assert.equal(await username.inputValue(), process.env.BUSYSTACK_UPSTREAM_USERNAME);
     }
     await page.locator('#password').fill(password);
-    await Promise.all([page.waitForURL(url => url.origin === new URL(base).origin), page.locator('#kc-login').click()]);
+    await Promise.all([page.waitForURL(url => accountLocation(url, base)), page.locator('#kc-login').click()]);
   }
+  await page.waitForURL(url => accountLocation(url, base));
   await dashboard.waitFor();
   await page.locator('main > p').first().getByText(process.env.BUSYSTACK_FEDERATED_USERNAME, {exact: true}).waitFor();
   const cookie = (await page.context().cookies()).find(value => value.name === 'JSESSIONID');
