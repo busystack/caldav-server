@@ -421,6 +421,18 @@ public class DavStore {
       String resourceName,
       Map<QName, String> set,
       Set<QName> remove) {
+    patch(actor, home, path, resourceName, set, remove, WriteCondition.none());
+  }
+
+  @Transactional
+  public void patch(
+      UUID actor,
+      UUID home,
+      String path,
+      String resourceName,
+      Map<QName, String> set,
+      Set<QName> remove,
+      WriteCondition condition) {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     writableHome(actor, home);
     checkPath(path, true);
@@ -430,9 +442,14 @@ public class DavStore {
       lockCollections(entry.collection().id());
       requireWrite(actor, entry.collection().id());
     } else if (resourceName != null) throw new StoreException(StoreException.Kind.CONFLICT);
+    CalendarStore.Resource resource =
+        resourceName == null ? null : calendars.get(actor, entry.collection().id(), resourceName);
+    if (resourceName != null && resource == null) missing();
+    condition.check(
+        resource == null ? null : resource.etag(),
+        true,
+        resource == null ? null : resource.modifiedAt());
     validateProperties(set, remove);
-    if (resourceName != null && calendars.get(actor, entry.collection().id(), resourceName) == null)
-      missing();
     if (remove.contains(DISPLAY_NAME) && resourceName == null)
       throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
     if (set.containsKey(DISPLAY_NAME)) {
@@ -527,7 +544,7 @@ public class DavStore {
       forbidden();
     var source = calendars.get(actor, sourceCollection, sourceName);
     if (source == null) missing();
-    condition.check(source.etag());
+    condition.check(source.etag(), true, source.modifiedAt());
     var destination = calendars.get(actor, destinationCollection, destinationName);
     if (destination != null && !overwrite)
       throw new StoreException(StoreException.Kind.PRECONDITION);
@@ -549,6 +566,10 @@ public class DavStore {
                     || !sourceCollection.equals(destinationCollection)
                     || !name.equals(sourceName)))
       throw new StoreException(StoreException.Kind.UID_CONFLICT);
+    java.sql.Timestamp unchangedDate =
+        destination != null && java.util.Arrays.equals(source.content(), destination.content())
+            ? java.sql.Timestamp.from(destination.modifiedAt())
+            : null;
     if (destination != null)
       jdbc.update(
           "DELETE FROM calendar_resources WHERE collection_id=? AND name=?",
@@ -558,22 +579,24 @@ public class DavStore {
       changed(sourceCollection, sourceName, true);
       long revision = changed(destinationCollection, destinationName, false);
       jdbc.update(
-          "UPDATE calendar_resources SET collection_id=?,name=?,revision=?,updated_at=now() WHERE collection_id=? AND name=?",
+          "UPDATE calendar_resources SET collection_id=?,name=?,revision=?,updated_at=COALESCE(?::timestamptz,clock_timestamp()) WHERE collection_id=? AND name=?",
           destinationCollection,
           destinationName,
           revision,
+          unchangedDate,
           sourceCollection,
           sourceName);
     } else {
       long revision = changed(destinationCollection, destinationName, false);
       jdbc.update(
-          "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) VALUES (?,?,?,?,?,?)",
+          "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision,updated_at) VALUES (?,?,?,?,?,?,COALESCE(?::timestamptz,clock_timestamp()))",
           destinationCollection,
           destinationName,
           source.uid(),
           source.content(),
           source.etag(),
-          revision);
+          revision,
+          unchangedDate);
       jdbc.update(
           "INSERT INTO dav_resource_properties(collection_id,resource_name,namespace,name,xml) SELECT ?,?,namespace,name,xml FROM dav_resource_properties WHERE collection_id=? AND resource_name=?",
           destinationCollection,
@@ -676,6 +699,13 @@ public class DavStore {
           sourcePath,
           characters(prefix(sourcePath)),
           prefix(sourcePath));
+      // Moving a namespace changes every contained resource's URI; an overwritten
+      // destination must never inherit the old source's earlier modification date.
+      for (Binding item : selected)
+        if (item.calendar())
+          jdbc.update(
+              "UPDATE calendar_resources SET updated_at=clock_timestamp() WHERE collection_id=?",
+              item.collectionId());
     } else {
       for (Binding item : selected) {
         String target = destinationPath + item.path().substring(sourcePath.length());
@@ -1051,7 +1081,8 @@ public class DavStore {
         rs.getString("uid"),
         rs.getBytes("content"),
         rs.getString("etag"),
-        rs.getLong("revision"));
+        rs.getLong("revision"),
+        rs.getTimestamp("updated_at").toInstant());
   }
 
   private static String prefix(String path) {

@@ -1,11 +1,12 @@
 package org.busystack.caldav.protocol;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.busystack.caldav.storage.WriteCondition;
 
-/** RFC 9110 entity tags; evaluation occurs again under the storage mutation lock. */
+/** RFC 9110 validators; mutation conditions are evaluated again under the storage lock. */
 final class HttpConditions {
   private HttpConditions() {}
 
@@ -18,20 +19,38 @@ final class HttpConditions {
         excludes = new LinkedHashSet<>(none == null || create ? Set.of() : tags(none, true));
     // The controller evaluates the complete DAV If expression under one snapshot/global
     // mutation lock. Refining it with only this resource's ETag would discard sync state tokens.
-    return new WriteCondition(create, exists || match != null, matches, excludes);
+    return new WriteCondition(
+        create,
+        exists || match != null,
+        matches,
+        excludes,
+        match == null ? HttpDateValues.parse(request, "If-Unmodified-Since") : null);
   }
 
   static boolean notModified(HttpServletRequest request, String etag, DavPaths paths) {
+    return notModified(request, etag, null, paths);
+  }
+
+  static boolean notModified(
+      HttpServletRequest request, String etag, Instant modifiedAt, DavPaths paths) {
     String match = header(request, "If-Match", ",");
     if (match != null && !match.trim().equals("*")) {
       Set<String> accepted = tags(match, false);
       if (etag == null || !accepted.contains(etag)) throw new DavException(412, null);
     }
+    if (match == null) {
+      Instant unmodified = HttpDateValues.parse(request, "If-Unmodified-Since");
+      if (unmodified != null && modifiedAt != null && modifiedAt.isAfter(unmodified))
+        throw new DavException(412, null);
+    }
     String none = header(request, "If-None-Match", ",");
-    if (none == null) return false;
-    if (none.trim().equals("*")) return true;
-    Set<String> excluded = tags(none, true);
-    return etag != null && excluded.contains(etag);
+    if (none != null) {
+      if (none.trim().equals("*")) return true;
+      Set<String> excluded = tags(none, true);
+      return etag != null && excluded.contains(etag);
+    }
+    Instant modified = HttpDateValues.parse(request, "If-Modified-Since");
+    return modified != null && modifiedAt != null && !modifiedAt.isAfter(modified);
   }
 
   private static String header(HttpServletRequest request, String name, String separator) {

@@ -3,6 +3,7 @@ package org.busystack.caldav.protocol;
 import static org.busystack.caldav.protocol.DavXml.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -71,7 +72,34 @@ final class DavController {
   }
 
   @RequestMapping("/dav/**")
-  ResponseEntity<byte[]> request(HttpServletRequest request, Authentication authentication)
+  void request(
+      HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+      throws IOException {
+    write(response, request.getMethod(), dispatch(request, authentication));
+  }
+
+  // The protocol has already evaluated all validators under its snapshot/mutation locks.
+  // A ResponseEntity return would ask MVC to evaluate GET/HEAD date conditions a second
+  // time, using its different safe-method If-Match and lenient date parsing rules.
+  private static void write(
+      HttpServletResponse response, String method, ResponseEntity<byte[]> result)
+      throws IOException {
+    response.setStatus(result.getStatusCode().value());
+    result
+        .getHeaders()
+        .forEach(
+            (name, values) -> {
+              if (!values.isEmpty()) {
+                response.setHeader(name, values.getFirst());
+                for (int index = 1; index < values.size(); index++)
+                  response.addHeader(name, values.get(index));
+              }
+            });
+    byte[] body = result.getBody();
+    if (body != null && !method.equals("HEAD")) response.getOutputStream().write(body);
+  }
+
+  private ResponseEntity<byte[]> dispatch(HttpServletRequest request, Authentication authentication)
       throws IOException {
     UUID actor = UUID.fromString(authentication.getName());
     try {
@@ -117,7 +145,7 @@ final class DavController {
               case "PUT" -> put(actor, parts, request, body);
               case "DELETE" -> delete(actor, parts, request);
               case "MKCALENDAR", "MKCOL" -> create(actor, parts, method, body);
-              case "PROPPATCH" -> patch(actor, parts, parse(body));
+              case "PROPPATCH" -> patch(actor, parts, request, parse(body));
               case "COPY", "MOVE" -> transfer(actor, parts, request);
               case "ACL" -> acl(actor, parts, parse(body));
               default -> ResponseEntity.status(405).header("Allow", allow()).body(new byte[0]);
@@ -187,9 +215,10 @@ final class DavController {
   @RequestMapping(
       value = "/dav/**",
       method = org.springframework.web.bind.annotation.RequestMethod.OPTIONS)
-  ResponseEntity<byte[]> optionsRequest(HttpServletRequest request, Authentication authentication)
+  void optionsRequest(
+      HttpServletRequest request, HttpServletResponse response, Authentication authentication)
       throws IOException {
-    return request(request, authentication);
+    request(request, response, authentication);
   }
 
   private void evaluateIf(UUID actor, HttpServletRequest request) {
@@ -240,11 +269,21 @@ final class DavController {
     DavNode node = resources.resolve(actor, parts);
     if (node.kind() == DavNode.Kind.RESOURCE) {
       String etag = node.resource().etag();
-      if (HttpConditions.notModified(request, etag, paths))
-        return ResponseEntity.status(304).eTag(etag).body(new byte[0]);
+      java.time.Instant origin = java.time.Instant.now();
+      java.time.Instant modifiedAt =
+          org.busystack.caldav.storage.ModificationDates.effective(
+              node.resource().modifiedAt(), origin);
+      if (HttpConditions.notModified(request, etag, modifiedAt, paths))
+        return ResponseEntity.status(304)
+            .eTag(etag)
+            .header("Date", HttpDateValues.format(origin))
+            .header("Last-Modified", HttpDateValues.format(modifiedAt))
+            .body(new byte[0]);
       byte[] bytes = node.resource().content();
       return ResponseEntity.ok()
           .eTag(etag)
+          .header("Date", HttpDateValues.format(origin))
+          .header("Last-Modified", HttpDateValues.format(modifiedAt))
           .header("Cache-Control", "private, no-cache")
           .header("Content-Type", "text/calendar; charset=utf-8")
           .contentLength(bytes.length)
@@ -362,7 +401,8 @@ final class DavController {
     return ResponseEntity.status(201).header("Location", paths.href(parts, true)).body(new byte[0]);
   }
 
-  private ResponseEntity<byte[]> patch(UUID actor, List<String> parts, Element root) {
+  private ResponseEntity<byte[]> patch(
+      UUID actor, List<String> parts, HttpServletRequest request, Element root) {
     if (!is(root, DAV, "propertyupdate")) throw new DavException(400, null);
     DavNode node = resources.resolve(actor, parts);
     if (node.entry() == null) throw new DavException(403, d("cannot-modify-protected-property"));
@@ -408,7 +448,8 @@ final class DavController {
           String.join("/", binding),
           node.resource() == null ? null : node.resource().name(),
           set,
-          remove);
+          remove,
+          HttpConditions.write(request, paths));
     }
     var document = document();
     Element multistatus = add(document, d("multistatus")),
@@ -735,6 +776,7 @@ final class DavController {
 
   static ResponseEntity<byte[]> xml(int status, org.w3c.dom.Node document) {
     return ResponseEntity.status(status)
+        .header("Date", HttpDateValues.format(java.time.Instant.now()))
         .header("Content-Type", "application/xml; charset=utf-8")
         .header("Cache-Control", "private, no-store")
         .body(bytes(document));

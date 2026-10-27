@@ -1293,4 +1293,374 @@ class DavHttpIT {
         .doesNotContain("multistatus", "calendar-data");
     assertThat(send("GET", resource, "").body()).isEqualTo(content);
   }
+
+  private UUID datedCollection(String display) {
+    return jdbc.queryForObject(
+        "SELECT id FROM collections WHERE owner_id=? AND name=?", UUID.class, alice, display);
+  }
+
+  private void setModificationDate(UUID collection, String name, Instant modifiedAt) {
+    jdbc.update(
+        "UPDATE calendar_resources SET updated_at=? WHERE collection_id=? AND name=?",
+        java.sql.Timestamp.from(modifiedAt),
+        collection,
+        name);
+  }
+
+  @Test
+  void resourceModificationDatesRoundTripWithWholeSecondHttpPrecision() throws Exception {
+    String calendar = create("http-dates", "VEVENT"), resource = calendar + "event.ics";
+    String content = event("http-dates", "Unchanged representation");
+    assertThat(send("PUT", resource, content).statusCode()).isEqualTo(201);
+    Instant modified = Instant.parse("2020-01-01T12:00:00.987654Z");
+    setModificationDate(datedCollection("http-dates"), "event.ics", modified);
+    String date = HttpDateValues.format(modified);
+    var get = send("GET", resource, "");
+    String etag = get.headers().firstValue("ETag").orElseThrow();
+    assertThat(get.statusCode()).isEqualTo(200);
+    assertThat(get.body()).isEqualTo(content);
+    assertThat(get.headers().firstValue("Last-Modified")).contains(date);
+    assertThat(get.headers().firstValue("Date")).isPresent();
+    var head = send("HEAD", resource, "");
+    assertThat(head.statusCode()).isEqualTo(200);
+    assertThat(head.body()).isEmpty();
+    assertThat(head.headers().firstValue("Last-Modified")).contains(date);
+    String properties =
+        "<D:propfind xmlns:D='DAV:'><D:prop><D:getlastmodified/></D:prop></D:propfind>";
+    assertThat(
+            text(send("PROPFIND", resource, properties, "Depth", "0"), "DAV:", "getlastmodified"))
+        .isEqualTo(date);
+    for (String method : List.of("GET", "HEAD")) {
+      var cached = send(method, resource, "", "If-Modified-Since", date);
+      assertThat(cached.statusCode()).isEqualTo(304);
+      assertThat(cached.body()).isEmpty();
+      assertThat(cached.headers().firstValue("Last-Modified")).contains(date);
+      assertThat(cached.headers().firstValue("ETag")).contains(etag);
+      assertThat(
+              send(
+                      method,
+                      resource,
+                      "",
+                      "If-Modified-Since",
+                      HttpDateValues.format(modified.minusSeconds(1)))
+                  .statusCode())
+          .isEqualTo(200);
+      assertThat(
+              send(
+                      method,
+                      resource,
+                      "",
+                      "If-Unmodified-Since",
+                      HttpDateValues.format(modified.minusSeconds(1)),
+                      "If-None-Match",
+                      etag)
+                  .statusCode())
+          .isEqualTo(412);
+      assertThat(
+              send(
+                      method,
+                      resource,
+                      "",
+                      "If-Match",
+                      etag,
+                      "If-Unmodified-Since",
+                      HttpDateValues.format(modified.minusSeconds(1)))
+                  .statusCode())
+          .isEqualTo(200);
+      assertThat(
+              send(
+                      method,
+                      resource,
+                      "",
+                      "If-None-Match",
+                      "\"different\"",
+                      "If-Modified-Since",
+                      date)
+                  .statusCode())
+          .isEqualTo(200);
+    }
+    assertThat(send("PUT", resource, content, "If-Unmodified-Since", date).statusCode())
+        .isEqualTo(204);
+    String patch =
+        "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:client'><D:set><D:prop><X:color>blue</X:color></D:prop></D:set></D:propertyupdate>";
+    assertThat(send("PROPPATCH", resource, patch, "If-Unmodified-Since", date).statusCode())
+        .isEqualTo(207);
+    assertThat(send("GET", resource, "").headers().firstValue("Last-Modified")).contains(date);
+    assertThat(send("GET", resource, "").body()).isEqualTo(content);
+    var protectedDate =
+        send(
+            "PROPPATCH",
+            resource,
+            "<D:propertyupdate xmlns:D='DAV:'><D:set><D:prop><D:getlastmodified>"
+                + date
+                + "</D:getlastmodified></D:prop></D:set></D:propertyupdate>");
+    assertThat(protectedDate.statusCode()).isEqualTo(207);
+    assertThat(protectedDate.body()).contains("403 Forbidden", "cannot-modify-protected-property");
+  }
+
+  @Test
+  void staleDateMutationConditionsLeaveBytesPropertiesRevisionsAndSyncUnchanged() throws Exception {
+    String calendar = create("date-writes", "VEVENT"), target = create("date-target", "VEVENT");
+    String resource = calendar + "event.ics", original = event("date-write", "Original");
+    assertThat(send("PUT", resource, original).statusCode()).isEqualTo(201);
+    Instant modified = Instant.parse("2020-01-01T12:00:00.500Z");
+    setModificationDate(datedCollection("date-writes"), "event.ics", modified);
+    String stale = HttpDateValues.format(modified.minusSeconds(1));
+    String token = currentCollectionToken(calendar), targetToken = currentCollectionToken(target);
+    var before = send("GET", resource, "");
+    String etag = before.headers().firstValue("ETag").orElseThrow();
+    assertThat(
+            send("PUT", resource, event("date-write", "Rejected"), "If-Unmodified-Since", stale)
+                .statusCode())
+        .isEqualTo(412);
+    assertThat(send("DELETE", resource, "", "If-Unmodified-Since", stale).statusCode())
+        .isEqualTo(412);
+    for (String method : List.of("COPY", "MOVE"))
+      assertThat(
+              send(
+                      method,
+                      resource,
+                      "",
+                      "If-Unmodified-Since",
+                      stale,
+                      "Destination",
+                      "https://calendar.example/team/dav" + target + "copied.ics")
+                  .statusCode())
+          .isEqualTo(412);
+    String patch =
+        "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:client'><D:set><D:prop><X:color>rejected</X:color></D:prop></D:set></D:propertyupdate>";
+    assertThat(send("PROPPATCH", resource, patch, "If-Unmodified-Since", stale).statusCode())
+        .isEqualTo(412);
+    assertThat(send("GET", resource, "").body()).isEqualTo(original);
+    assertThat(send("GET", resource, "").headers().firstValue("ETag")).contains(etag);
+    assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+    assertThat(currentCollectionToken(target)).isEqualTo(targetToken);
+    var color =
+        send(
+            "PROPFIND",
+            resource,
+            "<D:propfind xmlns:D='DAV:' xmlns:X='urn:client'><D:prop><X:color/></D:prop></D:propfind>",
+            "Depth",
+            "0");
+    assertThat(color.body()).contains("404 Not Found").doesNotContain("rejected");
+    assertThat(
+            send(
+                    "PUT",
+                    resource,
+                    event("date-write", "Accepted"),
+                    "If-Match",
+                    etag,
+                    "If-Unmodified-Since",
+                    stale)
+                .statusCode())
+        .isEqualTo(204);
+    assertThat(
+            send(
+                    "DELETE",
+                    resource,
+                    "",
+                    "If-Unmodified-Since",
+                    HttpDateValues.format(Instant.now().plusSeconds(3600)))
+                .statusCode())
+        .isEqualTo(204);
+  }
+
+  @Test
+  void legacyAndInvalidHttpDatesHaveTheirSpecifiedWireBehavior() throws Exception {
+    String calendar = create("legacy-dates", "VEVENT"), resource = calendar + "event.ics";
+    String content = event("legacy-date", "Dates");
+    assertThat(send("PUT", resource, content).statusCode()).isEqualTo(201);
+    setModificationDate(
+        datedCollection("legacy-dates"), "event.ics", Instant.parse("1994-11-06T08:49:37.250Z"));
+    for (String date :
+        List.of(
+            "Sun, 06 Nov 1994 08:49:37 GMT",
+            "Sunday, 06-Nov-94 08:49:37 GMT",
+            "Sun Nov  6 08:49:37 1994")) {
+      assertThat(send("GET", resource, "", "If-Modified-Since", date).statusCode()).isEqualTo(304);
+      assertThat(send("PUT", resource, content, "If-Unmodified-Since", date).statusCode())
+          .isEqualTo(204);
+    }
+    for (String invalid :
+        List.of(
+            "invalid date",
+            "Sun, 06 Nov 1994 08:49:37 GMT, Sun, 06 Nov 1994 08:49:37 GMT",
+            "Sun, 06 Nov 1994 08:49:37 GMT trailing")) {
+      assertThat(send("GET", resource, "", "If-Modified-Since", invalid).statusCode())
+          .isEqualTo(200);
+      assertThat(send("PUT", resource, content, "If-Unmodified-Since", invalid).statusCode())
+          .isEqualTo(204);
+    }
+    assertThat(
+            send(
+                    "GET",
+                    resource,
+                    "",
+                    "If-Modified-Since",
+                    "Sun, 06 Nov 1994 08:49:37 GMT",
+                    "If-Modified-Since",
+                    "Sun, 06 Nov 1994 08:49:37 GMT")
+                .statusCode())
+        .isEqualTo(200);
+    assertThat(
+            send(
+                    "PUT",
+                    resource,
+                    content,
+                    "If-Unmodified-Since",
+                    "Sun, 06 Nov 1993 08:49:37 GMT",
+                    "If-Unmodified-Since",
+                    "Sun, 06 Nov 1993 08:49:37 GMT")
+                .statusCode())
+        .isEqualTo(204);
+    assertThat(
+            send("PUT", resource, content, "If-Modified-Since", "Sun, 06 Nov 1994 08:49:37 GMT")
+                .statusCode())
+        .isEqualTo(204);
+  }
+
+  @Test
+  void futureStoredDatesAreClampedToResponseDateForHeadersPropertiesAndConditions()
+      throws Exception {
+    String calendar = create("future-dates", "VEVENT"), resource = calendar + "event.ics";
+    String content = event("future-date", "Restored future timestamp");
+    assertThat(send("PUT", resource, content).statusCode()).isEqualTo(201);
+    setModificationDate(
+        datedCollection("future-dates"), "event.ics", Instant.parse("2100-01-01T00:00:00Z"));
+    var get = send("GET", resource, "");
+    assertThat(get.headers().firstValue("Last-Modified"))
+        .isEqualTo(get.headers().firstValue("Date"));
+    var prop =
+        send(
+            "PROPFIND",
+            resource,
+            "<D:propfind xmlns:D='DAV:'><D:prop><D:getlastmodified/></D:prop></D:propfind>",
+            "Depth",
+            "0");
+    var responseDate =
+        java.time.ZonedDateTime.parse(
+                prop.headers().firstValue("Date").orElseThrow(),
+                java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME)
+            .toInstant();
+    var propertyDate =
+        java.time.ZonedDateTime.parse(
+                text(prop, "DAV:", "getlastmodified"),
+                java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME)
+            .toInstant();
+    assertThat(propertyDate).isBeforeOrEqualTo(responseDate);
+    String effectiveUpperBound = HttpDateValues.format(Instant.now().plusSeconds(60));
+    assertThat(send("GET", resource, "", "If-Modified-Since", effectiveUpperBound).statusCode())
+        .isEqualTo(304);
+    assertThat(
+            send("PUT", resource, content, "If-Unmodified-Since", effectiveUpperBound).statusCode())
+        .isEqualTo(204);
+  }
+
+  @Test
+  void datelessCollectionsIgnoreDateConditionsAndPreserveRedirectAndAuthorizationPrecedence()
+      throws Exception {
+    String calendar = create("dateless-collections", "VEVENT");
+    String past = "Sun, 06 Nov 1994 08:49:37 GMT", future = "Fri, 01 Jan 2100 00:00:00 GMT";
+    for (String path : List.of(home, calendar)) {
+      var get = send("GET", path, "", "If-Unmodified-Since", past, "If-Modified-Since", future);
+      assertThat(get.statusCode()).isEqualTo(200);
+      assertThat(get.headers().firstValue("Last-Modified")).isEmpty();
+      var prop =
+          send(
+              "PROPFIND",
+              path,
+              "<D:propfind xmlns:D='DAV:'><D:prop><D:getlastmodified/></D:prop></D:propfind>",
+              "Depth",
+              "0");
+      assertThat(prop.body()).contains("404 Not Found");
+    }
+    assertThat(
+            send(
+                    "GET",
+                    calendar.substring(0, calendar.length() - 1),
+                    "",
+                    "If-Unmodified-Since",
+                    past)
+                .statusCode())
+        .isEqualTo(308);
+    assertThat(sendAs("GET", calendar, "", bobAuth, "If-Unmodified-Since", past).statusCode())
+        .isEqualTo(403);
+  }
+
+  @Test
+  void dateConditionalWriteWaitsForTheMutationLockThenChecksCommittedContent() throws Exception {
+    String calendar = create("date-concurrent", "VEVENT"), resource = calendar + "event.ics";
+    UUID collection = datedCollection("date-concurrent");
+    String original = event("date-concurrent", "Original"),
+        committed = event("date-concurrent", "Committed first");
+    assertThat(send("PUT", resource, original).statusCode()).isEqualTo(201);
+    Instant oldDate = Instant.parse("2020-01-01T12:00:00Z");
+    setModificationDate(collection, "event.ics", oldDate);
+    String before = currentCollectionToken(calendar);
+    var locked = new java.util.concurrent.CountDownLatch(1);
+    var finish = new java.util.concurrent.CountDownLatch(1);
+    var holderPid = new java.util.concurrent.atomic.AtomicInteger();
+    try (var workers = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var writer =
+          workers.submit(
+              () ->
+                  new org.springframework.transaction.support.TransactionTemplate(transactions)
+                      .executeWithoutResult(
+                          status -> {
+                            org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
+                            holderPid.set(
+                                jdbc.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                            jdbc.queryForObject(
+                                "SELECT id FROM collections WHERE id=? FOR UPDATE",
+                                UUID.class,
+                                collection);
+                            locked.countDown();
+                            try {
+                              if (!finish.await(15, java.util.concurrent.TimeUnit.SECONDS))
+                                throw new AssertionError("Date condition coordination timed out");
+                            } catch (InterruptedException interrupted) {
+                              Thread.currentThread().interrupt();
+                              throw new AssertionError(interrupted);
+                            }
+                            propertyStore.putResource(
+                                alice,
+                                collection,
+                                "event.ics",
+                                committed.getBytes(StandardCharsets.UTF_8),
+                                org.busystack.caldav.storage.WriteCondition.none());
+                          }));
+      try {
+        assertThat(locked.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        var conditional =
+            workers.submit(
+                () ->
+                    send(
+                        "PUT",
+                        resource,
+                        event("date-concurrent", "Must fail"),
+                        "If-Unmodified-Since",
+                        HttpDateValues.format(oldDate)));
+        org.awaitility.Awaitility.await()
+            .atMost(java.time.Duration.ofSeconds(10))
+            .untilAsserted(
+                () ->
+                    assertThat(
+                            jdbc.queryForObject(
+                                "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE ?=ANY(pg_blocking_pids(pid)))",
+                                Boolean.class,
+                                holderPid.get()))
+                        .isTrue());
+        finish.countDown();
+        writer.get(15, java.util.concurrent.TimeUnit.SECONDS);
+        assertThat(conditional.get(15, java.util.concurrent.TimeUnit.SECONDS).statusCode())
+            .isEqualTo(412);
+      } finally {
+        finish.countDown();
+      }
+    }
+    assertThat(send("GET", resource, "").body()).isEqualTo(committed);
+    var delta = send("REPORT", calendar, sync(before, 100));
+    assertThat(delta.statusCode()).isEqualTo(207);
+    assertThat(xml(delta).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(1);
+  }
 }

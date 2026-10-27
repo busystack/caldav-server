@@ -82,4 +82,37 @@ class HttpConditionsTest {
               () -> DavIf.parse(malformed, "/team/dav/calendars/user/events/item.ics", paths))
           .isInstanceOf(DavException.class);
   }
+
+  @Test
+  void entityTagConditionsTakePrecedenceOverTheirDateAlternatives() {
+    var modified = java.time.Instant.parse("2020-01-01T12:00:00Z");
+    var match = request("If-Match", "\"current\"");
+    match.addHeader("If-Unmodified-Since", HttpDateValues.format(modified.minusSeconds(1)));
+    assertThat(HttpConditions.notModified(match, "\"current\"", modified, paths)).isFalse();
+    assertThat(HttpConditions.write(match, paths).unmodifiedSince()).isNull();
+    var none = request("If-None-Match", "\"different\"");
+    none.addHeader("If-Modified-Since", HttpDateValues.format(modified.plusSeconds(1)));
+    assertThat(HttpConditions.notModified(none, "\"current\"", modified, paths)).isFalse();
+  }
+
+  @Test
+  void unmodifiedPreconditionsPrecedeCacheValidationAndDatelessNodesIgnoreDates() {
+    var modified = java.time.Instant.parse("2020-01-01T12:00:00Z");
+    var stale = request("If-Unmodified-Since", HttpDateValues.format(modified.minusSeconds(1)));
+    stale.addHeader("If-None-Match", "*");
+    assertThatThrownBy(() -> HttpConditions.notModified(stale, "\"current\"", modified, paths))
+        .isInstanceOf(DavException.class)
+        .extracting("status")
+        .isEqualTo(412);
+    assertThat(
+            HttpConditions.notModified(
+                request("If-Modified-Since", HttpDateValues.format(modified)),
+                "\"current\"",
+                modified,
+                paths))
+        .isTrue();
+    var dates = request("If-Unmodified-Since", HttpDateValues.format(modified.minusSeconds(1)));
+    dates.addHeader("If-Modified-Since", HttpDateValues.format(modified.plusSeconds(1)));
+    assertThat(HttpConditions.notModified(dates, null, null, paths)).isFalse();
+  }
 }

@@ -2,6 +2,7 @@ package org.busystack.caldav.storage;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +23,12 @@ public class CalendarStore {
       long revision,
       long minimum) {}
 
-  public record Resource(String name, String uid, byte[] content, String etag, long revision) {
+  public record Resource(
+      String name, String uid, byte[] content, String etag, long revision, Instant modifiedAt) {
+    public Resource(String name, String uid, byte[] content, String etag, long revision) {
+      this(name, uid, content, etag, revision, null);
+    }
+
     public Resource {
       content = content.clone();
     }
@@ -122,25 +128,29 @@ public class CalendarStore {
     if (!parsed.uid().equals(uid))
       throw new IllegalArgumentException("UID index does not match the resource");
     Resource old = resource(collectionId, name);
-    condition.check(old == null ? null : old.etag());
+    condition.check(
+        old == null ? null : old.etag(), old != null, old == null ? null : old.modifiedAt());
     if (old != null && !old.uid().equals(uid))
       throw new StoreException(StoreException.Kind.UID_CONFLICT);
     long next = c.revision() + 1;
     String etag = etag(content);
+    Instant modifiedAt;
     try {
-      jdbc.update(
-          "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) VALUES (?,?,?,?,?,?) ON CONFLICT (collection_id,name) DO UPDATE SET uid=EXCLUDED.uid,content=EXCLUDED.content,etag=EXCLUDED.etag,revision=EXCLUDED.revision,updated_at=now()",
-          collectionId,
-          name,
-          uid,
-          content,
-          etag,
-          next);
+      modifiedAt =
+          jdbc.queryForObject(
+              "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision,updated_at) VALUES (?,?,?,?,?,?,clock_timestamp()) ON CONFLICT (collection_id,name) DO UPDATE SET uid=EXCLUDED.uid,content=EXCLUDED.content,etag=EXCLUDED.etag,revision=EXCLUDED.revision,updated_at=CASE WHEN calendar_resources.content IS DISTINCT FROM EXCLUDED.content THEN clock_timestamp() ELSE calendar_resources.updated_at END RETURNING updated_at",
+              (rs, row) -> rs.getTimestamp(1).toInstant(),
+              collectionId,
+              name,
+              uid,
+              content,
+              etag,
+              next);
     } catch (DuplicateKeyException ex) {
       throw new StoreException(StoreException.Kind.UID_CONFLICT);
     }
     changed(collectionId, next, name, false);
-    return new Resource(name, uid, content, etag, next);
+    return new Resource(name, uid, content, etag, next, modifiedAt);
   }
 
   @Transactional
@@ -149,7 +159,8 @@ public class CalendarStore {
     Collection c = lock(collectionId);
     authorize(actor, c, true);
     Resource old = resource(collectionId, name);
-    condition.check(old == null ? null : old.etag());
+    condition.check(
+        old == null ? null : old.etag(), old != null, old == null ? null : old.modifiedAt());
     if (old == null) throw new StoreException(StoreException.Kind.NOT_FOUND);
     jdbc.update(
         "DELETE FROM calendar_resources WHERE collection_id=? AND name=?", collectionId, name);
@@ -217,7 +228,7 @@ public class CalendarStore {
         throw new StoreException(StoreException.Kind.LIMIT);
       changes =
           jdbc.query(
-              "SELECT latest.name,latest.deleted,r.uid,r.content,r.etag,r.revision FROM (SELECT DISTINCT ON (name) name,deleted,revision FROM collection_changes WHERE collection_id=? AND revision>? ORDER BY name,revision DESC) latest LEFT JOIN calendar_resources r ON r.collection_id=? AND r.name=latest.name ORDER BY latest.name LIMIT ?",
+              "SELECT latest.name,latest.deleted,r.uid,r.content,r.etag,r.revision,r.updated_at FROM (SELECT DISTINCT ON (name) name,deleted,revision FROM collection_changes WHERE collection_id=? AND revision>? ORDER BY name,revision DESC) latest LEFT JOIN calendar_resources r ON r.collection_id=? AND r.name=latest.name ORDER BY latest.name LIMIT ?",
               (rs, row) ->
                   new Change(
                       rs.getString("name"),
@@ -325,7 +336,8 @@ public class CalendarStore {
         rs.getString("uid"),
         rs.getBytes("content"),
         rs.getString("etag"),
-        rs.getLong("revision"));
+        rs.getLong("revision"),
+        rs.getTimestamp("updated_at").toInstant());
   }
 
   private static void checkName(String name) {

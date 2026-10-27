@@ -273,4 +273,63 @@ class CalendarStoreIT {
     assertThat(store.collection(owner, collection).revision()).isEqualTo(revision);
     assertThat(store.sync(owner, collection, token, 100).changes()).isEmpty();
   }
+
+  @Test
+  void longRunningTransactionsAssignMutationDatesAfterThePriorCommittedMutation() throws Exception {
+    var initial = put("dated.ics", "dated", WriteCondition.create());
+    var started = new CountDownLatch(1);
+    var mutate = new CountDownLatch(1);
+    var transactionStart = new java.util.concurrent.atomic.AtomicReference<Instant>();
+    try (var workers = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var delayed =
+          workers.submit(
+              () ->
+                  new TransactionTemplate(transactions)
+                      .execute(
+                          status -> {
+                            transactionStart.set(
+                                jdbc.queryForObject(
+                                    "SELECT transaction_timestamp()",
+                                    (rs, row) -> rs.getTimestamp(1).toInstant()));
+                            started.countDown();
+                            try {
+                              if (!mutate.await(15, TimeUnit.SECONDS))
+                                throw new AssertionError("Date transaction coordination timed out");
+                            } catch (InterruptedException interrupted) {
+                              Thread.currentThread().interrupt();
+                              throw new AssertionError(interrupted);
+                            }
+                            return store.put(
+                                owner,
+                                collection,
+                                "dated.ics",
+                                "dated",
+                                new String(initial.content(), StandardCharsets.UTF_8)
+                                    .replace("保留", "last mutation")
+                                    .getBytes(StandardCharsets.UTF_8),
+                                WriteCondition.none());
+                          }));
+      try {
+        assertThat(started.await(10, TimeUnit.SECONDS)).isTrue();
+        var preceding =
+            store.put(
+                owner,
+                collection,
+                "dated.ics",
+                "dated",
+                new String(initial.content(), StandardCharsets.UTF_8)
+                    .replace("保留", "preceding mutation")
+                    .getBytes(StandardCharsets.UTF_8),
+                WriteCondition.none());
+        mutate.countDown();
+        var last = delayed.get(15, TimeUnit.SECONDS);
+        assertThat(last.modifiedAt()).isAfter(preceding.modifiedAt());
+        assertThat(last.modifiedAt()).isAfter(transactionStart.get());
+        assertThat(store.get(owner, collection, "dated.ics").modifiedAt())
+            .isEqualTo(last.modifiedAt());
+      } finally {
+        mutate.countDown();
+      }
+    }
+  }
 }

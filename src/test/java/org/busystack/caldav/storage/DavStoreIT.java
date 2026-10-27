@@ -459,4 +459,113 @@ class DavStoreIT {
     assertThat(store.resolve(owner, owner, "work").collection().owner()).isEqualTo(owner);
     assertThat(calendars.get(owner, calendar, "shared.ics")).isNotNull();
   }
+
+  @Test
+  void resourceTransfersAssignDatesForChangedDestinationBytesAndKeepUnchangedDates() {
+    UUID target =
+        store.create(owner, owner, "dated-target", "Target", "VEVENT", Map.of()).collection().id();
+    UUID movedTarget =
+        store.create(owner, owner, "dated-move", "Move", "VEVENT", Map.of()).collection().id();
+    var source = put(calendar, "source.ics", "dated-source");
+    java.time.Instant old = java.time.Instant.parse("2000-01-01T00:00:00.123456Z");
+    jdbc.update(
+        "UPDATE calendar_resources SET updated_at=? WHERE collection_id=?",
+        java.sql.Timestamp.from(old),
+        calendar);
+    java.time.Instant before =
+        jdbc.queryForObject(
+            "SELECT clock_timestamp()", (rs, row) -> rs.getTimestamp(1).toInstant());
+    assertThat(
+            store.transferResource(
+                owner,
+                calendar,
+                "source.ics",
+                target,
+                "copy.ics",
+                false,
+                false,
+                WriteCondition.none()))
+        .isTrue();
+    var copy = calendars.get(owner, target, "copy.ics");
+    assertThat(copy.content()).isEqualTo(source.content());
+    assertThat(copy.modifiedAt()).isAfter(before);
+    java.time.Instant preserved = old.plusSeconds(3600);
+    jdbc.update(
+        "UPDATE calendar_resources SET updated_at=? WHERE collection_id=?",
+        java.sql.Timestamp.from(preserved),
+        target);
+    assertThat(
+            store.transferResource(
+                owner,
+                calendar,
+                "source.ics",
+                target,
+                "copy.ics",
+                false,
+                true,
+                WriteCondition.none()))
+        .isFalse();
+    assertThat(calendars.get(owner, target, "copy.ics").modifiedAt()).isEqualTo(preserved);
+    store.patch(owner, owner, "dated-target", "copy.ics", Map.of(COLOR, BLUE), Set.of());
+    assertThat(calendars.get(owner, target, "copy.ics").modifiedAt()).isEqualTo(preserved);
+    store.putResource(
+        owner,
+        movedTarget,
+        "moved.ics",
+        new String(source.content(), StandardCharsets.UTF_8)
+            .replace("保留", "different bytes")
+            .getBytes(StandardCharsets.UTF_8),
+        WriteCondition.create());
+    jdbc.update(
+        "UPDATE calendar_resources SET updated_at=? WHERE collection_id=?",
+        java.sql.Timestamp.from(preserved),
+        movedTarget);
+    java.time.Instant beforeMove =
+        jdbc.queryForObject(
+            "SELECT clock_timestamp()", (rs, row) -> rs.getTimestamp(1).toInstant());
+    assertThat(
+            store.transferResource(
+                owner,
+                calendar,
+                "source.ics",
+                movedTarget,
+                "moved.ics",
+                true,
+                true,
+                WriteCondition.none()))
+        .isFalse();
+    assertThat(calendars.get(owner, movedTarget, "moved.ics").modifiedAt()).isAfter(beforeMove);
+    assertThat(calendars.get(owner, movedTarget, "moved.ics").content())
+        .isEqualTo(source.content());
+  }
+
+  @Test
+  void namespaceMoveDoesNotInheritAnOlderSourceDateAtAnOverwrittenDestination() {
+    UUID target =
+        store
+            .create(owner, owner, "dated-overwrite", "Target", "VEVENT", Map.of())
+            .collection()
+            .id();
+    put(calendar, "event.ics", "namespace-source");
+    put(target, "event.ics", "namespace-target");
+    jdbc.update(
+        "UPDATE calendar_resources SET updated_at=? WHERE collection_id=?",
+        java.sql.Timestamp.from(java.time.Instant.parse("1990-01-01T00:00:00Z")),
+        calendar);
+    jdbc.update(
+        "UPDATE calendar_resources SET updated_at=? WHERE collection_id=?",
+        java.sql.Timestamp.from(java.time.Instant.parse("2000-01-01T00:00:00Z")),
+        target);
+    java.time.Instant before =
+        jdbc.queryForObject(
+            "SELECT clock_timestamp()", (rs, row) -> rs.getTimestamp(1).toInstant());
+    assertThat(
+            store.transfer(
+                owner, owner, "work", owner, "dated-overwrite", true, true, WriteCondition.none()))
+        .isFalse();
+    assertThat(store.resolve(owner, owner, "dated-overwrite").collection().id())
+        .isEqualTo(calendar);
+    assertThat(calendars.get(owner, calendar, "event.ics").modifiedAt()).isAfter(before);
+    assertThat(calendars.get(owner, calendar, "event.ics").uid()).isEqualTo("namespace-source");
+  }
 }

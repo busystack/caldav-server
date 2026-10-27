@@ -147,6 +147,7 @@ final class DavProperties {
     for (String local : COMMON) names.add(d(local));
     if (node.kind() == DavNode.Kind.RESOURCE) {
       names.add(d("getetag"));
+      if (node.resource().modifiedAt() != null) names.add(d("getlastmodified"));
       names.add(d("getcontenttype"));
       names.add(d("getcontentlength"));
     }
@@ -299,6 +300,13 @@ final class DavProperties {
     }
     if (node.kind() == DavNode.Kind.RESOURCE) {
       if (property.equals(d("getetag"))) return text(parent, property, node.resource().etag());
+      if (property.equals(d("getlastmodified")) && node.resource().modifiedAt() != null)
+        return text(
+            parent,
+            property,
+            HttpDateValues.format(
+                org.busystack.caldav.storage.ModificationDates.effective(
+                    node.resource().modifiedAt(), java.time.Instant.now())));
       if (property.equals(d("getcontenttype")))
         return text(parent, property, "text/calendar; charset=utf-8");
       if (property.equals(d("getcontentlength")))
