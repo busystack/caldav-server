@@ -9,3 +9,8 @@ org.busystack.caldav.investigation.NativeOAuthRiskTest: tests=3, failures=0, err
 All 4 framework-probe tests passed. The custom-refresh test reproduces a missing family-revocation control in the stock provider; passing it is not production security qualification.
 Initial fixture iteration using Basic on the authorization endpoint failed because of filter ordering. The final successful run uses form login, CSRF and session cookies.
 Main application PostgreSQL/HTTP qualification is separate.
+
+Re-executed on the selected Temurin 25.0.4.1+1 toolchain, 2026-10-27T07:18:24-07:00.
+Command: JAVA_HOME=/tmp/busystack-tools/jdk-current PATH=/tmp/busystack-tools/jdk-current/bin:/tmp/busystack-tools/maven/bin:$PATH mvn -B -ntp -f investigation/oauth/pom.xml test
+Result: BUILD SUCCESS; 4 tests, zero failures/errors/skips; Maven 1:25 min.
+The narrow probe scope and expected-defect interpretation above remain unchanged.

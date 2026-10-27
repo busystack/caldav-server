@@ -145,5 +145,31 @@
     "projectLicense": "Owner decision pending; root SBOM correctly uses NOASSERTION.",
     "externalSecurityAssessment": "Unexecuted; self-assessment is documented separately."
   },
-  "packagedProfileResults": "See the separate final-image operations/browser/restoration/workload records; this application test record does not mark unexecuted profiles passed."
+  "packagedProfileResults": "See the separate final-image operations/browser/restoration/workload records; this application test record does not mark unexecuted profiles passed.",
+  "packagedBrowserHarnessCommit": "223b36664db14361135561922ea3936a5fa7c687",
+  "remoteCi": {
+    "status": "passed",
+    "commit": "223b36664db14361135561922ea3936a5fa7c687",
+    "runId": 40541039349,
+    "url": "https://github.com/busystack/caldav-server/actions/runs/40541039349",
+    "startedAt": "2026-10-27T16:27:08Z",
+    "completedAt": "2026-10-27T16:43:05Z",
+    "applicationJob": "passed",
+    "dependencyAuditJob": "passed",
+    "hostAndContainerJarComparison": "passed",
+    "applicationTests": {
+      "unit": 149,
+      "integration": 134,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "riskProbeTests": 10,
+    "advisoryGateUnitTests": 4,
+    "packagedProfiles": "startup/restart, browser MFA, proxy, real Keycloak, local and federated HTTPS restoration, workload all passed",
+    "optionalNvdAudit": "unexecuted: NVD_API_KEY was not configured",
+    "applicationEvidenceArtifactId": 12751441912,
+    "dependencyAuditArtifactId": 12749798899,
+    "artifactRetentionUntil": "2026-11-10"
+  }
 }

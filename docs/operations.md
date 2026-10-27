@@ -1,10 +1,10 @@
-# Operations for the current implementation checkpoint
+# Operations
 
-This repository has not completed the requested CalDAV, account-security, OAuth, federation, and client qualification contract. Use the deployment below for isolated engineering verification. The current account-security implementation has focused automated evidence, while complete DAV calendar/task access and independent-client qualification remain unfinished. A running container alone does not establish any acceptance requirement; use the versioned qualification records.
+This deployment runs one application and PostgreSQL. Automated evidence includes real HTTPS DAV, account-security/native OAuth, optional real Keycloak, and independent calendar/task client operations. The [conformance matrix](conformance.md) and [artifact qualification records](../qualification/evidence/README.md) record completed packaged recovery/browser checks and explicitly unexecuted environments. The owner-selected project license is still a public-distribution requirement.
 
 ## Build and verification
 
-Install Java 25 and `unzip`, then use the checked-in wrapper:
+Install Java 25 and `unzip`, then use the checked-in wrapper. Keep `.mvn/jvm.config` in the checkout: it pins the build JVM to UTC so executable JAR timestamp metadata is reproducible across host timezones. It does not change application timezone semantics.
 
 ```sh
 python3 -m venv .client-venv
@@ -53,9 +53,28 @@ Compose secret mounts supply `spring.datasource.password` through Spring's confi
 
 Terminate TLS at a configured reverse proxy and allow its local connection to `127.0.0.1:8080`. Deny public access to `/actuator/`; health probes are for local/container monitoring. Set request-size and timeout limits at the proxy as well as the application. Use valid certificates and clients' normal certificate validation.
 
-For an Nginx hostname-root arrangement, the relevant locations are:
+Put either location arrangement below inside your proxy's HTTPS virtual host, using its real certificate chain and private key. For example, the surrounding Nginx configuration is:
 
 ```nginx
+server {
+    listen 443 ssl;
+    server_name calendar.example.org;
+    ssl_certificate /etc/ssl/caldav/fullchain.pem;
+    ssl_certificate_key /etc/ssl/caldav/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    gzip off;
+    # Insert the matching root or /calendar locations below.
+}
+```
+
+Obtain and renew that certificate through your operator's CA/ACME procedure, protect its private key and test renewal before deployment. The application image contains no production certificate or trust bypass. Run the proxy's configuration validation before reloading it.
+
+Configured public and issuer URLs must use canonical ASCII deployment prefixes such as `/calendar`; literal or percent-encoded Unicode prefixes, semicolons and invalid ports are rejected at startup. Unicode names in calendar/resource segments remain supported. The configured path becomes the servlet context and must be preserved by the proxy.
+
+Disable compression at the application and reverse proxy so strong GET validators identify the representation served. For an Nginx hostname-root arrangement, the relevant locations are:
+
+```nginx
+gzip off;
 location ^~ /actuator/ { return 404; }
 location / {
     client_max_body_size 1m;
@@ -97,7 +116,7 @@ location /calendar/ {
 }
 ```
 
-The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.html#section-3): the well-known segment is inserted before the issuer's path. The Spring application's local metadata endpoint remains inside its servlet context. Use literal configured authority/prefix values in these mappings. The embedded TLS security suite exercises a servlet subpath. The V7 account snapshot also passed the actual pinned Nginx `/team` browser profile and a real cross-site Keycloak callback with normal test-CA validation; see [exact image/evidence scope](../qualification/evidence/README.md). Later protocol/schema changes require final-artifact reruns.
+The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.html#section-3): the well-known segment is inserted before the issuer's path. The Spring application's local metadata endpoint remains inside its servlet context. Use literal configured authority/prefix values in these mappings. The embedded TLS security suite exercises a servlet subpath. The final packaged image passed actual pinned Nginx `/team`, root TLS, cross-site Keycloak and local/federated HTTPS restoration profiles with normal test-CA validation; see [exact image/evidence scope](../qualification/evidence/README.md). Later protocol/schema changes require corresponding artifact reruns.
 
 ## Local administrator bootstrap
 
@@ -128,13 +147,45 @@ docker compose up -d application
 
 The image must already be built and the database healthy. The command refuses to replace any existing account. Do not set bootstrap flags on the ordinary long-running application service.
 
+## Client access and sync compatibility
+
+After browser primary authentication and passkey verification, issue a named DAV credential for each application/device. Configure the client with the public HTTPS CalDAV endpoint, `<public-base-url>/dav/`, the account username and that credential. The account password does not authenticate DAV requests. Revocation, expiry, local disabling and collection permissions are enforced for each client access; OAuth onboarding is a separate registered-client workflow described in [OAuth configuration](oauth.md).
+
+The independently tested python-caldav 3.6.0 and Thunderbird 157.0.1 providers send HTTP `Depth: 1` for synchronization, while RFC 6578 requires `Depth: 0`. Strict mode is the default. To use those tested incremental-sync profiles, explicitly enable the documented compatibility deviation and restart the application:
+
+```sh
+export BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=true
+docker compose up -d application
+```
+
+This accepts `Depth: 1` only with XML sync-level 1. It preserves collection scope, permissions, snapshot/token semantics and limits; invalid, duplicate and infinite Depth remain rejected. It is not literal compliance with that RFC requirement. The exact client/provider operations and native desktop limitations are in [independent-client qualification](../qualification/clients/README.md). Standard discovery and OAuth registration remain distinct.
+
 ## Health, diagnostics and limits
 
 `/actuator/health/liveness` and `/actuator/health/readiness` return probe status without details. The Compose application health check calls readiness locally. Readiness includes the database check. Only health endpoints are exposed by Actuator; there is no public diagnostic dump.
 
-The database connection pool is bounded to 10 connections; connection acquisition times out after 10 seconds. Servlet form bodies are limited to 64 KiB, accepted calendar objects to 1 MiB in the persistence schema, and the container temporary filesystem to 128 MiB. Read the implementation and tests for the current protocol/input limits; these settings alone do not establish bounded decompression, XML, recurrence and query processing.
+The database connection pool is bounded to 10 connections; connection acquisition times out after 10 seconds. Servlet form bodies are limited to 64 KiB, accepted calendar objects to 1 MiB in the persistence schema, and the container temporary filesystem to 128 MiB. DAV request bodies are streamed with a 1 MiB cap; compressed Content-Encoding is rejected with 415 rather than decompressed. The principal protocol/query limits are below; exceeding a budget returns an explicit failure rather than incomplete matching data. These are work bounds, not measured capacity guarantees.
+
+| Boundary | Current limit |
+| --- | --- |
+| DAV XML depth / elements / attributes per element | 32 / 20,000 / 100 |
+| Accepted iCalendar component depth / components | 8 / 2,000 |
+| iCalendar properties / parameter values | 20,000 / 40,000 |
+| Query filter nodes / range days | 256 / 3,660 |
+| Recurrence instances / rule increments / candidate work | 10,000 / 900 / 500,000 |
+| Serialized XML response and cumulative report-copy/expansion reservations | 16 MiB (conservative traversal reservations may fail earlier) |
+
+The fixed query budgets are maintained in `QueryLimits.defaults()`, with additional timezone and aggregate report guards. Raising a limit requires renewed hostile-input and memory qualification.
 
 Application logs must remain free of authorization headers, credential secrets, recovery data, and calendar content. Use container exit status, migration validation failures, health status and database diagnostics when investigating startup. No external telemetry service is required to serve the application.
+
+## Synchronization history and database growth
+
+Resource change and deletion history is retained indefinitely by default. There is no automatic time-based pruning job or operator pruning API. Token generations still change for collection identity/permission changes and restoration. `CalendarStore.pruneHistory` has transactional tests for the collection lock and minimum retained revision, but its existence does not enable scheduled expiry.
+
+Monitor database/volume growth, `pg_total_relation_size('calendar_resources')`, `pg_total_relation_size('collection_changes')`, row counts, dead tuples and ordinary PostgreSQL vacuum statistics. Repeated edits/deletions add history even when current resource count is stable. Recurrence rules are stored as submitted resources rather than materialized into an unbounded occurrence table. Retention needs storage planning and verified backups.
+
+Keep history intact under the supported default. Any future operator pruning interface must perform deletion and the minimum-token update atomically under the same per-collection lock; removing history rows alone cannot provide complete deltas to old clients. No unsupported manual pruning automation is prescribed here.
 
 ## Backup and isolated restoration
 
@@ -156,7 +207,7 @@ docker compose stop application
 ./scripts/restore.sh /private/backups/caldav-2026-10-27.dump
 ```
 
-After loading an archive at schema versions 1 through 8, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. V8 DAV bindings, folders and dead properties remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
+After loading an archive at schema versions 1 through 9, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. DAV bindings, folders, dead properties, sharing groups, group memberships/grants and the retired-principal identity registry remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
 
 Keep **all** application instances stopped during recovery: no running instance may authenticate against state while it is being restored and invalidated. After independently verifying a user's identity, use the controlled local recovery operation with an owner-only file containing a fresh password:
 
@@ -180,9 +231,9 @@ docker compose run --rm --no-deps application \
   --busystack.recovery-subject=verified-existing-subject
 ```
 
-This operation requires the existing issuer/subject pair to match exactly, expires prior upstream verification, clears client access/factors and enables only that account. The next interactive authentication must use the trusted upstream provider and fresh passkey enrollment. It does not create a local password or invent an identity mapping. The operations smoke test checks the offline decision and rejected subject mismatch; full restored-provider/browser authentication still needs its own qualification.
+This operation requires the existing issuer/subject pair to match exactly, expires prior upstream verification, clears client access/factors and enables only that account. The next interactive authentication must use the trusted upstream provider and fresh passkey enrollment. It does not create a local password or invent an identity mapping. The operations smoke test checks the offline decision and rejected subject mismatch. A separate final HTTPS profile passed fresh organization login/passkey enrollment against the same still-running real provider after restoration; old credentials/sync state and unauthorized shared writes remained rejected.
 
-Recover each account explicitly after identity verification; do not run a blanket SQL enable operation. Review restored administrative roles, sharing permissions and OAuth client registrations before allowing access: an older dump cannot know about later permission or registration changes. Users must enroll fresh passkeys and reauthorize clients. Securely remove the temporary password files. Recovery is an operator-controlled local process, without an email-service dependency or a public bypass endpoint. The completed release still requires independent review and full authentication/restore qualification. Any future persisted security state must be included in this policy before its feature is released.
+Recover each account explicitly after identity verification; do not run a blanket SQL enable operation. Review restored administrative roles, sharing permissions and OAuth client registrations before allowing access: an older dump cannot know about later permission or registration changes. Users must enroll fresh passkeys and reauthorize clients. Securely remove the temporary password files. Recovery is an operator-controlled local process, without an email-service dependency or a public bypass endpoint. The executed authentication/restore evidence does not constitute independent security review. Any future persisted security state must be included in this policy before its feature is released.
 
 A full restore qualification must verify users, ownership, resource bytes, sharing, authentication, credential revocation, and invalidated synchronization tokens through the running application. A `pg_restore` exit code alone does not pass that acceptance requirement. See the maintained test evidence for what has actually executed.
 
@@ -190,4 +241,4 @@ A full restore qualification must verify users, ownership, resource bytes, shari
 
 Take and verify a backup, retain the previous application artifact/configuration, stop the application, update pinned images and application code, and run migration validation and the qualification suite against an isolated restored copy before deployment. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema.
 
-Do not claim high availability, automatic failover, a measured user limit, or desktop-client interoperability from this Compose arrangement. These remain qualification work.
+The native Thunderbird and Python client results are scoped to their recorded versions and interoperability profile; see [client evidence](../qualification/clients/README.md). This Compose arrangement provides no high availability, automatic failover or measured user-capacity guarantee. The [executed workload record](performance.md) reports the actual host/image/dataset, end-to-end latency, sampled memory/CPU and PostgreSQL behavior; raw evidence is retained separately. It is one sequential client, not a user-capacity or concurrency guarantee.

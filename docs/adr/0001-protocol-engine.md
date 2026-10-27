@@ -17,7 +17,7 @@ The released Bedework servlet runs on the approved Java/Jakarta/Spring runtime. 
 | Snapshot synchronization, deletion history and permission/restore invalidation | Per-collection row-locked revisions plus generation/recovery epochs; `CalendarStoreIT`, `DavStoreIT`, raw REPORT tests |
 | Browser/DAV/OAuth boundaries | Spring Security filter chains and persistent application repositories; security HTTP and real browser qualification |
 
-The first integrated run passed ten raw HTTPS protocol tests, including event/task storage, reports, ACL isolation, sync, atomic properties and namespace operations. The remaining OPTIONS failure exposed Spring MVC's disabled OPTIONS dispatch and is being rechecked after configuration correction. Query edge cases, group ACL support and complete independent-client qualification remain separate acceptance gates. The conformance and tested-client matrices, rather than this decision alone, determine what has actually been qualified.
+The initial integrated run exposed Spring MVC's disabled OPTIONS dispatch; enabling dispatch corrected it and the later raw HTTPS suite passed. The selected implementation now includes bounded query/recurrence semantics, standard group ACLs and required principal reports. Actual python-caldav3.6.0 and Thunderbird157.0.1 native calendar/task operations have passed through the application with the explicit sync Depth1 compatibility profile. The [conformance matrix](../conformance.md) and final artifact evidence record the exact qualification boundaries; these results do not retrospectively qualify the rejected Bedework backend.
 
 ## Published candidate
 
@@ -56,7 +56,7 @@ The selected implementation above records the concrete released-handler/model pr
 
 ## Concrete PostgreSQL adapter implications
 
-The initial application `CalendarStore` can supply principal-authorized collection discovery, resource reads, serialized conditional writes/deletes, share changes, and snapshot synchronization pages. It does not yet supply the complete semantics expected by `SysIntf`.
+At the investigation checkpoint, the initial `CalendarStore` supplied principal-authorized collection discovery, resource reads, serialized writes/deletes, sharing and sync snapshots. The table below records the concrete work a Bedework adoption would have required at that boundary. The selected application-owned adapter has since implemented those protocol responsibilities directly; this table is historical candidate analysis, not a list of current application stubs.
 
 | Integration responsibility | Work required before adoption |
 | --- | --- |

@@ -87,15 +87,19 @@ not be copied into production.
 `OAuthConfiguration` uses Spring's JDBC registration, authorization, and consent
 stores, with PostgreSQL-specific schema types from migrations V2 and V3. The
 application registers public native clients through a protected administration
-page and requires S256, consent, and recent password plus WebAuthn authentication.
-Unused grants, introspection metadata, signing-key, mTLS, and DPoP advertisements
+page and requires S256, consent, and recent primary plus WebAuthn authentication. Primary
+authentication is a local password or the configured, freshly verified upstream
+OIDC login; arbitrary upstream tokens are not accepted for DAV.
+Unused grants, response modes other than query, introspection metadata, signing-key, mTLS, and DPoP advertisements
 are removed from the selected profile.
 
 `FrameworkGrantBoundary` wraps the framework code, refresh, and revocation
 providers. `RefreshFamilyStore` retains hashed spent tokens and acquires a
-PostgreSQL per-authorization advisory transaction lock before account/family/grant
-mutation. A code exchange and refresh for the same grant therefore share one lock
-order. Family registration joins the code-exchange transaction; refresh executes
+PostgreSQL per-client transaction lock with registration recheck, then a
+per-authorization advisory transaction lock before account/family/grant mutation.
+V7 enforces public-client-ID uniqueness and registered-client foreign keys. A code
+exchange, refresh, revocation, reset and registration removal follow compatible
+lock ordering; removing a client cannot leave a newly committed descendant grant. Family registration joins the code-exchange transaction; refresh executes
 its validation, consumption, framework save, and successor registration together.
 Replay revocation commits before `invalid_grant` is returned, even if a caller
 subsequently rolls back an outer transaction.
@@ -120,13 +124,20 @@ The isolated investigation passed four tests; its recorded result is
 real PostgreSQL. The latter seeds completed interactive grants for most token
 flows, explicitly distinguishing token/DAV qualification from browser/passkey
 qualification. Its real password-only browser test must deny authorization.
-The focused application run on 2026-10-27 executed `OAuthHttpIT` **7/7** and
-`RefreshFamilyStoreIT` **9/9**, with zero failures, errors, or skips, against real
-PostgreSQL 18.6 and embedded Tomcat. The command was:
+The full application run on 2026-10-27 executed `OAuthHttpIT` **16/16** and
+`RefreshFamilyStoreIT` **9/9**, as part of **84 unit +114 integration tests**, with
+zero failures, errors, or skips and no SpotBugs findings. It exercised real
+PostgreSQL 18.6 and embedded Tomcat. The full build command was:
 
 ```sh
-./mvnw -B -ntp spotless:apply verify -Dit.test=OAuthHttpIT,RefreshFamilyStoreIT,SecurityBoundaryIT
+./mvnw -B -ntp spotless:apply clean verify
 ```
+
+Additional cases prove client-removal races, a consistent authorization/client
+read snapshot, unsupported authentication rejection, account-reset/revocation
+lock order and exact WebAuthn authentication serialization through a restricted
+Spring-provided Jackson module. Follow-up protocol corrections have separate
+focused reports; these counts describe the full-run baseline.
 
 That run used Temurin Java 25.0.4.1 and Maven 3.9.12. The PostgreSQL fixture is
 pinned to `postgres:18.6@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6`.
@@ -134,7 +145,9 @@ The per-class Failsafe reports, rather than the presence of test source, are the
 execution evidence. Consult the overall final report for other suites in the
 same command and any later changes.
 
-Full WebAuthn/browser consent and an independent native application, loopback
-redirect validation across arbitrary ports, reverse-proxy issuer subpaths, and
-optional upstream OIDC qualification remain separate acceptance checks. Do not
-infer them from the framework probe or seeded-grant tests.
+Separate trusted-CA Chromium/CTAP2 browser profiles exercise actual passkey/MFA,
+local consent, S256 exchange, refresh and revocation. Real HTTPS Keycloak tests
+cover the optional upstream mode. Neither the framework probe nor seeded grants
+qualify a physical authenticator or an independent native OAuth client; the
+independent python-caldav and Thunderbird profiles use DAV credentials. Final
+artifact, browser/proxy, recovery and restore evidence is recorded separately.

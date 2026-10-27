@@ -1,6 +1,6 @@
 # Dependency and distribution baseline
 
-Verified on 2026-10-27. The application is an implementation checkpoint, not a qualified production CalDAV release. The protocol and native OAuth risk records identify unfinished acceptance requirements.
+Verified on 2026-10-27. The application uses the exact dependency-management baseline below. Actual raw HTTPS, PostgreSQL, native OAuth and independent calendar/task client suites have passed; final packaged browser/restoration qualification is recorded separately in the [conformance matrix](conformance.md). The owner-selected project license remains unresolved.
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ Verified on 2026-10-27. The application is an implementation checkpoint, not a q
 | PostgreSQL server | 18.6 | [Supported releases](https://www.postgresql.org/support/versioning/), [license](https://www.postgresql.org/about/licence/): PostgreSQL License |
 | PostgreSQL JDBC | 42.7.14 | Boot BOM; [license](https://jdbc.postgresql.org/about/license/): BSD-2-Clause |
 | Flyway | 12.4.0 | Boot BOM; [Community source](https://github.com/flyway/flyway): Apache-2.0 for the required core and PostgreSQL modules |
-| iCal4j | 4.4.0 | [Published artifact](https://repo.maven.apache.org/maven2/org/mnode/ical4j/ical4j/4.4.0/), [source](https://github.com/ical4j/ical4j): BSD-3-Clause |
+| iCal4j | 4.4.0 with documented application parser/timezone corrections | [Published artifact](https://repo.maven.apache.org/maven2/org/mnode/ical4j/ical4j/4.4.0/), [source](https://github.com/ical4j/ical4j): BSD-3-Clause |
 | Testcontainers | 2.0.5 | Boot BOM; [source](https://github.com/testcontainers/testcontainers-java): MIT; test scope only |
 | JUnit Jupiter | 6.0.3 | Boot BOM; EPL-2.0; test scope only |
 | Playwright / bundled Chromium | 1.61.1 / 149.0.7827.55 | [Playwright](https://playwright.dev/): Apache-2.0; Chromium contains separately licensed components; test-only browser fixture |
@@ -25,7 +25,11 @@ Verified on 2026-10-27. The application is an implementation checkpoint, not a q
 
 The Boot dependency-management baseline selects framework versions together. No Spring Framework or Spring Security version is independently overridden. Boot 4.1.2 supports Java 17 through 27 and Servlet 6.1; Java 25 is the application toolchain requirement. Java's LTS classification follows the [Java support roadmap](https://www.oracle.com/java/technologies/java-se-support-roadmap.html).
 
-Build plugins and formatting tools are explicitly versioned in [pom.xml](../pom.xml). `./mvnw package` generates `target/classes/META-INF/sbom/application.cdx.json`, a CycloneDX inventory of runtime dependencies and their declared licenses, which is included in the application artifact. This is evidence for review, not a legal opinion or a completed dependency/license audit. The embedded SBOM identifies each exact runtime Maven module with its group/name/version, package URL and declared license. Inspect it directly with `unzip -p target/caldav-server-0.0.1-SNAPSHOT.jar BOOT-INF/classes/META-INF/sbom/application.cdx.json`; this avoids a second stale dependency inventory. Bedework and its probes stay under `investigation/protocol` and are absent from the application runtime dependency graph. Container operating-system packages require separate distribution review.
+The required BSD-licensed iCal4j source corrections, provenance, exact changes and tests are recorded in [parser patch](ical4j-parser-patch.md) and [timezone patch](ical4j-timezone-patch.md).
+
+The Maven JVM timezone is pinned to UTC in `.mvn/jvm.config`, using the [supported Maven JVM options file](https://maven.apache.org/configure.html#jvm-options). Spring Boot 4.1.2 repackage otherwise emitted timezone-dependent NTFS extra timestamp fields despite a fixed `project.build.outputTimestamp`: the host UTC−07 and container UTC JARs had identical entry bytes/order but different ZIP metadata. UTC removes that environment difference without modifying archive bytes with a custom tool. Exact final host/container SHA256 comparison belongs to the packaged qualification record.
+
+Build plugins and formatting tools are explicitly versioned in [pom.xml](../pom.xml). `./mvnw package` generates `target/classes/META-INF/sbom/application.cdx.json`, a CycloneDX inventory of runtime dependencies and their declared licenses, which is included in the application artifact. This is evidence for review, not a legal opinion or a completed dependency/license audit. The embedded SBOM identifies each exact runtime Maven module with its group/name/version, package URL and declared license. Inspect it directly with `unzip -p target/caldav-server-0.0.1-SNAPSHOT.jar META-INF/sbom/application.cdx.json`; this avoids a second stale dependency inventory. Bedework and its probes stay under `investigation/protocol` and are absent from the application runtime dependency graph. Container operating-system packages require separate distribution review.
 
 ## Container pins
 
@@ -44,6 +48,8 @@ The Dockerfiles and Compose file use immutable registry digests, with descriptiv
 The Maven image itself contains Temurin 25.0.2+10. The application Docker build overlays the pinned 25.0.4.1+1 JDK into the builder, so compilation and the deployed runtime use the same selected patch. Initial workspace investigation used the Maven image's existing 25.0.2+10 toolchain; test evidence must state the toolchain actually used.
 
 The Keycloak fixture copies the pinned official distribution onto the pinned Temurin JDK because the official UBI9 runtime requires x86-64-v2 instructions unavailable on the qualification host. No Keycloak application code is changed. The production deployment does not contain Keycloak. Browser certificate tooling is pinned to Ubuntu `libnss3-tools=2:3.98-1ubuntu0.3`; generated certificates and trust databases exist only in disposable private fixture directories.
+
+CI installs the exact JDK from the pinned Temurin image through `scripts/install-ci-jdk.sh`, validates its release/runtime version and exports it for Maven. This avoids setup-java's SemVer rejection of the four-part 25.0.4.1 version without selecting another patch.
 
 CI actions use immutable Git commit references in [ci.yml](../.github/workflows/ci.yml). Updating a digest or dependency is a reviewed repository change followed by the required suites; pins do not remove the need to apply security updates.
 

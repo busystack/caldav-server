@@ -155,3 +155,9 @@ Boot 4.1.2, Security 7.1.2, and PostgreSQL 18.6. The command was:
 Consult the executed qualification report for final combined results and remaining
 checks. These controls have not received an independent security assessment or
 certification.
+
+## DAV credential verifier profile
+
+Each issued DAV credential contains a cryptographically random 256-bit secret and its credential UUID. The current verifier is versioned as `{dav-sha256-v1}` and hashes a fixed purpose label, UUID and secret using SHA-256. Verification uses a constant-time comparison. A fast verifier is appropriate for this generated entropy; human passwords retain BCrypt cost12. Plaintext secrets are displayed only at issuance and are absent from the database.
+
+Existing BCrypt DAV verifiers are verified with the established encoder and upgraded by a conditional database update. A concurrent revocation or replacement prevents that upgrade from restoring access. The focused PostgreSQL credential suite covers generated-secret verification, legacy upgrades and the revocation race. No process-local credential cache delays disabling or revocation; already authorized in-flight work follows the documented transaction boundary.

@@ -1,0 +1,37 @@
+BROWSER_APPLICATION_IMAGE=sha256:9d458a08d84255cd174e3d64a597b794c8a3eaa621b6c050a1fbcee4c798a287
+BROWSER_FIXTURE_IMAGE=sha256:e17ee217a20278b58472fe40021a9de2d267a1927cf25f5f6a14a10737ca5213
+BROWSER_PROFILE=proxy-team
+BROWSER_GROUP_WORKFLOW=required
+HTTPS_RESTORE_WORKFLOW=required
+DAV_SYNC_DEPTH_PROFILE=explicit compatibility for measured python-caldav workload
+PROXY_TEAM_DISCOVERY_METADATA_PRIVACY_METHODS_AND_BODY_LIMITS_PASSED
+PLAYWRIGHT_VERSION=1.61.1
+CHROMIUM_VERSION=149.0.7827.55
+PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED
+BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED
+BROWSER_CONSENT_WITHOUT_CSRF_REJECTED
+BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED
+BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED
+BROWSER_CONSENT_WITHOUT_CSRF_REJECTED
+BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED
+BROWSER_CONSENT_WITHOUT_CSRF_REJECTED
+READY_RESTORE_BACKUP
+WORKLOAD_OBSERVATION elapsedSeconds=27.81 memory=309.9MiB / 1GiB cpu=112.34%
+MEASURED_INDEPENDENT_CLIENT_WORKLOAD_PASSED artifact=/home/albert/busystack/caldav-server/target/qualification/workload.json
+HTTPS_RECOVERY_SNAPSHOT_WITH_VALID_DAV_OAUTH_AND_SYNC_CREATED
+READY_RESTORE_APPLY
+page.waitForURL: Timeout 30000ms exceeded.
+=========================== logs ===========================
+waiting for navigation to "https://localhost:42405/team/" until "load"
+  navigated to "https://localhost:42405/team/?continue"
+============================================================
+    at qualifyRestoration (/qualification/recovery.mjs:82:29)
+    at async file:///qualification/passkeys.mjs:85:5
+Traceback (most recent call last):
+  File "/home/albert/busystack/caldav-server/qualification/passkeys/run.py", line 305, in <module>
+    main()
+    ~~~~^^
+  File "/home/albert/busystack/caldav-server/qualification/passkeys/run.py", line 256, in main
+    assert result == 0, "Browser qualification failed"
+           ^^^^^^^^^^^
+AssertionError: Browser qualification failed

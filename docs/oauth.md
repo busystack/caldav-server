@@ -7,7 +7,7 @@ credential.
 
 ## Register an application
 
-An administrator signs in, verifies a password and passkey, then opens
+An administrator signs in, completes primary authentication and passkey verification, then opens
 `/admin/oauth-clients`. Register the application's client ID, display name, and
 redirect URIs. Changes require both factors within the last ten minutes, enforced
 by the service as well as the browser boundary. Registration is administrator
@@ -38,8 +38,8 @@ that appending a well-known path after an issuer subpath is equivalent.
 Use an established OAuth client implementation. Open the authorization endpoint
 in the system browser with `response_type=code`, the registered `client_id` and
 `redirect_uri`, scope `dav`, unpredictable `state`, and a S256 PKCE challenge. The
-user signs in and completes password plus passkey verification before approving
-access. Exchange the returned code at `/oauth2/token` using form parameters
+user signs in with a local password or the configured upstream OIDC provider and
+completes passkey verification before approving access. Exchange the returned code at `/oauth2/token` using form parameters
 `grant_type=authorization_code`, `client_id`, `redirect_uri`, `code`, and
 `code_verifier`. Do not send a fabricated native-client secret or the user's
 account password.
@@ -82,7 +82,8 @@ a DAV token.
 ## Persistence and recovery
 
 Migrations V2 and V3 create the token-family ledger and Spring Security's JDBC
-client, authorization, and consent stores. Spent refresh tokens are retained as
+client, authorization, and consent stores. V7 adds registered-client integrity
+constraints and cascading grant cleanup; duplicate public client IDs are rejected. Spent refresh tokens are retained as
 SHA-256 verifiers of high-entropy framework-generated tokens. Spring's JDBC
 authorization store contains current bearer credential values and serialized
 security state; protect database access and backups as secret material. The
@@ -90,10 +91,22 @@ selected opaque model does not need signing keys. Boot's demonstration ephemeral
 JWT/JWK auto-configuration is excluded.
 
 Code exchange, refresh consumption, token replacement, and framework grant updates
-use PostgreSQL transactions and a per-authorization advisory lock. Spent-token
+use PostgreSQL transactions. A per-client transaction lock and registration recheck
+precede authorization, account and grant/family row locks. Removing a registration
+therefore cannot race a token exchange, refresh or late authorization save into
+reviving its grants. Native refresh takes its client lock inside its independent
+transaction; an outer transaction never holds the same lock across it. Spent-token
 replay revocation commits before the adapter returns `invalid_grant`. A failure to
 persist a successful rotation rolls back both grant and token changes. No blind
 automatic mutation retry is used.
+
+Authorization state retains the stable account UUID and the security generation
+captured with the original credential snapshot. Resetting an account invalidates
+older grants and sessions. JDBC authorization lookups use one repeatable-read
+snapshot for the authorization and its registered client, and the supported
+Jackson mapper includes Spring's exact WebAuthn module and restrictive type
+validator. These controls also apply when the interactive principal is a real
+WebAuthn authentication rather than a password-token fixture.
 
 Do not delete spent-token history for an unexpired family: that removes replay
 evidence. Expired families may be removed after the operational retention period;
@@ -114,8 +127,20 @@ qualify a WebAuthn ceremony, browser consent flow, an independent native client,
 upstream Keycloak. Consult the executed test report and conformance matrix before
 claiming those capabilities.
 
-The focused application run on 2026-10-27 passed all seven `OAuthHttpIT` and nine
-`RefreshFamilyStoreIT` tests, with zero failures, errors, or skips, on Temurin
-25.0.4.1, Maven 3.9.12, Boot 4.1.2, Security 7.1.2, and PostgreSQL 18.6. See ADR 0002
-for the exact command and image pin. These are component results; the unqualified
-flows above remain unqualified.
+The full application run on 2026-10-27 passed all 16 `OAuthHttpIT` and nine
+`RefreshFamilyStoreIT` tests as part of 84 unit and 114 integration tests, with zero
+failures, errors, or skips and no SpotBugs findings. It used Temurin 25.0.4.1,
+Maven 3.9.12, Boot 4.1.2, Security 7.1.2 and PostgreSQL 18.6. Coverage includes client
+removal during exchange/refresh/read, duplicate registration, revocation/reset
+lock ordering, actual WebAuthn-principal JDBC round trips, unsupported client
+credentials, metadata capability restrictions, code/refresh replay and concurrent
+refresh. These counts record the full-run baseline; subsequent focused protocol
+corrections must be read with their own reports.
+
+The token HTTP suite seeds completed grants for most exchange cases. The separate
+trusted-CA browser qualification uses Chromium's CTAP2 virtual authenticator for
+actual MFA, local consent, S256 exchange, refresh and grant revocation; that is not
+physical-authenticator or third-party native OAuth-client qualification. The
+python-caldav and Thunderbird CalDAV client profiles use DAV credentials. See the
+maintained conformance and operational reports for the final artifact, browser,
+proxy, restore and upstream-provider results.

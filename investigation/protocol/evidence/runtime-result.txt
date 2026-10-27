@@ -32,3 +32,8 @@ It does not qualify a production CalDAV engine.
 
 Initial calendar-query run failed 500 due to missing JAXB runtime;
 adding the supported Boot-managed JAXB provider resolved that failure.
+
+Re-executed on the selected Temurin 25.0.4.1+1 toolchain, 2026-10-27T07:18:32-07:00.
+Command: JAVA_HOME=/tmp/busystack-tools/jdk-current PATH=/tmp/busystack-tools/jdk-current/bin:/tmp/busystack-tools/maven/bin:$PATH mvn -B -ntp -f investigation/protocol/pom.xml test
+Result: BUILD SUCCESS; 6 tests, zero failures/errors/skips; Maven 1:38 min.
+The narrow probe scope and expected-defect interpretation above remain unchanged.
