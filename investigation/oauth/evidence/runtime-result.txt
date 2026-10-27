@@ -1,0 +1,11 @@
+Executed 2026-10-27 UTC
+Command: JAVA_HOME=/tmp/busystack-tools/jdk PATH=/tmp/busystack-tools/jdk/bin:/tmp/busystack-tools/maven/bin:$PATH mvn -B -ntp -f investigation/oauth/pom.xml test
+Environment: Linux x86_64; Java 25.0.2 Temurin; Maven 3.9.12; Boot 4.1.2; Security 7.1.2; Tomcat 11.0.27.
+HTTP: real embedded Tomcat; loopback only. PostgreSQL: not used in this isolated framework probe.
+
+org.busystack.caldav.investigation.CustomizedRefreshRiskTest: tests=1, failures=0, errors=0, skipped=0
+org.busystack.caldav.investigation.NativeOAuthRiskTest: tests=3, failures=0, errors=0, skipped=0
+
+All 4 framework-probe tests passed. The custom-refresh test reproduces a missing family-revocation control in the stock provider; passing it is not production security qualification.
+Initial fixture iteration using Basic on the authorization endpoint failed because of filter ordering. The final successful run uses form login, CSRF and session cookies.
+Main application PostgreSQL/HTTP qualification is separate.
