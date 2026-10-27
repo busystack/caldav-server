@@ -1,0 +1,117 @@
+--- upstream/ical4j-4.4.0/CalendarParserImpl.java
++++ org/busystack/caldav/calendar/parser/Ical4jCalendarParser.java
+@@ -29,7 +29,11 @@
+  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+-package net.fortuna.ical4j.data;
++package org.busystack.caldav.calendar.parser;
++
++import net.fortuna.ical4j.data.*;
++import java.util.ArrayList;
++import java.util.List;
+ 
+ import net.fortuna.ical4j.model.Calendar;
+ import net.fortuna.ical4j.model.Component;
+@@ -52,7 +56,7 @@
+  *
+  * @author Ben Fortuna
+  */
+-public class CalendarParserImpl implements CalendarParser {
++public class Ical4jCalendarParser implements CalendarParser {
+ 	private static final int IGNORE_BEGINNING_NON_WORD_COUNT = 10;
+ 	
+     private static final int WORD_CHAR_START = 32;
+@@ -65,7 +69,7 @@
+ 
+     private static final String UNEXPECTED_TOKEN_MESSAGE = "Expected [{0}], read [{1}]";
+ 
+-    private final Logger log = LoggerFactory.getLogger(CalendarParserImpl.class);
++    private final Logger log = LoggerFactory.getLogger(Ical4jCalendarParser.class);
+ 
+     private final ComponentListParser componentListParser = new ComponentListParser();
+ 
+@@ -81,11 +85,11 @@
+ 
+     private final boolean absorbWhitespaceEnabled;
+ 
+-    public CalendarParserImpl() {
++    public Ical4jCalendarParser() {
+         this(CompatibilityHints.isHintEnabled(CompatibilityHints.KEY_RELAXED_PARSING));
+     }
+ 
+-    public CalendarParserImpl(boolean absorbWhitespaceEnabled) {
++    public Ical4jCalendarParser(boolean absorbWhitespaceEnabled) {
+         this.absorbWhitespaceEnabled = absorbWhitespaceEnabled;
+     }
+ 
+@@ -153,6 +157,7 @@
+             tokeniser.ordinaryChar(':');
+             tokeniser.ordinaryChar(';');
+             tokeniser.ordinaryChar('=');
++            tokeniser.ordinaryChar(',');
+             tokeniser.ordinaryChar('\t');
+             tokeniser.eolIsSignificant(true);
+             tokeniser.whitespaceChars(0, 0);
+@@ -339,36 +344,34 @@
+ 
+             assertToken(tokeniser, in, '=');
+ 
+-            final var paramValue = new StringBuilder();
+-
+-            // preserve quote chars..
+-            if (nextToken(tokeniser, in) == '"') {
+-                paramValue.append('"');
+-                paramValue.append(tokeniser.sval);
+-                paramValue.append('"');
+-            } else if (tokeniser.sval != null) {
+-                paramValue.append(tokeniser.sval);
+-                // check for additional words to account for equals (=) in param-value
+-                int nextToken = nextToken(tokeniser, in);
+-
+-                while (nextToken != ';' && nextToken != ':' && nextToken != ','
+-                        || isEscapedSemicolon(nextToken, paramValue)) {
+-
+-                    if (tokeniser.ttype == StreamTokenizer.TT_WORD) {
+-                        paramValue.append(tokeniser.sval);
+-                    } else {
+-                        paramValue.append((char) tokeniser.ttype);
++            final List<String> values = new ArrayList<>();
++            while (true) {
++                final var paramValue = new StringBuilder();
++                // Preserve the established parser's quoted and unquoted value handling.
++                if (nextToken(tokeniser, in) == '"') {
++                    paramValue.append('"').append(tokeniser.sval).append('"');
++                } else if (tokeniser.sval != null) {
++                    paramValue.append(tokeniser.sval);
++                    int delimiter = nextToken(tokeniser, in);
++                    while (delimiter != ';' && delimiter != ':' && delimiter != ','
++                            || isEscapedSemicolon(delimiter, paramValue)) {
++                        if (tokeniser.ttype == StreamTokenizer.TT_WORD) paramValue.append(tokeniser.sval);
++                        else paramValue.append((char) tokeniser.ttype);
++                        delimiter = nextToken(tokeniser, in);
+                     }
+-
+-                    nextToken = nextToken(tokeniser, in);
++                    tokeniser.pushBack();
++                } else tokeniser.pushBack();
++                values.add(paramValue.toString());
++                if (values.size() > 1000) throw org.busystack.caldav.calendar.query.QueryException.limit();
++                if (nextToken(tokeniser, in) != ',') {
++                    tokeniser.pushBack();
++                    break;
+                 }
+-                tokeniser.pushBack();
+-            } else { //if (tokeniser.sval == null) {
+-                tokeniser.pushBack();
+-            }
+-
++            }
+             try {
+-                handler.parameter(paramName, paramValue.toString());
++                if (handler instanceof ParameterListHandler structured)
++                    structured.parameterValues(paramName, List.copyOf(values));
++                else handler.parameter(paramName, String.join(",", values));
+             } catch (ClassCastException cce) {
+                 throw new ParserException("Error parsing parameter", getLineNumber(tokeniser, in), cce);
+             }

@@ -1,0 +1,14 @@
+target/
+**/target/
+.idea/
+*.iml
+.env
+.env.*
+!.env.example
+backups/
+*.log
+__pycache__/
+**/node_modules/
+.attach_pid*
+
+.client-venv/

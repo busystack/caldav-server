@@ -1,0 +1,5 @@
+* text=auto eol=lf
+mvnw.cmd text eol=crlf
+# Preserve the auditable upstream parser and its exact unified diff.
+src/main/java/org/busystack/caldav/calendar/parser/Ical4jCalendarParser.java whitespace=-blank-at-eol
+docs/ical4j-4.4.0-parser.patch -whitespace

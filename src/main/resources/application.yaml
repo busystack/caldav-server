@@ -1,0 +1,50 @@
+spring:
+  session:
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+  autoconfigure:
+    exclude: org.springframework.boot.security.oauth2.server.authorization.autoconfigure.servlet.OAuth2AuthorizationServerJwtAutoConfiguration
+  application:
+    name: busystack-caldav
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 10000
+  flyway:
+    validate-on-migrate: true
+    clean-disabled: true
+  mvc:
+    log-request-details: false
+    dispatch-options-request: true
+server:
+  address: 127.0.0.1
+  forward-headers-strategy: none
+  error:
+    include-message: never
+    include-stacktrace: never
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        name: JSESSIONID
+        secure: true
+        http-only: true
+        same-site: lax
+  tomcat:
+    max-http-form-post-size: 64KB
+    max-swallow-size: 1MB
+    connection-timeout: 10s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db

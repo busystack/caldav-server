@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Passkeys · BusyStack</title>
+<meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}"><script th:src="@{/assets/security.js}" defer></script></head>
+<body><main><h1>Passkeys</h1><p>First enrollment requires a recent password. Adding or removing an existing passkey requires a recent password and passkey. Your authenticator must verify your presence and unlock the passkey.</p>
+<label>Passkey name <input id="passkey-label" maxlength="100" value="My passkey"></label>
+<button type="button" id="register-passkey" th:attr="data-context=@{/}">Register passkey</button>
+<button type="button" id="authenticate-passkey" th:attr="data-context=@{/}">Verify passkey to complete MFA</button>
+<p id="security-status" role="status" aria-live="polite"></p>
+<table><caption>Registered passkeys</caption><thead><tr><th scope="col">Name</th><th scope="col">Created</th><th scope="col">Last used</th><th scope="col">Action</th></tr></thead>
+<tbody><tr th:each="credential : ${credentials}"><td th:text="${credential.label}"></td><td th:text="${credential.created}"></td><td th:text="${credential.lastUsed}"></td><td><button type="button" class="remove-passkey" th:attr="data-id=${credential.credentialId.toBase64UrlString()},data-context=@{/}">Remove</button></td></tr></tbody></table>
+<p><a th:href="@{/login}">Verify another factor</a> · <a th:href="@{/}">Account management</a></p>
+</main></body></html>
