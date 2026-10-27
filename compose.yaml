@@ -1,0 +1,81 @@
+name: busystack-caldav
+
+services:
+  database:
+    image: postgres:18.6@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: busystack
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --data-checksums
+    secrets:
+      - postgres_admin_password
+      - source: database_password
+        target: spring.datasource.password
+    volumes:
+      - database:/var/lib/postgresql
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/10-busystack.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'PGPASSWORD="$$(cat /run/secrets/spring.datasource.password)" psql -h 127.0.0.1 -U busystack -d busystack --no-psqlrc --tuples-only --no-align --command "SELECT 1" > /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    shm_size: 128mb
+    security_opt:
+      - no-new-privileges:true
+
+  application:
+    build: .
+    image: busystack-caldav:local
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/busystack
+      SPRING_DATASOURCE_USERNAME: busystack
+      BUSYSTACK_PUBLIC_BASE_URL: ${BUSYSTACK_PUBLIC_BASE_URL:?Set the externally visible HTTPS base URL}
+      BUSYSTACK_ISSUER: ${BUSYSTACK_ISSUER:?Set the externally visible HTTPS OAuth issuer}
+      BUSYSTACK_ALLOW_INSECURE_LOCAL: ${BUSYSTACK_ALLOW_INSECURE_LOCAL:-false}
+    secrets:
+      - source: database_password
+        target: spring.datasource.password
+    ports:
+      - '127.0.0.1:${BUSYSTACK_HTTP_PORT:-8080}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=128m,uid=10001,gid=10001
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - |
+          authority_and_path="$${BUSYSTACK_PUBLIC_BASE_URL#*://}"
+          prefix=""
+          if [[ "$$authority_and_path" == */* ]]; then prefix="/$${authority_and_path#*/}"; fi
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET %s/actuator/health/readiness HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' "$$prefix" >&3
+          IFS= read -r status <&3
+          [[ "$$status" == *" 200 "* ]]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+volumes:
+  database:
+
+secrets:
+  database_password:
+    file: ${BUSYSTACK_DATABASE_PASSWORD_FILE:?Set a private absolute path outside the repository}
+  postgres_admin_password:
+    file: ${BUSYSTACK_POSTGRES_ADMIN_PASSWORD_FILE:?Set a private absolute path outside the repository}

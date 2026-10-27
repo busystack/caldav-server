@@ -12,3 +12,5 @@ __pycache__/
 .attach_pid*
 
 .client-venv/
+
+.client-tools/

@@ -1,0 +1,127 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: '25.0.4.1+1'
+      - name: Install pinned independent CalDAV client test dependencies
+        run: |
+          python3 -m venv .client-venv
+          .client-venv/bin/python -m pip install --disable-pip-version-check --no-cache-dir -r qualification/clients/requirements.txt -r qualification/clients/desktop-requirements.txt
+          bash qualification/clients/install-thunderbird.sh .client-tools
+      - name: Require Docker and run unit and integration suites
+        env:
+          BUSYSTACK_CLIENT_PYTHON: ${{ github.workspace }}/.client-venv/bin/python
+          BUSYSTACK_THUNDERBIRD_BINARY: ${{ github.workspace }}/.client-tools/thunderbird/thunderbird
+        run: |
+          docker info > /dev/null
+          ./mvnw --batch-mode --no-transfer-progress verify
+          ./mvnw --batch-mode --no-transfer-progress -f investigation/protocol/pom.xml -s investigation/protocol/settings.xml test
+          ./mvnw --batch-mode --no-transfer-progress -f investigation/oauth/pom.xml test
+      - name: Build deployable container
+        run: docker build --tag busystack-caldav:ci .
+      - name: Verify packaged startup, restart, and database recovery
+        run: python3 scripts/verify-operations.py --image busystack-caldav:ci | tee target/operations-qualification.txt
+      - name: Build isolated browser qualification image
+        run: docker build --tag busystack-passkey-browser:qualification qualification/passkeys
+      - name: Verify browser WebAuthn and MFA over trusted test TLS
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci | tee target/browser-qualification.txt
+      - name: Verify HTTPS reverse proxy with preserved servlet path
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy | tee target/proxy-qualification.txt
+      - name: Build disposable real Keycloak browser fixture
+        run: docker build --tag busystack-keycloak-browser:26.8.1 qualification/keycloak
+      - name: Verify cross-site organization login and local passkey MFA
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc | tee target/oidc-browser-qualification.txt
+      - name: Retain qualification evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: application-evidence
+          retention-days: 14
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/classes/META-INF/sbom/application.cdx.json
+            target/*.cdx.json
+            target/*-qualification.txt
+            target/qualification/
+            investigation/*/target/surefire-reports/
+          if-no-files-found: error
+
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: '25.0.4.1+1'
+      - name: Generate runtime inventory and verify advisory gate failure behavior
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress -DskipTests package
+          python3 -m unittest discover -s qualification/security -p 'test_*.py'
+      - name: Verify known-vulnerable package is detected
+        run: |
+          if python3 scripts/check-advisories.py --sbom qualification/security/positive-control.cdx.json --output target/osv-positive-control.json; then
+            echo 'Advisory positive control incorrectly reported success.' >&2
+            exit 1
+          else
+            audit_status=$?
+            test "$audit_status" -eq 1
+          fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('target/osv-positive-control.json').read_text())
+          assert result['status'] == 'advisories-returned'
+          assert result['affectedPackageCount'] == 1
+          assert any(item['id'] == 'GHSA-jfh8-c2jp-5v3q' for package in result['packages'] for item in package['advisories'])
+          PY
+      - name: Check runtime dependencies against current OSV advisories
+        run: python3 scripts/check-advisories.py
+      - name: Additional NVD audit when feed credential is configured
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [[ -n "${NVD_API_KEY:-}" ]]; then
+            ./mvnw --batch-mode --no-transfer-progress org.owasp:dependency-check-maven:13.0.0:check -DnvdApiKeyEnvironmentVariable=NVD_API_KEY -DfailBuildOnCVSS=7 -DfailOnError=true -DossIndexAnalyzerEnabled=false -Dformats=HTML,JSON
+          else
+            echo 'Additional NVD audit unexecuted: no NVD_API_KEY configured. The required OSV check ran above.'
+          fi
+      - name: Retain dependency audit
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: dependency-audit
+          retention-days: 14
+          path: |
+            target/osv-*.json
+            target/dependency-check-report.*
+          if-no-files-found: error
