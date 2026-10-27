@@ -1,0 +1,149 @@
+{
+  "recordedAt": "2026-10-27",
+  "scope": "Final runtime source, automated application suites, independent clients and reproducible executable artifact; packaged browser/restore/workload profiles are recorded separately.",
+  "runtimeSourceCommit": "1ebff28026645a4c5570e4cb6d4b1d8ff306665e",
+  "qualificationHarnessCommit": "3931b44be86bac99a131dccb7b113cd6bdd27c00",
+  "toolchain": {
+    "java": "Eclipse Temurin 25.0.4.1+1-LTS",
+    "maven": "3.9.12",
+    "wrapper": "3.3.4",
+    "boot": "4.1.2",
+    "security": "7.1.2",
+    "framework": "7.0.10",
+    "tomcat": "11.0.27",
+    "servlet": "6.1",
+    "postgresql": "18.6",
+    "postgresqlJdbc": "42.7.14",
+    "flyway": "12.4.0",
+    "ical4j": "4.4.0",
+    "testcontainers": "2.0.5",
+    "junit": "6.0.3"
+  },
+  "applicationBuild": {
+    "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current PATH=/tmp/busystack-tools/jdk-current/bin:/tmp/busystack-tools/maven/bin:$PATH BUSYSTACK_CLIENT_PYTHON=/tmp/busystack-client-venv/bin/python BUSYSTACK_THUNDERBIRD_BINARY=/tmp/busystack-thunderbird-official/thunderbird/thunderbird ./mvnw -B -ntp clean verify",
+    "finishedAt": "2026-10-27T15:53:07Z",
+    "elapsed": "13m29s",
+    "status": "passed",
+    "unit": {
+      "tests": 149,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "integration": {
+      "tests": 134,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "spotBugs": {
+      "effort": "Max",
+      "threshold": "High",
+      "findings": 0,
+      "analysisErrors": 0
+    }
+  },
+  "focusedDateIncrement": {
+    "command": "./mvnw -B -ntp spotless:apply test-compile failsafe:integration-test failsafe:verify -Dit.test=DavHttpIT,CalendarStoreIT,DavStoreIT",
+    "tests": 58,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "status": "passed"
+  },
+  "independentClients": {
+    "python-caldav": {
+      "allowSyncDepthOne": true,
+      "client": "python-caldav",
+      "icalendar": "7.3.0",
+      "operations": [
+        "principal and home discovery",
+        "calendar and VTODO collection creation",
+        "Unicode event CRUD",
+        "unknown-property round trip",
+        "event time-range query",
+        "server recurrence expansion",
+        "undated task CRUD and completion",
+        "initial and incremental synchronization",
+        "resource and collection deletion"
+      ],
+      "status": "passed",
+      "syncFallbackDisabled": true,
+      "version": "3.6.0"
+    },
+    "thunderbird": {
+      "allowSyncDepthOne": true,
+      "client": "Thunderbird",
+      "crossClient": {
+        "icalendar": "7.3.0",
+        "nativeRecurrenceInstances": 3,
+        "python-caldav": "3.6.0",
+        "sameResources": 4
+      },
+      "driver": "3.7.1",
+      "mode": "isolated headless native desktop CalDAV provider",
+      "operations": [
+        "server discovery by native provider",
+        "recurring event CRUD",
+        "Unicode and unknown-property round trip",
+        "alarm preservation without execution",
+        "undated VTODO CRUD and completion",
+        "same-object Thunderbird to Python to Thunderbird to Python edits",
+        "cross-client recurrence, alarm, extension and completion timestamp preservation",
+        "all-day DATE and exclusive end preservation across both clients",
+        "floating DATE-TIME preservation across both clients",
+        "native refresh and deletion synchronization"
+      ],
+      "status": "passed",
+      "version": "157.0.1"
+    }
+  },
+  "artifact": {
+    "path": "target/caldav-server-0.0.1-SNAPSHOT.jar",
+    "sha256": "b6cfa0332fce0c2b0b60339b643c308a0137b828d82253a418eeb8ce911d01ac",
+    "dockerImageId": "sha256:9d458a08d84255cd174e3d64a597b794c8a3eaa621b6c050a1fbcee4c798a287",
+    "hostAndIndependentContainerJarBytesIdentical": true,
+    "buildJvmTimezone": "UTC",
+    "outputTimestamp": "2026-10-27T00:00:00Z",
+    "sbomEntry": "META-INF/sbom/application.cdx.json",
+    "sbomSha256": "3bb533f23bc9358d953325f3af1d715b2f546639b1755fea902442ad5decbb32",
+    "runtimeMavenComponents": 112,
+    "modifiedIcal4jNoticeIncluded": true
+  },
+  "advisoryGate": {
+    "checkedAt": "2026-10-27T15:59:52.659060+00:00",
+    "runtimePackageVersions": 112,
+    "returnedAdvisories": 0,
+    "status": "passed",
+    "positiveControl": {
+      "package": "org.apache.logging.log4j:log4j-core:2.14.1",
+      "returnedAdvisories": 8,
+      "exitCode": 1,
+      "expectedFailureObserved": true
+    },
+    "failureAndPaginationUnitTests": 4,
+    "nvd": "Anonymous feed attempt failed before analysis; credentialed optional audit remains unexecuted."
+  },
+  "riskExercises": {
+    "bedeworkEmbeddedHttp": {
+      "tests": 6,
+      "status": "passed expected-defect reproductions, not engine conformance"
+    },
+    "publicNativeRefresh": {
+      "tests": 4,
+      "status": "passed framework risk reproductions, not production grant qualification"
+    },
+    "java": "25.0.4.1+1-LTS"
+  },
+  "profileBoundaries": [
+    "Digest is deliberately excluded under the documented HTTPS security profile.",
+    "Independent Thunderbird/python-caldav synchronization used explicit allow-sync-depth-one=true; strict Depth0 remains the default.",
+    "Physical authenticators, manual graphical onboarding and additional client platforms remain unexecuted.",
+    "No independent security certification or scalability/high-availability claim."
+  ],
+  "distribution": {
+    "projectLicense": "Owner decision pending; root SBOM correctly uses NOASSERTION.",
+    "externalSecurityAssessment": "Unexecuted; self-assessment is documented separately."
+  },
+  "packagedProfileResults": "See the separate final-image operations/browser/restoration/workload records; this application test record does not mark unexecuted profiles passed."
+}
