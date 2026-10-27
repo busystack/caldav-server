@@ -17,16 +17,20 @@ public record DeploymentProperties(URI publicBaseUrl, URI issuer, boolean allowI
   private static void validate(URI uri, String name, boolean allowLocal) {
     if (uri == null
         || uri.getHost() == null
+        || uri.getPort() == 0
+        || uri.getPort() > 65535
         || uri.getUserInfo() != null
         || uri.getQuery() != null
         || uri.getFragment() != null
+        || !uri.toString().chars().allMatch(character -> character >= 0x21 && character <= 0x7e)
+        || uri.getRawPath().contains(";")
         || uri.getRawPath().contains("%")
         || uri.getPath().contains("//")
         || uri.getPath().contains("..")
         || (!uri.getPath().isEmpty() && uri.getPath().endsWith("/"))) {
       throw new IllegalArgumentException(
           name
-              + " must be an absolute canonical URL without trailing slash, credentials, query, fragment or encoded path");
+              + " must be an absolute canonical ASCII URL with a valid port and without trailing slash, credentials, query, fragment, semicolon or encoded path");
     }
     boolean local =
         "localhost".equals(uri.getHost())

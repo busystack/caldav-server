@@ -291,7 +291,10 @@ class DavStoreIT {
         Map.of(COLOR, BLUE, display, "<D:displayname xmlns:D=\"DAV:\">新しい名前</D:displayname>"),
         Set.of());
     assertThat(store.resolve(owner, owner, "work").binding().displayName()).isEqualTo("新しい名前");
-    assertThat(store.deadProperties(owner, calendar, null)).containsExactly(Map.entry(COLOR, BLUE));
+    assertThat(store.deadProperties(owner, calendar, null))
+        .containsEntry(COLOR, BLUE)
+        .containsKey(display)
+        .hasSize(2);
     fails(
         () ->
             store.patch(

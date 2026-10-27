@@ -61,6 +61,7 @@ public final class CalendarDataProjection {
   private long candidateWork;
   private int returnedComponents;
   private int returnedPeriods;
+  private long reservedReportBytes;
 
   /** One instance belongs to one REPORT, including every calendar resource in its response. */
   public CalendarDataProjection(QueryLimits limits) {
@@ -71,10 +72,13 @@ public final class CalendarDataProjection {
   public Calendar project(
       CalendarContent.Parsed parsed, Selection selection, FloatingTimezone floating) {
     Objects.requireNonNull(parsed);
+    long sourceBytes = CalendarReportSize.estimate(parsed);
+    reserveBytes(sourceBytes); // Input retained for this report.
+    reserveBytes(sourceBytes); // Baseline report copy, before copying or temporal expansion.
     spend(parsed.calendar().getProperties().size());
     chargeInput(parsed.calendar());
     if (selection == null) {
-      Calendar result = parsed.calendar().copy();
+      Calendar result = CalendarReports.copy(parsed);
       chargeOutput(result);
       return result;
     }
@@ -88,7 +92,7 @@ public final class CalendarDataProjection {
             ? recurrence.expand(parsed, selection.expand(), floating)
             : selection.limitRecurrence() != null
                 ? recurrence.limitRecurrence(parsed, selection.limitRecurrence(), floating)
-                : parsed.calendar().copy();
+                : CalendarReports.copy(parsed);
     if (selection.limitFreeBusy() != null) limitFreeBusy(result, selection.limitFreeBusy());
     if (selection.component() != null) {
       projectProperties(result, selection.component());
@@ -96,6 +100,12 @@ public final class CalendarDataProjection {
     }
     chargeOutput(result);
     return result;
+  }
+
+  private void reserveBytes(long amount) {
+    if (amount > CalendarReportSize.MAX_REPORT_BYTES - reservedReportBytes)
+      throw QueryException.limit();
+    reservedReportBytes += amount;
   }
 
   private void spend(long amount) {

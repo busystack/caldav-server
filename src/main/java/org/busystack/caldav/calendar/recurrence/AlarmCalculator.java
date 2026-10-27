@@ -28,7 +28,7 @@ public final class AlarmCalculator {
       boolean endRelated =
           trigger
               .getParameter(Parameter.RELATED)
-              .map(p -> p.getValue().equals("END"))
+              .map(p -> p.getValue().equalsIgnoreCase("END"))
               .orElse(false);
       first =
           owner

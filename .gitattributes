@@ -1,5 +1,11 @@
 * text=auto eol=lf
 mvnw.cmd text eol=crlf
-# Preserve the auditable upstream parser and its exact unified diff.
+# Preserve auditable upstream sources and their exact unified diffs.
 src/main/java/org/busystack/caldav/calendar/parser/Ical4jCalendarParser.java whitespace=-blank-at-eol
 docs/ical4j-4.4.0-parser.patch -whitespace
+src/main/java/org/busystack/caldav/calendar/timezone/Ical4jZoneRulesBuilder.java whitespace=-blank-at-eol
+docs/ical4j-4.4.0-timezone.patch -whitespace
+
+# Calendar fixtures retain the accepted/client-emitted representation byte for byte.
+src/test/resources/calendar/**/*.ics -text whitespace=cr-at-eol
+src/test/resources/calendar/*.ics -text whitespace=cr-at-eol

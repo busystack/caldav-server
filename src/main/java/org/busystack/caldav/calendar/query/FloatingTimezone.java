@@ -28,6 +28,7 @@ public final class FloatingTimezone {
   public static FloatingTimezone parse(String content) {
     if (content == null || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 65536)
       throw QueryException.limit();
+    org.busystack.caldav.calendar.CalendarTextProfile.validate(content);
     try {
       var registry = new BoundedTimeZoneRegistry();
       var result =
@@ -52,6 +53,10 @@ public final class FloatingTimezone {
         if (nested instanceof QueryException query) throw query;
       throw QueryException.invalid("Malformed calendar timezone");
     }
+  }
+
+  public java.time.Instant coverageEnd() {
+    return registry == null ? null : registry.coverage().get(zoneId.getId());
   }
 
   public ZoneId zoneId() {

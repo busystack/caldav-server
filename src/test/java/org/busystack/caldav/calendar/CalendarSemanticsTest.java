@@ -30,12 +30,28 @@ class CalendarSemanticsTest {
   }
 
   static CalendarContent.Parsed parseComponents(String type, String components) {
+    components = withBuiltinTimezones(components);
     return CalendarContent.parse(
         ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack original semantic fixtures//EN\r\n"
                 + components
                 + "END:VCALENDAR\r\n")
             .getBytes(StandardCharsets.UTF_8),
         type);
+  }
+
+  static String withBuiltinTimezones(String components) {
+    for (String zone : List.of("America/New_York", "Europe/Berlin")) {
+      if (components.contains("TZID=" + zone) && !components.contains("TZID:" + zone)) {
+        String path = "/calendar/" + zone.replace('/', '-') + "-ical4j4.4.0.ics";
+        try (var resource = CalendarSemanticsTest.class.getResourceAsStream(path)) {
+          if (resource == null) throw new IllegalStateException("Missing pinned timezone fixture");
+          components = new String(resource.readAllBytes(), StandardCharsets.UTF_8) + components;
+        } catch (java.io.IOException ex) {
+          throw new java.io.UncheckedIOException(ex);
+        }
+      }
+    }
+    return components;
   }
 
   static TimeRange range(String first, String last) {
@@ -185,15 +201,15 @@ class CalendarSemanticsTest {
   }
 
   @Test
-  void nonexistentZonedOccurrencesAreSkippedWithoutConsumingCount() {
+  void nonexistentZonedOccurrencesUsePreGapOffsetAndConsumeCount() {
     var c =
         parse(
             "VEVENT",
             "DTSTART;TZID=America/New_York:20260307T023000\r\nRRULE:FREQ=DAILY;COUNT=3\r\n");
     assertThat(point(c, "VEVENT", "2026-03-07T07:30:00Z")).isTrue();
-    assertThat(point(c, "VEVENT", "2026-03-08T07:30:00Z")).isFalse();
+    assertThat(point(c, "VEVENT", "2026-03-08T07:30:00Z")).isTrue();
     assertThat(point(c, "VEVENT", "2026-03-09T06:30:00Z")).isTrue();
-    assertThat(point(c, "VEVENT", "2026-03-10T06:30:00Z")).isTrue();
+    assertThat(point(c, "VEVENT", "2026-03-10T06:30:00Z")).isFalse();
     assertThat(point(c, "VEVENT", "2026-03-11T06:30:00Z")).isFalse();
   }
 

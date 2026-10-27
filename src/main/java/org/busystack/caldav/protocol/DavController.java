@@ -81,14 +81,34 @@ final class DavController {
       boolean mutating =
           Set.of("PUT", "DELETE", "MKCALENDAR", "MKCOL", "PROPPATCH", "COPY", "MOVE", "ACL")
               .contains(method);
+      boolean metadataCondition =
+          Set.of("PROPPATCH", "ACL", "MKCALENDAR", "MKCOL").contains(method)
+              && (request.getHeader("If-Match") != null
+                  || request.getHeader("If-None-Match") != null);
       Supplier<ResponseEntity<byte[]>> handler =
           () -> {
             if (mutating) {
-              if (request.getHeader("If") != null)
+              if (request.getHeader("If") != null || metadataCondition)
                 org.busystack.caldav.storage.DavMutationLock.exclusive(jdbc);
               else org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
             }
             evaluateIf(actor, request);
+            if (metadataCondition) {
+              DavNode existing = null;
+              try {
+                existing = resources.resolve(actor, parts);
+              } catch (DavException ex) {
+                if (ex.status() != 404) throw ex;
+              } catch (StoreException ex) {
+                if (ex.kind() != StoreException.Kind.NOT_FOUND) throw ex;
+              }
+              HttpConditions.write(request, paths)
+                  .check(
+                      existing == null || existing.resource() == null
+                          ? null
+                          : existing.resource().etag(),
+                      existing != null);
+            }
             return switch (method) {
               case "OPTIONS" -> options();
               case "GET", "HEAD" -> get(actor, parts, request);
@@ -105,11 +125,35 @@ final class DavController {
           };
       return (mutating ? mutation : snapshot).execute(status -> handler.get());
     } catch (DavException ex) {
-      return error(ex.status(), ex.condition());
+      return error(ex.status(), ex.condition(), ex.failingHref(), ex.requiredPrivilege());
     } catch (StoreException ex) {
       return switch (ex.kind()) {
         case NOT_FOUND -> error(404, null);
-        case FORBIDDEN -> error(403, d("need-privileges"));
+        case FORBIDDEN -> {
+          if (ex.requiredAccess() == null) yield error(403, null);
+          String href =
+              paths.href(
+                  paths.parse(request.getRequestURI()), request.getRequestURI().endsWith("/"));
+          if (ex.collection() != null) {
+            try {
+              var binding = store.bindingFor(actor, ex.collection());
+              if (binding != null) {
+                List<String> parts = new ArrayList<>(List.of("calendars", actor.toString()));
+                parts.addAll(List.of(binding.path().split("/")));
+                href = paths.href(parts, true);
+              }
+            } catch (StoreException stateChanged) {
+              if (stateChanged.kind() != StoreException.Kind.FORBIDDEN) throw stateChanged;
+            }
+          }
+          QName privilege =
+              switch (ex.requiredAccess()) {
+                case READ -> d("read");
+                case WRITE -> d("write");
+                case OWNER -> d("write-acl");
+              };
+          yield error(403, d("need-privileges"), href, privilege);
+        }
         case PRECONDITION -> error(412, null);
         case UID_CONFLICT -> error(403, c("no-uid-conflict"));
         case INVALID_TOKEN -> error(403, d("valid-sync-token"));
@@ -119,7 +163,20 @@ final class DavController {
         default -> error(409, null);
       };
     } catch (QueryException ex) {
+      if (ex.kind() == QueryException.Kind.LIMIT_EXCEEDED
+          && Set.of("PUT", "MKCALENDAR").contains(request.getMethod()))
+        return error(
+            413, new QName("urn:busystack:params:xml:ns:dav", "calendar-complexity-limit"));
       return queryError(ex);
+    } catch (org.busystack.caldav.calendar.CalendarValidationException ex) {
+      return error(
+          403,
+          c(
+              switch (ex.reason()) {
+                case INVALID_DATA -> "valid-calendar-data";
+                case INVALID_OBJECT -> "valid-calendar-object-resource";
+                case UNSUPPORTED_COMPONENT -> "supported-calendar-component";
+              }));
     } catch (IllegalArgumentException ex) {
       return error(400, null);
     }
@@ -139,16 +196,20 @@ final class DavController {
     var values = java.util.Collections.list(request.getHeaders("If"));
     if (values.isEmpty()) return;
     DavIf condition = DavIf.parse(String.join(" ", values), request.getRequestURI(), paths);
-    if (!condition.matchesAll(
+    if (!condition.matchesStates(
         parts -> {
           try {
             DavNode node = resources.resolve(actor, parts);
-            return node.resource() == null ? null : node.resource().etag();
+            return new DavIf.ResourceState(
+                node.resource() == null ? null : node.resource().etag(),
+                node.kind() == DavNode.Kind.CALENDAR
+                    ? calendars.currentSyncToken(actor, node.collectionId())
+                    : null);
           } catch (DavException ex) {
-            if (ex.status() == 404) return null;
+            if (ex.status() == 404) return DavIf.ResourceState.ABSENT;
             throw ex;
           } catch (StoreException ex) {
-            if (ex.kind() == StoreException.Kind.NOT_FOUND) return null;
+            if (ex.kind() == StoreException.Kind.NOT_FOUND) return DavIf.ResourceState.ABSENT;
             throw ex;
           }
         })) throw new DavException(412, null);
@@ -193,6 +254,8 @@ final class DavController {
       return ResponseEntity.status(308)
           .header("Location", paths.href(parts, true))
           .body(new byte[0]);
+    if (HttpConditions.notModified(request, null, paths))
+      return ResponseEntity.status(304).body(new byte[0]);
     StringBuilder text = new StringBuilder(properties.displayName(actor, node)).append('\n');
     for (DavNode child : resources.children(actor, node))
       text.append(paths.href(child.segments(), child.trailingSlash())).append('\n');
@@ -236,6 +299,8 @@ final class DavController {
               parts.getLast(),
               body,
               HttpConditions.write(request, paths));
+    } catch (org.busystack.caldav.calendar.CalendarValidationException ex) {
+      throw ex;
     } catch (IllegalArgumentException ex) {
       throw new DavException(403, c("valid-calendar-data"));
     }
@@ -281,8 +346,11 @@ final class DavController {
                 || !Set.of("VEVENT", "VTODO").contains(components.getFirst().getAttribute("name")))
               throw new DavException(403, c("supported-calendar-component"));
             component = components.getFirst().getAttribute("name");
-          } else if (name.equals(d("displayname"))) display = value.getTextContent();
-          else if (DavProperties.protectedProperty(name))
+          } else if (name.equals(d("displayname"))) {
+            validateProperty(name, value);
+            display = value.getTextContent();
+            values.put(name, new String(bytes(value), StandardCharsets.UTF_8));
+          } else if (DavProperties.protectedProperty(name))
             throw new DavException(403, d("cannot-modify-protected-property"));
           else {
             validateProperty(name, value);
@@ -309,8 +377,8 @@ final class DavController {
         all.add(name);
         if (DavProperties.protectedProperty(name)) bad.put(name, 403);
         else if (name.equals(d("displayname"))
-            && (node.kind() == DavNode.Kind.RESOURCE || is(operation, DAV, "remove")))
-          bad.put(name, 409);
+            && node.kind() != DavNode.Kind.RESOURCE
+            && is(operation, DAV, "remove")) bad.put(name, 409);
         else if (is(operation, DAV, "set")) {
           try {
             validateProperty(name, value);
@@ -436,6 +504,7 @@ final class DavController {
       if (who.size() != 2 || !who.getFirst().equals("principals"))
         throw new DavException(403, d("recognized-principal"));
       UUID id = DavResources.uuid(who.get(1));
+      if (!store.recognizedPrincipal(id)) throw new DavException(403, d("recognized-principal"));
       if (id.equals(node.entry().collection().owner()))
         throw new DavException(403, d("no-protected-ace-conflict"));
       Set<QName> grants = new LinkedHashSet<>();
@@ -464,7 +533,7 @@ final class DavController {
                       Set.of("write-content", "write-properties", "bind", "unbind")
                           .contains(q.getLocalPart())))
         throw new DavException(403, d("no-ace-conflict"));
-      members.add(new DavStore.Member(id, write ? "WRITE" : "READ"));
+      members.add(new DavStore.Member(id, write ? "WRITE" : "READ", store.isGroupPrincipal(id)));
     }
     store.replaceAcl(actor, node.collectionId(), members);
     return ResponseEntity.ok().body(new byte[0]);
@@ -472,7 +541,18 @@ final class DavController {
 
   private ResponseEntity<byte[]> report(
       UUID actor, List<String> parts, HttpServletRequest request, Element root) {
-    DavNode node = resources.resolve(actor, parts);
+    boolean freeBusyRequest = is(root, CAL, "free-busy-query");
+    DavNode node;
+    try {
+      node = resources.resolve(actor, parts);
+    } catch (StoreException failure) {
+      if (freeBusyRequest && failure.kind() == StoreException.Kind.FORBIDDEN)
+        return error(404, null);
+      throw failure;
+    } catch (DavException failure) {
+      if (freeBusyRequest && failure.status() == 403) return error(404, null);
+      throw failure;
+    }
     if (is(root, CAL, "calendar-query")) return query(actor, node, request, root);
     if (is(root, CAL, "calendar-multiget")) return multiget(actor, node, root);
     if (is(root, CAL, "free-busy-query")) return freeBusy(actor, node, request, root);
@@ -503,29 +583,34 @@ final class DavController {
     var document = document();
     Element multi = add(document, d("multistatus"));
     var requested = DavProperties.requested(root);
+    var hrefs = children(root).stream().filter(value -> is(value, DAV, "href")).toList();
+    if (hrefs.isEmpty() || node.kind() == DavNode.Kind.RESOURCE && hrefs.size() != 1)
+      throw new DavException(400, null);
     int count = 0;
-    for (Element href : children(root))
-      if (is(href, DAV, "href")) {
-        if (++count > 10000) throw new DavException(507, d("number-of-matches-within-limits"));
-        List<String> parts = paths.parse(href.getTextContent());
-        boolean member =
-            node.kind() == DavNode.Kind.RESOURCE
-                ? parts.equals(node.segments())
-                : parts.size() > node.segments().size()
-                    && parts.subList(0, node.segments().size()).equals(node.segments());
-        if (!member) throw new DavException(403, c("valid-calendar-object-resource"));
-        try {
-          DavNode target = resources.resolve(actor, parts);
-          if (target.kind() != DavNode.Kind.RESOURCE) throw new DavException(404, null);
-          properties.response(multi, actor, target, requested, timezone(actor, target, root));
-        } catch (DavException ex) {
-          if (ex.status() != 404 && ex.status() != 403) throw ex;
-          Element response = add(multi, d("response"));
-          text(response, d("href"), paths.href(parts, false));
-          text(response, d("status"), DavProperties.status(ex.status()));
-        }
+    long contentBytes = 0;
+    for (Element href : hrefs) {
+      if (++count > 10000) throw new DavException(507, d("number-of-matches-within-limits"));
+      List<String> parts = paths.parse(href.getTextContent());
+      boolean member =
+          node.kind() == DavNode.Kind.RESOURCE
+              ? parts.equals(node.segments())
+              : parts.size() > node.segments().size()
+                  && parts.subList(0, node.segments().size()).equals(node.segments());
+      if (!member) throw new DavException(403, c("valid-calendar-object-resource"));
+      try {
+        DavNode target = resources.resolve(actor, parts);
+        if (target.kind() != DavNode.Kind.RESOURCE) throw new DavException(404, null);
+        contentBytes += target.resource().content().length;
+        if (contentBytes > 32L * 1024 * 1024)
+          throw new DavException(507, d("number-of-matches-within-limits"));
+        properties.response(multi, actor, target, requested, timezone(actor, target, root));
+      } catch (DavException ex) {
+        if (ex.status() != 404 && ex.status() != 403) throw ex;
+        Element response = add(multi, d("response"));
+        text(response, d("href"), paths.href(parts, false));
+        text(response, d("status"), DavProperties.status(ex.status()));
       }
-    if (count == 0) throw new DavException(400, null);
+    }
     return xml(207, document);
   }
 
@@ -544,7 +629,16 @@ final class DavController {
     Element limitElement = child(root, DAV, "limit");
     if (limitElement != null)
       try {
-        limit = Integer.parseInt(required(limitElement, DAV, "nresults").getTextContent());
+        String digits = required(limitElement, DAV, "nresults").getTextContent();
+        if (digits.isEmpty() || !digits.chars().allMatch(value -> value >= '0' && value <= '9'))
+          throw new DavException(400, null);
+        int significant = 0;
+        while (significant < digits.length() - 1 && digits.charAt(significant) == '0')
+          significant++;
+        if (digits.length() - significant > 5)
+          throw new DavException(507, d("number-of-matches-within-limits"));
+        limit = Integer.parseInt(digits.substring(significant));
+        if (limit > 10000) throw new DavException(507, d("number-of-matches-within-limits"));
       } catch (NumberFormatException ex) {
         throw new DavException(400, null);
       }
@@ -574,6 +668,7 @@ final class DavController {
 
   private ResponseEntity<byte[]> freeBusy(
       UUID actor, DavNode node, HttpServletRequest request, Element root) {
+    if (!node.collection()) throw new DavException(403, d("supported-report"));
     var range = CalendarQueryXml.range(required(root, CAL, "time-range"));
     List<CalendarFreeBusy.Source> parsed = new ArrayList<>();
     for (DavNode candidate : resources.descendants(actor, node, depth(request, 0)))
@@ -646,9 +741,12 @@ final class DavController {
   }
 
   static ResponseEntity<byte[]> error(int status, QName condition) {
+    return error(status, condition, null, null);
+  }
+
+  static ResponseEntity<byte[]> error(int status, QName condition, String href, QName privilege) {
     var document = document();
-    Element root = add(document, d("error"));
-    if (condition != null) add(root, condition);
+    DavErrors.append(document, condition, href, privilege);
     return xml(status, document);
   }
 

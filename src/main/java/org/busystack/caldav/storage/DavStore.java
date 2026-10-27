@@ -23,11 +23,19 @@ public class DavStore {
 
   public record Entry(Binding binding, CalendarStore.Collection collection, String permission) {}
 
-  public record Member(UUID account, String permission) {}
+  public record Member(UUID account, String permission, boolean group) {
+    public Member(UUID account, String permission) {
+      this(account, permission, false);
+    }
+  }
 
   public record Property(String namespace, String name, String xml) {}
 
-  public record Principal(UUID id, String username, String displayName) {}
+  public record Principal(UUID id, String username, String displayName, boolean group, UUID owner) {
+    public Principal(UUID id, String username, String displayName) {
+      this(id, username, displayName, false, id);
+    }
+  }
 
   public record Snapshot(
       Entry entry,
@@ -112,17 +120,7 @@ public class DavStore {
             id,
             MAX_ROWS + 1);
     bounded(resources.size());
-    var epoch =
-        jdbc.queryForObject("SELECT recovery_epoch FROM system_state WHERE id=1", UUID.class);
-    String token =
-        "urn:busystack:sync:"
-            + epoch
-            + ":"
-            + id
-            + ":"
-            + entry.collection().generation()
-            + ":"
-            + entry.collection().revision();
+    String token = calendars.currentSyncToken(actor, id);
     return new Snapshot(entry, resources, properties(deadProperties(actor, id, null)), token);
   }
 
@@ -163,7 +161,10 @@ public class DavStore {
   public PutResult putResource(
       UUID actor, UUID collection, String name, byte[] content, WriteCondition condition) {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
-    if (content == null || content.length == 0 || content.length > 1048576) limit();
+    if (content == null || content.length == 0)
+      throw new org.busystack.caldav.calendar.CalendarValidationException(
+          org.busystack.caldav.calendar.CalendarValidationException.Reason.INVALID_DATA);
+    if (content.length > 1048576) limit();
     lockCollections(collection);
     requireWrite(actor, collection);
     var current = calendars.get(actor, collection, name);
@@ -178,20 +179,26 @@ public class DavStore {
     if (stored.owner().equals(actor)) return "OWNER";
     var permissions =
         jdbc.queryForList(
-            "SELECT permission FROM collection_members WHERE collection_id=? AND account_id=?",
+            "SELECT permission FROM collection_effective_members WHERE collection_id=? AND account_id=?",
             String.class,
             collection,
             actor);
-    if (permissions.isEmpty()) forbidden();
+    if (permissions.isEmpty())
+      throw new StoreException(
+          StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.READ, collection);
     return permissions.getFirst();
   }
 
   public List<Member> members(UUID actor, UUID collection) {
     requireOwner(actor, collection);
-    return jdbc.query(
-        "SELECT account_id,permission FROM collection_members WHERE collection_id=? ORDER BY account_id",
-        (rs, row) -> new Member(rs.getObject(1, UUID.class), rs.getString(2)),
-        collection);
+    var acl =
+        jdbc.query(
+            "SELECT account_id AS principal_id,permission,false AS is_group FROM collection_members WHERE collection_id=? UNION ALL SELECT group_id,permission,true FROM collection_group_members WHERE collection_id=? ORDER BY principal_id",
+            (rs, row) -> new Member(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3)),
+            collection,
+            collection);
+    if (acl.size() > 1000) limit();
+    return List.copyOf(acl);
   }
 
   @Transactional
@@ -206,31 +213,187 @@ public class DavStore {
           || !distinct.add(member.account())
           || !Set.of("READ", "WRITE").contains(member.permission()))
         throw new IllegalArgumentException("Invalid collection ACL");
-      requireEnabled(member.account());
+      if (member.group()) {
+        if (!isGroupPrincipal(member.account()))
+          throw new IllegalArgumentException("Unknown sharing group");
+      } else requireEnabled(member.account());
     }
-    jdbc.update("DELETE FROM collection_members WHERE collection_id=?", collection);
-    for (Member member : members)
+    var existing = members(actor, collection);
+    jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
+    for (Member old : existing)
+      if (members.stream()
+          .noneMatch(
+              value -> value.account().equals(old.account()) && value.group() == old.group()))
+        jdbc.update(
+            "DELETE FROM "
+                + (old.group()
+                    ? "collection_group_members WHERE group_id=?"
+                    : "collection_members WHERE account_id=?")
+                + " AND collection_id=?",
+            old.account(),
+            collection);
+    for (Member member : members) {
+      String table = member.group() ? "collection_group_members" : "collection_members";
+      String key = member.group() ? "group_id" : "account_id";
       jdbc.update(
-          "INSERT INTO collection_members(collection_id,account_id,permission) VALUES (?,?,?)",
+          "INSERT INTO "
+              + table
+              + "(collection_id,"
+              + key
+              + ",permission) VALUES (?,?,?) ON CONFLICT(collection_id,"
+              + key
+              + ") DO UPDATE SET permission=EXCLUDED.permission",
           collection,
           member.account(),
           member.permission());
-    jdbc.update("UPDATE collections SET generation=gen_random_uuid() WHERE id=?", collection);
+    }
+    jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
+    jdbc.query("SELECT dav_reconcile_memberships(?)", rs -> {}, collection);
   }
 
+  private static final String VISIBLE_GROUPS =
+      "SELECT g.* FROM sharing_groups g WHERE (EXISTS(SELECT 1 FROM accounts administrator WHERE administrator.id=? AND administrator.enabled AND administrator.administrator) OR EXISTS(SELECT 1 FROM sharing_group_members gm WHERE gm.group_id=g.id AND gm.account_id=?) OR EXISTS(SELECT 1 FROM collection_group_members cg JOIN collections c ON c.id=cg.collection_id WHERE cg.group_id=g.id AND c.owner_id=?))";
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public List<Principal> principals(UUID actor) {
     requireEnabled(actor);
-    var visible =
+    List<Principal> visible = new ArrayList<>(accountPrincipals(actor, null));
+    var groups =
         jdbc.query(
-            "SELECT DISTINCT a.id,a.username,a.display_name FROM accounts a WHERE a.enabled AND (a.id=? OR EXISTS(SELECT 1 FROM collections c WHERE c.owner_id=a.id AND EXISTS(SELECT 1 FROM collection_members m WHERE m.collection_id=c.id AND m.account_id=?)) OR EXISTS(SELECT 1 FROM collection_members m JOIN collections c ON c.id=m.collection_id WHERE m.account_id=a.id AND c.owner_id=?)) ORDER BY a.id LIMIT ?",
+            VISIBLE_GROUPS + " ORDER BY g.id LIMIT 1001",
+            (rs, row) ->
+                new Principal(
+                    rs.getObject("id", UUID.class),
+                    "group:" + rs.getString("name"),
+                    rs.getString("name"),
+                    true,
+                    rs.getObject("created_by", UUID.class)),
+            actor,
+            actor,
+            actor);
+    visible.addAll(groups);
+    bounded(visible.size());
+    return List.copyOf(visible);
+  }
+
+  /** Own-home URI metadata for protocol errors; never enumerates another principal's home. */
+  public Binding bindingFor(UUID actor, UUID collection) {
+    requireEnabled(actor);
+    return jdbc
+        .query(
+            "SELECT home_id,path,collection_id,display_name FROM dav_bindings WHERE home_id=? AND collection_id=?",
+            (rs, row) ->
+                new Binding(
+                    rs.getObject("home_id", UUID.class),
+                    rs.getString("path"),
+                    rs.getObject("collection_id", UUID.class),
+                    rs.getString("display_name"),
+                    true),
+            actor,
+            collection)
+        .stream()
+        .findFirst()
+        .orElse(null);
+  }
+
+  public boolean isGroupPrincipal(UUID id) {
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM sharing_groups WHERE id=?)", Boolean.class, id));
+  }
+
+  public boolean recognizedPrincipal(UUID id) {
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM accounts WHERE id=? UNION ALL SELECT 1 FROM sharing_groups WHERE id=?)",
+            Boolean.class,
+            id,
+            id));
+  }
+
+  public Principal principal(UUID actor, UUID id) {
+    requireEnabled(actor);
+    var accounts = accountPrincipals(actor, id);
+    if (!accounts.isEmpty()) return accounts.getFirst();
+    var groups =
+        jdbc.query(
+            VISIBLE_GROUPS + " AND g.id=?",
+            (rs, row) ->
+                new Principal(
+                    rs.getObject("id", UUID.class),
+                    "group:" + rs.getString("name"),
+                    rs.getString("name"),
+                    true,
+                    rs.getObject("created_by", UUID.class)),
+            actor,
+            actor,
+            actor,
+            id);
+    if (groups.isEmpty()) missing();
+    return groups.getFirst();
+  }
+
+  private List<Principal> accountPrincipals(UUID actor, UUID id) {
+    String sql =
+        "WITH visible_groups AS ("
+            + VISIBLE_GROUPS
+            + ") SELECT a.id,a.username,a.display_name FROM accounts a WHERE (a.id=? OR EXISTS(SELECT 1 FROM collections c JOIN collection_effective_members m ON m.collection_id=c.id WHERE c.owner_id=a.id AND m.account_id=?) OR EXISTS(SELECT 1 FROM collection_effective_members m JOIN collections c ON c.id=m.collection_id WHERE m.account_id=a.id AND c.owner_id=?) OR EXISTS(SELECT 1 FROM sharing_group_members gm JOIN visible_groups g ON g.id=gm.group_id WHERE gm.account_id=a.id) OR EXISTS(SELECT 1 FROM visible_groups g WHERE g.created_by=a.id))";
+    List<Object> parameters = new ArrayList<>(List.of(actor, actor, actor, actor, actor, actor));
+    if (id != null) {
+      sql += " AND a.id=?";
+      parameters.add(id);
+    }
+    return jdbc.query(
+        sql + " ORDER BY a.id LIMIT 10001",
+        (rs, row) -> new Principal(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)),
+        parameters.toArray());
+  }
+
+  public boolean groupContains(UUID actor, UUID group) {
+    requireEnabled(actor);
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM sharing_group_members WHERE group_id=? AND account_id=?)",
+            Boolean.class,
+            group,
+            actor));
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public List<Principal> groupMembers(UUID actor, UUID group) {
+    if (!principal(actor, group).group()) throw new IllegalArgumentException("Not a sharing group");
+    var members =
+        jdbc.query(
+            "SELECT a.id,a.username,a.display_name FROM accounts a JOIN sharing_group_members m ON m.account_id=a.id WHERE m.group_id=? ORDER BY a.id LIMIT 1001",
             (rs, row) ->
                 new Principal(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)),
+            group);
+    if (members.size() > 1000) limit();
+    return List.copyOf(members);
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public List<Principal> principalGroups(UUID actor, UUID account) {
+    // Groups are not nested. Query the visible memberships directly instead of one query per
+    // visible group for every principal in a directory response.
+    if (principal(actor, account).group()) return List.of();
+    var groups =
+        jdbc.query(
+            VISIBLE_GROUPS
+                + " AND EXISTS(SELECT 1 FROM sharing_group_members member WHERE member.group_id=g.id AND member.account_id=?) ORDER BY g.id LIMIT 1001",
+            (rs, row) ->
+                new Principal(
+                    rs.getObject("id", UUID.class),
+                    "group:" + rs.getString("name"),
+                    rs.getString("name"),
+                    true,
+                    rs.getObject("created_by", UUID.class)),
             actor,
             actor,
             actor,
-            MAX_ROWS + 1);
-    bounded(visible.size());
-    return visible;
+            account);
+    if (groups.size() > 1000) limit();
+    return List.copyOf(groups);
   }
 
   public Map<QName, String> deadProperties(UUID actor, UUID collection, String resourceName) {
@@ -270,28 +433,28 @@ public class DavStore {
     validateProperties(set, remove);
     if (resourceName != null && calendars.get(actor, entry.collection().id(), resourceName) == null)
       missing();
-    if (remove.contains(DISPLAY_NAME))
+    if (remove.contains(DISPLAY_NAME) && resourceName == null)
       throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
     if (set.containsKey(DISPLAY_NAME)) {
-      if (resourceName != null) throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
       String display = propertyText(DISPLAY_NAME, set.get(DISPLAY_NAME));
       checkDisplayName(display);
-      if (entry.binding().calendar())
-        jdbc.update("UPDATE collections SET name=? WHERE id=?", display, entry.collection().id());
-      else if (!path.isEmpty())
-        jdbc.update(
-            "UPDATE dav_bindings SET display_name=? WHERE home_id=? AND path=?",
-            display,
-            home,
-            path);
-      else throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
+      if (resourceName == null) {
+        if (entry.binding().calendar())
+          jdbc.update("UPDATE collections SET name=? WHERE id=?", display, entry.collection().id());
+        else if (!path.isEmpty())
+          jdbc.update(
+              "UPDATE dav_bindings SET display_name=? WHERE home_id=? AND path=?",
+              display,
+              home,
+              path);
+        else throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
+      }
     }
     if (path.isEmpty() && (!set.isEmpty() || !remove.isEmpty()))
       throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
     for (QName name : remove) deleteProperty(entry, resourceName, name);
     for (var item : set.entrySet())
-      if (!item.getKey().equals(DISPLAY_NAME))
-        putProperty(entry, resourceName, item.getKey(), item.getValue());
+      putProperty(entry, resourceName, item.getKey(), item.getValue());
     if (resourceName != null && (!set.isEmpty() || !remove.isEmpty())) {
       long revision = changed(entry.collection().id(), resourceName, false);
       jdbc.update(
@@ -774,11 +937,15 @@ public class DavStore {
   }
 
   private void requireOwner(UUID actor, UUID id) {
-    if (!calendars.collection(actor, id).owner().equals(actor)) forbidden();
+    if (!calendars.collection(actor, id).owner().equals(actor))
+      throw new StoreException(
+          StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.OWNER, id);
   }
 
   private void requireWrite(UUID actor, UUID id) {
-    if ("READ".equals(permission(actor, id))) forbidden();
+    if ("READ".equals(permission(actor, id)))
+      throw new StoreException(
+          StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.WRITE, id);
   }
 
   private String principalName(UUID home) {

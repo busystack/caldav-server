@@ -122,7 +122,9 @@ class KeycloakOidcIT {
                   .usingTls()
                   .forStatusCode(200))
           // Augmentation and schema import exceeded three minutes on the shared legacy CPU.
-          .withStartupTimeout(Duration.ofMinutes(5));
+          // The qualification host needed just over five minutes under build contention.
+          // Readiness is still probed; this is a bounded deadline, not a fixed sleep.
+          .withStartupTimeout(Duration.ofMinutes(8));
 
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry registry) {

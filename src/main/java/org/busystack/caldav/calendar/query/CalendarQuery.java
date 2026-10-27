@@ -31,6 +31,9 @@ public final class CalendarQuery {
   public boolean matches(
       CalendarContent.Parsed parsed, ComponentFilter filter, FloatingTimezone timezone) {
     validate(filter);
+    var temporalRanges = new ArrayList<TimeRange>();
+    collectAllRanges(filter, temporalRanges);
+    for (var range : temporalRanges) CalendarTemporalCoverage.check(parsed, range, timezone);
     if (!filter.name().equals("VCALENDAR"))
       throw QueryException.invalid("The root component filter must target VCALENDAR");
     if (filter.notDefined()) return false;
@@ -56,7 +59,8 @@ public final class CalendarQuery {
         filter.name().equals(Component.VEVENT) || filter.name().equals(Component.VTODO);
     TimeRange window = window(filter);
     List<Occurrence> occurrences;
-    if (primary && window != null) occurrences = recurrence.occurrences(parsed, window, timezone);
+    if (primary && window != null)
+      occurrences = recurrence.occurrences(parsed, window, timezone, hasAlarmRange(filter));
     else {
       occurrences = new ArrayList<>();
       for (Component c : selected)
@@ -197,10 +201,24 @@ public final class CalendarQuery {
     return new TimeRange(openFirst ? null : first, openLast ? null : last);
   }
 
+  private void collectAllRanges(ComponentFilter filter, List<TimeRange> ranges) {
+    if (filter.timeRange() != null) ranges.add(filter.timeRange());
+    for (var property : filter.properties())
+      if (property.timeRange() != null) ranges.add(property.timeRange());
+    for (var child : filter.components()) collectAllRanges(child, ranges);
+  }
+
   private void collectRanges(ComponentFilter f, List<TimeRange> ranges) {
     if (f.timeRange() != null) ranges.add(f.timeRange());
-    for (var p : f.properties()) if (p.timeRange() != null) ranges.add(p.timeRange());
+    for (var p : f.properties())
+      if (p.timeRange() != null && Set.of(DTSTART, DTEND, DUE).contains(p.name()))
+        ranges.add(p.timeRange());
     for (var c : f.components()) collectRanges(c, ranges);
+  }
+
+  private boolean hasAlarmRange(ComponentFilter filter) {
+    if (filter.name().equals(Component.VALARM) && filter.timeRange() != null) return true;
+    return filter.components().stream().anyMatch(this::hasAlarmRange);
   }
 
   private void validate(ComponentFilter filter) {

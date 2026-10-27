@@ -18,6 +18,8 @@ spring:
     log-request-details: false
     dispatch-options-request: true
 server:
+  compression:
+    enabled: false
   address: 127.0.0.1
   forward-headers-strategy: none
   error:

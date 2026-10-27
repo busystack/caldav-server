@@ -1,6 +1,5 @@
 package org.busystack.caldav.security.password;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.busystack.caldav.security.RecentAuthentication;
 import org.busystack.caldav.security.audit.SecurityAudit;
@@ -42,7 +41,7 @@ public class AccountPasswordService implements UserDetailsPasswordService {
   @Transactional
   public void change(Authentication authentication, String replacement, String peer) {
     RecentAuthentication.requireMfa(authentication);
-    validate(replacement);
+    PasswordPolicy.validate(replacement);
     var account = sessions.assertForReset(authentication);
     Boolean local =
         jdbc.queryForObject(
@@ -78,14 +77,5 @@ public class AccountPasswordService implements UserDetailsPasswordService {
     if (changed != 1)
       throw new CredentialsExpiredException("Account credential changed during sign-in");
     return User.withUserDetails(user).password(upgradedHash).build();
-  }
-
-  private static void validate(String password) {
-    if (password == null
-        || password.length() < 14
-        || password.length() > 72
-        || password.getBytes(StandardCharsets.UTF_8).length > 72)
-      throw new IllegalArgumentException(
-          "Password must contain at least fourteen characters and at most seventy-two UTF-8 bytes");
   }
 }

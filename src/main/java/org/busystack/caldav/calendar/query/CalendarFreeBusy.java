@@ -71,9 +71,14 @@ public final class CalendarFreeBusy {
         var c = occurrence.component();
         budget.charge(1);
         if (Component.VEVENT.equals(c.getName())) {
-          if (c.getProperty(TRANSP).map(p -> p.getValue().equals("TRANSPARENT")).orElse(false))
-            continue;
-          String status = c.getProperty(STATUS).map(p -> p.getValue()).orElse("CONFIRMED");
+          if (c.getProperty(TRANSP)
+              .map(p -> p.getValue().equalsIgnoreCase("TRANSPARENT"))
+              .orElse(false)) continue;
+          String status =
+              c.getProperty(STATUS)
+                  .map(p -> p.getValue())
+                  .orElse("CONFIRMED")
+                  .toUpperCase(Locale.ROOT);
           if (status.equals("CANCELLED")) continue;
           var start = occurrence.instant(DTSTART, timezone.zoneId());
           var end = occurrence.instant(DTEND, timezone.zoneId());
@@ -87,7 +92,10 @@ public final class CalendarFreeBusy {
         } else if (Component.VFREEBUSY.equals(c.getName())) {
           for (var p : c.getProperties(FREEBUSY)) {
             String type =
-                p.getParameter(Parameter.FBTYPE).map(value -> value.getValue()).orElse("BUSY");
+                p.getParameter(Parameter.FBTYPE)
+                    .map(value -> value.getValue())
+                    .orElse("BUSY")
+                    .toUpperCase(Locale.ROOT);
             if (type.equals("FREE")) continue;
             BusyType busy =
                 type.equals("BUSY-TENTATIVE")

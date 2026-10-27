@@ -17,7 +17,11 @@ public class SecurityAudit {
     PASSKEY_LOGIN,
     SESSION_REVOKED,
     RECOVERY_CODES_ISSUED,
-    RECOVERY_USED
+    RECOVERY_USED,
+    GROUP_CREATED,
+    GROUP_UPDATED,
+    GROUP_DELETED,
+    GROUP_SHARING_CHANGED
   }
 
   public enum Outcome {

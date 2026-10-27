@@ -40,32 +40,32 @@ class HttpConditionsTest {
   }
 
   @Test
-  void davBooleanListsAreEvaluatedAtomicallyAsTheCombinedEtagConstraint() {
-    var request = request("If", "([\"a\"] Not [\"b\"]) ([\"c\"])");
-    HttpConditions.write(request, paths).check("\"a\"");
-    HttpConditions.write(request, paths).check("\"c\"");
-    assertThatThrownBy(() -> HttpConditions.write(request, paths).check("\"b\""))
-        .isInstanceOf(StoreException.class);
-    var complement = request("If", "(Not [\"a\"]) ([\"b\"])");
-    HttpConditions.write(complement, paths).check("\"c\"");
-    assertThatThrownBy(() -> HttpConditions.write(complement, paths).check("\"a\""))
-        .isInstanceOf(StoreException.class);
-    HttpConditions.write(request("If", "(Not <urn:uuid:unknown-lock>)"), paths).check(null, false);
-    assertThatThrownBy(
-            () ->
-                HttpConditions.write(request("If", "(<urn:uuid:unknown-lock>)"), paths)
-                    .check("\"a\""))
-        .isInstanceOf(StoreException.class);
+  void davBooleanListsDistinguishStateTokensFromEtags() {
+    String target = "/team/dav/calendars/user/events/item.ics";
+    var disjunction = DavIf.parse("([\"a\"] Not [\"b\"]) ([\"c\"])", target, paths);
+    assertThat(disjunction.matches("\"a\"")).isTrue();
+    assertThat(disjunction.matches("\"c\"")).isTrue();
+    assertThat(disjunction.matches("\"b\"")).isFalse();
+    var complement = DavIf.parse("(Not [\"a\"]) ([\"b\"])", target, paths);
+    assertThat(complement.matches("\"c\"")).isTrue();
+    assertThat(complement.matches("\"a\"")).isFalse();
+    var state =
+        DavIf.parse(
+            "(<urn:busystack:sync:current>) (Not <urn:uuid:unknown-lock> [\"a\"])", target, paths);
+    assertThat(
+            state.matchesStates(
+                parts -> new DavIf.ResourceState(null, "urn:busystack:sync:current")))
+        .isTrue();
+    assertThat(state.matchesStates(parts -> new DavIf.ResourceState("\"a\"", null))).isTrue();
+    assertThat(state.matchesStates(parts -> DavIf.ResourceState.ABSENT)).isFalse();
+    assertThat(
+            DavIf.parse("(Not <urn:uuid:unknown-lock>)", target, paths)
+                .matchesStates(parts -> DavIf.ResourceState.ABSENT))
+        .isTrue();
   }
 
   @Test
   void taggedResourceConditionsAreGroupedAndAllResourcesMustMatch() {
-    HttpConditions.write(
-            request(
-                "If",
-                "<https://calendar.example/team/dav/calendars/user/events/item.ics> ([\"a\"])"),
-            paths)
-        .check("\"a\"");
     var tagged =
         DavIf.parse(
             "<https://calendar.example/team/dav/calendars/user/events/other.ics> ([\"a\"]) <https://calendar.example/team/dav/calendars/user/events/item.ics> ([\"b\"])",
@@ -78,7 +78,8 @@ class HttpConditionsTest {
         new String[] {
           "()", "([\"a\"]", "Not [\"a\"]", "(garbage)", "([\"a\"]) trailing", "([\"a\"]) <urn:bad>"
         })
-      assertThatThrownBy(() -> HttpConditions.write(request("If", malformed), paths))
+      assertThatThrownBy(
+              () -> DavIf.parse(malformed, "/team/dav/calendars/user/events/item.ics", paths))
           .isInstanceOf(DavException.class);
   }
 }

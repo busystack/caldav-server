@@ -16,31 +16,22 @@ final class HttpConditions {
     Set<String>
         matches = new LinkedHashSet<>(match == null || exists ? Set.of() : tags(match, false)),
         excludes = new LinkedHashSet<>(none == null || create ? Set.of() : tags(none, true));
-    String dav = header(request, "If", " ");
-    if (dav != null) {
-      DavIf condition = DavIf.parse(dav, request.getRequestURI(), paths);
-      if (condition.defaultMatch()) {
-        for (String tag : condition.tags()) if (!condition.matches(tag)) excludes.add(tag);
-      } else {
-        Set<String> accepted = new LinkedHashSet<>();
-        for (String tag : condition.tags()) if (condition.matches(tag)) accepted.add(tag);
-        if (matches.isEmpty()) matches.addAll(accepted);
-        else matches.retainAll(accepted);
-        if (matches.isEmpty()) matches.add("\"busystack-impossible-dav-validator\"");
-      }
-    }
+    // The controller evaluates the complete DAV If expression under one snapshot/global
+    // mutation lock. Refining it with only this resource's ETag would discard sync state tokens.
     return new WriteCondition(create, exists || match != null, matches, excludes);
   }
 
   static boolean notModified(HttpServletRequest request, String etag, DavPaths paths) {
-    String dav = header(request, "If", " ");
-    if (dav != null && !DavIf.parse(dav, request.getRequestURI(), paths).matches(etag))
-      throw new DavException(412, null);
     String match = header(request, "If-Match", ",");
-    if (match != null && !match.trim().equals("*") && !tags(match, false).contains(etag))
-      throw new DavException(412, null);
+    if (match != null && !match.trim().equals("*")) {
+      Set<String> accepted = tags(match, false);
+      if (etag == null || !accepted.contains(etag)) throw new DavException(412, null);
+    }
     String none = header(request, "If-None-Match", ",");
-    return none != null && (none.trim().equals("*") || tags(none, true).contains(etag));
+    if (none == null) return false;
+    if (none.trim().equals("*")) return true;
+    Set<String> excluded = tags(none, true);
+    return etag != null && excluded.contains(etag);
   }
 
   private static String header(HttpServletRequest request, String name, String separator) {

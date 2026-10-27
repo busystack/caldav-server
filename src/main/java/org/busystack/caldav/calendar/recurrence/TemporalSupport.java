@@ -62,7 +62,12 @@ public final class TemporalSupport {
 
   @SuppressWarnings("deprecation")
   public static CalendarDuration duration(CalendarContent.Parsed parsed, Property property) {
-    var value = new net.fortuna.ical4j.model.Dur(parsed.lexicalValue(property));
+    return duration(parsed.lexicalValue(property));
+  }
+
+  @SuppressWarnings("deprecation")
+  public static CalendarDuration duration(String rawValue) {
+    var value = new net.fortuna.ical4j.model.Dur(rawValue);
     long days = Math.addExact(Math.multiplyExact((long) value.getWeeks(), 7), value.getDays());
     Duration clock =
         Duration.ofHours(value.getHours())

@@ -105,7 +105,7 @@ public final class StrictContentHandler extends DefaultContentHandler
         String value = String.join(",", values);
         parameter = factory.get().createParameter(value);
         // These model constructors strip one outer quote pair; retain literal encoded quotes.
-        if (parameter instanceof Encodable)
+        if (parameter instanceof Encodable && value.startsWith("\"") && value.endsWith("\""))
           parameter = factory.get().createParameter('"' + value + '"');
       }
     }

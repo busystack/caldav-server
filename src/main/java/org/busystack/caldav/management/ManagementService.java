@@ -23,6 +23,19 @@ public class ManagementService {
   public record UserView(
       UUID id, String username, String displayName, boolean administrator, boolean enabled) {}
 
+  public record IndividualShare(
+      UUID collection,
+      String collectionName,
+      String username,
+      String permission,
+      boolean enabled) {}
+
+  public record SharePage(List<IndividualShare> rows, int page, boolean hasNext) {
+    public SharePage {
+      rows = List.copyOf(rows);
+    }
+  }
+
   private final AccountService accounts;
   private final CalendarStore calendars;
   private final JdbcTemplate jdbc;
@@ -49,6 +62,24 @@ public class ManagementService {
 
   public List<CalendarStore.Collection> collections(Authentication auth) {
     return calendars.collections(requireAccount(auth).id());
+  }
+
+  public SharePage individualShares(Authentication auth, int page) {
+    if (page < 0 || page > 10000) throw new IllegalArgumentException("Invalid sharing page");
+    UUID actor = requireAccount(auth).id();
+    var rows =
+        jdbc.query(
+            "SELECT c.id,c.name,a.username,m.permission,a.enabled FROM collection_members m JOIN collections c ON c.id=m.collection_id JOIN accounts a ON a.id=m.account_id WHERE c.owner_id=? ORDER BY c.id,a.id LIMIT 51 OFFSET ?",
+            (rs, row) ->
+                new IndividualShare(
+                    rs.getObject(1, UUID.class),
+                    rs.getString(2),
+                    rs.getString(3),
+                    rs.getString(4),
+                    rs.getBoolean(5)),
+            actor,
+            page * 50);
+    return new SharePage(rows.size() > 50 ? rows.subList(0, 50) : rows, page, rows.size() > 50);
   }
 
   public List<Credential> credentials(Authentication auth) {
@@ -116,8 +147,10 @@ public class ManagementService {
   public void share(Authentication auth, UUID collection, String username, String permission) {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     RecentAuthentication.requireMfa(auth);
+    if (!java.util.Set.of("READ", "WRITE", "REVOKE").contains(permission))
+      throw new IllegalArgumentException("Invalid sharing permission");
     var member = accounts.find(username);
-    if (member == null || !member.enabled())
+    if (member == null || (!member.enabled() && !"REVOKE".equals(permission)))
       throw new IllegalArgumentException("Unknown active account");
     calendars.share(
         requireAccount(auth).id(),

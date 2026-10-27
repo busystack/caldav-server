@@ -24,8 +24,12 @@ final class DavResources {
       if (parts.size() == 1) return new DavNode(parts, DavNode.Kind.PRINCIPALS, actor, null, null);
       if (parts.size() != 2) throw new DavException(404, null);
       UUID principal = uuid(parts.get(1));
-      if (store.principals(actor).stream().noneMatch(p -> p.id().equals(principal)))
-        throw new DavException(404, null);
+      try {
+        store.principal(actor, principal);
+      } catch (StoreException missing) {
+        if (missing.kind() == StoreException.Kind.NOT_FOUND) throw new DavException(404, null);
+        throw missing;
+      }
       return new DavNode(parts, DavNode.Kind.PRINCIPAL, principal, null, null);
     }
     if (!parts.getFirst().equals("calendars")) throw new DavException(404, null);
@@ -63,7 +67,13 @@ final class DavResources {
       }
       case PRINCIPALS -> {
         for (var principal : store.principals(actor))
-          result.add(resolve(actor, List.of("principals", principal.id().toString())));
+          result.add(
+              new DavNode(
+                  List.of("principals", principal.id().toString()),
+                  DavNode.Kind.PRINCIPAL,
+                  principal.id(),
+                  null,
+                  null));
       }
       case CALENDARS -> result.add(resolve(actor, List.of("calendars", actor.toString())));
       case HOME, FOLDER -> {

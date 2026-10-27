@@ -2,32 +2,32 @@ package org.busystack.caldav.protocol;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 /** DAV If lists are Boolean conditions, not a comma-separated HTTP entity-tag field. */
 final class DavIf {
-  record Test(boolean negate, String etag) {
-    boolean matches(String existing) {
-      boolean value = etag != null && etag.equals(existing);
+  record ResourceState(String etag, String syncToken) {
+    static final ResourceState ABSENT = new ResourceState(null, null);
+  }
+
+  record Test(boolean negate, String etag, String stateToken) {
+    boolean matches(ResourceState existing) {
+      boolean value =
+          etag != null ? etag.equals(existing.etag()) : stateToken.equals(existing.syncToken());
       return negate ? !value : value;
     }
   }
 
   private final Map<List<String>, List<List<Test>>> groups;
   private final List<String> request;
-  private final Set<String> tags;
 
-  private DavIf(
-      Map<List<String>, List<List<Test>>> groups, List<String> request, Set<String> tags) {
+  private DavIf(Map<List<String>, List<List<Test>>> groups, List<String> request) {
     Map<List<String>, List<List<Test>>> copy = new LinkedHashMap<>();
     groups.forEach((key, value) -> copy.put(List.copyOf(key), List.copyOf(value)));
     this.groups = java.util.Collections.unmodifiableMap(copy);
     this.request = request;
-    this.tags = Set.copyOf(tags);
   }
 
   static DavIf parse(String input, String requestUri, DavPaths paths) {
@@ -37,24 +37,21 @@ final class DavIf {
   }
 
   boolean matches(String existing) {
-    return !groups.containsKey(request) || matches(groups.get(request), existing);
+    return !groups.containsKey(request)
+        || matches(groups.get(request), new ResourceState(existing, null));
   }
 
   boolean matchesAll(Function<List<String>, String> etags) {
+    return matchesStates(parts -> new ResourceState(etags.apply(parts), null));
+  }
+
+  boolean matchesStates(Function<List<String>, ResourceState> resources) {
     return groups.entrySet().stream()
-        .allMatch(group -> matches(group.getValue(), etags.apply(group.getKey())));
+        .allMatch(group -> matches(group.getValue(), resources.apply(group.getKey())));
   }
 
-  private static boolean matches(List<List<Test>> lists, String existing) {
+  private static boolean matches(List<List<Test>> lists, ResourceState existing) {
     return lists.stream().anyMatch(list -> list.stream().allMatch(test -> test.matches(existing)));
-  }
-
-  boolean defaultMatch() {
-    return matches(null);
-  }
-
-  Set<String> tags() {
-    return tags;
   }
 
   private static final class Parser {
@@ -64,7 +61,6 @@ final class DavIf {
     boolean tagged, untagged;
     int tokens;
     final Map<List<String>, List<List<Test>>> groups = new LinkedHashMap<>();
-    final Set<String> tags = new LinkedHashSet<>();
 
     Parser(String input, String request, DavPaths paths) {
       this.input = input;
@@ -91,7 +87,7 @@ final class DavIf {
         if (position < input.length() && input.charAt(position) != '<') bad();
       }
       if (groups.isEmpty()) bad();
-      return new DavIf(groups, paths.parse(request), tags);
+      return new DavIf(groups, paths.parse(request));
     }
 
     List<Test> list() {
@@ -107,9 +103,8 @@ final class DavIf {
           whitespace();
           negate = true;
         }
-        String etag = null;
-        if (position < input.length() && input.charAt(position) == '<')
-          angle(); // No lock tokens exist in the unlocked profile.
+        String etag = null, stateToken = null;
+        if (position < input.length() && input.charAt(position) == '<') stateToken = angle();
         else if (position < input.length() && input.charAt(position) == '[') {
           position++;
           if (input.startsWith("W/", position)) position += 2;
@@ -123,9 +118,8 @@ final class DavIf {
           position++;
           etag = input.substring(start, position);
           if (position >= input.length() || input.charAt(position++) != ']') bad();
-          tags.add(etag);
         } else bad();
-        list.add(new Test(negate, etag));
+        list.add(new Test(negate, etag, stateToken));
         whitespace();
       }
       if (list.isEmpty() || position >= input.length() || input.charAt(position++) != ')') bad();

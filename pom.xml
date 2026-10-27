@@ -5,6 +5,11 @@
   <groupId>org.busystack</groupId><artifactId>caldav-server</artifactId><version>0.0.1-SNAPSHOT</version>
   <name>BusyStack CalDAV Server</name>
   <description>Independent calendar and task server</description>
+  <url>https://github.com/busystack/caldav-server</url>
+  <!-- Do not inherit Spring Boot's project license as a license grant for BusyStack. -->
+  <licenses><license><name>NOASSERTION</name><comments>The repository owner has not selected a project license; no public distribution permission is asserted.</comments></license></licenses>
+  <developers><developer><name>BusyStack contributors</name></developer></developers>
+  <scm><connection>scm:git:https://github.com/busystack/caldav-server.git</connection><developerConnection>scm:git:ssh://git@github.com/busystack/caldav-server.git</developerConnection><url>https://github.com/busystack/caldav-server</url></scm>
   <properties><java.version>25</java.version><project.build.outputTimestamp>2026-10-27T00:00:00Z</project.build.outputTimestamp></properties>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-session-jdbc</artifactId></dependency>
@@ -38,7 +43,7 @@
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.4.2</version></plugin>
       <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><version>4.1.2</version></plugin>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.6.2</version><executions><execution><id>toolchain</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[25,26)</version></requireJavaVersion><requireMavenVersion><version>[3.9.12,4)</version></requireMavenVersion></rules></configuration></execution></executions></plugin>
-      <plugin><groupId>com.diffplug.spotless</groupId><artifactId>spotless-maven-plugin</artifactId><version>3.10.4</version><configuration><java><excludes><exclude>src/main/java/org/busystack/caldav/calendar/parser/Ical4jCalendarParser.java</exclude></excludes><googleJavaFormat><version>1.32.0</version></googleJavaFormat></java></configuration><executions><execution><goals><goal>check</goal></goals><phase>validate</phase></execution></executions></plugin>
+      <plugin><groupId>com.diffplug.spotless</groupId><artifactId>spotless-maven-plugin</artifactId><version>3.10.4</version><configuration><java><excludes><exclude>src/main/java/org/busystack/caldav/calendar/parser/Ical4jCalendarParser.java</exclude><exclude>src/main/java/org/busystack/caldav/calendar/timezone/Ical4jZoneRulesBuilder.java</exclude></excludes><googleJavaFormat><version>1.32.0</version></googleJavaFormat></java></configuration><executions><execution><goals><goal>check</goal></goals><phase>validate</phase></execution></executions></plugin>
       <plugin><groupId>org.cyclonedx</groupId><artifactId>cyclonedx-maven-plugin</artifactId><version>2.9.3</version><executions><execution><phase>prepare-package</phase><goals><goal>makeAggregateBom</goal></goals></execution></executions><configuration><includeTestScope>false</includeTestScope><outputFormat>json</outputFormat></configuration></plugin>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.9.0</version></plugin>
       <plugin><groupId>com.github.spotbugs</groupId><artifactId>spotbugs-maven-plugin</artifactId><version>4.10.5.0</version><configuration><effort>Max</effort><threshold>High</threshold><failOnError>true</failOnError></configuration><executions><execution><phase>verify</phase><goals><goal>check</goal></goals></execution></executions></plugin>

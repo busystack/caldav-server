@@ -69,6 +69,13 @@ public class AccountService {
   public UUID provision(
       String username, String displayName, String password, boolean administrator) {
     validatePassword(password);
+    if (username == null
+        || !username.matches("[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}")
+        || displayName == null
+        || displayName.isBlank()
+        || displayName.codePointCount(0, displayName.length()) > 200
+        || displayName.codePoints().anyMatch(Character::isISOControl))
+      throw new IllegalArgumentException("Invalid account name or display name");
     UUID id = UUID.randomUUID();
     jdbc.update(
         "INSERT INTO accounts(id,username,display_name,password_hash,administrator) VALUES (?,?,?,?,?)",
@@ -81,13 +88,7 @@ public class AccountService {
   }
 
   private static void validatePassword(String password) {
-    if (password == null
-        || password.length() < 14
-        || password.length() > 72
-        || password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
-      throw new IllegalArgumentException(
-          "Password must contain 14–72 UTF-8 bytes and at least 14 characters");
-    }
+    org.busystack.caldav.security.password.PasswordPolicy.validate(password);
   }
 
   /** Operator-only recovery entry point. No controller exposes this operation. */

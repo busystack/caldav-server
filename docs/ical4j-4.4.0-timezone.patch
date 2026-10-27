@@ -1,0 +1,112 @@
+--- upstream/net/fortuna/ical4j/model/ZoneRulesBuilder.java
++++ src/main/java/org/busystack/caldav/calendar/timezone/Ical4jZoneRulesBuilder.java
+@@ -1,4 +1,37 @@
+-package net.fortuna.ical4j.model;
++/**
++ * Copyright (c) 2012, Ben Fortuna
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *
++ *  o Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ *
++ *  o Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ *  o Neither the name of Ben Fortuna nor the names of any other contributors
++ * may be used to endorse or promote products derived from this software
++ * without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++package org.busystack.caldav.calendar.timezone;
++
++import net.fortuna.ical4j.model.*;
+ 
+ import net.fortuna.ical4j.model.component.Observance;
+ import net.fortuna.ical4j.model.component.Standard;
+@@ -30,11 +63,24 @@
+ /**
+  * Construct a {@link java.time.zone.ZoneRules} instance from a {@link net.fortuna.ical4j.model.component.VTimeZone}.
+  */
+-public class ZoneRulesBuilder {
++public class Ical4jZoneRulesBuilder {
+ 
+     private @Nullable VTimeZone vTimeZone;
+ 
+-    public ZoneRulesBuilder vTimeZone(VTimeZone vTimeZone) {
++    private Map<Observance, LocalDateTime> periodEnds = Map.of();
++    private boolean perpetualAnnual = true;
++
++    public Ical4jZoneRulesBuilder perpetualAnnual(boolean perpetualAnnual) {
++        this.perpetualAnnual = perpetualAnnual;
++        return this;
++    }
++
++    public Ical4jZoneRulesBuilder periodEnds(Map<Observance, LocalDateTime> periodEnds) {
++        this.periodEnds = Collections.unmodifiableMap(new IdentityHashMap<>(periodEnds));
++        return this;
++    }
++
++    public Ical4jZoneRulesBuilder vTimeZone(VTimeZone vTimeZone) {
+         this.vTimeZone = vTimeZone;
+         return this;
+     }
+@@ -106,7 +152,8 @@
+                 if (periodEnd.isBefore(startDate)) {
+                     periodEnd = startDate.plusYears(5);
+                 }
+-                final LocalDateTime rangeEnd = periodEnd;
++
++                periodEnd = periodEnds.getOrDefault(observance, periodEnd);
+ 
+                 // Generate onset instances with offset-aware recurrence seeding. The generic
+                 // Component.calculateRecurrenceSet anchors recurrence on the floating DTSTART, so when
+@@ -135,7 +182,7 @@
+                     final Stream<LocalDateTime> rdateOnsets = rdate.getPeriods().isPresent()
+                             ? rdate.getPeriods().get().stream().map(p -> LocalDateTime.from(p.getStart()))
+                             : rdate.getDates().stream();
+-                    rdateOnsets.filter(d -> !d.isBefore(startDate) && !d.isAfter(rangeEnd))
++                    rdateOnsets.filter(d -> !d.isBefore(startDate))
+                             .forEach(onsets::add);
+                 }
+ 
+@@ -172,7 +219,7 @@
+             Temporal until = r.get().getRecur().getUntil();
+             return until != null && TemporalComparator.INSTANCE.compare(now, until) > 0;
+         });
+-        if (allExpired) {
++        if (allExpired || !perpetualAnnual) {
+             return transitionRules;
+         }
+ 
+@@ -183,10 +230,13 @@
+             DtStart<LocalDateTime> startDate = observance.getRequiredProperty(Property.DTSTART);
+ 
+             // ignore invalid rules and no-effect transitions (mirrors buildDSTTransitions)
+-            if (rrule.isPresent() && !rrule.get().getRecur().getMonthList().isEmpty()
++            if (rrule.isPresent() && rrule.get().getRecur().getUntil() == null
++                    && rrule.get().getRecur().getCount() <= 0
++                    && rrule.get().getRecur().getFrequency() == net.fortuna.ical4j.transform.recurrence.Frequency.YEARLY
+                     && !offsetFrom.getOffset().equals(offsetTo.getOffset())) {
+                 var recur = rrule.get().getRecur();
+-                var recurMonth = java.time.Month.of(recur.getMonthList().get(0).getMonthOfYear());
++                var recurMonth = recur.getMonthList().isEmpty() ? startDate.getDate().getMonth()
++                        : java.time.Month.of(recur.getMonthList().get(0).getMonthOfYear());
+ 
+                 // derive the transition day. A BYDAY part may carry an ordinal offset (e.g. -1SU) or
+                 // a plain weekday (offset 0, in which case BYMONTHDAY pins the day). When neither BYDAY

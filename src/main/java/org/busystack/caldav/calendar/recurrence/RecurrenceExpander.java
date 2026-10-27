@@ -24,14 +24,30 @@ public final class RecurrenceExpander {
 
   public List<Occurrence> occurrences(
       CalendarContent.Parsed parsed, TimeRange requested, FloatingTimezone timezone) {
+    return occurrences(parsed, requested, timezone, false);
+  }
+
+  public List<Occurrence> occurrences(
+      CalendarContent.Parsed parsed,
+      TimeRange requested,
+      FloatingTimezone timezone,
+      boolean includeAlarms) {
     try {
-      return expand(parsed, requested, timezone.zoneId());
+      CalendarTemporalCoverage.check(parsed, requested, timezone);
+      return expand(parsed, requested, timezone.zoneId(), includeAlarms, timezone.coverageEnd());
+    } catch (java.time.DateTimeException | ArithmeticException ex) {
+      throw QueryException.limit();
     } finally {
       java.lang.ref.Reference.reachabilityFence(timezone);
     }
   }
 
-  private List<Occurrence> expand(CalendarContent.Parsed parsed, TimeRange requested, ZoneId zone) {
+  private List<Occurrence> expand(
+      CalendarContent.Parsed parsed,
+      TimeRange requested,
+      ZoneId zone,
+      boolean includeAlarms,
+      Instant floatingEnd) {
     List<Component> components = new ArrayList<>();
     for (var c : parsed.calendar().getComponents())
       if (!Component.VTIMEZONE.equals(c.getName())) components.add(c);
@@ -73,13 +89,18 @@ public final class RecurrenceExpander {
         if (id == null || overrides.put(key(id, seed, zone), c) != null)
           throw new QueryException(
               QueryException.Kind.INVALID_DATA, "Ambiguous recurrence override");
-        if (c.getRequiredProperty(RECURRENCE_ID).getParameter(Parameter.RANGE).isPresent())
+        var rangeParameter = c.getRequiredProperty(RECURRENCE_ID).getParameter(Parameter.RANGE);
+        if (rangeParameter.isPresent()) {
+          if (!rangeParameter.get().getValue().equalsIgnoreCase("THISANDFUTURE"))
+            throw new QueryException(
+                QueryException.Kind.INVALID_DATA, "Unsupported recurrence range value");
           ranges.add(c);
+        }
       }
     ranges.sort(
         Comparator.comparing(
             c -> TemporalSupport.instant(TemporalSupport.date(c, RECURRENCE_ID), zone)));
-    Duration padding = padding(parsed, components, zone);
+    Duration padding = padding(parsed, components, zone, includeAlarms);
     Instant first =
         requested.start() == null
             ? TemporalSupport.instant(seed, zone)
@@ -88,28 +109,40 @@ public final class RecurrenceExpander {
         requested.end() == null
             ? first.plus(Duration.ofDays(budget.limits().maximumRangeDays()))
             : requested.end().plus(padding);
-    if (!first.isBefore(last)) return List.of();
+    // Explicit RDATEs and detached instances may precede DTSTART; only skip the rule search.
+    boolean searchRules = first.isBefore(last);
     if (Duration.between(first, last)
             .compareTo(
                 Duration.ofDays(budget.limits().maximumRangeDays() + 2L)
                     .plus(padding.multipliedBy(2)))
         > 0) throw QueryException.limit();
-    Temporal nativeFirst = nativeRange(first, seed, zone);
-    Temporal nativeLast = nativeRange(last, seed, zone);
+    if (floatingEnd != null && last.isAfter(floatingEnd)) throw QueryException.limit();
+    for (var bound : parsed.zoneCoverage().values())
+      if (last.isAfter(bound)) throw QueryException.limit();
+    Temporal[] bounds = ruleBounds(first, last, seed, zone);
+    Temporal nativeFirst = bounds[0];
+    Temporal nativeLast = bounds[1];
     var dates = new LinkedHashMap<Object, Temporal>();
     dates.put(key(seed, seed, zone), seed);
     var periodEnds = new HashMap<Object, Temporal>();
     for (var property : master.getProperties(RDATE)) {
       RDate<?> rdate = (RDate<?>) property;
       if (rdate.getPeriods().isPresent()) {
-        for (var period : rdate.getPeriods().get()) {
+        // PERIOD has only comma-separated start/end-or-duration values. The established parser
+        // validates each value; retain its lexical duration to distinguish P1D from PT24H.
+        for (String rawPeriod : parsed.lexicalValue(property).split(",", -1)) {
+          var period = net.fortuna.ical4j.model.Period.<Temporal>parse(rawPeriod);
           budget.charge(1);
           Temporal value = period.getStart();
           if (value instanceof LocalDateTime && property.getParameter(Parameter.TZID).isPresent())
             value = ((LocalDateTime) value).atZone(zoneFor(parsed, property, zone));
           Object id = key(value, seed, zone);
           dates.put(id, value);
-          Temporal end = period.getEnd();
+          String endValue = rawPeriod.substring(rawPeriod.indexOf('/') + 1);
+          Temporal end =
+              endValue.startsWith("P") || endValue.startsWith("+P")
+                  ? TemporalSupport.duration(endValue).addTo(value, zone)
+                  : period.getEnd();
           if (end instanceof LocalDateTime && property.getParameter(Parameter.TZID).isPresent())
             end = ((LocalDateTime) end).atZone(zoneFor(parsed, property, zone));
           periodEnds.put(id, end);
@@ -123,12 +156,11 @@ public final class RecurrenceExpander {
     if (master.getProperties(RRULE).size() > 1)
       throw new QueryException(
           QueryException.Kind.INVALID_DATA, "Multiple RRULE recurrence sets are undefined");
-    for (var property : master.getProperties(RRULE)) {
+    for (var property : searchRules ? master.getProperties(RRULE) : List.<Property>of()) {
       Recur<?> original = ((RRule<?>) property).getRecur();
       Temporal localSeed = nativeRange(TemporalSupport.instant(seed, zone), seed, zone);
       if (seed instanceof LocalDateTime || seed instanceof LocalDate) localSeed = seed;
       Temporal lower = original.getCount() > 0 ? localSeed : nativeFirst;
-      budget.rule(original, localSeed, lower, nativeLast);
       @SuppressWarnings("unchecked")
       Recur<Temporal> copied = new Recur<>((String) property.getValue());
       Temporal until = original.getUntil();
@@ -144,18 +176,50 @@ public final class RecurrenceExpander {
           until = nativeRange(TemporalSupport.instant(until, zone), seed, zone);
         }
       }
+      if (until != null
+          && net.fortuna.ical4j.model.TemporalComparator.INSTANCE.compare(until, lower) < 0)
+        continue;
       Recur<Temporal> rule = new Recur.Builder<>(copied).count(null).until(until).build();
-      try (var stream =
-          rule.getDatesAsStream(
-              localSeed, lower, nativeLast, budget.limits().maximumInstances() + 1)) {
-        // Use the stream pipeline: iCal4j's spliterator may advance without emitting a value
-        // while passing candidates before the requested period. A direct iterator stops early.
-        stream
-            .peek(candidate -> budget.instance())
-            .map(candidate -> resolveCandidate(candidate, seed, zone))
-            .filter(Objects::nonNull)
-            .limit(original.getCount() > 0 ? original.getCount() : Long.MAX_VALUE)
-            .forEach(resolved -> dates.putIfAbsent(key(resolved, seed, zone), resolved));
+      int maximum = budget.limits().maximumRuleIncrements() - 5;
+      int increments =
+          original.getCount() > 0
+              ? Math.min(maximum, (int) Math.min(maximum, 2L * original.getCount() + 8))
+              : maximum;
+      while (true) {
+        Temporal upper = nativeLast;
+        boolean capped = false;
+        if (original.getCount() > 0) {
+          Temporal cap =
+              localSeed
+                  .plus(
+                      Math.multiplyExact((long) Math.max(1, original.getInterval()), increments),
+                      frequencyUnit(original))
+                  .plus(1, localSeed instanceof LocalDate ? ChronoUnit.DAYS : ChronoUnit.NANOS);
+          if (net.fortuna.ical4j.model.TemporalComparator.INSTANCE.compare(cap, nativeLast) < 0) {
+            upper = cap;
+            capped = true;
+          }
+        }
+        budget.rule(original, localSeed, lower, upper);
+        List<Temporal> generated;
+        try (var stream =
+            rule.getDatesAsStream(
+                localSeed, lower, upper, budget.limits().maximumInstances() + 1)) {
+          // iCal4j's spliterator may advance without emitting pre-window candidates.
+          // Keep its stream pipeline rather than adapting it to an Iterator.
+          generated =
+              stream
+                  .peek(candidate -> budget.instance())
+                  .map(candidate -> resolveCandidate(candidate, seed, zone))
+                  .limit(original.getCount() > 0 ? original.getCount() : Long.MAX_VALUE)
+                  .toList();
+        }
+        if (!capped || generated.size() >= original.getCount()) {
+          for (var resolved : generated) dates.putIfAbsent(key(resolved, seed, zone), resolved);
+          break;
+        }
+        if (increments == maximum) throw QueryException.limit();
+        increments = Math.min(maximum, increments * 2);
       }
     }
     Set<Object> excluded = new HashSet<>();
@@ -253,6 +317,43 @@ public final class RecurrenceExpander {
     return new Occurrence(component, recurrenceId, fields, duration, originalStart, originalEnd);
   }
 
+  private static ChronoUnit frequencyUnit(Recur<?> rule) {
+    return switch (rule.getFrequency()) {
+      case SECONDLY -> ChronoUnit.SECONDS;
+      case MINUTELY -> ChronoUnit.MINUTES;
+      case HOURLY -> ChronoUnit.HOURS;
+      case DAILY -> ChronoUnit.DAYS;
+      case WEEKLY -> ChronoUnit.WEEKS;
+      case MONTHLY -> ChronoUnit.MONTHS;
+      case YEARLY -> ChronoUnit.YEARS;
+    };
+  }
+
+  private Temporal[] ruleBounds(Instant first, Instant last, Temporal seed, ZoneId floating) {
+    ZoneId zone =
+        seed instanceof ZonedDateTime z
+            ? z.getZone()
+            : seed instanceof OffsetDateTime o
+                ? o.getOffset()
+                : seed instanceof Instant ? ZoneOffset.UTC : floating;
+    var rules = zone.getRules();
+    int smallest = rules.getOffset(first).getTotalSeconds(), largest = smallest;
+    var transition = rules.nextTransition(first.minusNanos(1));
+    while (transition != null && !transition.getInstant().isAfter(last)) {
+      budget.charge(1);
+      smallest = Math.min(smallest, transition.getOffsetAfter().getTotalSeconds());
+      largest = Math.max(largest, transition.getOffsetAfter().getTotalSeconds());
+      transition = rules.nextTransition(transition.getInstant());
+    }
+    // Across an overlap, local start/end can run backwards. Search a conservative local
+    // interval using every offset in this request, then apply exact instant predicates.
+    var lower = LocalDateTime.ofInstant(first, ZoneOffset.ofTotalSeconds(smallest));
+    var upper = LocalDateTime.ofInstant(last, ZoneOffset.ofTotalSeconds(largest));
+    return seed instanceof LocalDate
+        ? new Temporal[] {lower.toLocalDate(), upper.toLocalDate()}
+        : new Temporal[] {lower, upper};
+  }
+
   private static Temporal nativeRange(Instant value, Temporal seed, ZoneId zone) {
     if (seed instanceof LocalDate) return value.atZone(zone).toLocalDate();
     ZoneId actual =
@@ -268,7 +369,9 @@ public final class RecurrenceExpander {
     if (seed instanceof LocalDate || seed instanceof LocalDateTime) return candidate;
     LocalDateTime local = (LocalDateTime) candidate;
     if (seed instanceof ZonedDateTime z) {
-      if (z.getZone().getRules().getValidOffsets(local).isEmpty()) return null;
+      // RFC5545 verified erratum4271 applies the pre-gap offset to nonexistent
+      // local times. Java atZone shifts the gap by the same amount, preserving
+      // that instant; the recurrence still counts toward COUNT.
       return local.atZone(z.getZone());
     }
     if (seed instanceof OffsetDateTime o) return local.atOffset(o.getOffset());
@@ -305,37 +408,72 @@ public final class RecurrenceExpander {
   }
 
   private static Duration padding(
-      CalendarContent.Parsed parsed, List<Component> components, ZoneId zone) {
+      CalendarContent.Parsed parsed,
+      List<Component> components,
+      ZoneId zone,
+      boolean includeAlarms) {
     Duration max = Duration.ZERO;
     for (Component c : components) {
       Temporal start = TemporalSupport.date(c, DTSTART);
       if (start == null) continue;
       for (String name : List.of(DTEND, DUE, RECURRENCE_ID)) {
         Temporal end = TemporalSupport.date(c, name);
-        if (end != null)
-          max =
-              max.compareTo(
-                          Duration.between(
-                                  TemporalSupport.instant(start, zone),
-                                  TemporalSupport.instant(end, zone))
-                              .abs())
-                      < 0
-                  ? Duration.between(
+        if (end != null) {
+          Duration reach =
+              start instanceof LocalDate a && end instanceof LocalDate b
+                  ? durationBound(
+                      new TemporalSupport.CalendarDuration(
+                          ChronoUnit.DAYS.between(a, b), Duration.ZERO))
+                  : Duration.between(
                           TemporalSupport.instant(start, zone), TemporalSupport.instant(end, zone))
-                      .abs()
-                  : max;
+                      .abs();
+          if (reach.compareTo(max) > 0) max = reach;
+        }
       }
+      if (start instanceof LocalDate && c.getName().equals(Component.VEVENT))
+        max = max.compareTo(Duration.ofHours(60)) < 0 ? Duration.ofHours(60) : max;
       if (c.getProperty(DURATION).isPresent()) {
-        Temporal end =
-            TemporalSupport.duration(parsed, c.getRequiredProperty(DURATION)).addTo(start, zone);
         Duration d =
-            Duration.between(
-                    TemporalSupport.instant(start, zone), TemporalSupport.instant(end, zone))
-                .abs();
+            durationBound(TemporalSupport.duration(parsed, c.getRequiredProperty(DURATION)));
         if (d.compareTo(max) > 0) max = d;
       }
     }
+    if (includeAlarms) {
+      Duration alarmMax = Duration.ZERO;
+      for (Component c : components)
+        if (c instanceof ComponentContainer<?> nested)
+          for (Component alarm : nested.getComponents()) {
+            if (!alarm.getName().equals(Component.VALARM)) continue;
+            Trigger trigger = alarm.getRequiredProperty(TRIGGER);
+            if (trigger.isAbsolute()) continue;
+            Duration reach = durationBound(TemporalSupport.duration(parsed, trigger));
+            int repeat = alarm.getProperty(REPEAT).map(p -> ((Repeat) p).getCount()).orElse(0);
+            if (repeat < 0)
+              throw new QueryException(
+                  QueryException.Kind.INVALID_DATA, "Negative alarm repeat count");
+            if (repeat > 0)
+              reach =
+                  reach.plus(
+                      durationBound(
+                              TemporalSupport.duration(parsed, alarm.getRequiredProperty(DURATION)))
+                          .multipliedBy(repeat));
+            if (reach.compareTo(alarmMax) > 0) alarmMax = reach;
+          }
+      max = max.plus(alarmMax);
+    }
     return max;
+  }
+
+  private static Duration durationBound(TemporalSupport.CalendarDuration duration) {
+    try {
+      // ZoneOffset permits -18h..+18h. One nominal addition can differ from elapsed days
+      // by at most their 36h span, including custom VTIMEZONE definitions.
+      return Duration.ofDays(Math.abs(duration.days()))
+          .plus(duration.clock().abs())
+          .plus(duration.days() == 0 ? Duration.ZERO : Duration.ofHours(36));
+    } catch (ArithmeticException ex) {
+      throw QueryException.limit();
+    }
   }
 
   private static ZoneId zoneFor(CalendarContent.Parsed parsed, Property property, ZoneId fallback) {

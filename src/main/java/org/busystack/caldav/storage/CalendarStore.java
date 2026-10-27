@@ -60,7 +60,7 @@ public class CalendarStore {
   public List<Collection> collections(UUID actor) {
     requireEnabled(actor);
     return jdbc.query(
-        "SELECT c.* FROM collections c WHERE c.owner_id=? OR EXISTS (SELECT 1 FROM collection_members m WHERE m.collection_id=c.id AND m.account_id=?) ORDER BY c.id",
+        "SELECT c.* FROM collections c WHERE c.owner_id=? OR EXISTS (SELECT 1 FROM collection_effective_members m WHERE m.collection_id=c.id AND m.account_id=?) ORDER BY c.id",
         CalendarStore::collection,
         actor,
         actor);
@@ -71,7 +71,9 @@ public class CalendarStore {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     Collection c = lock(collection);
     requireEnabled(actor);
-    if (!c.owner().equals(actor)) throw new StoreException(StoreException.Kind.FORBIDDEN);
+    if (!c.owner().equals(actor))
+      throw new StoreException(
+          StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.OWNER, c.id());
     if (actor.equals(member))
       throw new IllegalArgumentException("Owner permissions cannot be replaced");
     if (permission == null)
@@ -110,8 +112,10 @@ public class CalendarStore {
       WriteCondition condition) {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     checkName(name);
-    if (content.length == 0 || content.length > 1048576)
-      throw new StoreException(StoreException.Kind.LIMIT);
+    if (content == null || content.length == 0)
+      throw new org.busystack.caldav.calendar.CalendarValidationException(
+          org.busystack.caldav.calendar.CalendarValidationException.Reason.INVALID_DATA);
+    if (content.length > 1048576) throw new StoreException(StoreException.Kind.LIMIT);
     Collection c = lock(collectionId);
     authorize(actor, c, true);
     var parsed = org.busystack.caldav.calendar.CalendarContent.parse(content, c.component());
@@ -152,19 +156,29 @@ public class CalendarStore {
     changed(collectionId, c.revision() + 1, name, true);
   }
 
+  /** Current collection state without loading bodies or imposing a report-result budget. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public String currentSyncToken(UUID actor, UUID collectionId) {
+    Collection c = collection(actor, collectionId);
+    return tokenPrefix(c) + c.revision();
+  }
+
+  private String tokenPrefix(Collection c) {
+    return "urn:busystack:sync:"
+        + jdbc.queryForObject("SELECT recovery_epoch FROM system_state WHERE id=1", UUID.class)
+        + ":"
+        + c.id()
+        + ":"
+        + c.generation()
+        + ":";
+  }
+
   /** All response rows and the token come from one MVCC snapshot. No live queries after return. */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public SyncPage sync(UUID actor, UUID collectionId, String token, int limit) {
     if (limit < 1 || limit > 10000) throw new StoreException(StoreException.Kind.LIMIT);
     Collection c = collection(actor, collectionId);
-    String prefix =
-        "urn:busystack:sync:"
-            + jdbc.queryForObject("SELECT recovery_epoch FROM system_state WHERE id=1", UUID.class)
-            + ":"
-            + c.id()
-            + ":"
-            + c.generation()
-            + ":";
+    String prefix = tokenPrefix(c);
     long after = 0;
     if (token != null && !token.isEmpty()) {
       if (!token.startsWith(prefix)) throw new StoreException(StoreException.Kind.INVALID_TOKEN);
@@ -269,12 +283,16 @@ public class CalendarStore {
     if (c.owner().equals(actor)) return;
     List<String> permissions =
         jdbc.queryForList(
-            "SELECT permission FROM collection_members WHERE collection_id=? AND account_id=?",
+            "SELECT permission FROM collection_effective_members WHERE collection_id=? AND account_id=?",
             String.class,
             c.id(),
             actor);
-    if (permissions.isEmpty() || (write && !"WRITE".equals(permissions.getFirst())))
-      throw new StoreException(StoreException.Kind.FORBIDDEN);
+    if (permissions.isEmpty())
+      throw new StoreException(
+          StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.READ, c.id());
+    if (write && !"WRITE".equals(permissions.getFirst()))
+      throw new StoreException(
+          StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.WRITE, c.id());
   }
 
   private Resource resource(UUID collectionId, String name) {

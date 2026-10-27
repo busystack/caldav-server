@@ -92,11 +92,12 @@ final class DavProperties {
     Map<QName, String> dead = dead(actor, node);
     Set<QName> names = new LinkedHashSet<>();
     if (requested.all() || requested.names()) {
-      names.addAll(allNames(node));
+      names.addAll(allNames(actor, node));
       names.addAll(dead.keySet());
     }
     names.addAll(requested.properties().keySet());
     Map<Integer, List<Element>> statuses = new LinkedHashMap<>();
+    Map<Integer, DavException> failures = new LinkedHashMap<>();
     for (QName property : names) {
       var temporary = document();
       Element holder = add(temporary, d("prop"));
@@ -120,6 +121,7 @@ final class DavProperties {
       } catch (DavException ex) {
         if (ex.status() != 403) throw ex;
         status = 403;
+        failures.putIfAbsent(status, ex);
         while (holder.hasChildNodes()) holder.removeChild(holder.getFirstChild());
         add(holder, property);
       }
@@ -132,11 +134,15 @@ final class DavProperties {
       for (Element value : entry.getValue())
         prop.appendChild(prop.getOwnerDocument().importNode(value, true));
       text(propstat, d("status"), status(entry.getKey()));
+      var failure = failures.get(entry.getKey());
+      if (failure != null)
+        DavErrors.append(
+            propstat, failure.condition(), failure.failingHref(), failure.requiredPrivilege());
     }
     return response;
   }
 
-  private Set<QName> allNames(DavNode node) {
+  private Set<QName> allNames(UUID actor, DavNode node) {
     Set<QName> names = new LinkedHashSet<>();
     for (String local : COMMON) names.add(d(local));
     if (node.kind() == DavNode.Kind.RESOURCE) {
@@ -157,7 +163,8 @@ final class DavProperties {
       names.add(d("principal-URL"));
       names.add(d("alternate-URI-set"));
       names.add(d("group-membership"));
-      names.add(c("calendar-home-set"));
+      if (store.principal(actor, node.principal()).group()) names.add(d("group-member-set"));
+      else names.add(c("calendar-home-set"));
     }
     return names;
   }
@@ -201,7 +208,7 @@ final class DavProperties {
       Map<QName, String> dead,
       FloatingTimezone timezone,
       CalendarDataProjection projection) {
-    if (dead.containsKey(property) && !property.equals(d("displayname"))) {
+    if (dead.containsKey(property)) {
       Element stored = parse(dead.get(property).getBytes(StandardCharsets.UTF_8));
       Element copy = (Element) parent.getOwnerDocument().importNode(stored, true);
       parent.appendChild(copy);
@@ -226,15 +233,20 @@ final class DavProperties {
           new ArrayList<>(
               List.of(
                   d("expand-property"),
-                  d("principal-match"),
                   d("principal-property-search"),
                   d("principal-search-property-set"),
                   d("acl-principal-prop-set")));
+      if (node.collection()
+          || (node.kind() == DavNode.Kind.PRINCIPAL
+              && store.principal(actor, node.principal()).group()))
+        reports.add(d("principal-match"));
       if (node.kind() == DavNode.Kind.CALENDAR
           || node.kind() == DavNode.Kind.RESOURCE
           || node.kind() == DavNode.Kind.FOLDER
           || node.kind() == DavNode.Kind.HOME)
-        reports.addAll(List.of(c("calendar-query"), c("calendar-multiget"), c("free-busy-query")));
+        reports.addAll(List.of(c("calendar-query"), c("calendar-multiget")));
+      if (Set.of(DavNode.Kind.CALENDAR, DavNode.Kind.FOLDER, DavNode.Kind.HOME)
+          .contains(node.kind())) reports.add(c("free-busy-query"));
       if (node.kind() == DavNode.Kind.CALENDAR) reports.add(d("sync-collection"));
       for (QName report : reports) add(add(add(value, d("supported-report")), d("report")), report);
       return value;
@@ -265,11 +277,25 @@ final class DavProperties {
     if (node.kind() == DavNode.Kind.PRINCIPAL) {
       if (property.equals(d("principal-URL")))
         return href(parent, property, principal(node.principal()));
-      if (property.equals(d("alternate-URI-set")) || property.equals(d("group-membership")))
-        return add(parent, property);
-      if (property.equals(c("calendar-home-set")))
+      if (property.equals(d("alternate-URI-set"))) return add(parent, property);
+      if (property.equals(d("group-member-set"))) {
+        if (!store.principal(actor, node.principal()).group()) return null;
+        Element value = add(parent, property);
+        for (var member : store.groupMembers(actor, node.principal()))
+          text(value, d("href"), principal(member.id()));
+        return value;
+      }
+      if (property.equals(d("group-membership"))) {
+        Element value = add(parent, property);
+        for (var group : store.principalGroups(actor, node.principal()))
+          text(value, d("href"), principal(group.id()));
+        return value;
+      }
+      if (property.equals(c("calendar-home-set"))) {
+        if (store.principal(actor, node.principal()).group()) return null;
         return href(
             parent, property, paths.href(List.of("calendars", node.principal().toString()), true));
+      }
     }
     if (node.kind() == DavNode.Kind.RESOURCE) {
       if (property.equals(d("getetag"))) return text(parent, property, node.resource().etag());
@@ -296,10 +322,7 @@ final class DavProperties {
     }
     if (node.kind() == DavNode.Kind.CALENDAR) {
       if (property.equals(d("sync-token")))
-        return text(
-            parent,
-            property,
-            store.snapshot(actor, node.principal(), node.relativePath()).syncToken());
+        return text(parent, property, calendars.currentSyncToken(actor, node.collectionId()));
       if (property.equals(c("supported-calendar-component-set"))) {
         Element value = add(parent, property);
         add(value, c("comp")).setAttribute("name", node.entry().collection().component());
@@ -329,11 +352,7 @@ final class DavProperties {
           ? node.resource().name()
           : node.entry().binding().displayName();
     if (node.kind() == DavNode.Kind.PRINCIPAL)
-      return store.principals(actor).stream()
-          .filter(p -> p.id().equals(node.principal()))
-          .findFirst()
-          .orElseThrow(() -> new DavException(404, null))
-          .displayName();
+      return store.principal(actor, node.principal()).displayName();
     return switch (node.kind()) {
       case ROOT -> "BusyStack CalDAV";
       case PRINCIPALS -> "Principals";
@@ -347,7 +366,7 @@ final class DavProperties {
     List<QName> result = new ArrayList<>(List.of(d("read"), d("read-current-user-privilege-set")));
     String permission =
         node.collectionId() == null
-            ? (node.principal() == null || node.principal().equals(actor) ? "OWNER" : "READ")
+            ? (owner(actor, node).equals(actor) ? "OWNER" : "READ")
             : store.permission(actor, node.collectionId());
     boolean owner = permission.equals("OWNER"), writable = !permission.equals("READ");
     switch (node.kind()) {
@@ -378,7 +397,12 @@ final class DavProperties {
 
   private Element acl(Element parent, UUID actor, DavNode node, QName property) {
     UUID owner = owner(actor, node);
-    if (!owner.equals(actor)) throw new DavException(403, d("need-privileges"));
+    if (!owner.equals(actor))
+      throw new DavException(
+          403,
+          d("need-privileges"),
+          paths.href(node.segments(), node.trailingSlash()),
+          d("read-acl"));
     Element value = add(parent, property);
     Element ownerAce = add(value, d("ace"));
     add(add(add(ownerAce, d("principal")), d("property")), d("owner"));
@@ -435,7 +459,9 @@ final class DavProperties {
     return value;
   }
 
-  private UUID owner(UUID actor, DavNode node) {
+  UUID owner(UUID actor, DavNode node) {
+    if (node.kind() == DavNode.Kind.PRINCIPAL)
+      return store.principal(actor, node.principal()).owner();
     return node.entry() != null && node.entry().collection() != null
         ? node.entry().collection().owner()
         : node.principal() == null ? actor : node.principal();

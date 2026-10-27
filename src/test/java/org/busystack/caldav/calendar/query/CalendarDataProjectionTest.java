@@ -245,6 +245,91 @@ class CalendarDataProjectionTest {
         .isPresent();
   }
 
+  @Test
+  void fullAndSelectedReportCopiesRetainNominalDurationSpellingAcrossDst() {
+    var parsed =
+        CalendarContent.parse(
+            ("BEGIN:VCALENDAR\r\n"
+                    + "VERSION:2.0\r\n"
+                    + "PRODID:-//Nominal duration textual fixture//EN\r\n"
+                    + "BEGIN:VTIMEZONE\r\n"
+                    + "TZID:Europe/Berlin\r\n"
+                    + "BEGIN:STANDARD\r\n"
+                    + "DTSTART:20251026T030000\r\n"
+                    + "TZOFFSETFROM:+0200\r\n"
+                    + "TZOFFSETTO:+0100\r\n"
+                    + "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n"
+                    + "END:STANDARD\r\n"
+                    + "BEGIN:DAYLIGHT\r\n"
+                    + "DTSTART:20250330T020000\r\n"
+                    + "TZOFFSETFROM:+0100\r\n"
+                    + "TZOFFSETTO:+0200\r\n"
+                    + "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n"
+                    + "END:DAYLIGHT\r\n"
+                    + "END:VTIMEZONE\r\n"
+                    + "BEGIN:VEVENT\r\n"
+                    + "UID:nominal-copy\r\n"
+                    + "DTSTAMP:20261027T000000Z\r\n"
+                    + "DTSTART;TZID=Europe/Berlin:20260328T120000\r\n"
+                    + "DURATION:PT24H\r\n"
+                    + "RRULE:FREQ=DAILY;COUNT=2\r\n"
+                    + "RDATE;VALUE=PERIOD;TZID=Europe/Berlin:20260330T120000/PT24H\r\n"
+                    + "BEGIN:VALARM\r\n"
+                    + "TRIGGER;RELATED=END:-PT24H\r\n"
+                    + "ACTION:DISPLAY\r\n"
+                    + "DESCRIPTION:Nominal alarm\r\n"
+                    + "END:VALARM\r\n"
+                    + "END:VEVENT\r\n"
+                    + "END:VCALENDAR\r\n")
+                .getBytes(StandardCharsets.UTF_8),
+            Component.VEVENT);
+    var selection =
+        new ComponentSelection(
+            "VCALENDAR",
+            true,
+            false,
+            List.of(),
+            List.of(new ComponentSelection("VEVENT", true, true, List.of(), List.of())));
+    for (var report :
+        List.of(
+            projection.project(parsed, null, UTC),
+            projection.project(parsed, new Selection(selection, null, null, null), UTC))) {
+      var event = report.getComponents(Component.VEVENT).getFirst();
+      assertThat(event.getProperty(Property.DURATION).orElseThrow().getValue()).isEqualTo("PT24H");
+      assertThat(event.getProperty(Property.RDATE).orElseThrow().getValue()).endsWith("/PT24H");
+      var alarm = ((ComponentContainer<?>) event).getComponents().getFirst();
+      assertThat(alarm.getProperty(Property.TRIGGER).orElseThrow().getValue()).isEqualTo("-PT24H");
+    }
+  }
+
+  @Test
+  void repeatedLargeResourcesShareAByteBudgetBeforeReportCopies() {
+    String description = "x".repeat(900000);
+    var text =
+        new StringBuilder(
+            "BEGIN:VCALENDAR\r\n"
+                + "VERSION:2.0\r\n"
+                + "PRODID:-//Bounded report fixture//EN\r\n"
+                + "BEGIN:VEVENT\r\n"
+                + "UID:large-report\r\n"
+                + "DTSTAMP:20261027T000000Z\r\n"
+                + "DTSTART:20261028T100000Z\r\n"
+                + "DESCRIPTION:");
+    for (int offset = 0; offset < description.length(); offset += 60) {
+      if (offset != 0) text.append("\r\n ");
+      text.append(description, offset, Math.min(offset + 60, description.length()));
+    }
+    text.append("\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+    var parsed =
+        CalendarContent.parse(text.toString().getBytes(StandardCharsets.UTF_8), Component.VEVENT);
+    var bounded = new CalendarDataProjection(QueryLimits.defaults());
+    assertThat(bounded.project(parsed, null, UTC).getComponents()).hasSize(1);
+    assertThatThrownBy(() -> bounded.project(parsed, null, UTC))
+        .isInstanceOfSatisfying(
+            QueryException.class,
+            error -> assertThat(error.kind()).isEqualTo(QueryException.Kind.LIMIT_EXCEEDED));
+  }
+
   private static ComponentSelection selected(
       String name, List<PropertySelection> properties, List<ComponentSelection> components) {
     return new ComponentSelection(name, false, false, properties, components);

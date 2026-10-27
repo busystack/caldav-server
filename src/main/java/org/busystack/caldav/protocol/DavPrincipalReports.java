@@ -72,32 +72,40 @@ final class DavPrincipalReports {
       }
     } else if (is(root, DAV, "acl-principal-prop-set")) {
       requireDepthZero(request);
+      if (!properties.privileges(actor, node).contains(d("read-acl")))
+        throw new DavException(
+            403,
+            d("need-privileges"),
+            paths.href(node.segments(), node.trailingSlash()),
+            d("read-acl"));
       Set<UUID> principals = new LinkedHashSet<>();
       if (node.collectionId() != null) {
-        if (!store.permission(actor, node.collectionId()).equals("OWNER"))
-          throw new DavException(403, d("need-privileges"));
         principals.add(node.entry().collection().owner());
         for (var member : store.members(actor, node.collectionId()))
           principals.add(member.account());
-      } else principals.add(node.principal() == null ? actor : node.principal());
+      } else principals.add(properties.owner(actor, node));
       for (UUID principal : principals)
         result.add(resources.resolve(actor, List.of("principals", principal.toString())));
     } else if (is(root, DAV, "principal-match")) {
       requireDepthZero(request);
-      if (!node.collection()) throw new DavException(403, d("supported-report"));
       Element self = child(root, DAV, "self"),
           principalProperty = child(root, DAV, "principal-property");
       if ((self == null) == (principalProperty == null)) throw new DavException(400, null);
+      boolean group =
+          node.kind() == DavNode.Kind.PRINCIPAL && store.principal(actor, node.principal()).group();
+      if (!node.collection() && !(self != null && group))
+        throw new DavException(403, d("supported-report"));
+      var candidates = node.collection() ? resources.descendants(actor, node, 20) : List.of(node);
       if (self != null) {
-        for (DavNode candidate : resources.descendants(actor, node, 20))
-          if (!candidate.segments().equals(node.segments())
+        for (DavNode candidate : candidates)
+          if ((!candidate.segments().equals(node.segments()) || group)
               && candidate.kind() == DavNode.Kind.PRINCIPAL
-              && candidate.principal().equals(actor)) result.add(candidate);
+              && (candidate.principal().equals(actor)
+                  || store.groupContains(actor, candidate.principal()))) result.add(candidate);
       } else {
         if (children(principalProperty).size() != 1) throw new DavException(400, null);
         QName property = name(children(principalProperty).getFirst());
-        String current = paths.href(List.of("principals", actor.toString()), true);
-        for (DavNode candidate : resources.descendants(actor, node, 20)) {
+        for (DavNode candidate : candidates) {
           if (candidate.segments().equals(node.segments())) continue;
           var document = document();
           Element holder = add(document, d("prop"));
@@ -112,7 +120,7 @@ final class DavPrincipalReports {
                   FloatingTimezone.of(java.time.ZoneOffset.UTC));
           if (value != null
               && children(value).stream()
-                  .anyMatch(e -> is(e, DAV, "href") && current.equals(e.getTextContent())))
+                  .anyMatch(e -> is(e, DAV, "href") && matchesPrincipal(actor, e.getTextContent())))
             result.add(candidate);
         }
       }
@@ -219,6 +227,18 @@ final class DavPrincipalReports {
       throw new DavException(400, null);
     }
     return new QName(namespace, name);
+  }
+
+  private boolean matchesPrincipal(UUID actor, String href) {
+    try {
+      var target = paths.parse(href);
+      return target.size() == 2
+          && target.getFirst().equals("principals")
+          && (DavResources.uuid(target.get(1)).equals(actor)
+              || store.groupContains(actor, DavResources.uuid(target.get(1))));
+    } catch (DavException unknown) {
+      return false;
+    }
   }
 
   private static void requireDepthZero(HttpServletRequest request) {

@@ -20,7 +20,12 @@ class DeploymentPropertiesTest {
           "http://calendar.example",
           "https://calendar.example/",
           "https://user@calendar.example",
+          "https://calendar.example:0",
+          "https://calendar.example:65536",
+          "https://calendar.example/team;parameter",
           "https://calendar.example/%2e%2e",
+          "https://calendar.example/équipe",
+          "https://calendar.example/%C3%A9quipe",
           "https://calendar.example/a/../b",
           "https://calendar.example?evil=1",
           "https://calendar.example/#fragment"
