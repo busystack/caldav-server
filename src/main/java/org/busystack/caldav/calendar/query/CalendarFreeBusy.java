@@ -58,6 +58,11 @@ public final class CalendarFreeBusy {
   }
 
   public List<BusyPeriod> querySources(List<Source> sources, TimeRange range) {
+    return querySources((Iterable<Source>) sources, range);
+  }
+
+  /** Consume one parsed resource at a time; only the bounded busy-period result is retained. */
+  public List<BusyPeriod> querySources(Iterable<Source> sources, TimeRange range) {
     if (range.start() == null || range.end() == null)
       throw QueryException.invalid("Free/busy requires a finite time range");
     var periods = new ArrayList<BusyPeriod>();

@@ -30,8 +30,27 @@ DO $recovery$
 DECLARE
   affected integer;
 BEGIN
-  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE success AND version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9')) THEN
-    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 9 only; leave application stopped and update recovery procedure';
+  IF to_regclass('public.flyway_schema_history') IS NULL THEN
+    RAISE EXCEPTION 'Missing migration history; leave application stopped';
+  END IF;
+  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE success IS NOT TRUE) THEN
+    RAISE EXCEPTION 'Failed migration history; leave application stopped and repair with the supported procedure';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version='1' AND success) THEN
+    RAISE EXCEPTION 'Missing V1 migration history; leave application stopped';
+  END IF;
+  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13')) THEN
+    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 13 only; leave application stopped and update recovery procedure';
+  END IF;
+  IF EXISTS (SELECT version FROM flyway_schema_history WHERE version IS NOT NULL GROUP BY version HAVING count(*) <> 1) THEN
+    RAISE EXCEPTION 'Duplicate migration versions; leave application stopped';
+  END IF;
+  IF (SELECT count(*) FROM flyway_schema_history WHERE version IS NOT NULL) <>
+     (SELECT max(version::integer) FROM flyway_schema_history WHERE version IS NOT NULL) THEN
+    RAISE EXCEPTION 'Gap in migration history; leave application stopped';
+  END IF;
+  IF to_regclass('public.sync_continuations') IS NOT NULL THEN
+    DELETE FROM sync_continuations;
   END IF;
   UPDATE system_state SET recovery_epoch = gen_random_uuid();
   GET DIAGNOSTICS affected = ROW_COUNT;

@@ -384,4 +384,141 @@ class GroupServiceIT {
     groups.update(auth(administrator, true), group, "Atomic", Set.of("bob", "carol"));
     assertThat(dav.permission(carol, calendar)).isEqualTo("READ");
   }
+
+  @Test
+  void largeOwnedGrantSetsRemainListableAndRevocable() {
+    new org.springframework.transaction.support.TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
+              jdbc.update(
+                  "INSERT INTO sharing_groups(id,name,created_by) SELECT gen_random_uuid(),'capacity-'||n,? FROM generate_series(1,101) n",
+                  administrator);
+              jdbc.update(
+                  "INSERT INTO collections(id,owner_id,name,component) SELECT gen_random_uuid(),?,'capacity-'||n,'VEVENT' FROM generate_series(1,100) n",
+                  owner);
+              jdbc.update(
+                  "INSERT INTO collection_group_members(collection_id,group_id,permission) SELECT c.id,g.id,'READ' FROM collections c CROSS JOIN sharing_groups g WHERE c.owner_id=? AND c.name LIKE 'capacity-%' AND g.name LIKE 'capacity-%'",
+                  owner);
+            });
+    assertThat(groups.ownedGrants(auth(owner, false))).hasSize(50);
+    var first = groups.ownedGrants(auth(owner, false)).getFirst();
+    groups.grant(auth(owner, true), first.collection(), first.group(), "REVOKE");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM collection_group_members WHERE collection_id=? AND group_id=?",
+                Integer.class,
+                first.collection(),
+                first.group()))
+        .isZero();
+  }
+
+  @Test
+  void aGroupSpanningMoreThanTenThousandCollectionsRemainsMaintainable() {
+    UUID group = group("Large group", Set.of());
+    new org.springframework.transaction.support.TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
+              jdbc.update(
+                  "INSERT INTO collections(id,owner_id,name,component) SELECT gen_random_uuid(),?,'span-'||n,'VEVENT' FROM generate_series(1,10001) n",
+                  owner);
+              jdbc.update(
+                  "INSERT INTO collection_group_members(collection_id,group_id,permission) SELECT id,?,'READ' FROM collections WHERE owner_id=? AND name LIKE 'span-%'",
+                  group, owner);
+            });
+    long started = System.nanoTime();
+    withGenericGroupPlan(
+        () -> groups.update(auth(administrator, true), group, "Large renamed", Set.of("bob")));
+    assertThat(groups.list(auth(administrator, true)).getFirst().name()).isEqualTo("Large renamed");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM dav_bindings WHERE home_id=?", Long.class, bob))
+        .isEqualTo(10001);
+    long added = System.nanoTime();
+    withGenericGroupPlan(
+        () -> groups.update(auth(administrator, true), group, "Large emptied", Set.of()));
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM dav_bindings WHERE home_id=?", Long.class, bob))
+        .isZero();
+    long removed = System.nanoTime();
+    withGenericGroupPlan(
+        () -> groups.update(auth(administrator, true), group, "Large restored", Set.of("bob")));
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM dav_bindings WHERE home_id=?", Long.class, bob))
+        .isEqualTo(10001);
+    long restored = System.nanoTime();
+
+    withGenericGroupPlan(() -> groups.delete(auth(administrator, true), group));
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM dav_bindings WHERE home_id=?", Long.class, bob))
+        .isZero();
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM collection_group_members WHERE group_id=?",
+                Integer.class,
+                group))
+        .isZero();
+    System.out.printf(
+        "GROUP_CAPACITY collections=10001 add_ms=%d remove_ms=%d readd_ms=%d delete_ms=%d%n",
+        java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(added - started),
+        java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(removed - added),
+        java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(restored - removed),
+        java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restored));
+  }
+
+  private void withGenericGroupPlan(Runnable operation) {
+    // Exercise the plan PostgreSQL can cache after several small groups, with stale estimates
+    // after the bulk insert. Keep the production operation's existing 30-second deadline.
+    var transaction = new org.springframework.transaction.support.TransactionTemplate(transactions);
+    transaction.setTimeout(30);
+    transaction.executeWithoutResult(
+        status -> {
+          jdbc.execute("SET LOCAL plan_cache_mode=force_generic_plan");
+          operation.run();
+        });
+  }
+
+  @Test
+  void xmlInvalidGroupNamesAreRejectedBeforeCreationOrRename() {
+    UUID existing = group("Existing", Set.of("bob"));
+    var checks = new java.util.ArrayList<org.junit.jupiter.api.function.Executable>();
+    for (int invalid : new int[] {0xFFFE, 0xFFFF}) {
+      String created = "Created" + (char) invalid, renamed = "Renamed" + (char) invalid;
+      checks.add(
+          () ->
+              assertThatThrownBy(() -> group(created, Set.of()))
+                  .isInstanceOf(IllegalArgumentException.class));
+      checks.add(
+          () ->
+              assertThatThrownBy(
+                      () ->
+                          groups.update(
+                              auth(administrator, true), existing, renamed, Set.of("bob")))
+                  .isInstanceOf(IllegalArgumentException.class));
+    }
+    org.junit.jupiter.api.Assertions.assertAll(checks);
+    assertThat(groups.list(auth(administrator, true)))
+        .singleElement()
+        .extracting(GroupService.Group::name)
+        .isEqualTo("Existing");
+    for (String valid :
+        List.of(
+            "Valid\uFDD0",
+            "Valid" + new String(Character.toChars(0x1FFFE)),
+            "Line\nName\tAllowed",
+            "DEL\u007fC1\u0085")) {
+      UUID id = group(valid, Set.of());
+      assertThat(groups.choices(auth(owner, false)))
+          .anySatisfy(
+              choice -> {
+                assertThat(choice.id()).isEqualTo(id);
+                assertThat(choice.name()).isEqualTo(valid);
+              });
+      groups.update(auth(administrator, true), id, valid + " renamed", Set.of());
+    }
+  }
 }

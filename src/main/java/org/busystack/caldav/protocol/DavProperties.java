@@ -89,35 +89,40 @@ final class DavProperties {
       FloatingTimezone timezone) {
     Element response = add(multistatus, d("response"));
     text(response, d("href"), paths.href(node.segments(), node.trailingSlash()));
-    Map<QName, String> dead = dead(actor, node);
+    Map<QName, String> dead =
+        requested.names()
+            ? Map.of()
+            : dead(actor, node, requested.all() ? null : requested.properties().keySet());
     Set<QName> names = new LinkedHashSet<>();
     if (requested.all() || requested.names()) {
       names.addAll(allNames(actor, node));
-      names.addAll(dead.keySet());
+      names.addAll(requested.names() ? deadNames(actor, node) : dead.keySet());
     }
     names.addAll(requested.properties().keySet());
     Map<Integer, List<Element>> statuses = new LinkedHashMap<>();
     Map<Integer, DavException> failures = new LinkedHashMap<>();
     for (QName property : names) {
-      var temporary = document();
-      Element holder = add(temporary, d("prop"));
+      // Build on the response document's shared work budget and move the completed node,
+      // avoiding a second DOM copy for every property.
+      Element holder = multistatus.getOwnerDocument().createElementNS(DAV, "D:prop");
       int status = 200;
       try {
         Element value =
-            value(
-                holder,
-                actor,
-                node,
-                property,
-                requested.properties().get(property),
-                dead,
-                timezone,
-                requested.projection());
+            requested.names()
+                ? add(holder, property)
+                : value(
+                    holder,
+                    actor,
+                    node,
+                    property,
+                    requested.properties().get(property),
+                    dead,
+                    timezone,
+                    requested.projection());
         if (value == null) {
           status = 404;
           add(holder, property);
-        } else if (requested.names())
-          while (value.hasChildNodes()) value.removeChild(value.getFirstChild());
+        }
       } catch (DavException ex) {
         if (ex.status() != 403) throw ex;
         status = 403;
@@ -129,10 +134,11 @@ final class DavProperties {
           .computeIfAbsent(status, ignored -> new ArrayList<>())
           .add((Element) holder.getFirstChild());
     }
+    // A successful changed member requires a propstat even for an explicit empty prop set.
+    if (statuses.isEmpty()) statuses.put(200, List.of());
     for (var entry : statuses.entrySet()) {
       Element propstat = add(response, d("propstat")), prop = add(propstat, d("prop"));
-      for (Element value : entry.getValue())
-        prop.appendChild(prop.getOwnerDocument().importNode(value, true));
+      for (Element value : entry.getValue()) prop.appendChild(value);
       text(propstat, d("status"), status(entry.getKey()));
       var failure = failures.get(entry.getKey());
       if (failure != null)
@@ -147,7 +153,7 @@ final class DavProperties {
     for (String local : COMMON) names.add(d(local));
     if (node.kind() == DavNode.Kind.RESOURCE) {
       names.add(d("getetag"));
-      if (node.resource().modifiedAt() != null) names.add(d("getlastmodified"));
+      if (node.metadata().modifiedAt() != null) names.add(d("getlastmodified"));
       names.add(d("getcontenttype"));
       names.add(d("getcontentlength"));
     }
@@ -171,14 +177,45 @@ final class DavProperties {
   }
 
   Map<QName, String> dead(UUID actor, DavNode node) {
+    return dead(actor, node, null);
+  }
+
+  Map<QName, String> dead(UUID actor, DavNode node, Set<QName> selected) {
+    if (selected != null) {
+      selected =
+          selected.stream()
+              .filter(property -> !liveOnly(property))
+              .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+      if (selected.isEmpty()) return Map.of();
+    }
     if (node.entry() == null) return Map.of();
-    if (node.collectionId() != null)
+    if (node.collectionId() != null) {
+      if (node.historical())
+        return calendars.historicalProperties(
+            actor,
+            node.collectionId(),
+            node.metadata().name(),
+            node.metadata().revision(),
+            selected);
       return store.deadProperties(
-          actor, node.collectionId(), node.resource() == null ? null : node.resource().name());
-    Map<QName, String> result = new LinkedHashMap<>();
-    for (var property : store.snapshot(actor, node.principal(), node.relativePath()).properties())
-      result.put(new QName(property.namespace(), property.name()), property.xml());
-    return result;
+          actor,
+          node.collectionId(),
+          node.metadata() == null ? null : node.metadata().name(),
+          selected);
+    }
+    return store.folderProperties(actor, node.principal(), node.relativePath(), selected);
+  }
+
+  private Set<QName> deadNames(UUID actor, DavNode node) {
+    if (node.entry() == null) return Set.of();
+    if (node.collectionId() != null) {
+      if (node.historical())
+        return calendars.historicalPropertyNames(
+            actor, node.collectionId(), node.metadata().name(), node.metadata().revision());
+      return store.deadPropertyNames(
+          actor, node.collectionId(), node.metadata() == null ? null : node.metadata().name());
+    }
+    return store.folderPropertyNames(actor, node.principal(), node.relativePath());
   }
 
   Element value(
@@ -211,9 +248,7 @@ final class DavProperties {
       CalendarDataProjection projection) {
     if (dead.containsKey(property)) {
       Element stored = parse(dead.get(property).getBytes(StandardCharsets.UTF_8));
-      Element copy = (Element) parent.getOwnerDocument().importNode(stored, true);
-      parent.appendChild(copy);
-      return copy;
+      return appendCopy(parent, stored);
     }
     if (property.equals(d("resourcetype"))) {
       Element value = add(parent, property);
@@ -299,29 +334,37 @@ final class DavProperties {
       }
     }
     if (node.kind() == DavNode.Kind.RESOURCE) {
-      if (property.equals(d("getetag"))) return text(parent, property, node.resource().etag());
-      if (property.equals(d("getlastmodified")) && node.resource().modifiedAt() != null)
+      if (property.equals(d("getetag"))) return text(parent, property, node.metadata().etag());
+      if (property.equals(d("getlastmodified")) && node.metadata().modifiedAt() != null)
         return text(
             parent,
             property,
             HttpDateValues.format(
                 org.busystack.caldav.storage.ModificationDates.effective(
-                    node.resource().modifiedAt(), java.time.Instant.now())));
+                    node.metadata().modifiedAt(), java.time.Instant.now())));
       if (property.equals(d("getcontenttype")))
         return text(parent, property, "text/calendar; charset=utf-8");
       if (property.equals(d("getcontentlength")))
-        return text(parent, property, Integer.toString(node.resource().content().length));
+        return text(parent, property, Long.toString(node.metadata().contentLength()));
       if (property.equals(c("calendar-data"))) {
+        CalendarStore.Resource resource = node.resource();
+        if (resource == null) {
+          if (node.historical())
+            throw new IllegalStateException(
+                "Historical calendar data was not selected by synchronization");
+          resource = calendars.get(actor, node.collectionId(), node.metadata().name());
+          if (resource == null) throw new DavException(404, null);
+        }
         String content;
         var selection = selector == null ? null : CalendarQueryXml.selection(selector);
         if (selector == null || children(selector).isEmpty())
-          content = new String(node.resource().content(), StandardCharsets.UTF_8);
+          content = new String(resource.content(), StandardCharsets.UTF_8);
         else
           content =
               projection
                   .project(
                       CalendarContent.parse(
-                          node.resource().content(), node.entry().collection().component()),
+                          resource.content(), node.entry().collection().component()),
                       selection,
                       timezone)
                   .toString();
@@ -357,7 +400,7 @@ final class DavProperties {
   String displayName(UUID actor, DavNode node) {
     if (node.entry() != null)
       return node.kind() == DavNode.Kind.RESOURCE
-          ? node.resource().name()
+          ? node.metadata().name()
           : node.entry().binding().displayName();
     if (node.kind() == DavNode.Kind.PRINCIPAL)
       return store.principal(actor, node.principal()).displayName();
@@ -498,6 +541,33 @@ final class DavProperties {
           case 507 -> "Insufficient Storage";
           default -> "Error";
         };
+  }
+
+  private static boolean liveOnly(QName property) {
+    if (WRITABLE.contains(property)) return false;
+    if (DAV.equals(property.getNamespaceURI()))
+      return COMMON.contains(property.getLocalPart())
+          || Set.of(
+                  "acl",
+                  "principal-URL",
+                  "alternate-URI-set",
+                  "group-member-set",
+                  "group-membership",
+                  "getetag",
+                  "getlastmodified",
+                  "getcontenttype",
+                  "getcontentlength",
+                  "sync-token")
+              .contains(property.getLocalPart());
+    return CAL.equals(property.getNamespaceURI())
+        && Set.of(
+                "calendar-data",
+                "calendar-home-set",
+                "supported-calendar-component-set",
+                "supported-calendar-data",
+                "max-resource-size",
+                "supported-collation-set")
+            .contains(property.getLocalPart());
   }
 
   static boolean protectedProperty(QName property) {

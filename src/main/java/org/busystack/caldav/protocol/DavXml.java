@@ -11,6 +11,7 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.busystack.caldav.xml.XmlCharacters;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -25,6 +26,129 @@ public final class DavXml {
   public static final String CAL = "urn:ietf:params:xml:ns:caldav";
   public static final int MAX_REQUEST = 1048576;
   public static final int MAX_RESPONSE = 16777216;
+  public static final int MAX_RESPONSE_WORK = MAX_RESPONSE;
+
+  private static final String BUDGET_KEY = DavXml.class.getName() + ".budget";
+  private static final int MAX_RESPONSE_NODES = 50000;
+
+  private static final class Budget {
+    long work;
+    int nodes;
+
+    void reserve(long additional, int addedNodes) {
+      if (additional > MAX_RESPONSE - work || addedNodes > MAX_RESPONSE_NODES - nodes)
+        throw new DavException(507, d("number-of-matches-within-limits"));
+      work += additional;
+      nodes += addedNodes;
+    }
+  }
+
+  private static Budget budget(Node parent) {
+    Document document = parent instanceof Document d ? d : parent.getOwnerDocument();
+    Budget budget = (Budget) document.getUserData(BUDGET_KEY);
+    if (budget == null) {
+      budget = new Budget();
+      document.setUserData(BUDGET_KEY, budget, null);
+    }
+    return budget;
+  }
+
+  /** Conservative DOM and serialized-text work: UTF-16 storage plus escaped UTF-8 output. */
+  private static long textWork(String value) {
+    long result = 2L * value.length();
+    for (int i = 0; i < value.length(); ) {
+      int cp = value.codePointAt(i);
+      i += Character.charCount(cp);
+      result +=
+          switch (cp) {
+            case '&' -> 5;
+            case '<', '>' -> 4;
+            case '\"', '\'', '\n', '\r', '\t' -> 6;
+            default -> cp < 128 ? 1 : cp < 2048 ? 2 : cp < 65536 ? 3 : 4;
+          };
+    }
+    return result;
+  }
+
+  private static void reserveCopy(Budget budget, Node source) {
+    budget.reserve(256 + textWork(source.getNodeName()), 1);
+    if (source.getNodeValue() != null) budget.reserve(textWork(source.getNodeValue()), 0);
+    var attributes = source.getAttributes();
+    if (attributes != null)
+      for (int i = 0; i < attributes.getLength(); i++) {
+        Node attribute = attributes.item(i);
+        budget.reserve(
+            128 + textWork(attribute.getNodeName()) + textWork(attribute.getNodeValue()), 1);
+      }
+    for (Node child = source.getFirstChild(); child != null; child = child.getNextSibling())
+      reserveCopy(budget, child);
+  }
+
+  public static long constructionWork(Node node) {
+    Budget used = budget(node);
+    return Math.max(
+        used.work,
+        used.nodes * ((MAX_RESPONSE_WORK + MAX_RESPONSE_NODES - 1L) / MAX_RESPONSE_NODES));
+  }
+
+  public static long copyWork(Node node) {
+    Budget estimate = new Budget();
+    reserveCopy(estimate, node);
+    return Math.max(
+        estimate.work,
+        estimate.nodes * ((MAX_RESPONSE_WORK + MAX_RESPONSE_NODES - 1L) / MAX_RESPONSE_NODES));
+  }
+
+  /** Validate the complete subtree before allocating its imported DOM copy. */
+  public static Element appendCopy(Node parent, Element source) {
+    reserveCopy(budget(parent), source);
+    Document document = parent instanceof Document d ? d : parent.getOwnerDocument();
+    Element result = (Element) document.importNode(source, true);
+    parent.appendChild(result);
+    return result;
+  }
+
+  /** Transfer an already bounded response subtree without allocating a duplicate DOM. */
+  public static Element appendAdopt(Node parent, Element source) {
+    reserveCopy(budget(parent), source);
+    Document document = parent instanceof Document d ? d : parent.getOwnerDocument();
+    Node result = document.adoptNode(source);
+    if (!(result instanceof Element element))
+      throw new IllegalStateException("XML DOM adoption unavailable");
+    parent.appendChild(element);
+    return element;
+  }
+
+  /** A detached dead property retains its effective xml:lang, including an explicit empty value. */
+  public static byte[] propertyBytes(Element property) {
+    Element copy = (Element) property.cloneNode(true);
+    java.util.Set<String> prefixes = new java.util.HashSet<>();
+    for (Node context = property;
+        context instanceof Element element;
+        context = context.getParentNode()) {
+      var attributes = element.getAttributes();
+      for (int i = 0; i < attributes.getLength(); i++) {
+        Node attribute = attributes.item(i);
+        if (XMLConstants.XMLNS_ATTRIBUTE_NS_URI.equals(attribute.getNamespaceURI())
+            && prefixes.add(attribute.getLocalName()))
+          copy.setAttributeNS(
+              XMLConstants.XMLNS_ATTRIBUTE_NS_URI,
+              attribute.getNodeName(),
+              attribute.getNodeValue());
+      }
+    }
+    for (Node context = property;
+        context instanceof Element element;
+        context = context.getParentNode())
+      if (element.hasAttributeNS(XMLConstants.XML_NS_URI, "lang")) {
+        copy.setAttributeNS(
+            XMLConstants.XML_NS_URI,
+            "xml:lang",
+            element.getAttributeNS(XMLConstants.XML_NS_URI, "lang"));
+        break;
+      }
+    return bytes(copy);
+  }
 
   private DavXml() {}
 
@@ -128,6 +252,8 @@ public final class DavXml {
     Document document = parent instanceof Document d ? d : parent.getOwnerDocument();
     String prefix =
         DAV.equals(name.getNamespaceURI()) ? "D" : CAL.equals(name.getNamespaceURI()) ? "C" : "P";
+    budget(parent)
+        .reserve(256 + textWork(name.getNamespaceURI()) * 2 + textWork(name.getLocalPart()) * 2, 1);
     Element result =
         document.createElementNS(
             name.getNamespaceURI().isEmpty() ? null : name.getNamespaceURI(),
@@ -139,6 +265,9 @@ public final class DavXml {
   }
 
   public static Element text(Node parent, QName name, String value) {
+    // Invalid labels retained by an older version must not produce a malformed success response.
+    if (!XmlCharacters.valid(value)) throw new DavException(500, null);
+    budget(parent).reserve(textWork(value), 1);
     Element result = add(parent, name);
     result.setTextContent(value);
     return result;

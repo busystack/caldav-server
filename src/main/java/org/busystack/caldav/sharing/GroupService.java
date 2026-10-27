@@ -9,6 +9,7 @@ import org.busystack.caldav.security.session.SessionSecurity;
 import org.busystack.caldav.storage.CalendarStore;
 import org.busystack.caldav.storage.DavMutationLock;
 import org.busystack.caldav.storage.StoreException;
+import org.busystack.caldav.xml.XmlCharacters;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -30,6 +31,12 @@ public class GroupService {
 
   public record Grant(
       UUID collection, String collectionName, UUID group, String groupName, String permission) {}
+
+  public record GrantPage(List<Grant> rows, int page, boolean hasNext) {
+    public GrantPage {
+      rows = List.copyOf(rows);
+    }
+  }
 
   private final JdbcTemplate jdbc;
   private final SessionSecurity sessions;
@@ -81,10 +88,16 @@ public class GroupService {
   }
 
   public List<Grant> ownedGrants(Authentication authentication) {
+    return ownedGrants(authentication, 0).rows();
+  }
+
+  public GrantPage ownedGrants(Authentication authentication, int page) {
+    if (page < 0 || page > Integer.MAX_VALUE / 50)
+      throw new IllegalArgumentException("Invalid group sharing page");
     var actor = sessions.assertCurrent(authentication);
     var grants =
         jdbc.query(
-            "SELECT c.id,c.name,g.id,g.name,m.permission FROM collection_group_members m JOIN collections c ON c.id=m.collection_id JOIN sharing_groups g ON g.id=m.group_id WHERE c.owner_id=? ORDER BY c.name,g.name LIMIT 10001",
+            "SELECT c.id,c.name,g.id,g.name,m.permission FROM collection_group_members m JOIN collections c ON c.id=m.collection_id JOIN sharing_groups g ON g.id=m.group_id WHERE c.owner_id=? ORDER BY c.id,g.id LIMIT 51 OFFSET ?",
             (rs, row) ->
                 new Grant(
                     rs.getObject(1, UUID.class),
@@ -92,9 +105,10 @@ public class GroupService {
                     rs.getObject(3, UUID.class),
                     rs.getString(4),
                     rs.getString(5)),
-            actor.id());
-    if (grants.size() > 10000) limit();
-    return List.copyOf(grants);
+            actor.id(),
+            page * 50);
+    return new GrantPage(
+        grants.size() > 50 ? grants.subList(0, 50) : grants, page, grants.size() > 50);
   }
 
   @Transactional(timeout = 30)
@@ -132,7 +146,7 @@ public class GroupService {
     var desired = accounts(usernames);
     requireGroup(group);
     uniqueName(name, group);
-    var affected = affected(group);
+    lockAffected(group);
     long existingCount =
         jdbc.queryForObject(
             "SELECT count(*) FROM sharing_group_members WHERE group_id=?", Long.class, group);
@@ -154,8 +168,7 @@ public class GroupService {
         jdbc.update(
             "INSERT INTO sharing_group_members(group_id,account_id) VALUES (?,?)", group, member);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
-    for (UUID collection : affected)
-      jdbc.query("SELECT dav_reconcile_memberships(?)", rs -> {}, collection);
+    reconcileAffected(group);
     audit.record(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_UPDATED,
@@ -169,12 +182,14 @@ public class GroupService {
     DavMutationLock.exclusive(jdbc);
     UUID actor = administrator(authentication);
     requireGroup(group);
-    var affected = affected(group);
+    lockAffected(group);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
+    // Reconcile with no members while grants still identify the complete affected set.
+    // Other groups and direct grants remain effective throughout this indivisible commit.
+    jdbc.update("DELETE FROM sharing_group_members WHERE group_id=?", group);
+    reconcileAffected(group);
     jdbc.update("DELETE FROM sharing_groups WHERE id=?", group);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
-    for (UUID collection : affected)
-      jdbc.query("SELECT dav_reconcile_memberships(?)", rs -> {}, collection);
     audit.record(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_DELETED,
@@ -248,14 +263,27 @@ public class GroupService {
       throw new IllegalArgumentException("Unknown sharing group");
   }
 
-  private List<UUID> affected(UUID id) {
-    var ids =
-        jdbc.queryForList(
-            "SELECT collection_id FROM collection_group_members WHERE group_id=? ORDER BY collection_id LIMIT 10001",
-            UUID.class,
-            id);
-    if (ids.size() > 10000) limit();
-    return ids;
+  private void lockAffected(UUID group) {
+    streamGroupCollections(
+        "SELECT c.id FROM collections c JOIN collection_group_members m ON m.collection_id=c.id WHERE m.group_id=? ORDER BY c.id FOR UPDATE OF c",
+        group);
+  }
+
+  private void reconcileAffected(UUID group) {
+    jdbc.query("SELECT dav_reconcile_group_memberships(?)", rs -> {}, group);
+  }
+
+  private void streamGroupCollections(String sql, UUID group) {
+    // A server cursor bounds JDBC result buffering while the exclusive mutation lock makes
+    // membership, effective ACLs, bindings and token invalidation one indivisible commit.
+    jdbc.query(
+        connection -> {
+          var statement = connection.prepareStatement(sql);
+          statement.setObject(1, group);
+          statement.setFetchSize(128);
+          return statement;
+        },
+        (org.springframework.jdbc.core.RowCallbackHandler) rs -> {});
   }
 
   private void uniqueName(String name, UUID except) {
@@ -269,7 +297,7 @@ public class GroupService {
   }
 
   private static void validateName(String name) {
-    if (name == null || name.isBlank() || name.length() > 200)
+    if (name == null || name.isBlank() || name.length() > 200 || !XmlCharacters.valid(name))
       throw new IllegalArgumentException("Group name must contain 1–200 characters");
   }
 

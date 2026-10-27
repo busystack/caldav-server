@@ -39,6 +39,7 @@ import org.w3c.dom.Element;
 /** DAV HTTP boundary. Browser sessions cannot authenticate this security chain. */
 @Controller
 final class DavController {
+  private final java.util.concurrent.Semaphore workSlots = new java.util.concurrent.Semaphore(4);
   private final DavStore store;
   private final CalendarStore calendars;
   private final DavResources resources;
@@ -75,7 +76,16 @@ final class DavController {
   void request(
       HttpServletRequest request, HttpServletResponse response, Authentication authentication)
       throws IOException {
-    write(response, request.getMethod(), dispatch(request, authentication));
+    if (!workSlots.tryAcquire()) {
+      response.setStatus(503);
+      response.setHeader("Retry-After", "1");
+      return;
+    }
+    try {
+      write(response, request.getMethod(), dispatch(request, authentication));
+    } finally {
+      workSlots.release();
+    }
   }
 
   // The protocol has already evaluated all validators under its snapshot/mutation locks.
@@ -132,9 +142,9 @@ final class DavController {
               }
               HttpConditions.write(request, paths)
                   .check(
-                      existing == null || existing.resource() == null
+                      existing == null || existing.metadata() == null
                           ? null
-                          : existing.resource().etag(),
+                          : existing.metadata().etag(),
                       existing != null);
             }
             return switch (method) {
@@ -205,6 +215,9 @@ final class DavController {
                 case INVALID_OBJECT -> "valid-calendar-object-resource";
                 case UNSUPPORTED_COMPONENT -> "supported-calendar-component";
               }));
+    } catch (org.springframework.dao.QueryTimeoutException
+        | org.springframework.transaction.TransactionTimedOutException timeout) {
+      return ResponseEntity.status(503).header("Retry-After", "1").body(new byte[0]);
     } catch (IllegalArgumentException ex) {
       return error(400, null);
     }
@@ -230,7 +243,7 @@ final class DavController {
           try {
             DavNode node = resources.resolve(actor, parts);
             return new DavIf.ResourceState(
-                node.resource() == null ? null : node.resource().etag(),
+                node.metadata() == null ? null : node.metadata().etag(),
                 node.kind() == DavNode.Kind.CALENDAR
                     ? calendars.currentSyncToken(actor, node.collectionId())
                     : null);
@@ -268,26 +281,29 @@ final class DavController {
   private ResponseEntity<byte[]> get(UUID actor, List<String> parts, HttpServletRequest request) {
     DavNode node = resources.resolve(actor, parts);
     if (node.kind() == DavNode.Kind.RESOURCE) {
-      String etag = node.resource().etag();
+      String etag = node.metadata().etag();
       java.time.Instant origin = java.time.Instant.now();
       java.time.Instant modifiedAt =
           org.busystack.caldav.storage.ModificationDates.effective(
-              node.resource().modifiedAt(), origin);
+              node.metadata().modifiedAt(), origin);
       if (HttpConditions.notModified(request, etag, modifiedAt, paths))
         return ResponseEntity.status(304)
             .eTag(etag)
             .header("Date", HttpDateValues.format(origin))
             .header("Last-Modified", HttpDateValues.format(modifiedAt))
             .body(new byte[0]);
-      byte[] bytes = node.resource().content();
+      byte[] bytes =
+          request.getMethod().equals("HEAD")
+              ? new byte[0]
+              : resources.content(actor, node).resource().content();
       return ResponseEntity.ok()
           .eTag(etag)
           .header("Date", HttpDateValues.format(origin))
           .header("Last-Modified", HttpDateValues.format(modifiedAt))
           .header("Cache-Control", "private, no-cache")
           .header("Content-Type", "text/calendar; charset=utf-8")
-          .contentLength(bytes.length)
-          .body(request.getMethod().equals("HEAD") ? new byte[0] : bytes);
+          .contentLength(node.metadata().contentLength())
+          .body(bytes);
     }
     if (!request.getRequestURI().endsWith("/"))
       return ResponseEntity.status(308)
@@ -314,8 +330,14 @@ final class DavController {
     var requested = DavProperties.requested(root);
     var document = document();
     var multistatus = add(document, d("multistatus"));
+    Map<UUID, FloatingTimezone> timezones = timezoneCache();
     for (DavNode node : resources.descendants(actor, resources.resolve(actor, parts), depth))
-      properties.response(multistatus, actor, node, requested, timezone(actor, node, null));
+      properties.response(
+          multistatus,
+          actor,
+          node,
+          requested,
+          responseTimezone(actor, node, requested, null, timezones));
     return xml(207, document);
   }
 
@@ -354,7 +376,7 @@ final class DavController {
     DavNode node = resources.resolve(actor, parts);
     if (node.kind() == DavNode.Kind.RESOURCE)
       calendars.delete(
-          actor, node.collectionId(), node.resource().name(), HttpConditions.write(request, paths));
+          actor, node.collectionId(), node.metadata().name(), HttpConditions.write(request, paths));
     else if (node.kind() == DavNode.Kind.CALENDAR || node.kind() == DavNode.Kind.FOLDER)
       store.deleteBinding(
           actor, node.principal(), node.relativePath(), HttpConditions.write(request, paths));
@@ -388,12 +410,12 @@ final class DavController {
           } else if (name.equals(d("displayname"))) {
             validateProperty(name, value);
             display = value.getTextContent();
-            values.put(name, new String(bytes(value), StandardCharsets.UTF_8));
+            values.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
           } else if (DavProperties.protectedProperty(name))
             throw new DavException(403, d("cannot-modify-protected-property"));
           else {
             validateProperty(name, value);
-            values.put(name, new String(bytes(value), StandardCharsets.UTF_8));
+            values.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
           }
         }
     }
@@ -422,7 +444,7 @@ final class DavController {
         else if (is(operation, DAV, "set")) {
           try {
             validateProperty(name, value);
-            set.put(name, new String(bytes(value), StandardCharsets.UTF_8));
+            set.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
             remove.remove(name);
           } catch (DavException ex) {
             if (ex.status() != 403 && ex.status() != 409) throw ex;
@@ -446,7 +468,7 @@ final class DavController {
           actor,
           node.principal(),
           String.join("/", binding),
-          node.resource() == null ? null : node.resource().name(),
+          node.metadata() == null ? null : node.metadata().name(),
           set,
           remove,
           HttpConditions.write(request, paths));
@@ -500,7 +522,7 @@ final class DavController {
           store.transferResource(
               actor,
               source.collectionId(),
-              source.resource().name(),
+              source.metadata().name(),
               parent.collectionId(),
               target.getLast(),
               move,
@@ -608,15 +630,20 @@ final class DavController {
     var requested = DavProperties.requested(root);
     var document = document();
     Element multi = add(document, d("multistatus"));
-    for (DavNode candidate : resources.descendants(actor, node, depth(request, 0)))
+    Map<UUID, FloatingTimezone> timezones = timezoneCache();
+    for (DavNode metadata : resources.candidates(actor, node, depth(request, 0), true, false)) {
+      DavNode candidate = resources.content(actor, metadata);
       if (candidate.kind() == DavNode.Kind.RESOURCE) {
-        var timezone = timezone(actor, candidate, root);
+        var timezone =
+            timezones.computeIfAbsent(
+                candidate.collectionId(), id -> timezone(actor, candidate, root));
         var parsed =
             CalendarContent.parse(
                 candidate.resource().content(), candidate.entry().collection().component());
         if (matcher.matches(parsed, filter, timezone))
           properties.response(multi, actor, candidate, requested, timezone);
       }
+    }
     return xml(207, document);
   }
 
@@ -628,7 +655,7 @@ final class DavController {
     if (hrefs.isEmpty() || node.kind() == DavNode.Kind.RESOURCE && hrefs.size() != 1)
       throw new DavException(400, null);
     int count = 0;
-    long contentBytes = 0;
+    Map<UUID, FloatingTimezone> timezones = timezoneCache();
     for (Element href : hrefs) {
       if (++count > 10000) throw new DavException(507, d("number-of-matches-within-limits"));
       List<String> parts = paths.parse(href.getTextContent());
@@ -639,12 +666,14 @@ final class DavController {
                   && parts.subList(0, node.segments().size()).equals(node.segments());
       if (!member) throw new DavException(403, c("valid-calendar-object-resource"));
       try {
-        DavNode target = resources.resolve(actor, parts);
+        DavNode target = resources.resolveMember(actor, parts);
         if (target.kind() != DavNode.Kind.RESOURCE) throw new DavException(404, null);
-        contentBytes += target.resource().content().length;
-        if (contentBytes > 32L * 1024 * 1024)
-          throw new DavException(507, d("number-of-matches-within-limits"));
-        properties.response(multi, actor, target, requested, timezone(actor, target, root));
+        properties.response(
+            multi,
+            actor,
+            target,
+            requested,
+            responseTimezone(actor, target, requested, root, timezones));
       } catch (DavException ex) {
         if (ex.status() != 404 && ex.status() != 403) throw ex;
         Element response = add(multi, d("response"));
@@ -676,49 +705,103 @@ final class DavController {
         int significant = 0;
         while (significant < digits.length() - 1 && digits.charAt(significant) == '0')
           significant++;
-        if (digits.length() - significant > 5)
-          throw new DavException(507, d("number-of-matches-within-limits"));
-        limit = Integer.parseInt(digits.substring(significant));
-        if (limit > 10000) throw new DavException(507, d("number-of-matches-within-limits"));
+        // nresults is a client ceiling, not a minimum or a server allocation request.
+        // Larger valid integers saturate at the server page cap without overflowing int.
+        limit =
+            digits.length() - significant > 5
+                ? 10000
+                : Math.min(10000, Integer.parseInt(digits.substring(significant)));
       } catch (NumberFormatException ex) {
         throw new DavException(400, null);
       }
-    var page = calendars.sync(actor, node.collectionId(), token, limit);
     var requested = DavProperties.requested(root);
+    boolean includeContent = requested.properties().containsKey(c("calendar-data"));
+    FloatingTimezone timezone =
+        includeContent ? timezone(actor, node, null) : FloatingTimezone.of(ZoneOffset.UTC);
+    long pageBudget = MAX_RESPONSE - 65536L;
+    long[] remaining = {pageBudget};
+    Map<String, Element> rendered = new LinkedHashMap<>();
+    var page =
+        calendars.sync(
+            actor,
+            node.collectionId(),
+            token,
+            limit,
+            includeContent,
+            change -> {
+              var sizing = document();
+              Element holder = add(sizing, d("multistatus"));
+              Element item = syncResponse(holder, actor, node, change, requested, timezone);
+              long cost = Math.max(bytes(sizing).length, copyWork(item));
+              if (cost <= remaining[0]) {
+                rendered.put(change.name(), item);
+                remaining[0] -= cost;
+              }
+              return cost;
+            },
+            pageBudget);
     var document = document();
     Element multi = add(document, d("multistatus"));
-    for (var change : page.changes()) {
-      List<String> parts = new ArrayList<>(node.segments());
-      parts.add(change.name());
-      if (change.deleted()) {
-        Element response = add(multi, d("response"));
-        text(response, d("href"), paths.href(parts, false));
-        text(response, d("status"), DavProperties.status(404));
-      } else
-        properties.response(
-            multi,
-            actor,
-            new DavNode(
-                parts, DavNode.Kind.RESOURCE, node.principal(), node.entry(), change.resource()),
-            requested,
-            timezone(actor, node, null));
+    for (var change : page.changes()) appendAdopt(multi, rendered.remove(change.name()));
+    if (page.truncated()) {
+      Element incomplete = add(multi, d("response"));
+      text(incomplete, d("href"), paths.href(node.segments(), true));
+      text(incomplete, d("status"), DavProperties.status(507));
+      add(add(incomplete, d("error")), d("number-of-matches-within-limits"));
     }
     text(multi, d("sync-token"), page.token());
     return xml(207, document);
+  }
+
+  private Element syncResponse(
+      Element multi,
+      UUID actor,
+      DavNode collection,
+      CalendarStore.Change change,
+      DavProperties.Requested requested,
+      FloatingTimezone timezone) {
+    List<String> parts = new ArrayList<>(collection.segments());
+    parts.add(change.name());
+    if (change.deleted()) {
+      Element response = add(multi, d("response"));
+      text(response, d("href"), paths.href(parts, false));
+      text(response, d("status"), DavProperties.status(404));
+      return response;
+    } else
+      return properties.response(
+          multi,
+          actor,
+          new DavNode(
+              parts,
+              DavNode.Kind.RESOURCE,
+              collection.principal(),
+              collection.entry(),
+              change.resource(),
+              change.metadata(),
+              true),
+          requested,
+          timezone);
   }
 
   private ResponseEntity<byte[]> freeBusy(
       UUID actor, DavNode node, HttpServletRequest request, Element root) {
     if (!node.collection()) throw new DavException(403, d("supported-report"));
     var range = CalendarQueryXml.range(required(root, CAL, "time-range"));
-    List<CalendarFreeBusy.Source> parsed = new ArrayList<>();
-    for (DavNode candidate : resources.descendants(actor, node, depth(request, 0)))
-      if (candidate.kind() == DavNode.Kind.RESOURCE
-          && candidate.entry().collection().component().equals("VEVENT"))
-        parsed.add(
-            new CalendarFreeBusy.Source(
-                CalendarContent.parse(candidate.resource().content(), "VEVENT"),
-                timezone(actor, candidate, root)));
+    Map<UUID, FloatingTimezone> timezones = timezoneCache();
+    Iterable<CalendarFreeBusy.Source> parsed =
+        () ->
+            java.util.stream.StreamSupport.stream(
+                    resources.candidates(actor, node, depth(request, 0), true, true).spliterator(),
+                    false)
+                .filter(candidate -> candidate.entry().collection().component().equals("VEVENT"))
+                .map(
+                    candidate ->
+                        new CalendarFreeBusy.Source(
+                            CalendarContent.parse(
+                                resources.content(actor, candidate).resource().content(), "VEVENT"),
+                            timezones.computeIfAbsent(
+                                candidate.collectionId(), id -> timezone(actor, candidate, root))))
+                .iterator();
     var periods = new CalendarFreeBusy(QueryLimits.defaults()).querySources(parsed, range);
     var calendar = new net.fortuna.ical4j.model.Calendar();
     calendar.add(new net.fortuna.ical4j.model.property.ProdId("-//BusyStack//CalDAV Server//EN"));
@@ -742,12 +825,31 @@ final class DavController {
         .body(calendar.toString().getBytes(StandardCharsets.UTF_8));
   }
 
+  private static Map<UUID, FloatingTimezone> timezoneCache() {
+    return new java.util.LinkedHashMap<>(16, 0.75f, true) {
+      @Override
+      protected boolean removeEldestEntry(Map.Entry<UUID, FloatingTimezone> entry) {
+        return size() > 64;
+      }
+    };
+  }
+
+  private FloatingTimezone responseTimezone(
+      UUID actor,
+      DavNode node,
+      DavProperties.Requested requested,
+      Element report,
+      Map<UUID, FloatingTimezone> cache) {
+    if (node.collectionId() == null || !requested.properties().containsKey(c("calendar-data")))
+      return FloatingTimezone.of(ZoneOffset.UTC);
+    return cache.computeIfAbsent(node.collectionId(), id -> timezone(actor, node, report));
+  }
+
   private FloatingTimezone timezone(UUID actor, DavNode node, Element report) {
     Element timezone = report == null ? null : child(report, CAL, "timezone");
     if (timezone != null) return FloatingTimezone.parse(timezone.getTextContent());
     if (node.collectionId() != null) {
-      String value =
-          store.deadProperties(actor, node.collectionId(), null).get(c("calendar-timezone"));
+      String value = store.deadProperty(actor, node.collectionId(), null, c("calendar-timezone"));
       if (value != null)
         return FloatingTimezone.parse(
             parse(value.getBytes(StandardCharsets.UTF_8)).getTextContent());

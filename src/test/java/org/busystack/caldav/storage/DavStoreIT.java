@@ -357,11 +357,13 @@ class DavStoreIT {
   }
 
   @Test
-  void snapshotPreflightsAggregateBytesBeforeLoadingBodies() {
+  void metadataSnapshotDoesNotFetchOrBudgetUnrequestedCalendarBodies() {
     jdbc.update(
         "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) SELECT ?,value::text||'.ics',value::text,decode(repeat('41',1048576),'hex'),'\"budget-fixture\"',value FROM generate_series(1,33) value",
         calendar);
-    fails(() -> store.snapshot(owner, owner, "work"), StoreException.Kind.LIMIT);
+    assertThat(store.snapshot(owner, owner, "work").resources())
+        .hasSize(33)
+        .allSatisfy(metadata -> assertThat(metadata.contentLength()).isEqualTo(1048576));
     assertThat(
             jdbc.queryForObject(
                 "SELECT count(*) FROM calendar_resources WHERE collection_id=?",
@@ -567,5 +569,197 @@ class DavStoreIT {
         .isEqualTo(calendar);
     assertThat(calendars.get(owner, calendar, "event.ics").modifiedAt()).isAfter(before);
     assertThat(calendars.get(owner, calendar, "event.ics").uid()).isEqualTo("namespace-source");
+  }
+
+  @Test
+  void namespaceAdmissionReservesFixedComponentsAndTheCalendarResourceLeaf() {
+    String parent = "";
+    for (int i = 1; i <= 17; i++) {
+      parent = parent.isEmpty() ? "é" : parent + "/é";
+      store.create(owner, owner, parent, "Folder", null, Map.of());
+    }
+    String tooDeep = parent + "/extra";
+    assertThatThrownBy(() -> store.create(owner, owner, tooDeep, "Unusable", "VEVENT", Map.of()))
+        .isInstanceOfAny(IllegalArgumentException.class, StoreException.class);
+  }
+
+  @Test
+  void transferPreflightRejectsInaccessibleDescendantsBeforeReplacingDestination() {
+    store.create(owner, owner, "tree", "Source", null, Map.of(COLOR, BLUE));
+    UUID child =
+        store.create(owner, owner, "tree/calendar", "Child", "VEVENT", Map.of()).collection().id();
+    put(child, "📅 %.ics", "nested-leaf");
+    String parent = "";
+    for (int i = 1; i <= 16; i++) {
+      parent = parent.isEmpty() ? "p" : parent + "/p";
+      store.create(owner, owner, parent, "Folder", null, Map.of());
+    }
+    String target = parent + "/target";
+    store.create(owner, owner, target, "Existing", null, Map.of(COLOR, BLUE));
+    String before = calendars.currentSyncToken(owner, child);
+    assertThatThrownBy(
+            () ->
+                store.transfer(
+                    owner, owner, "tree", owner, target, true, true, WriteCondition.none()))
+        .isInstanceOfAny(IllegalArgumentException.class, StoreException.class);
+    assertThat(store.resolve(owner, owner, "tree/calendar").collection().id()).isEqualTo(child);
+    assertThat(store.resolve(owner, owner, target).binding().displayName()).isEqualTo("Existing");
+    assertThat(calendars.currentSyncToken(owner, child)).isEqualTo(before);
+    assertThat(calendars.get(owner, child, "📅 %.ics")).isNotNull();
+  }
+
+  @Test
+  void databaseNamespaceGuardsMatchJavaDepthEncodingAndUtf16LeafBounds() {
+    record Case(String path, boolean calendar, String leaf) {}
+    var cases =
+        List.of(
+            new Case("f/".repeat(16) + "calendar", true, null),
+            new Case("a".repeat(255), true, null),
+            new Case("a".repeat(256), true, null),
+            new Case("AZaz09._~-", false, "AZaz09._~-"),
+            new Case("a".repeat(255), false, "b".repeat(255)),
+            new Case("safe", false, "b".repeat(256)),
+            new Case(".", true, null),
+            new Case("..", false, "leaf"),
+            new Case("safe", false, "."),
+            new Case("safe", false, ".."),
+            new Case("safe%2F", true, null),
+            new Case("safe;param", true, null),
+            new Case("safe", false, "leaf;param"),
+            new Case("safe\u2028part", true, null),
+            new Case("safe\u2029part", true, null),
+            new Case("safe", false, "leaf\u2028part"),
+            new Case("safe", false, "leaf\u2029part"),
+            new Case("safe\n", true, null),
+            new Case("safe", false, "file\n"),
+            new Case("safe\r", true, null),
+            new Case("safe\t", true, null),
+            new Case("Ạ".repeat(255), true, null),
+            new Case("f/".repeat(17) + "calendar", true, null),
+            new Case("中".repeat(100) + "/" + "中".repeat(100), true, null),
+            new Case("中".repeat(100) + "/" + "中".repeat(100), false, null),
+            new Case("\u2000", false, null),
+            new Case("safe", false, "🗓".repeat(127)),
+            new Case("safe", false, "🗓".repeat(128)),
+            new Case("safe", false, "\u0800".repeat(255)),
+            new Case("safe", false, "bad/name"),
+            new Case("\uFFFE", true, null),
+            new Case("\uFFFF", false, null),
+            new Case("safe", false, "bad\uFFFE.ics"),
+            new Case("safe", false, "bad\uFFFF.ics"),
+            new Case("\uFDD0", true, null),
+            new Case("safe", false, "valid\uFDD0.ics"),
+            new Case(new String(Character.toChars(0x1FFFE)), true, null),
+            new Case("safe", false, "valid" + new String(Character.toChars(0x1FFFE)) + ".ics"),
+            new Case("safe", false, "\u2000"));
+    for (var sample : cases) {
+      boolean accepted = true;
+      try {
+        if (sample.leaf() == null) DavNamespace.binding(sample.path(), sample.calendar());
+        else DavNamespace.resource(sample.path(), sample.leaf());
+      } catch (IllegalArgumentException invalid) {
+        accepted = false;
+      }
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT dav_namespace_valid(?::text,?::boolean,?::text)",
+                  Boolean.class,
+                  sample.path(),
+                  sample.calendar(),
+                  sample.leaf()))
+          .as(sample.toString())
+          .isEqualTo(accepted);
+    }
+    assertThatThrownBy(
+            () ->
+                jdbc.update(
+                    "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) VALUES (?,?,?,?,?,1)",
+                    calendar,
+                    "🗓".repeat(128),
+                    "invalid-utf16",
+                    event("invalid-utf16"),
+                    "\"invalid\""))
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    assertThat(calendars.get(owner, calendar, "🗓".repeat(128))).isNull();
+    for (String invalid : List.of("bad\uFFFE.ics", "bad\uFFFF.ics")) {
+      String uid = "invalid-xml-" + invalid.codePointAt(3);
+      assertThatThrownBy(
+              () ->
+                  jdbc.update(
+                      "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) VALUES (?,?,?,?,?,1)",
+                      calendar,
+                      invalid,
+                      uid,
+                      event(uid),
+                      "\"invalid-xml\""))
+          .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+      assertThat(calendars.get(owner, calendar, invalid)).isNull();
+    }
+  }
+
+  @Test
+  void xmlInvalidAccountDisplayNamesAreRejectedBeforePersistence() {
+    var checks = new java.util.ArrayList<org.junit.jupiter.api.function.Executable>();
+    for (int invalid : new int[] {0xFFFE, 0xFFFF}) {
+      String label = "Invalid" + (char) invalid;
+      checks.add(
+          () ->
+              assertThatThrownBy(
+                      () ->
+                          accounts.provision(
+                              "invalid-label-" + invalid,
+                              label,
+                              "correct horse battery staple",
+                              false))
+                  .isInstanceOf(IllegalArgumentException.class));
+    }
+    org.junit.jupiter.api.Assertions.assertAll(checks);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM accounts WHERE username LIKE 'invalid-label-%'",
+                Integer.class))
+        .isZero();
+    for (String valid : List.of("Valid\uFDD0", "Valid" + new String(Character.toChars(0x1FFFE)))) {
+      UUID id =
+          accounts.provision(
+              "valid-label-" + valid.codePointAt(5), valid, "correct horse battery staple", false);
+      assertThat(accounts.find(id).displayName()).isEqualTo(valid);
+    }
+  }
+
+  @Test
+  void xmlInvalidCollectionDisplayNamesAreRejectedAcrossCreationAndRename() {
+    var checks = new java.util.ArrayList<org.junit.jupiter.api.function.Executable>();
+    for (int invalid : new int[] {0xFFFE, 0xFFFF}) {
+      String label = "Invalid" + (char) invalid;
+      checks.add(
+          () ->
+              assertThatThrownBy(
+                      () ->
+                          store.create(
+                              owner, owner, "invalid-label-" + invalid, label, "VEVENT", Map.of()))
+                  .isInstanceOf(IllegalArgumentException.class));
+      checks.add(
+          () ->
+              assertThatThrownBy(() -> calendars.createCollection(owner, label, "VEVENT"))
+                  .isInstanceOf(IllegalArgumentException.class));
+      checks.add(
+          () ->
+              assertThatThrownBy(() -> store.renameDisplayName(owner, owner, "work", label))
+                  .isInstanceOf(IllegalArgumentException.class));
+    }
+    org.junit.jupiter.api.Assertions.assertAll(checks);
+    assertThat(store.resolve(owner, owner, "work").binding().displayName()).isEqualTo("Work");
+    for (String valid :
+        List.of(
+            "Valid\uFDD0",
+            "Valid" + new String(Character.toChars(0x1FFFE)),
+            "Line\nName\tAllowed",
+            "DEL\u007fC1\u0085")) {
+      UUID id = calendars.createCollection(owner, valid, "VEVENT");
+      assertThat(calendars.collection(owner, id).name()).isEqualTo(valid);
+      store.renameDisplayName(owner, owner, "work", valid);
+      assertThat(store.resolve(owner, owner, "work").binding().displayName()).isEqualTo(valid);
+    }
   }
 }

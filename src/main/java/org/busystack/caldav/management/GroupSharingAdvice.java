@@ -20,7 +20,18 @@ public class GroupSharingAdvice {
   void sharing(Authentication authentication, HttpServletRequest request, Model model) {
     if ("GET".equals(request.getMethod()) && "/".equals(request.getServletPath())) {
       model.addAttribute("groupChoices", groups.choices(authentication));
-      model.addAttribute("groupGrants", groups.ownedGrants(authentication));
+      int page = 0;
+      String supplied = request.getParameter("group-shares-page");
+      if (supplied != null) {
+        try {
+          page = Integer.parseInt(supplied);
+        } catch (NumberFormatException invalid) {
+          throw new IllegalArgumentException("Invalid group sharing page");
+        }
+      }
+      var grants = groups.ownedGrants(authentication, page);
+      model.addAttribute("groupGrants", grants.rows());
+      model.addAttribute("groupGrantPage", grants);
     }
   }
 }

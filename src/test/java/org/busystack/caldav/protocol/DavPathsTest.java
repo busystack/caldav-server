@@ -21,6 +21,11 @@ class DavPathsTest {
     assertThat(paths.parse(paths.href(segments, false))).isEqualTo(segments);
     assertThat(paths.parse("/team/dav/calendars/user/a+b.ics")).endsWith("a+b.ics");
     assertThat(paths.parse("https://calendar.example:443/team/dav/")).isEmpty();
+    for (String permitted :
+        List.of("valid\uFDD0.ics", "valid" + new String(Character.toChars(0x1FFFE)) + ".ics")) {
+      var valid = List.of("calendars", "user", permitted);
+      assertThat(paths.parse(paths.href(valid, false))).isEqualTo(valid);
+    }
   }
 
   @Test
@@ -32,6 +37,8 @@ class DavPathsTest {
             "/team/dav/a%2fb",
             "/team/dav/a%5cb",
             "/team/dav/%ff",
+            "/team/dav/bad%EF%BF%BEleaf",
+            "/team/dav/bad%EF%BF%BFleaf",
             "/team/dav/a?query",
             "//attacker.invalid/team/dav/",
             "https://attacker.invalid/team/dav/",

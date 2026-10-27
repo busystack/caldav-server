@@ -53,9 +53,27 @@ final class DavResources {
     String parent = String.join("/", parts.subList(2, parts.size() - 1));
     var entry = store.resolve(actor, home, parent);
     if (!entry.binding().calendar()) throw new DavException(404, null);
-    var resource = calendars.get(actor, entry.binding().collectionId(), parts.getLast());
+    var resource = calendars.metadata(actor, entry.binding().collectionId(), parts.getLast());
     if (resource == null) throw new DavException(404, null);
-    return new DavNode(parts, DavNode.Kind.RESOURCE, home, entry, resource);
+    return new DavNode(parts, DavNode.Kind.RESOURCE, home, entry, null, resource, false);
+  }
+
+  /** Only expected member lookup failures become per-resource report statuses. */
+  DavNode resolveMember(UUID actor, List<String> parts) {
+    try {
+      return resolve(actor, parts);
+    } catch (StoreException unavailable) {
+      if (unavailable.kind() == StoreException.Kind.NOT_FOUND) throw new DavException(404, null);
+      if (unavailable.kind() == StoreException.Kind.FORBIDDEN) throw new DavException(403, null);
+      throw unavailable;
+    }
+  }
+
+  DavNode content(UUID actor, DavNode node) {
+    if (node.kind() != DavNode.Kind.RESOURCE || node.resource() != null) return node;
+    var body = calendars.get(actor, node.collectionId(), node.metadata().name());
+    if (body == null) throw new DavException(404, null);
+    return new DavNode(node.segments(), node.kind(), node.principal(), node.entry(), body);
   }
 
   List<DavNode> children(UUID actor, DavNode parent) {
@@ -91,13 +109,21 @@ final class DavResources {
         }
       }
       case CALENDAR -> {
-        var snapshot = store.snapshot(actor, parent.principal(), parent.relativePath());
-        for (var resource : snapshot.resources()) {
+        var metadata = calendars.metadataBatch(actor, parent.collectionId(), "", 10001);
+        if (metadata.size() > 10000)
+          throw new DavException(507, DavXml.d("number-of-matches-within-limits"));
+        for (var resource : metadata) {
           List<String> segments = new ArrayList<>(parent.segments());
           segments.add(resource.name());
           result.add(
               new DavNode(
-                  segments, DavNode.Kind.RESOURCE, parent.principal(), parent.entry(), resource));
+                  segments,
+                  DavNode.Kind.RESOURCE,
+                  parent.principal(),
+                  parent.entry(),
+                  null,
+                  resource,
+                  false));
         }
       }
       default -> {}
@@ -107,22 +133,114 @@ final class DavResources {
 
   List<DavNode> descendants(UUID actor, DavNode node, int depth) {
     List<DavNode> result = new ArrayList<>();
-    walk(actor, node, depth, result, new long[1]);
+    walk(actor, node, depth, result);
     return List.copyOf(result);
   }
 
-  private void walk(
-      UUID actor, DavNode node, int depth, List<DavNode> result, long[] contentBytes) {
+  private void walk(UUID actor, DavNode node, int depth, List<DavNode> result) {
     if (result.size() >= 10000)
       throw new DavException(507, DavXml.d("number-of-matches-within-limits"));
     result.add(node);
-    if (node.resource() != null) {
-      contentBytes[0] += node.resource().content().length;
-      if (contentBytes[0] > 32L * 1024 * 1024)
-        throw new DavException(507, DavXml.d("number-of-matches-within-limits"));
-    }
     if (depth > 0 && node.collection())
-      for (var child : children(actor, node)) walk(actor, child, depth - 1, result, contentBytes);
+      for (var child : children(actor, node)) walk(actor, child, depth - 1, result);
+  }
+
+  /** Queries scan bounded metadata batches; PROPFIND retains its complete-response row limit. */
+  Iterable<DavNode> candidates(UUID actor, DavNode root, int depth) {
+    return candidates(actor, root, depth, false, false);
+  }
+
+  Iterable<DavNode> candidates(
+      UUID actor, DavNode root, int depth, boolean content, boolean eventsOnly) {
+    return () ->
+        new java.util.Iterator<>() {
+          record Frame(java.util.Iterator<DavNode> nodes, int depth) {}
+
+          final java.util.Deque<Frame> frames =
+              new java.util.ArrayDeque<>(List.of(new Frame(List.of(root).iterator(), depth)));
+          DavNode ready;
+          int examined;
+
+          public boolean hasNext() {
+            while (ready == null && !frames.isEmpty()) {
+              Frame frame = frames.peek();
+              if (!frame.nodes().hasNext()) {
+                frames.pop();
+                continue;
+              }
+              DavNode node = frame.nodes().next();
+              if (++examined > 100000)
+                throw new DavException(507, DavXml.d("number-of-matches-within-limits"));
+              if (node.kind() == DavNode.Kind.RESOURCE) {
+                ready = node;
+              } else if (node.collection() && frame.depth() > 0) {
+                if (eventsOnly
+                    && node.kind() == DavNode.Kind.CALENDAR
+                    && !node.entry().collection().component().equals("VEVENT")) continue;
+                var iterator =
+                    node.kind() == DavNode.Kind.CALENDAR
+                        ? calendarChildren(actor, node, content)
+                        : children(actor, node).iterator();
+                frames.push(new Frame(iterator, frame.depth() - 1));
+              }
+            }
+            return ready != null;
+          }
+
+          public DavNode next() {
+            if (!hasNext()) throw new java.util.NoSuchElementException();
+            DavNode result = ready;
+            ready = null;
+            return result;
+          }
+        };
+  }
+
+  private java.util.Iterator<DavNode> calendarChildren(
+      UUID actor, DavNode calendar, boolean content) {
+    return new java.util.Iterator<>() {
+      List<DavNode> batch = List.of();
+      int position;
+      String after = "";
+      boolean complete;
+
+      public boolean hasNext() {
+        if (position == batch.size() && !complete) {
+          batch =
+              content
+                  ? calendars.resourceBatch(actor, calendar.collectionId(), after).stream()
+                      .map(item -> candidate(calendar, item.metadata(), item))
+                      .toList()
+                  : calendars.metadataBatch(actor, calendar.collectionId(), after, 128).stream()
+                      .map(item -> candidate(calendar, item, null))
+                      .toList();
+          position = 0;
+          complete = batch.isEmpty();
+        }
+        return position < batch.size();
+      }
+
+      public DavNode next() {
+        if (!hasNext()) throw new java.util.NoSuchElementException();
+        var item = batch.get(position++);
+        after = item.metadata().name();
+        return item;
+      }
+    };
+  }
+
+  private static DavNode candidate(
+      DavNode collection, CalendarStore.Metadata metadata, CalendarStore.Resource resource) {
+    var parts = new ArrayList<>(collection.segments());
+    parts.add(metadata.name());
+    return new DavNode(
+        parts,
+        DavNode.Kind.RESOURCE,
+        collection.principal(),
+        collection.entry(),
+        resource,
+        metadata,
+        false);
   }
 
   static UUID uuid(String text) {

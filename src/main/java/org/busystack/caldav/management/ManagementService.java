@@ -65,7 +65,8 @@ public class ManagementService {
   }
 
   public SharePage individualShares(Authentication auth, int page) {
-    if (page < 0 || page > 10000) throw new IllegalArgumentException("Invalid sharing page");
+    if (page < 0 || page > Integer.MAX_VALUE / 50)
+      throw new IllegalArgumentException("Invalid sharing page");
     UUID actor = requireAccount(auth).id();
     var rows =
         jdbc.query(

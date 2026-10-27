@@ -116,7 +116,7 @@ final class DavPrincipalReports {
                   candidate,
                   property,
                   null,
-                  properties.dead(actor, candidate),
+                  properties.dead(actor, candidate, Set.of(property)),
                   FloatingTimezone.of(java.time.ZoneOffset.UTC));
           if (value != null
               && children(value).stream()
@@ -189,7 +189,7 @@ final class DavPrincipalReports {
                 expandedResponse(
                     property,
                     actor,
-                    resources.resolve(actor, paths.parse(value)),
+                    resources.resolveMember(actor, paths.parse(value)),
                     children(selector),
                     depth + 1);
               } catch (DavException ex) {

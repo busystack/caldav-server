@@ -10,7 +10,25 @@ record DavNode(
     Kind kind,
     UUID principal,
     DavStore.Entry entry,
-    CalendarStore.Resource resource) {
+    CalendarStore.Resource resource,
+    CalendarStore.Metadata metadata,
+    boolean historical) {
+  DavNode(
+      List<String> segments,
+      Kind kind,
+      UUID principal,
+      DavStore.Entry entry,
+      CalendarStore.Resource resource) {
+    this(
+        segments,
+        kind,
+        principal,
+        entry,
+        resource,
+        resource == null ? null : resource.metadata(),
+        false);
+  }
+
   enum Kind {
     ROOT,
     PRINCIPALS,

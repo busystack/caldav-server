@@ -142,10 +142,12 @@ class CalendarStoreIT {
     put("one.ics", "one", WriteCondition.create());
     String one = store.sync(owner, collection, null, 100).token();
     put("two.ics", "two", WriteCondition.create());
-    assertThatThrownBy(() -> store.sync(owner, collection, null, 1))
-        .isInstanceOf(StoreException.class)
-        .extracting("kind")
-        .isEqualTo(StoreException.Kind.LIMIT);
+    var firstPage = store.sync(owner, collection, null, 1);
+    assertThat(firstPage.changes()).hasSize(1);
+    assertThat(firstPage.truncated()).isTrue();
+    var secondPage = store.sync(owner, collection, firstPage.token(), 1);
+    assertThat(secondPage.changes()).hasSize(1);
+    assertThat(secondPage.truncated()).isFalse();
     store.pruneHistory(collection, 1);
     assertThatThrownBy(() -> store.sync(owner, collection, initial, 100))
         .isInstanceOf(StoreException.class);

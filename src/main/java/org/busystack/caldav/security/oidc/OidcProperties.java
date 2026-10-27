@@ -3,6 +3,7 @@ package org.busystack.caldav.security.oidc;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import org.busystack.caldav.xml.XmlCharacters;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("busystack.oidc")
@@ -22,7 +23,8 @@ public record OidcProperties(
           || !username.matches("[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}")
           || displayName == null
           || displayName.isBlank()
-          || displayName.length() > 200)
+          || displayName.length() > 200
+          || !XmlCharacters.valid(displayName))
         throw new IllegalArgumentException(
             "OIDC allowed users require a subject, valid local username and display name");
     }

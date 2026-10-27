@@ -3,9 +3,16 @@ package org.busystack.caldav.storage;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.ToLongFunction;
+import javax.xml.namespace.QName;
+import org.busystack.caldav.xml.XmlCharacters;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +30,15 @@ public class CalendarStore {
       long revision,
       long minimum) {}
 
+  /** Metadata projections never contain a calendar body or a placeholder byte array. */
+  public record Metadata(
+      String name,
+      String uid,
+      String etag,
+      long revision,
+      Instant modifiedAt,
+      long contentLength) {}
+
   public record Resource(
       String name, String uid, byte[] content, String etag, long revision, Instant modifiedAt) {
     public Resource(String name, String uid, byte[] content, String etag, long revision) {
@@ -33,26 +49,41 @@ public class CalendarStore {
       content = content.clone();
     }
 
+    public Metadata metadata() {
+      return new Metadata(name, uid, etag, revision, modifiedAt, content.length);
+    }
+
     @Override
     public byte[] content() {
       return content.clone();
     }
   }
 
-  public record Change(String name, boolean deleted, Resource resource) {}
+  public record Change(String name, boolean deleted, Metadata metadata, Resource resource) {
+    public Change(String name, boolean deleted, Resource resource) {
+      this(name, deleted, resource == null ? null : resource.metadata(), resource);
+    }
+  }
 
-  public record SyncPage(String token, List<Change> changes) {}
+  public record SyncPage(String token, List<Change> changes, boolean truncated) {}
+
+  private record Traversal(long lower, long upper, long floor, boolean initial, String lastName) {}
+
+  private static final long MAX_RETAINED_CONTENT_BYTES = 4L * 1024 * 1024;
 
   private final JdbcTemplate jdbc;
+  private final SyncContinuationStore continuations;
 
-  public CalendarStore(JdbcTemplate jdbc) {
+  public CalendarStore(JdbcTemplate jdbc, SyncContinuationStore continuations) {
     this.jdbc = jdbc;
+    this.continuations = continuations;
   }
 
   @Transactional
   public UUID createCollection(UUID actor, String name, String component) {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     requireEnabled(actor);
+    if (!XmlCharacters.valid(name)) throw new IllegalArgumentException("Invalid display name");
     UUID id = UUID.randomUUID();
     jdbc.update(
         "INSERT INTO collections(id,owner_id,name,component) VALUES (?,?,?,?)",
@@ -108,6 +139,68 @@ public class CalendarStore {
     return resource(collectionId, name);
   }
 
+  public Metadata metadata(UUID actor, UUID collectionId, String name) {
+    collection(actor, collectionId);
+    var rows =
+        jdbc.query(
+            "SELECT name,uid,etag,revision,updated_at,octet_length(content) AS content_length FROM calendar_resources WHERE collection_id=? AND name=?",
+            CalendarStore::readMetadata,
+            collectionId,
+            name);
+    return rows.isEmpty() ? null : rows.getFirst();
+  }
+
+  /**
+   * Stable keyset batch within the caller's report transaction; calendar bodies are not selected.
+   */
+  public List<Metadata> metadataBatch(UUID actor, UUID collectionId, String after, int limit) {
+    if (limit < 1 || limit > 10001) throw new IllegalArgumentException("Invalid metadata batch");
+    collection(actor, collectionId);
+    return jdbc.query(
+        "SELECT name,uid,etag,revision,updated_at,octet_length(content) AS content_length FROM calendar_resources WHERE collection_id=? AND name COLLATE \"C\">? COLLATE \"C\" ORDER BY name COLLATE \"C\" LIMIT ?",
+        CalendarStore::readMetadata,
+        collectionId,
+        after,
+        limit);
+  }
+
+  private static Metadata readMetadata(java.sql.ResultSet rs, int row)
+      throws java.sql.SQLException {
+    return new Metadata(
+        rs.getString("name"),
+        rs.getString("uid"),
+        rs.getString("etag"),
+        rs.getLong("revision"),
+        rs.getTimestamp("updated_at").toInstant(),
+        rs.getLong("content_length"));
+  }
+
+  /** Fetch a bounded query batch after one authorization check, without per-object lookups. */
+  public List<Resource> resourceBatch(UUID actor, UUID collectionId, String after) {
+    var metadata = metadataBatch(actor, collectionId, after, 16);
+    List<String> names = new ArrayList<>();
+    long selectedBytes = 0;
+    for (var item : metadata) {
+      if (item.contentLength() > 4L * 1024 * 1024 - selectedBytes) break;
+      names.add(item.name());
+      selectedBytes += item.contentLength();
+    }
+    if (names.isEmpty()) {
+      if (!metadata.isEmpty()) throw new StoreException(StoreException.Kind.LIMIT);
+      return List.of();
+    }
+    String placeholders = String.join(",", java.util.Collections.nCopies(names.size(), "?"));
+    List<Object> arguments = new ArrayList<>();
+    arguments.add(collectionId);
+    arguments.addAll(names);
+    return jdbc.query(
+        "SELECT name,uid,content,etag,revision,updated_at FROM calendar_resources WHERE collection_id=? AND name IN ("
+            + placeholders
+            + ") ORDER BY name COLLATE \"C\"",
+        (rs, row) -> readResource(rs),
+        arguments.toArray());
+  }
+
   @Transactional
   public Resource put(
       UUID actor,
@@ -124,6 +217,7 @@ public class CalendarStore {
     if (content.length > 1048576) throw new StoreException(StoreException.Kind.LIMIT);
     Collection c = lock(collectionId);
     authorize(actor, c, true);
+    DavNamespace.resourceBindings(jdbc, collectionId, name);
     var parsed = org.busystack.caldav.calendar.CalendarContent.parse(content, c.component());
     if (!parsed.uid().equals(uid))
       throw new IllegalArgumentException("UID index does not match the resource");
@@ -184,64 +278,256 @@ public class CalendarStore {
         + ":";
   }
 
-  /** All response rows and the token come from one MVCC snapshot. No live queries after return. */
+  /** Backwards-compatible content-bearing storage entry point; HTTP supplies exact XML sizing. */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public SyncPage sync(UUID actor, UUID collectionId, String token, int limit) {
-    if (limit < 1 || limit > 10000) throw new StoreException(StoreException.Kind.LIMIT);
+    return sync(
+        actor,
+        collectionId,
+        token,
+        limit,
+        true,
+        change -> 512L + (change.metadata() == null ? 0 : change.metadata().contentLength() * 6),
+        32L * 1024 * 1024);
+  }
+
+  /**
+   * A frozen watermark plus immutable versions gives each continuation an identical view across
+   * requests. The sizing callback runs with one bounded body at a time, before accepting a row.
+   */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public SyncPage sync(
+      UUID actor,
+      UUID collectionId,
+      String token,
+      int limit,
+      boolean includeContent,
+      ToLongFunction<Change> responseBytes,
+      long maxBytes) {
+    if (limit < 1 || limit > 10000 || maxBytes < 1)
+      throw new StoreException(StoreException.Kind.LIMIT);
     Collection c = collection(actor, collectionId);
     String prefix = tokenPrefix(c);
-    long after = 0;
-    if (token != null && !token.isEmpty()) {
-      if (!token.startsWith(prefix)) throw new StoreException(StoreException.Kind.INVALID_TOKEN);
+    Traversal traversal = traversal(actor, c, prefix, token);
+    // Expiry is checked by lookup. Independent read-committed maintenance avoids turning
+    // concurrent expired-row cleanup into serialization failures in this snapshot.
+    String lower = traversal.initial() ? "" : " AND revision>?";
+    String sql =
+        "SELECT name,deleted,uid,etag,revision,updated_at,content_length FROM ("
+            + "SELECT DISTINCT ON (name COLLATE \"C\") name,deleted,uid,etag,revision,updated_at,content_length "
+            + "FROM calendar_resource_versions WHERE collection_id=? AND revision<=?"
+            + lower
+            + " AND name COLLATE \"C\">? COLLATE \"C\" ORDER BY name COLLATE \"C\",revision DESC) latest "
+            + (traversal.initial() ? "WHERE NOT deleted " : "")
+            + "ORDER BY name COLLATE \"C\" LIMIT ?";
+    List<Change> accepted = new ArrayList<>();
+    long bytes = 0, retainedContent = 0, retainedMetadata = 0;
+    boolean truncated = false;
+    String afterName = traversal.lastName();
+    paging:
+    while (true) {
+      int batchSize = Math.min(128, limit - accepted.size() + 1);
+      List<Object> arguments = new ArrayList<>(List.of(collectionId, traversal.upper()));
+      if (!traversal.initial()) arguments.add(traversal.lower());
+      arguments.add(afterName);
+      arguments.add(batchSize);
+      List<Change> candidates =
+          jdbc.query(
+              sql,
+              (rs, row) -> {
+                String name = rs.getString("name");
+                boolean deleted = rs.getBoolean("deleted");
+                return new Change(
+                    name,
+                    deleted,
+                    deleted
+                        ? null
+                        : new Metadata(
+                            name,
+                            rs.getString("uid"),
+                            rs.getString("etag"),
+                            rs.getLong("revision"),
+                            rs.getTimestamp("updated_at").toInstant(),
+                            rs.getLong("content_length")),
+                    null);
+              },
+              arguments.toArray());
+      for (Change candidate : candidates) {
+        long bodyLength =
+            includeContent && candidate.metadata() != null
+                ? candidate.metadata().contentLength()
+                : 0;
+        long metadataWork =
+            256L
+                + candidate.name().length() * 2L
+                + (candidate.metadata() == null
+                    ? 0
+                    : candidate.metadata().uid().length() * 2L
+                        + candidate.metadata().etag().length() * 2L);
+        if (accepted.size() == limit
+            || retainedContent + bodyLength > MAX_RETAINED_CONTENT_BYTES
+            || retainedMetadata + metadataWork > MAX_RETAINED_CONTENT_BYTES) {
+          truncated = true;
+          break paging;
+        }
+        Change item = candidate;
+        if (includeContent && !candidate.deleted()) {
+          Resource body =
+              jdbc.queryForObject(
+                  "SELECT name,uid,content,etag,revision,updated_at FROM calendar_resource_versions WHERE collection_id=? AND name=? AND revision=?",
+                  (rs, row) -> readResource(rs),
+                  collectionId,
+                  candidate.name(),
+                  candidate.metadata().revision());
+          item = new Change(candidate.name(), false, candidate.metadata(), body);
+        }
+        long selectedBytes = responseBytes.applyAsLong(item);
+        if (selectedBytes < 0) throw new IllegalArgumentException("Negative response size");
+        if (selectedBytes > maxBytes - bytes) {
+          truncated = true;
+          break paging;
+        }
+        accepted.add(item);
+        bytes += selectedBytes;
+        retainedContent += bodyLength;
+        retainedMetadata += metadataWork;
+        afterName = candidate.name();
+      }
+      if (candidates.size() < batchSize) break;
+    }
+    if (truncated && accepted.isEmpty()) throw new StoreException(StoreException.Kind.LIMIT);
+    String nextToken = prefix + traversal.upper();
+    if (truncated) {
+      UUID continuation =
+          continuations.save(
+              actor,
+              c,
+              recoveryEpoch(),
+              traversal.lower(),
+              traversal.upper(),
+              traversal.floor(),
+              traversal.initial(),
+              accepted.getLast().name());
+      nextToken = prefix + "page:" + continuation;
+    }
+    return new SyncPage(nextToken, List.copyOf(accepted), truncated);
+  }
+
+  private Traversal traversal(UUID actor, Collection c, String prefix, String token) {
+    if (token == null || token.isEmpty())
+      return new Traversal(0, c.revision(), c.minimum(), true, "");
+    if (token.length() > 512 || !token.startsWith(prefix)) invalidToken();
+    String suffix = token.substring(prefix.length());
+    if (suffix.startsWith("page:")) {
+      UUID id;
       try {
-        after = Long.parseLong(token.substring(prefix.length()));
-      } catch (NumberFormatException ex) {
+        id = UUID.fromString(suffix.substring(5));
+      } catch (IllegalArgumentException ex) {
         throw new StoreException(StoreException.Kind.INVALID_TOKEN);
       }
-      if (after < c.minimum() || after > c.revision())
-        throw new StoreException(StoreException.Kind.INVALID_TOKEN);
-    }
-    List<Change> changes;
-    if (token == null || token.isEmpty()) {
-      var budget =
-          jdbc.queryForObject(
-              "SELECT count(*),COALESCE(sum(octet_length(content)),0) FROM calendar_resources WHERE collection_id=?",
-              (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)},
-              collectionId);
-      if (budget[0] > limit || budget[1] > 32L * 1024 * 1024)
-        throw new StoreException(StoreException.Kind.LIMIT);
-      changes =
+      var rows =
           jdbc.query(
-              "SELECT * FROM calendar_resources WHERE collection_id=? ORDER BY name LIMIT ?",
-              (rs, row) -> new Change(rs.getString("name"), false, readResource(rs)),
-              collectionId,
-              limit + 1);
-    } else {
-      var budget =
-          jdbc.queryForObject(
-              "SELECT count(*),COALESCE(sum(octet_length(r.content)),0) FROM (SELECT DISTINCT ON (name) name,deleted FROM collection_changes WHERE collection_id=? AND revision>? ORDER BY name,revision DESC) latest LEFT JOIN calendar_resources r ON r.collection_id=? AND r.name=latest.name",
-              (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)},
-              collectionId,
-              after,
-              collectionId);
-      if (budget[0] > limit || budget[1] > 32L * 1024 * 1024)
-        throw new StoreException(StoreException.Kind.LIMIT);
-      changes =
-          jdbc.query(
-              "SELECT latest.name,latest.deleted,r.uid,r.content,r.etag,r.revision,r.updated_at FROM (SELECT DISTINCT ON (name) name,deleted,revision FROM collection_changes WHERE collection_id=? AND revision>? ORDER BY name,revision DESC) latest LEFT JOIN calendar_resources r ON r.collection_id=? AND r.name=latest.name ORDER BY latest.name LIMIT ?",
+              "SELECT lower_revision,upper_revision,retention_floor,initial_sync,last_name FROM sync_continuations WHERE id=? AND collection_id=? AND account_id=? AND generation=? AND recovery_epoch=? AND expires_at>now()",
               (rs, row) ->
-                  new Change(
-                      rs.getString("name"),
-                      rs.getBoolean("deleted"),
-                      rs.getBoolean("deleted") ? null : readResource(rs)),
-              collectionId,
-              after,
-              collectionId,
-              limit + 1);
+                  new Traversal(
+                      rs.getLong(1),
+                      rs.getLong(2),
+                      rs.getLong(3),
+                      rs.getBoolean(4),
+                      rs.getString(5)),
+              id,
+              c.id(),
+              actor,
+              c.generation(),
+              recoveryEpoch());
+      if (rows.isEmpty()) invalidToken();
+      Traversal found = rows.getFirst();
+      if (found.floor() < c.minimum() || found.upper() > c.revision()) invalidToken();
+      return found;
     }
-    // Until protocol pagination is added, fail the whole response; never omit rows then advance.
-    if (changes.size() > limit) throw new StoreException(StoreException.Kind.LIMIT);
-    return new SyncPage(prefix + c.revision(), List.copyOf(changes));
+    long after;
+    try {
+      if (suffix.isEmpty() || !suffix.chars().allMatch(ch -> ch >= '0' && ch <= '9'))
+        invalidToken();
+      after = Long.parseLong(suffix);
+    } catch (NumberFormatException ex) {
+      throw new StoreException(StoreException.Kind.INVALID_TOKEN);
+    }
+    if (after < c.minimum() || after > c.revision()) invalidToken();
+    return new Traversal(after, c.revision(), c.minimum(), false, "");
+  }
+
+  private UUID recoveryEpoch() {
+    return jdbc.queryForObject("SELECT recovery_epoch FROM system_state WHERE id=1", UUID.class);
+  }
+
+  private static void invalidToken() {
+    throw new StoreException(StoreException.Kind.INVALID_TOKEN);
+  }
+
+  /** Only names are projected from the historical property snapshot. */
+  public Set<QName> historicalPropertyNames(
+      UUID actor, UUID collectionId, String name, long revision) {
+    collection(actor, collectionId);
+    String from =
+        " FROM calendar_resource_version_properties WHERE collection_id=? AND resource_name=? AND revision=?";
+    List<Object> arguments = List.of(collectionId, name, revision);
+    var size =
+        jdbc.queryForObject(
+            "SELECT count(*),COALESCE(sum(octet_length(namespace)+octet_length(property_name)),0)"
+                + from,
+            (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)},
+            arguments.toArray());
+    if (size[0] > 1000 || size[1] > 1024 * 1024)
+      throw new StoreException(StoreException.Kind.LIMIT);
+    return Set.copyOf(
+        jdbc.query(
+            "SELECT namespace,property_name" + from,
+            (rs, row) -> new QName(rs.getString(1), rs.getString(2)),
+            arguments.toArray()));
+  }
+
+  /** Null selects all values; explicit names are filtered in SQL before values reach JDBC. */
+  public Map<QName, String> historicalProperties(
+      UUID actor, UUID collectionId, String name, long revision, Set<QName> selection) {
+    collection(actor, collectionId);
+    if (selection != null && selection.isEmpty()) return Map.of();
+    if (selection != null && selection.size() > 1000)
+      throw new StoreException(StoreException.Kind.LIMIT);
+    List<Object> arguments = new ArrayList<>(List.of(collectionId, name, revision));
+    String clause = "";
+    if (selection != null) {
+      clause =
+          " AND ("
+              + String.join(
+                  " OR ",
+                  java.util.Collections.nCopies(
+                      selection.size(), "(namespace=? AND property_name=?)"))
+              + ")";
+      for (QName item : selection) {
+        arguments.add(item.getNamespaceURI());
+        arguments.add(item.getLocalPart());
+      }
+    }
+    String from =
+        " FROM calendar_resource_version_properties WHERE collection_id=? AND resource_name=? AND revision=?"
+            + clause;
+    var size =
+        jdbc.queryForObject(
+            "SELECT count(*),COALESCE(sum(octet_length(xml)+octet_length(namespace)+octet_length(property_name)),0)"
+                + from,
+            (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)},
+            arguments.toArray());
+    if (size[0] > 1000 || size[1] > 1024 * 1024)
+      throw new StoreException(StoreException.Kind.LIMIT);
+    Map<QName, String> values = new LinkedHashMap<>();
+    jdbc.query(
+        "SELECT namespace,property_name,xml" + from,
+        rs -> {
+          values.put(new QName(rs.getString(1), rs.getString(2)), rs.getString(3));
+        },
+        arguments.toArray());
+    return Map.copyOf(values);
   }
 
   @Transactional
@@ -252,6 +538,15 @@ public class CalendarStore {
       throw new IllegalArgumentException("Invalid retention boundary");
     jdbc.update(
         "DELETE FROM collection_changes WHERE collection_id=? AND revision<=?",
+        collectionId,
+        through);
+    jdbc.update(
+        "DELETE FROM calendar_resource_versions v WHERE v.collection_id=? AND v.revision<? AND EXISTS (SELECT 1 FROM calendar_resource_versions newer WHERE newer.collection_id=v.collection_id AND newer.name=v.name AND newer.revision<=? AND newer.revision>v.revision)",
+        collectionId,
+        through,
+        through);
+    jdbc.update(
+        "DELETE FROM sync_continuations WHERE collection_id=? AND retention_floor<?",
         collectionId,
         through);
     jdbc.update("UPDATE collections SET min_retained_revision=? WHERE id=?", through, collectionId);

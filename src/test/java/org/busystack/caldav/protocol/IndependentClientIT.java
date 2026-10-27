@@ -20,9 +20,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-    properties = "busystack.dav.allow-sync-depth-one=true")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @org.springframework.test.annotation.DirtiesContext(
     classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 @Testcontainers
@@ -50,6 +48,11 @@ class IndependentClientIT {
 
   @Test
   void independentPythonCalendarAndTaskClientUsesActualHttpsPostgresqlServer() throws Exception {
+    assertThat(System.getenv("BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE"))
+        .as(
+            "Independent clients must qualify the unmodified default, without an environment override")
+        .isNull();
+    assertThat(System.getProperty("busystack.dav.allow-sync-depth-one")).isNull();
     var id =
         accounts.provision(
             "independent", "Independent client", "a secure independent password", false);
@@ -71,6 +74,9 @@ class IndependentClientIT {
       ProcessBuilder builder = new ProcessBuilder(python, "qualification/clients/python_caldav.py");
       builder.environment().put("BUSYSTACK_CLIENT_URL", "https://localhost:" + PORT + "/team/dav/");
       builder.environment().put("BUSYSTACK_CLIENT_USER", credential.username());
+      builder
+          .environment()
+          .put("BUSYSTACK_CLIENT_SYNC_DEPTH_INPUT", "setting omitted; application default");
       builder.environment().put("BUSYSTACK_CLIENT_SECRET_FILE", secret.toString());
       builder
           .environment()

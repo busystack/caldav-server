@@ -2,7 +2,8 @@
 """Isolated packaged-application and database-recovery smoke test.
 
 This does not qualify browser MFA, HTTPS/proxy deployment or CalDAV clients.
-Only the two randomly named Compose projects created here are removed.
+The entry point always checks same-version recovery, V9 restoration/upgrade and malformed
+history rejection. Only randomly named Compose projects created here are removed.
 """
 
 import argparse
@@ -111,6 +112,12 @@ def main():
     args.image = execute(["docker", "image", "inspect", "--format", "{{.Id}}", args.image], os.environ.copy())
     print("OPERATIONS_APPLICATION_IMAGE=" + args.image, flush=True)
 
+    for initial_version in (None, "9"):
+        verify(args, initial_version)
+
+
+def verify(args, initial_version):
+    print("OPERATIONS_PROFILE=" + ("same-version" if initial_version is None else "restore-V9-then-upgrade"), flush=True)
     projects = []
     with tempfile.TemporaryDirectory(prefix="busystack-operations-") as directory:
         private = Path(directory)
@@ -154,6 +161,7 @@ def main():
                 "--busystack.bootstrap=true",
                 "--busystack.bootstrap-username=opsadmin",
                 "--busystack.bootstrap-password-file=/bootstrap-password",
+                *([] if initial_version is None else ["--spring.flyway.target=" + initial_version]),
             )
             print("OPERATIONS_SCHEMA_VERSIONS=" + sql(environment, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;"), flush=True)
             content = (
@@ -211,6 +219,12 @@ DO $fixture$ BEGIN
     INSERT INTO dav_principals(id,kind) VALUES ('99999999-9999-4999-8999-999999999999','GROUP');
   END IF;
 END; $fixture$;
+DO $fixture$ BEGIN
+  IF to_regclass('public.sync_continuations') IS NOT NULL THEN
+    INSERT INTO sync_continuations(id,collection_id,account_id,generation,recovery_epoch,lower_revision,upper_revision,retention_floor,initial_sync,last_name)
+SELECT 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',c.id,c.owner_id,c.generation,s.recovery_epoch,0,1,0,true,'' FROM collections c CROSS JOIN system_state s WHERE c.id='11111111-1111-4111-8111-111111111111';
+  END IF;
+END; $fixture$;
 COMMIT;
 """,
             )
@@ -221,13 +235,19 @@ COMMIT;
             has_bindings = sql(environment, "SELECT to_regclass('public.dav_bindings') IS NOT NULL;") == "t"
             has_sessions = sql(environment, "SELECT to_regclass('public.spring_session') IS NOT NULL;") == "t"
             account_generation = sql(environment, "SELECT security_epoch FROM accounts WHERE username='opsadmin';") if has_sessions else None
+            archive = private / "recovery.dump"
+            if initial_version is not None:
+                assert sql(environment, "SELECT max(version::integer) FROM flyway_schema_history WHERE version IS NOT NULL;") == "9"
+                assert sql(environment, "SELECT to_regclass('public.sync_continuations') IS NULL;") == "t"
+                execute(["./scripts/backup.sh", str(archive)], environment)
+                print("OPERATIONS_V9_ARCHIVE_CREATED_BEFORE_CURRENT_STARTUP", flush=True)
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
             compose(environment, "restart", "application")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
-            archive = private / "recovery.dump"
-            execute(["./scripts/backup.sh", str(archive)], environment)
+            if initial_version is None:
+                execute(["./scripts/backup.sh", str(archive)], environment)
             execute(["./scripts/backup.sh", str(archive)], environment, expected=2)
             compose(environment, "stop", "application")
             execute(["./scripts/restore.sh", str(archive)], environment, expected=2)
@@ -237,6 +257,17 @@ COMMIT;
             projects.append(restored)
             compose(restored, "up", "-d", "--wait", "--wait-timeout", "120", "database")
             execute(["./scripts/restore.sh", str(archive)], restored)
+            if initial_version is not None:
+                assert sql(restored, "SELECT max(version::integer) FROM flyway_schema_history WHERE version IS NOT NULL;") == "9"
+                assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
+                assert sql(restored, "SELECT (SELECT count(*) FROM dav_credentials)+(SELECT count(*) FROM spring_session)+(SELECT count(*) FROM user_credentials)+(SELECT count(*) FROM oauth2_authorization);") == "0"
+                # Migrate only after V9 recovery invalidation. All users stay disabled during startup.
+                compose(restored, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
+                checks(restored)
+                assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
+                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13"
+                compose(restored, "stop", "application")
+                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V13_PASSED", flush=True)
             result = json.loads(
                 sql(
                     restored,
@@ -248,6 +279,9 @@ COMMIT;
 'content_sha256',(SELECT encode(sha256(content),'hex') FROM calendar_resources),
 'epoch',(SELECT recovery_epoch::text FROM system_state),
 'credentials',(SELECT count(*) FROM dav_credentials),
+'continuations',(SELECT count(*) FROM sync_continuations),
+'versions',(SELECT count(*) FROM calendar_resource_versions),
+'history_properties',(SELECT count(*) FROM calendar_resource_version_properties),
 'registered_clients',(SELECT count(*) FROM oauth2_registered_client),
 'grants',(SELECT count(*) FROM oauth2_authorization),
 'consents',(SELECT count(*) FROM oauth2_authorization_consent),
@@ -261,6 +295,8 @@ COMMIT;
             assert result["registered_clients"] == 1
             assert result["permission"] == "READ" and result["content_sha256"] == checksum
             assert result["epoch"] != epoch and result["history"] == 1
+            assert result["continuations"] == 0 and result["versions"] == 1
+            assert result["history_properties"] == 1
             for key in ("enabled_accounts", "credentials", "grants", "consents", "passkeys", "active_families", "tables_not_owned_by_app"):
                 assert result[key] == 0, key
             if has_federation:
@@ -311,6 +347,9 @@ COMMIT;
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "2"
             compose(restored, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(restored)
+            if initial_version is None:
+                compose(environment, "stop", "application")
+                negative_restores(environment, private, projects)
             print("PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).")
             print("Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.")
         except Exception:
@@ -339,6 +378,43 @@ COMMIT;
         finally:
             for created in reversed(projects):
                 compose(created, "down", "--volumes", "--remove-orphans", "--timeout", "10")
+
+
+def negative_restores(source, private, projects):
+    """Malformed histories are restored only into new owned DBs, never started as applications."""
+    assert "application" not in compose(source, "ps", "--status", "running", "--services").splitlines()
+    original = sql(source, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;")
+    escaped = original.replace("'", "''")
+    restore_history = "DELETE FROM flyway_schema_history; INSERT INTO flyway_schema_history SELECT * FROM json_populate_recordset(NULL::flyway_schema_history,'" + escaped + "'::json);"
+    appended = "INSERT INTO flyway_schema_history(installed_rank,version,description,type,script,checksum,installed_by,execution_time,success) SELECT max(installed_rank)+1,{version},'Deliberate negative fixture','SQL','negative.sql',0,'busystack',0,true FROM flyway_schema_history;"
+    cases = [
+        ("future", appended.format(version="'14'"), "supports schema versions 1 through 13"),
+        ("failed", "UPDATE flyway_schema_history SET success=false WHERE version='13';", "Failed migration history"),
+        ("gap", "DELETE FROM flyway_schema_history WHERE version='6';", "Gap in migration history"),
+        ("duplicate", appended.format(version="'13'"), "Duplicate migration versions"),
+        ("missing-v1", "DELETE FROM flyway_schema_history WHERE version='1';", "Missing V1 migration history"),
+    ]
+    for label, mutation, message in cases:
+        archive = private / ("invalid-" + label + ".dump")
+        try:
+            sql(source, mutation)
+            execute(["./scripts/backup.sh", str(archive)], source)
+        finally:
+            sql(source, restore_history)
+        target = source.copy()
+        target["COMPOSE_PROJECT_NAME"] += "-negative-" + label
+        projects.append(target)
+        compose(target, "up", "-d", "--wait", "--wait-timeout", "120", "database")
+        result = subprocess.run(["./scripts/restore.sh", str(archive)], cwd=ROOT, env=target,
+            text=True, capture_output=True, timeout=300)
+        assert result.returncode != 0, label + " history incorrectly restored successfully"
+        assert message in result.stderr, (label, result.stderr[-1000:])
+        assert "Restored database, disabled all accounts" not in result.stdout
+        assert "application" not in compose(target, "ps", "--status", "running", "--services").splitlines()
+        print("OPERATIONS_UNSUPPORTED_HISTORY_REJECTED=" + label + "; application remains stopped; no success message", flush=True)
+        compose(target, "down", "--volumes", "--remove-orphans", "--timeout", "10")
+        projects.remove(target)
+    assert sql(source, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;") == original
 
 
 if __name__ == "__main__":

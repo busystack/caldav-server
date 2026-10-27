@@ -38,15 +38,22 @@ public final class DavPaths {
     if (path.equals(rawPrefix.substring(0, rawPrefix.length() - 1))) return List.of();
     if (!path.startsWith(rawPrefix)) throw new DavException(403, null);
     String relative = path.substring(rawPrefix.length());
+    if (relative.length() > org.busystack.caldav.storage.DavNamespace.MAX_ENCODED_LENGTH + 1)
+      throw new DavException(414, null);
     if (relative.endsWith("/")) relative = relative.substring(0, relative.length() - 1);
     if (relative.isEmpty()) return List.of();
     List<String> segments = new ArrayList<>();
     for (String segment : relative.split("/", -1)) segments.add(decode(segment));
-    if (segments.size() > 20) throw new DavException(414, null);
+    try {
+      org.busystack.caldav.storage.DavNamespace.parts(segments);
+    } catch (IllegalArgumentException invalid) {
+      throw new DavException(414, null);
+    }
     return List.copyOf(segments);
   }
 
   public String href(List<String> parts, boolean collection) {
+    org.busystack.caldav.storage.DavNamespace.parts(parts);
     return deployment.davRoot()
         + String.join("/", parts.stream().map(DavPaths::encode).toList())
         + (!parts.isEmpty() && collection ? "/" : "");
@@ -101,8 +108,18 @@ public final class DavPaths {
           || value.length() > 255
           || value.equals(".")
           || value.equals("..")
-          || value.codePoints().anyMatch(c -> c == '/' || c == '\\' || Character.isISOControl(c)))
-        throw new DavException(400, null);
+          || value
+              .codePoints()
+              .anyMatch(
+                  c ->
+                      c == '/'
+                          || c == ';'
+                          || c == 0x2028
+                          || c == 0x2029
+                          || c == 0xFFFE
+                          || c == 0xFFFF
+                          || c == '\\'
+                          || Character.isISOControl(c))) throw new DavException(400, null);
       return value;
     } catch (java.nio.charset.CharacterCodingException ex) {
       throw new DavException(400, null);

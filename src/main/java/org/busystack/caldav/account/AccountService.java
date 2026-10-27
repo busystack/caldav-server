@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.UUID;
+import org.busystack.caldav.xml.XmlCharacters;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -74,6 +75,7 @@ public class AccountService {
         || displayName == null
         || displayName.isBlank()
         || displayName.codePointCount(0, displayName.length()) > 200
+        || !XmlCharacters.valid(displayName)
         || displayName.codePoints().anyMatch(Character::isISOControl))
       throw new IllegalArgumentException("Invalid account name or display name");
     UUID id = UUID.randomUUID();

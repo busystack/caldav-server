@@ -289,7 +289,19 @@ class DavHttpIT {
   @Test
   void initialIncrementalDeletedExpiredAndLimitedSyncAreExplicit() throws Exception {
     String calendar = create("events", "VEVENT");
-    assertThat(send("REPORT", calendar, sync("", 100), "Depth", "1").statusCode()).isEqualTo(400);
+    assertThat(send("REPORT", calendar, sync("", 100), "Depth", "1").statusCode()).isEqualTo(207);
+    assertThat(
+            send(
+                    "REPORT",
+                    calendar,
+                    sync("", 100)
+                        .replace(
+                            "<D:sync-level>1</D:sync-level>",
+                            "<D:sync-level>infinite</D:sync-level>"),
+                    "Depth",
+                    "1")
+                .statusCode())
+        .isEqualTo(400);
     assertThat(send("REPORT", calendar, sync("", 100), "Depth", "infinity").statusCode())
         .isEqualTo(400);
     assertThat(send("REPORT", calendar, sync("", 100), "Depth", "0", "Depth", "1").statusCode())
@@ -303,7 +315,12 @@ class DavHttpIT {
     var delta = send("REPORT", calendar, sync(token, 100));
     assertThat(delta.statusCode()).isEqualTo(207);
     assertThat(delta.body()).contains("one.ics", "two.ics", "404 Not Found");
-    assertThat(send("REPORT", calendar, sync(token, 1)).statusCode()).isEqualTo(507);
+    var partial = send("REPORT", calendar, sync(token, 1));
+    assertThat(partial.statusCode()).isEqualTo(207);
+    assertThat(partial.body()).contains("HTTP/1.1 507 Insufficient Storage");
+    var remaining = send("REPORT", calendar, sync(text(partial, DavXml.DAV, "sync-token"), 1));
+    assertThat(remaining.statusCode()).isEqualTo(207);
+    assertThat(remaining.body()).doesNotContain("507 Insufficient Storage");
     assertThat(send("REPORT", calendar, sync("urn:invalid", 100)).statusCode()).isEqualTo(403);
     String another = create("another", "VEVENT");
     assertThat(send("REPORT", another, sync(token, 100)).statusCode()).isEqualTo(403);
@@ -1213,8 +1230,11 @@ class DavHttpIT {
     jdbc.update(
         "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) SELECT ?,value::text||'.ics',value::text,decode(repeat('41',1048576),'hex'),'\"budget-fixture\"',value FROM generate_series(1,33) value",
         collection);
+    jdbc.update("UPDATE collections SET revision=33 WHERE id=?", collection);
     String token = currentCollectionToken(calendar);
-    assertThat(send("REPORT", calendar, sync("", 100)).statusCode()).isEqualTo(507);
+    var metadata = send("REPORT", calendar, sync("", 100));
+    assertThat(metadata.statusCode()).isEqualTo(207);
+    assertThat(xml(metadata).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(33);
     assertThat(
             send(
                     "PUT",
@@ -1252,17 +1272,26 @@ class DavHttpIT {
                               "<D:nresults>" + invalid + "</D:nresults>"))
                   .statusCode())
           .isEqualTo(400);
-    for (String unsupported : List.of("0", "10001", "9".repeat(1000)))
-      assertThat(
-              send(
-                      "REPORT",
-                      calendar,
-                      sync("", 1)
-                          .replace(
-                              "<D:nresults>1</D:nresults>",
-                              "<D:nresults>" + unsupported + "</D:nresults>"))
-                  .statusCode())
-          .isEqualTo(507);
+    var zero = send("REPORT", calendar, sync("", 0));
+    assertThat(zero.statusCode()).isEqualTo(507);
+    assertThat(zero.body()).doesNotContain("sync-token");
+    for (String ceiling : List.of("10001", "9".repeat(1000))) {
+      var accepted =
+          send(
+              "REPORT",
+              calendar,
+              sync("", 1)
+                  .replace(
+                      "<D:nresults>1</D:nresults>", "<D:nresults>" + ceiling + "</D:nresults>"));
+      assertThat(accepted.statusCode())
+          .as("The client ceiling may exceed the server page size")
+          .isEqualTo(207);
+      var result = xml(accepted);
+      assertThat(result.getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(1);
+      assertThat(result.getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(1);
+      assertThat(result.getElementsByTagNameNS("DAV:", "sync-token").getLength()).isEqualTo(1);
+      assertThat(accepted.body()).contains("one.ics").doesNotContain(" 507 ");
+    }
     assertThat(
             send(
                     "REPORT",
@@ -1286,7 +1315,12 @@ class DavHttpIT {
         "<C:calendar-multiget xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav'><D:prop><D:getetag/></D:prop>"
             + href.repeat(34)
             + "</C:calendar-multiget>";
-    var limited = send("REPORT", calendar, report);
+    var metadata = send("REPORT", calendar, report);
+    assertThat(metadata.statusCode()).isEqualTo(207);
+    assertThat(xml(metadata).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(34);
+    assertThat(xml(metadata).getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(34);
+    var limited =
+        send("REPORT", calendar, report.replace("<D:getetag/>", "<D:getetag/><C:calendar-data/>"));
     assertThat(limited.statusCode()).isEqualTo(507);
     assertThat(limited.body())
         .contains("number-of-matches-within-limits")
@@ -1662,5 +1696,492 @@ class DavHttpIT {
     var delta = send("REPORT", calendar, sync(before, 100));
     assertThat(delta.statusCode()).isEqualTo(207);
     assertThat(xml(delta).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(1);
+  }
+
+  @Test
+  void multigetAtHomePreservesSuccessfulEntriesBesideMissingAncestors() throws Exception {
+    String calendar = create("mixed", "VEVENT");
+    String resource = calendar + "valid.ics";
+    assertThat(send("PUT", resource, event("mixed-member", "Valid")).statusCode()).isEqualTo(201);
+    String report =
+        "<C:calendar-multiget xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'>"
+            + "<D:prop><D:getetag/></D:prop><D:href>/team/dav"
+            + resource
+            + "</D:href>"
+            + "<D:href>/team/dav"
+            + home
+            + "missing/leaf.ics</D:href>"
+            + "<D:href>/team/dav"
+            + calendar
+            + "missing.ics</D:href></C:calendar-multiget>";
+    var response = send("REPORT", home, report);
+    assertThat(response.statusCode()).isEqualTo(207);
+    assertThat(xml(response).getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(3);
+    assertThat(xml(response).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(1);
+    assertThat(response.body()).contains("HTTP/1.1 404 Not Found");
+  }
+
+  @Test
+  void nestedExpansionPreservesAvailablePropertiesBesideMissingAncestors() throws Exception {
+    String calendar = create("expanded-mixed", "VEVENT"), resource = calendar + "valid.ics";
+    assertThat(send("PUT", resource, event("expanded-member", "Valid")).statusCode())
+        .isEqualTo(201);
+    String patch =
+        "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:test'><D:set><D:prop><X:link>"
+            + "<D:href>/team/dav"
+            + resource
+            + "</D:href><D:href>/team/dav"
+            + home
+            + "absent/leaf.ics</D:href></X:link></D:prop></D:set></D:propertyupdate>";
+    assertThat(send("PROPPATCH", calendar, patch).statusCode()).isEqualTo(207);
+    var response =
+        send(
+            "REPORT",
+            calendar,
+            "<D:expand-property xmlns:D='DAV:'>"
+                + "<D:property name='link' namespace='urn:test'><D:property name='getetag'/>"
+                + "</D:property></D:expand-property>",
+            "Depth",
+            "0");
+    assertThat(response.statusCode()).isEqualTo(207);
+    assertThat(xml(response).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(1);
+    assertThat(response.body()).contains("HTTP/1.1 404 Not Found");
+  }
+
+  @Test
+  void selectiveQueriesAndFreeBusyScanBodiesInBatchesBeyondTheFormerAggregateLimit()
+      throws Exception {
+    String calendar = create("large-selective", "VEVENT");
+    UUID id = datedCollection("large-selective");
+    String body =
+        event("{UID}", "Unrelated")
+            .replace("END:VEVENT\r\n", "X-BULK:" + "a".repeat(1047000) + "\r\nEND:VEVENT\r\n");
+    new org.springframework.transaction.support.TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              jdbc.update(
+                  "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) SELECT ?,n::text||'.ics',n::text,convert_to(replace(?,'{UID}',n::text),'UTF8'),'\"large-fixture\"',n FROM generate_series(1,33) n",
+                  id,
+                  body);
+              jdbc.update("UPDATE collections SET revision=33 WHERE id=?", id);
+            });
+    assertThat(send("PUT", calendar + "needle.ics", event("needle", "Only match")).statusCode())
+        .isEqualTo(201);
+    var result =
+        send(
+            "REPORT",
+            calendar,
+            query(
+                "<C:comp-filter name='VEVENT'><C:prop-filter name='SUMMARY'><C:text-match>Only match</C:text-match></C:prop-filter></C:comp-filter>"),
+            "Depth",
+            "1");
+    assertThat(result.statusCode()).isEqualTo(207);
+    assertThat(xml(result).getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(1);
+    assertThat(result.body()).contains("needle.ics").doesNotContain("X-BULK");
+    var busy =
+        send(
+            "REPORT",
+            calendar,
+            "<C:free-busy-query xmlns:C='urn:ietf:params:xml:ns:caldav'><C:time-range start='20261027T000000Z' end='20261028T000000Z'/></C:free-busy-query>",
+            "Depth",
+            "1");
+    assertThat(busy.statusCode()).isEqualTo(200);
+    assertThat(busy.body()).contains("BEGIN:VFREEBUSY");
+    var metadata =
+        send(
+            "PROPFIND",
+            calendar,
+            "<D:propfind xmlns:D='DAV:'><D:prop><D:getetag/></D:prop></D:propfind>",
+            "Depth",
+            "1");
+    assertThat(metadata.statusCode()).isEqualTo(207);
+    assertThat(xml(metadata).getElementsByTagNameNS("DAV:", "getetag").getLength()).isEqualTo(35);
+    assertThat(xml(metadata).getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(35);
+  }
+
+  @Test
+  void rawSyncPagesFreezeContentAndPropertiesAcrossWritesAndRetries() throws Exception {
+    String calendar = create("paged-wire", "VEVENT");
+    for (String name : List.of("a", "b", "c")) {
+      assertThat(
+              send("PUT", calendar + name + ".ics", event("wire-" + name, "original-" + name))
+                  .statusCode())
+          .isEqualTo(201);
+      assertThat(
+              send(
+                      "PROPPATCH",
+                      calendar + name + ".ics",
+                      "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:test' xml:lang='fr'><D:set><D:prop><X:note>original-"
+                          + name
+                          + "</X:note></D:prop></D:set></D:propertyupdate>")
+                  .statusCode())
+          .isEqualTo(207);
+    }
+    String report =
+        sync("", 1)
+            .replace(
+                "xmlns:D='DAV:'",
+                "xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:X='urn:test'")
+            .replace("<D:getetag/>", "<D:getetag/><C:calendar-data/><X:note/>");
+    var first = send("REPORT", calendar, report);
+    assertThat(first.statusCode()).isEqualTo(207);
+    assertThat(first.body()).contains("original-a", "507 Insufficient Storage");
+    String cursor = text(first, DavXml.DAV, "sync-token");
+    assertThat(send("PUT", calendar + "b.ics", event("wire-b", "changed-b")).statusCode())
+        .isEqualTo(204);
+    assertThat(
+            send(
+                    "PROPPATCH",
+                    calendar + "b.ics",
+                    "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:test'><D:set><D:prop><X:note>changed-b</X:note></D:prop></D:set></D:propertyupdate>")
+                .statusCode())
+        .isEqualTo(207);
+    assertThat(send("DELETE", calendar + "c.ics", "").statusCode()).isEqualTo(204);
+    assertThat(
+            send("PUT", calendar + "0.ics", event("wire-zero", "new-before-boundary")).statusCode())
+        .isEqualTo(201);
+    String continuation =
+        report.replace(
+            "<D:sync-token></D:sync-token>", "<D:sync-token>" + cursor + "</D:sync-token>");
+    var second = send("REPORT", calendar, continuation);
+    var retry = send("REPORT", calendar, continuation);
+    assertThat(second.statusCode()).isEqualTo(207);
+    assertThat(text(second, DavXml.CAL, "calendar-data"))
+        .contains("original-b")
+        .doesNotContain("changed-b");
+    assertThat(text(retry, DavXml.CAL, "calendar-data"))
+        .isEqualTo(text(second, DavXml.CAL, "calendar-data"));
+    assertThat(text(second, "urn:test", "note")).isEqualTo("original-b");
+    var third =
+        send(
+            "REPORT",
+            calendar,
+            report.replace(
+                "<D:sync-token></D:sync-token>",
+                "<D:sync-token>" + text(second, DavXml.DAV, "sync-token") + "</D:sync-token>"));
+    assertThat(third.statusCode()).isEqualTo(207);
+    assertThat(third.body()).contains("original-c").doesNotContain("507 Insufficient Storage");
+    var delta = send("REPORT", calendar, sync(text(third, DavXml.DAV, "sync-token"), 100));
+    assertThat(delta.statusCode()).isEqualTo(207);
+    assertThat(delta.body()).contains("0.ics", "b.ics", "c.ics", "404 Not Found");
+    assertThat(send("GET", calendar + "b.ics", "").body()).contains("changed-b");
+  }
+
+  @Test
+  void partialSyncTokensNeverBypassCurrentSharesOrDisabledAccounts() throws Exception {
+    String calendar = create("paged-share", "VEVENT");
+    for (String name : List.of("a", "b"))
+      send("PUT", calendar + name + ".ics", event("share-" + name, name));
+    UUID id = datedCollection("paged-share");
+    propertyStore.replaceAcl(
+        alice, id, List.of(new org.busystack.caldav.storage.DavStore.Member(bob, "READ")));
+    String shared = "/calendars/" + bob + "/" + id + "/";
+    var first = sendAs("REPORT", shared, sync("", 1), bobAuth);
+    assertThat(first.statusCode()).isEqualTo(207);
+    String token = text(first, DavXml.DAV, "sync-token");
+    assertThat(send("REPORT", calendar, sync(token, 1)).statusCode()).isEqualTo(403);
+    propertyStore.replaceAcl(alice, id, List.of());
+    assertThat(sendAs("REPORT", shared, sync(token, 1), bobAuth).statusCode()).isIn(403, 404);
+    propertyStore.replaceAcl(
+        alice, id, List.of(new org.busystack.caldav.storage.DavStore.Member(bob, "READ")));
+    assertThat(sendAs("REPORT", shared, sync(token, 1), bobAuth).statusCode()).isEqualTo(403);
+    var fresh = sendAs("REPORT", shared, sync("", 1), bobAuth);
+    assertThat(fresh.statusCode()).isEqualTo(207);
+    accounts.disable(bob);
+    assertThat(
+            sendAs("REPORT", shared, sync(text(fresh, DavXml.DAV, "sync-token"), 1), bobAuth)
+                .statusCode())
+        .isEqualTo(401);
+  }
+
+  @Test
+  void boundaryCollectionsKeepUnicodeResourceUrlsAccessibleThroughShallowDeepCopyAndMove()
+      throws Exception {
+    String parent = "";
+    for (int i = 0; i < 16; i++) {
+      parent += (parent.isEmpty() ? "" : "/") + "f" + i;
+      assertThat(send("MKCOL", home + parent + "/", "").statusCode()).isEqualTo(201);
+    }
+    String calendar = create(parent + "/boundary", "VEVENT");
+    String name = DavPaths.encode("旅行 %🗓.ics"), content = event("boundary-member", "Kept");
+    assertThat(send("PUT", calendar + name, content).statusCode()).isEqualTo(201);
+    assertThat(send("GET", calendar + name, "").body()).isEqualTo(content);
+    assertThat(
+            send(
+                    "COPY",
+                    calendar,
+                    "",
+                    "Destination",
+                    "https://calendar.example/team/dav" + home + "shallow/",
+                    "Depth",
+                    "0")
+                .statusCode())
+        .isEqualTo(201);
+    assertThat(send("GET", home + "shallow/" + name, "").statusCode()).isEqualTo(404);
+    assertThat(
+            send(
+                    "COPY",
+                    calendar,
+                    "",
+                    "Destination",
+                    "https://calendar.example/team/dav" + home + "deep/")
+                .statusCode())
+        .isEqualTo(201);
+    assertThat(send("GET", home + "deep/" + name, "").body()).isEqualTo(content);
+    assertThat(
+            send(
+                    "MOVE",
+                    home + "deep/",
+                    "",
+                    "Destination",
+                    "https://calendar.example/team/dav" + calendar,
+                    "Overwrite",
+                    "T")
+                .statusCode())
+        .isEqualTo(204);
+    assertThat(send("GET", calendar + name, "").body()).isEqualTo(content);
+    assertThat(send("MKCOL", home + parent + "/folder/", "").statusCode()).isEqualTo(201);
+    assertThat(send("MKCALENDAR", home + parent + "/folder/too-deep/", "").statusCode())
+        .isEqualTo(400);
+    assertThat(send("GET", home + parent + "/folder/too-deep/", "").statusCode()).isEqualTo(404);
+  }
+
+  @Test
+  void concurrentDavWorkAdmissionRejectsBeforeMutationAndRecoversAfterSlotsRelease()
+      throws Exception {
+    String calendar = create("bounded-work", "VEVENT");
+    UUID id = datedCollection("bounded-work");
+    var locked = new java.util.concurrent.CountDownLatch(1);
+    var release = new java.util.concurrent.CountDownLatch(1);
+    try (var workers = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var holder =
+          workers.submit(
+              () ->
+                  new org.springframework.transaction.support.TransactionTemplate(transactions)
+                      .executeWithoutResult(
+                          status -> {
+                            jdbc.queryForObject(
+                                "SELECT id FROM collections WHERE id=? FOR UPDATE", UUID.class, id);
+                            locked.countDown();
+                            try {
+                              if (!release.await(30, java.util.concurrent.TimeUnit.SECONDS))
+                                throw new AssertionError("Work admission coordination timed out");
+                            } catch (InterruptedException ex) {
+                              Thread.currentThread().interrupt();
+                              throw new AssertionError(ex);
+                            }
+                          }));
+      try {
+        assertThat(locked.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        var requests = new java.util.ArrayList<java.util.concurrent.Future<HttpResponse<String>>>();
+        for (int i = 0; i < 4; i++) {
+          int n = i;
+          requests.add(
+              workers.submit(
+                  () -> send("PUT", calendar + n + ".ics", event("work-" + n, "Bounded"))));
+        }
+        org.awaitility.Awaitility.await()
+            .atMost(java.time.Duration.ofSeconds(15))
+            .untilAsserted(
+                () ->
+                    assertThat(
+                            jdbc.queryForObject(
+                                "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%collections%'",
+                                Integer.class))
+                        .isGreaterThanOrEqualTo(4));
+        var busy = send("REPORT", calendar, sync("", 1));
+        assertThat(busy.statusCode()).isEqualTo(503);
+        assertThat(busy.headers().firstValue("Retry-After")).contains("1");
+        assertThat(busy.body()).doesNotContain("sync-token", "multistatus");
+        release.countDown();
+        holder.get(15, java.util.concurrent.TimeUnit.SECONDS);
+        for (var pending : requests)
+          assertThat(pending.get(15, java.util.concurrent.TimeUnit.SECONDS).statusCode())
+              .isEqualTo(201);
+      } finally {
+        release.countDown();
+      }
+    }
+    assertThat(send("REPORT", calendar, sync("", 10)).statusCode()).isEqualTo(207);
+  }
+
+  @Test
+  void copyAndMoveRejectXmlInvalidDestinationSegmentsBeforeMutation() throws Exception {
+    String calendar = create("xml-namespace-source", "VEVENT");
+    String target = create("xml-namespace-target", "VEVENT");
+    String resource = calendar + "safe.ics", content = event("xml-namespace-source", "Keep");
+    assertThat(send("PUT", resource, content).statusCode()).isEqualTo(201);
+    String sourceToken = currentCollectionToken(calendar),
+        targetToken = currentCollectionToken(target);
+    for (String forbidden : List.of("%EF%BF%BE", "%EF%BF%BF")) {
+      String invalidResource = target + "bad" + forbidden + "leaf.ics";
+      for (String method : List.of("COPY", "MOVE"))
+        assertThat(
+                send(
+                        method,
+                        resource,
+                        "",
+                        "Destination",
+                        "https://calendar.example/team/dav" + invalidResource)
+                    .statusCode())
+            .as(method + " XML-invalid resource destination " + forbidden)
+            .isEqualTo(400);
+      assertThat(
+              send(
+                      "MOVE",
+                      calendar,
+                      "",
+                      "Destination",
+                      "https://calendar.example/team/dav" + home + "bad" + forbidden + "calendar/")
+                  .statusCode())
+          .isEqualTo(400);
+      assertThat(
+              send("PUT", invalidResource, event("xml-invalid-" + forbidden, "Rejected"))
+                  .statusCode())
+          .isEqualTo(400);
+    }
+    assertThat(send("GET", resource, "").body()).isEqualTo(content);
+    assertThat(currentCollectionToken(calendar)).isEqualTo(sourceToken);
+    assertThat(currentCollectionToken(target)).isEqualTo(targetToken);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM calendar_resources WHERE collection_id=?",
+                Integer.class,
+                datedCollection("xml-namespace-target")))
+        .isZero();
+    for (String permitted :
+        List.of("valid\uFDD0.ics", "valid" + new String(Character.toChars(0x1FFFE)) + ".ics")) {
+      String path = target + DavPaths.encode(permitted);
+      String data = event("xml-permitted-" + permitted.codePointAt(5), "Preserved");
+      assertThat(send("PUT", path, data).statusCode()).isEqualTo(201);
+      assertThat(send("GET", path, "").body()).isEqualTo(data);
+      var response = send("PROPFIND", path, "", "Depth", "0");
+      assertThat(response.statusCode()).isEqualTo(207);
+      assertThatCode(() -> xml(response)).doesNotThrowAnyException();
+    }
+  }
+
+  @Test
+  void copyAndMoveRejectFirewallInaccessibleDestinationSegmentsBeforeMutation() throws Exception {
+    String calendar = create("namespace-segment", "VEVENT");
+    String target = create("namespace-target", "VEVENT");
+    String resource = calendar + "safe.ics", content = event("namespace-segment", "Keep");
+    assertThat(send("PUT", resource, content).statusCode()).isEqualTo(201);
+    String before = currentCollectionToken(calendar);
+    for (String forbidden : List.of("%3B", "%E2%80%A8", "%E2%80%A9")) {
+      assertThat(
+              send(
+                      "COPY",
+                      resource,
+                      "",
+                      "Destination",
+                      "https://calendar.example/team/dav" + target + "bad" + forbidden + "leaf.ics")
+                  .statusCode())
+          .isEqualTo(400);
+      assertThat(
+              send(
+                      "MOVE",
+                      calendar,
+                      "",
+                      "Destination",
+                      "https://calendar.example/team/dav" + home + "bad" + forbidden + "calendar/")
+                  .statusCode())
+          .isEqualTo(400);
+    }
+    assertThat(send("GET", resource, "").body()).isEqualTo(content);
+    assertThat(currentCollectionToken(calendar)).isEqualTo(before);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM calendar_resources WHERE collection_id=?",
+                Integer.class,
+                datedCollection("namespace-segment")))
+        .isEqualTo(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM calendar_resources WHERE collection_id=?",
+                Integer.class,
+                datedCollection("namespace-target")))
+        .isZero();
+  }
+
+  @Test
+  void syncContinuationParentLockWaitFailsBoundedlyWithoutAdvancingToken() throws Exception {
+    String calendar = create("sync-cursor-lock", "VEVENT");
+    UUID collection = datedCollection("sync-cursor-lock");
+    assertThat(send("PUT", calendar + "a.ics", event("sync-lock-a", "A")).statusCode())
+        .isEqualTo(201);
+    assertThat(send("PUT", calendar + "b.ics", event("sync-lock-b", "B")).statusCode())
+        .isEqualTo(201);
+    long cursorCount =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM sync_continuations WHERE collection_id=?",
+            Long.class,
+            collection);
+    String stableBefore = currentCollectionToken(calendar);
+    var locked = new java.util.concurrent.CountDownLatch(1);
+    var release = new java.util.concurrent.CountDownLatch(1);
+    try (var workers = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var writer =
+          workers.submit(
+              () ->
+                  new org.springframework.transaction.support.TransactionTemplate(transactions)
+                      .executeWithoutResult(
+                          status -> {
+                            jdbc.queryForObject(
+                                "SELECT id FROM collections WHERE id=? FOR UPDATE",
+                                UUID.class,
+                                collection);
+                            locked.countDown();
+                            try {
+                              if (!release.await(30, java.util.concurrent.TimeUnit.SECONDS))
+                                throw new AssertionError("Cursor parent lock release timed out");
+                            } catch (InterruptedException ex) {
+                              Thread.currentThread().interrupt();
+                              throw new AssertionError(ex);
+                            }
+                          }));
+      try {
+        assertThat(locked.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        var report = workers.submit(() -> send("REPORT", calendar, sync("", 1)));
+        // The continuation transaction has its own deadline; a proxy/client timeout must not
+        // leave the servlet and a DAV-work slot waiting indefinitely on the database writer.
+        var response = report.get(15, java.util.concurrent.TimeUnit.SECONDS);
+        assertThat(response.statusCode()).isEqualTo(503);
+        assertThat(response.headers().firstValue("Retry-After")).contains("1");
+        assertThat(response.body()).doesNotContain("sync-token");
+        assertThat(
+                jdbc.queryForObject(
+                    "SELECT count(*) FROM sync_continuations WHERE collection_id=?",
+                    Long.class,
+                    collection))
+            .isEqualTo(cursorCount);
+      } finally {
+        release.countDown();
+        writer.get(10, java.util.concurrent.TimeUnit.SECONDS);
+      }
+    }
+    assertThat(currentCollectionToken(calendar)).isEqualTo(stableBefore);
+    assertThat(send("REPORT", calendar, sync("", 1)).statusCode()).isEqualTo(207);
+    assertThat(send("GET", calendar + "a.ics", "").statusCode()).isEqualTo(200);
+  }
+
+  @Test
+  void syncEmptyPropertySelectionReturnsAnEmptySuccessfulPropstat() throws Exception {
+    String calendar = create("sync-empty-properties", "VEVENT");
+    assertThat(send("PUT", calendar + "one.ics", event("empty-prop-sync", "One")).statusCode())
+        .isEqualTo(201);
+    var report =
+        send("REPORT", calendar, sync("", 1).replace("<D:prop><D:getetag/></D:prop>", "<D:prop/>"));
+    assertThat(report.statusCode()).isEqualTo(207);
+    var result = xml(report);
+    assertThat(result.getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(1);
+    var response = (Element) result.getElementsByTagNameNS("DAV:", "response").item(0);
+    assertThat(response.getElementsByTagNameNS("DAV:", "propstat").getLength()).isEqualTo(1);
+    var propstat = (Element) response.getElementsByTagNameNS("DAV:", "propstat").item(0);
+    var properties = DavXml.required(propstat, "DAV:", "prop");
+    assertThat(DavXml.children(properties)).isEmpty();
+    assertThat(DavXml.required(propstat, "DAV:", "status").getTextContent())
+        .isEqualTo("HTTP/1.1 200 OK");
+    assertThat(result.getElementsByTagNameNS("DAV:", "sync-token").getLength()).isEqualTo(1);
   }
 }

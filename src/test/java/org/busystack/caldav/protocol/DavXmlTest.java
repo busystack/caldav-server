@@ -35,7 +35,11 @@ class DavXmlTest {
   @Test
   void serializationStopsAtTheResponseLimit() {
     var document = DavXml.document();
-    DavXml.text(document, DavXml.d("large"), "x".repeat(DavXml.MAX_RESPONSE + 1));
+    // Direct DOM mutation deliberately bypasses construction helpers to retain a test of
+    // the serializer's independent final-output guard.
+    var element = document.createElementNS(DavXml.DAV, "D:large");
+    element.setTextContent("x".repeat(DavXml.MAX_RESPONSE + 1));
+    document.appendChild(element);
     assertThatThrownBy(() -> DavXml.bytes(document))
         .isInstanceOf(DavException.class)
         .extracting(ex -> ((DavException) ex).status())

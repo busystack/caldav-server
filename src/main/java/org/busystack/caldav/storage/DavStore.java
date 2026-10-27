@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.xml.namespace.QName;
 import org.busystack.caldav.calendar.CalendarContent;
+import org.busystack.caldav.xml.XmlCharacters;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -39,7 +40,7 @@ public class DavStore {
 
   public record Snapshot(
       Entry entry,
-      List<CalendarStore.Resource> resources,
+      List<CalendarStore.Metadata> resources,
       List<Property> properties,
       String syncToken) {
     public Snapshot {
@@ -51,7 +52,6 @@ public class DavStore {
   public record PutResult(CalendarStore.Resource resource, boolean created) {}
 
   private static final int MAX_ROWS = 10000;
-  private static final long MAX_BYTES = 32L * 1024 * 1024;
   private static final QName DISPLAY_NAME = new QName("DAV:", "displayname");
   private final JdbcTemplate jdbc;
   private final CalendarStore calendars;
@@ -112,13 +112,7 @@ public class DavStore {
     if (!entry.binding().calendar())
       return new Snapshot(entry, List.of(), properties(folderProperties(home, path)), null);
     UUID id = entry.collection().id();
-    resourceBudget(id);
-    var resources =
-        jdbc.query(
-            "SELECT * FROM calendar_resources WHERE collection_id=? ORDER BY name LIMIT ?",
-            (rs, row) -> resource(rs),
-            id,
-            MAX_ROWS + 1);
+    var resources = calendars.metadataBatch(actor, id, "", MAX_ROWS + 1);
     bounded(resources.size());
     String token = calendars.currentSyncToken(actor, id);
     return new Snapshot(entry, resources, properties(deadProperties(actor, id, null)), token);
@@ -135,6 +129,7 @@ public class DavStore {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     writableHome(actor, home);
     checkPath(path, false);
+    DavNamespace.binding(path, component != null);
     checkDisplayName(displayName);
     lockHomes(home);
     if (component != null && !Set.of("VEVENT", "VTODO").contains(component))
@@ -396,21 +391,158 @@ public class DavStore {
     return List.copyOf(groups);
   }
 
-  public Map<QName, String> deadProperties(UUID actor, UUID collection, String resourceName) {
+  public static final long MAX_PROPERTY_BYTES = 1024L * 1024;
+
+  private record PropertyTarget(String table, String predicate, List<Object> arguments) {}
+
+  private PropertyTarget propertyTarget(Entry entry, String resource) {
+    if (!entry.binding().calendar())
+      return new PropertyTarget(
+          "dav_binding_properties",
+          "home_id=? AND path=?",
+          List.of(entry.binding().home(), entry.binding().path()));
+    if (resource == null)
+      return new PropertyTarget(
+          "dav_collection_properties", "collection_id=?", List.of(entry.collection().id()));
+    return new PropertyTarget(
+        "dav_resource_properties",
+        "collection_id=? AND resource_name=?",
+        List.of(entry.collection().id(), resource));
+  }
+
+  private void requirePropertyResource(UUID actor, UUID collection, String resourceName) {
     calendars.collection(actor, collection);
-    if (resourceName != null && calendars.get(actor, collection, resourceName) == null) missing();
-    return resourceName == null
-        ? propertyMap(
-            jdbc.query(
-                "SELECT namespace,name,xml FROM dav_collection_properties WHERE collection_id=? ORDER BY namespace,name",
-                (rs, row) -> new Property(rs.getString(1), rs.getString(2), rs.getString(3)),
-                collection))
-        : propertyMap(
-            jdbc.query(
-                "SELECT namespace,name,xml FROM dav_resource_properties WHERE collection_id=? AND resource_name=? ORDER BY namespace,name",
-                (rs, row) -> new Property(rs.getString(1), rs.getString(2), rs.getString(3)),
+    if (resourceName != null
+        && !Boolean.TRUE.equals(
+            jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM calendar_resources WHERE collection_id=? AND name=?)",
+                Boolean.class,
                 collection,
-                resourceName));
+                resourceName))) missing();
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Map<QName, String> deadProperties(UUID actor, UUID collection, String resourceName) {
+    return deadProperties(actor, collection, resourceName, null);
+  }
+
+  /** Null selects all values; an explicit set fetches only those names from PostgreSQL. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Map<QName, String> deadProperties(
+      UUID actor, UUID collection, String resourceName, Set<QName> selected) {
+    requirePropertyResource(actor, collection, resourceName);
+    return readProperties(
+        new PropertyTarget(
+            resourceName == null ? "dav_collection_properties" : "dav_resource_properties",
+            resourceName == null ? "collection_id=?" : "collection_id=? AND resource_name=?",
+            resourceName == null ? List.of(collection) : List.of(collection, resourceName)),
+        selected);
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Set<QName> deadPropertyNames(UUID actor, UUID collection, String resourceName) {
+    requirePropertyResource(actor, collection, resourceName);
+    return readPropertyNames(
+        new PropertyTarget(
+            resourceName == null ? "dav_collection_properties" : "dav_resource_properties",
+            resourceName == null ? "collection_id=?" : "collection_id=? AND resource_name=?",
+            resourceName == null ? List.of(collection) : List.of(collection, resourceName)));
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public String deadProperty(UUID actor, UUID collection, String resourceName, QName name) {
+    return deadProperties(actor, collection, resourceName, Set.of(name)).get(name);
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Map<QName, String> folderProperties(
+      UUID actor, UUID home, String path, Set<QName> selected) {
+    Entry entry = resolve(actor, home, path);
+    if (entry.binding().calendar()) throw new IllegalArgumentException("Expected folder binding");
+    if (path.isEmpty()) return Map.of();
+    return readProperties(propertyTarget(entry, null), selected);
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Set<QName> folderPropertyNames(UUID actor, UUID home, String path) {
+    Entry entry = resolve(actor, home, path);
+    if (entry.binding().calendar()) throw new IllegalArgumentException("Expected folder binding");
+    if (path.isEmpty()) return Set.of();
+    return readPropertyNames(propertyTarget(entry, null));
+  }
+
+  private Map<QName, String> readProperties(PropertyTarget target, Set<QName> selected) {
+    if (selected != null && selected.isEmpty()) return Map.of();
+    if (selected != null && selected.size() > 1000) limit();
+    List<Object> arguments = new ArrayList<>(target.arguments());
+    String selection = "";
+    if (selected != null) {
+      List<String> clauses = new ArrayList<>();
+      for (QName name : selected) {
+        clauses.add("(namespace=? AND name=?)");
+        arguments.add(name.getNamespaceURI());
+        arguments.add(name.getLocalPart());
+      }
+      selection = " AND (" + String.join(" OR ", clauses) + ")";
+    }
+    String from = " FROM " + target.table() + " WHERE " + target.predicate() + selection;
+    long[] size =
+        jdbc.queryForObject(
+            "SELECT count(*),COALESCE(sum(octet_length(xml)),0)" + from,
+            (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)},
+            arguments.toArray());
+    if (size[0] > 1000 || size[1] > MAX_PROPERTY_BYTES) limit();
+    return propertyMap(
+        jdbc.query(
+            "SELECT namespace,name,xml" + from + " ORDER BY namespace,name LIMIT 1001",
+            (rs, row) -> new Property(rs.getString(1), rs.getString(2), rs.getString(3)),
+            arguments.toArray()));
+  }
+
+  private Set<QName> readPropertyNames(PropertyTarget target) {
+    var names =
+        jdbc.query(
+            "SELECT namespace,name FROM "
+                + target.table()
+                + " WHERE "
+                + target.predicate()
+                + " ORDER BY namespace,name LIMIT 1001",
+            (rs, row) -> new QName(rs.getString(1), rs.getString(2)),
+            target.arguments().toArray());
+    if (names.size() > 1000) limit();
+    return java.util.Collections.unmodifiableSet(new LinkedHashSet<>(names));
+  }
+
+  /** The caller holds the binding home and, for shared resources, the collection row lock. */
+  private List<Map.Entry<QName, String>> checkPropertyBudget(
+      Entry entry, String resource, Map<QName, String> set, Set<QName> remove) {
+    PropertyTarget target = propertyTarget(entry, resource);
+    Map<QName, Integer> lengths = new LinkedHashMap<>();
+    jdbc.query(
+        "SELECT namespace,name,octet_length(xml) FROM "
+            + target.table()
+            + " WHERE "
+            + target.predicate(),
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs -> lengths.put(new QName(rs.getString(1), rs.getString(2)), rs.getInt(3)),
+        target.arguments().toArray());
+    Map<QName, Integer> original = Map.copyOf(lengths);
+    long previous = lengths.values().stream().mapToLong(Integer::longValue).sum();
+    int previousCount = lengths.size();
+    remove.forEach(lengths::remove);
+    set.forEach((name, xml) -> lengths.put(name, xml.getBytes(StandardCharsets.UTF_8).length));
+    long next = lengths.values().stream().mapToLong(Integer::longValue).sum();
+    // Previously accepted oversized targets remain repairable by removal or a non-increasing
+    // update.
+    if (next > MAX_PROPERTY_BYTES && next > previous
+        || lengths.size() > 1000 && lengths.size() > previousCount) limit();
+    return set.entrySet().stream()
+        .sorted(
+            java.util.Comparator.comparingLong(
+                item ->
+                    item.getValue().getBytes(StandardCharsets.UTF_8).length
+                        - original.getOrDefault(item.getKey(), 0)))
+        .toList();
   }
 
   @Transactional
@@ -442,14 +574,17 @@ public class DavStore {
       lockCollections(entry.collection().id());
       requireWrite(actor, entry.collection().id());
     } else if (resourceName != null) throw new StoreException(StoreException.Kind.CONFLICT);
-    CalendarStore.Resource resource =
-        resourceName == null ? null : calendars.get(actor, entry.collection().id(), resourceName);
+    CalendarStore.Metadata resource =
+        resourceName == null
+            ? null
+            : calendars.metadata(actor, entry.collection().id(), resourceName);
     if (resourceName != null && resource == null) missing();
     condition.check(
         resource == null ? null : resource.etag(),
         true,
         resource == null ? null : resource.modifiedAt());
     validateProperties(set, remove);
+    var orderedProperties = checkPropertyBudget(entry, resourceName, set, remove);
     if (remove.contains(DISPLAY_NAME) && resourceName == null)
       throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
     if (set.containsKey(DISPLAY_NAME)) {
@@ -470,8 +605,15 @@ public class DavStore {
     if (path.isEmpty() && (!set.isEmpty() || !remove.isEmpty()))
       throw new StoreException(StoreException.Kind.INVALID_PROPERTY);
     for (QName name : remove) deleteProperty(entry, resourceName, name);
-    for (var item : set.entrySet())
+    for (var item : orderedProperties)
       putProperty(entry, resourceName, item.getKey(), item.getValue());
+    QName timezoneProperty = new QName("urn:ietf:params:xml:ns:caldav", "calendar-timezone");
+    if (resourceName == null
+        && entry.binding().calendar()
+        && (set.containsKey(timezoneProperty) || remove.contains(timezoneProperty)))
+      jdbc.update(
+          "UPDATE collections SET generation=gen_random_uuid() WHERE id=?",
+          entry.collection().id());
     if (resourceName != null && (!set.isEmpty() || !remove.isEmpty())) {
       long revision = changed(entry.collection().id(), resourceName, false);
       jdbc.update(
@@ -539,11 +681,18 @@ public class DavStore {
     lockCollections(sourceCollection, destinationCollection);
     calendars.collection(actor, sourceCollection);
     requireWrite(actor, destinationCollection);
+    DavNamespace.resourceBindings(jdbc, destinationCollection, destinationName);
     if (move) requireWrite(actor, sourceCollection);
     if (sourceCollection.equals(destinationCollection) && sourceName.equals(destinationName))
       forbidden();
     var source = calendars.get(actor, sourceCollection, sourceName);
     if (source == null) missing();
+    if (Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT count(*)>1000 OR COALESCE(sum(octet_length(xml)),0)>1048576 FROM dav_resource_properties WHERE collection_id=? AND resource_name=?",
+            Boolean.class,
+            sourceCollection,
+            sourceName))) limit();
     condition.check(source.etag(), true, source.modifiedAt());
     var destination = calendars.get(actor, destinationCollection, destinationName);
     if (destination != null && !overwrite)
@@ -678,17 +827,25 @@ public class DavStore {
       if (move && item.calendar()) requireOwner(actor, item.collectionId());
     }
     for (Binding item : replaced) if (item.calendar()) requireOwner(actor, item.collectionId());
+    // Validate the entire resulting namespace before deleting an overwritten destination.
+    for (Binding item : selected) {
+      String target = destinationPath + item.path().substring(sourcePath.length());
+      DavNamespace.binding(target, item.calendar());
+      propertyCopyBudget(item, deep);
+      if (item.calendar() && deep)
+        jdbc.query(
+            connection -> {
+              var statement =
+                  connection.prepareStatement(
+                      "SELECT name FROM calendar_resources WHERE collection_id=? ORDER BY name");
+              statement.setObject(1, item.collectionId());
+              statement.setFetchSize(128);
+              return statement;
+            },
+            (org.springframework.jdbc.core.RowCallbackHandler)
+                rs -> DavNamespace.resource(target, rs.getString(1)));
+    }
     if (move && !deep) throw new IllegalArgumentException("MOVE requires complete subtree");
-    long resources = 0;
-    long totalBytes = 0;
-    if (!move && deep)
-      for (Binding item : selected)
-        if (item.calendar()) {
-          var size = resourceBudget(item.collectionId());
-          resources += size[0];
-          totalBytes += size[1];
-        }
-    if (resources > MAX_ROWS || totalBytes > MAX_BYTES) limit();
     if (existed) deleteBinding(actor, destinationHome, destinationPath, WriteCondition.none());
     if (move) {
       jdbc.update(
@@ -702,10 +859,22 @@ public class DavStore {
       // Moving a namespace changes every contained resource's URI; an overwritten
       // destination must never inherit the old source's earlier modification date.
       for (Binding item : selected)
-        if (item.calendar())
+        if (item.calendar()) {
+          long previous = calendars.collection(actor, item.collectionId()).revision();
           jdbc.update(
-              "UPDATE calendar_resources SET updated_at=clock_timestamp() WHERE collection_id=?",
+              "UPDATE calendar_resources r SET revision=?+n.position,updated_at=clock_timestamp() FROM (SELECT name,row_number() OVER(ORDER BY name COLLATE \"C\") AS position FROM calendar_resources WHERE collection_id=?) n WHERE r.collection_id=? AND r.name=n.name",
+              previous,
+              item.collectionId(),
               item.collectionId());
+          jdbc.update(
+              "INSERT INTO collection_changes(collection_id,revision,name,deleted) SELECT collection_id,revision,name,false FROM calendar_resources WHERE collection_id=? AND revision>?",
+              item.collectionId(),
+              previous);
+          jdbc.update(
+              "UPDATE collections SET revision=COALESCE((SELECT max(revision) FROM calendar_resources WHERE collection_id=?),revision) WHERE id=?",
+              item.collectionId(),
+              item.collectionId());
+        }
     } else {
       for (Binding item : selected) {
         String target = destinationPath + item.path().substring(sourcePath.length());
@@ -726,14 +895,19 @@ public class DavStore {
               targetId,
               item.collectionId());
           if (deep) {
-            var rows =
-                jdbc.query(
-                    "SELECT * FROM calendar_resources WHERE collection_id=? ORDER BY name",
-                    (rs, row) -> resource(rs),
-                    item.collectionId());
-            for (var row : rows)
-              calendars.put(
-                  actor, targetId, row.name(), row.uid(), row.content(), WriteCondition.create());
+            // The source is already validated and collection-locked. Copy bytes and indexes in
+            // PostgreSQL instead of accumulating every calendar body in application memory.
+            jdbc.update(
+                "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision,updated_at) SELECT ?,name,uid,content,etag,row_number() OVER(ORDER BY name COLLATE \"C\"),clock_timestamp() FROM calendar_resources WHERE collection_id=?",
+                targetId,
+                item.collectionId());
+            jdbc.update(
+                "INSERT INTO collection_changes(collection_id,revision,name,deleted) SELECT collection_id,revision,name,false FROM calendar_resources WHERE collection_id=?",
+                targetId);
+            jdbc.update(
+                "UPDATE collections SET revision=(SELECT COALESCE(max(revision),0) FROM calendar_resources WHERE collection_id=?) WHERE id=?",
+                targetId,
+                targetId);
             jdbc.update(
                 "INSERT INTO dav_resource_properties(collection_id,resource_name,namespace,name,xml) SELECT ?,resource_name,namespace,name,xml FROM dav_resource_properties WHERE collection_id=?",
                 targetId,
@@ -755,14 +929,39 @@ public class DavStore {
     if (item.calendar()) calendars.collection(actor, item.collectionId());
   }
 
+  private void propertyCopyBudget(Binding binding, boolean deep) {
+    boolean excessive;
+    if (!binding.calendar())
+      excessive =
+          Boolean.TRUE.equals(
+              jdbc.queryForObject(
+                  "SELECT count(*)>1000 OR COALESCE(sum(octet_length(xml)),0)>1048576 FROM dav_binding_properties WHERE home_id=? AND path=?",
+                  Boolean.class,
+                  binding.home(),
+                  binding.path()));
+    else {
+      excessive =
+          Boolean.TRUE.equals(
+              jdbc.queryForObject(
+                  "SELECT count(*)>1000 OR COALESCE(sum(octet_length(xml)),0)>1048576 FROM dav_collection_properties WHERE collection_id=?",
+                  Boolean.class,
+                  binding.collectionId()));
+      if (deep && !excessive)
+        excessive =
+            Boolean.TRUE.equals(
+                jdbc.queryForObject(
+                    "SELECT EXISTS(SELECT 1 FROM dav_resource_properties WHERE collection_id=? GROUP BY resource_name HAVING count(*)>1000 OR sum(octet_length(xml))>1048576)",
+                    Boolean.class,
+                    binding.collectionId()));
+    }
+    if (excessive) limit();
+  }
+
   private Map<QName, String> folderProperties(UUID home, String path) {
     if (path.isEmpty()) return Map.of();
-    return propertyMap(
-        jdbc.query(
-            "SELECT namespace,name,xml FROM dav_binding_properties WHERE home_id=? AND path=? ORDER BY namespace,name",
-            (rs, row) -> new Property(rs.getString(1), rs.getString(2), rs.getString(3)),
-            home,
-            path));
+    return readProperties(
+        new PropertyTarget("dav_binding_properties", "home_id=? AND path=?", List.of(home, path)),
+        null);
   }
 
   private static Map<QName, String> propertyMap(List<Property> properties) {
@@ -805,49 +1004,36 @@ public class DavStore {
   }
 
   private void putProperty(Entry entry, String resource, QName name, String xml) {
-    long count;
-    if (!entry.binding().calendar()) {
-      jdbc.update(
-          "INSERT INTO dav_binding_properties(home_id,path,namespace,name,xml) VALUES (?,?,?,?,?) ON CONFLICT(home_id,path,namespace,name) DO UPDATE SET xml=EXCLUDED.xml",
-          entry.binding().home(),
-          entry.binding().path(),
-          name.getNamespaceURI(),
-          name.getLocalPart(),
-          xml);
-      count =
-          jdbc.queryForObject(
-              "SELECT count(*) FROM dav_binding_properties WHERE home_id=? AND path=?",
-              Long.class,
-              entry.binding().home(),
-              entry.binding().path());
-    } else if (resource == null) {
-      jdbc.update(
-          "INSERT INTO dav_collection_properties(collection_id,namespace,name,xml) VALUES (?,?,?,?) ON CONFLICT(collection_id,namespace,name) DO UPDATE SET xml=EXCLUDED.xml",
-          entry.collection().id(),
-          name.getNamespaceURI(),
-          name.getLocalPart(),
-          xml);
-      count =
-          jdbc.queryForObject(
-              "SELECT count(*) FROM dav_collection_properties WHERE collection_id=?",
-              Long.class,
-              entry.collection().id());
-    } else {
-      jdbc.update(
-          "INSERT INTO dav_resource_properties(collection_id,resource_name,namespace,name,xml) VALUES (?,?,?,?,?) ON CONFLICT(collection_id,resource_name,namespace,name) DO UPDATE SET xml=EXCLUDED.xml",
-          entry.collection().id(),
-          resource,
-          name.getNamespaceURI(),
-          name.getLocalPart(),
-          xml);
-      count =
-          jdbc.queryForObject(
-              "SELECT count(*) FROM dav_resource_properties WHERE collection_id=? AND resource_name=?",
-              Long.class,
-              entry.collection().id(),
-              resource);
+    try {
+      if (!entry.binding().calendar())
+        jdbc.update(
+            "INSERT INTO dav_binding_properties(home_id,path,namespace,name,xml) VALUES (?,?,?,?,?) ON CONFLICT(home_id,path,namespace,name) DO UPDATE SET xml=EXCLUDED.xml",
+            entry.binding().home(),
+            entry.binding().path(),
+            name.getNamespaceURI(),
+            name.getLocalPart(),
+            xml);
+      else if (resource == null)
+        jdbc.update(
+            "INSERT INTO dav_collection_properties(collection_id,namespace,name,xml) VALUES (?,?,?,?) ON CONFLICT(collection_id,namespace,name) DO UPDATE SET xml=EXCLUDED.xml",
+            entry.collection().id(),
+            name.getNamespaceURI(),
+            name.getLocalPart(),
+            xml);
+      else
+        jdbc.update(
+            "INSERT INTO dav_resource_properties(collection_id,resource_name,namespace,name,xml) VALUES (?,?,?,?,?) ON CONFLICT(collection_id,resource_name,namespace,name) DO UPDATE SET xml=EXCLUDED.xml",
+            entry.collection().id(),
+            resource,
+            name.getNamespaceURI(),
+            name.getLocalPart(),
+            xml);
+    } catch (org.springframework.dao.DataIntegrityViolationException failure) {
+      if (failure.getMostSpecificCause() instanceof java.sql.SQLException sql
+          && "23514".equals(sql.getSQLState())
+          && sql.getMessage().contains("property_storage_budget")) limit();
+      throw failure;
     }
-    if (count > 1000) limit();
   }
 
   private static final Set<String> PROTECTED_DAV =
@@ -922,7 +1108,9 @@ public class DavStore {
       factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
       factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-      factory.setAttribute("http://www.oracle.com/xml/jaxp/properties/maxElementDepth", 64);
+      factory.setAttribute("jdk.xml.maxElementDepth", "32");
+      factory.setAttribute("jdk.xml.elementAttributeLimit", "100");
+      factory.setAttribute("jdk.xml.maxXMLNameLimit", "256");
       var parser = factory.newDocumentBuilder();
       parser.setErrorHandler(
           new org.xml.sax.helpers.DefaultHandler() {
@@ -1049,16 +1237,6 @@ public class DavStore {
     return rows;
   }
 
-  private long[] resourceBudget(UUID id) {
-    var size =
-        jdbc.queryForObject(
-            "SELECT count(*),COALESCE(sum(octet_length(content)),0) FROM calendar_resources WHERE collection_id=?",
-            (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)},
-            id);
-    if (size[0] > MAX_ROWS || size[1] > MAX_BYTES) limit();
-    return size;
-  }
-
   private long changed(UUID id, String name, boolean deleted) {
     long revision =
         jdbc.queryForObject(
@@ -1099,26 +1277,17 @@ public class DavStore {
   }
 
   private static void checkPath(String path, boolean root) {
-    if (path == null
-        || path.length() > 4096
-        || (!root && path.isEmpty())
-        || path.split("/", -1).length > 32) throw new IllegalArgumentException("Invalid DAV path");
-    if (!path.isEmpty()) for (String segment : path.split("/", -1)) checkSegment(segment);
+    if (path == null || (!root && path.isEmpty()))
+      throw new IllegalArgumentException("Invalid DAV path");
+    DavNamespace.binding(path, false);
   }
 
   private static void checkSegment(String name) {
-    if (name == null
-        || name.isBlank()
-        || name.length() > 255
-        || name.equals(".")
-        || name.equals("..")
-        || name.codePoints()
-            .anyMatch(value -> value == '/' || value == '\\' || Character.isISOControl(value)))
-      throw new IllegalArgumentException("Invalid DAV path segment");
+    DavNamespace.segment(name);
   }
 
   private static void checkDisplayName(String name) {
-    if (name == null || name.isBlank() || name.length() > 200)
+    if (name == null || name.isBlank() || name.length() > 200 || !XmlCharacters.valid(name))
       throw new IllegalArgumentException("Invalid display name");
   }
 

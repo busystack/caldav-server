@@ -1,6 +1,6 @@
 # Operations
 
-This deployment runs one application and PostgreSQL. Automated evidence includes real HTTPS DAV, account-security/native OAuth, optional real Keycloak, and independent calendar/task client operations. The [conformance matrix](conformance.md) and [artifact qualification records](../qualification/evidence/README.md) record completed packaged recovery/browser checks and explicitly unexecuted environments. The owner-selected project license is still a public-distribution requirement.
+This deployment runs one application and PostgreSQL. Automated evidence includes real HTTPS DAV, account-security/native OAuth, optional real Keycloak, and independent calendar/task client operations. The [conformance matrix](conformance.md) and [artifact qualification records](../qualification/evidence/README.md) record completed packaged recovery/browser checks and explicitly unexecuted environments. The project is Apache-2.0, with [separate third-party licensing and notice delivery](third-party-licenses.md).
 
 ## Build and verification
 
@@ -12,7 +12,7 @@ python3 -m venv .client-venv
 bash qualification/clients/install-thunderbird.sh .client-tools
 BUSYSTACK_THUNDERBIRD_BINARY="$PWD/.client-tools/thunderbird/thunderbird" \
 BUSYSTACK_CLIENT_PYTHON="$PWD/.client-venv/bin/python" ./mvnw --batch-mode --no-transfer-progress verify
-docker build --tag busystack-caldav:local .
+docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:local .
 python3 scripts/verify-operations.py --image busystack-caldav:local
 ```
 
@@ -151,14 +151,14 @@ The image must already be built and the database healthy. The command refuses to
 
 After browser primary authentication and passkey verification, issue a named DAV credential for each application/device. Configure the client with the public HTTPS CalDAV endpoint, `<public-base-url>/dav/`, the account username and that credential. The account password does not authenticate DAV requests. Revocation, expiry, local disabling and collection permissions are enforced for each client access; OAuth onboarding is a separate registered-client workflow described in [OAuth configuration](oauth.md).
 
-The independently tested python-caldav 3.6.0 and Thunderbird 157.0.1 providers send HTTP `Depth: 1` for synchronization, while RFC 6578 requires `Depth: 0`. Strict mode is the default. To use those tested incremental-sync profiles, explicitly enable the documented compatibility deviation and restart the application:
+The independently tested python-caldav 3.6.0 and Thunderbird 157.0.1 providers send HTTP `Depth: 1` for synchronization, while RFC 6578 requires `Depth: 0`. The narrowly constrained accommodation is enabled by default for both the executable JAR and Compose. Ordinary deployments need no override. To select strict RFC depth validation, explicitly disable it and restart:
 
 ```sh
-export BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=true
+export BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=false
 docker compose up -d application
 ```
 
-This accepts `Depth: 1` only with XML sync-level 1. It preserves collection scope, permissions, snapshot/token semantics and limits; invalid, duplicate and infinite Depth remain rejected. It is not literal compliance with that RFC requirement. The exact client/provider operations and native desktop limitations are in [independent-client qualification](../qualification/clients/README.md). Standard discovery and OAuth registration remain distinct.
+The default accepts `Depth: 1` only with XML sync-level 1. Missing Depth and `Depth: 0` retain standard behavior; explicit false rejects nonzero depth. It preserves collection scope, permissions, snapshot/token semantics and limits; invalid, duplicate and infinite Depth remain rejected. It is not literal compliance with that RFC requirement. The exact client/provider operations and native desktop limitations are in [independent-client qualification](../qualification/clients/README.md). Standard discovery and OAuth registration remain distinct.
 
 ## Health, diagnostics and limits
 
@@ -174,16 +174,33 @@ The database connection pool is bounded to 10 connections; connection acquisitio
 | Query filter nodes / range days | 256 / 3,660 |
 | Recurrence instances / rule increments / candidate work | 10,000 / 900 / 500,000 |
 | Serialized XML response and cumulative report-copy/expansion reservations | 16 MiB (conservative traversal reservations may fail earlier) |
+| Response DOM construction / nodes / concurrent DAV work | 16 MiB conservative work / 50,000 nodes / 4 requests |
+| Dead properties per target / individual XML / aggregate XML | 1,000 / 64 KiB / 1 MiB |
+| DAV namespace after `/dav/` | 20 segments including `calendars`, principal UUID and resource leaf; 4,096 encoded bytes, excluding the separately validated deployment prefix |
+| Complete PROPFIND traversal / query candidate traversal | 10,000 nodes / 100,000 nodes; explicit limit errors, without fabricated PROPFIND pagination |
+| Synchronization page | At most 10,000 returned members; larger valid client ceilings are accepted and capped, further bounded by actual selected XML and DOM work; 4 MiB retained bodies and 4 MiB metadata work |
 
 The fixed query budgets are maintained in `QueryLimits.defaults()`, with additional timezone and aggregate report guards. Raising a limit requires renewed hostile-input and memory qualification.
+
+Property writes enforce the aggregate limit under storage locks and V11 database guards. Existing oversized property sets remain stored: explicit small-value and name-only requests remain usable, while oversized all-property requests fail before retrieving all XML. Removal and nonincreasing repairs remain possible. Property names and selected values use separate SQL projections, including historical synchronization properties. Calendar bodies are fetched only when needed. Queries and free/busy scan at most 16 bodies / 4 MiB per batch; collection timezones are read directly and reused in a bounded cache.
+
+XML construction reserves node, attribute, UTF-16 and escaped UTF-8 work before allocating output subtrees. Responses are completed before HTTP success is committed. When four DAV operations are already active, further DAV work receives `503` with `Retry-After: 1` before dispatch or mutation. The default ten-connection pool also leaves room for four report snapshots plus their short independent cursor writes. The integration suite runs with a 256 MiB heap; this is verification evidence, not a production capacity guarantee.
+
+Each namespace segment is limited to 255 UTF-16 units. Semicolons and Unicode line/paragraph separators are rejected consistently with the existing HTTP firewall, including in Destination headers; controls, slash/backslash and dot segments remain rejected. U+FFFE and U+FFFF are also rejected because resource names appear in XML 1.0 property values. This narrow check preserves valid character data such as U+FDD0 and supplementary U+1FFFE; it does not reject Unicode noncharacters as a category. Calendar admission reserves one segment and the worst permitted encoded resource leaf, so a successfully created calendar can accept ordinary child resources. Storage, HTTP paths and database guards share these bounds. COPY/MOVE preflight all resulting descendant URLs and copied property budgets under transaction locks before replacing a destination. Collection depth is measured separately from the configured reverse-proxy prefix.
+
+Account, configured OIDC account, collection and group display labels must also be representable as XML 1.0 character data. Existing naming and control-character policies still apply. A legacy stored label containing an invalid XML character causes an explicit server error before response text is attached; it is not silently rewritten or included in a malformed successful XML response. Metadata requests that do not select the invalid label remain usable.
 
 Application logs must remain free of authorization headers, credential secrets, recovery data, and calendar content. Use container exit status, migration validation failures, health status and database diagnostics when investigating startup. No external telemetry service is required to serve the application.
 
 ## Synchronization history and database growth
 
-Resource change and deletion history is retained indefinitely by default. There is no automatic time-based pruning job or operator pruning API. Token generations still change for collection identity/permission changes and restoration. `CalendarStore.pruneHistory` has transactional tests for the collection lock and minimum retained revision, but its existence does not enable scheduled expiry.
+Resource change and deletion history is retained indefinitely by default. There is no automatic time-based pruning job or operator pruning API. Collection permission changes rotate the collection generation; restoration rotates the global recovery epoch and invalidates all tokens while retaining collection identity. `CalendarStore.pruneHistory` has transactional tests for the collection lock and minimum retained revision, but its existence does not enable scheduled expiry.
 
-Monitor database/volume growth, `pg_total_relation_size('calendar_resources')`, `pg_total_relation_size('collection_changes')`, row counts, dead tuples and ordinary PostgreSQL vacuum statistics. Repeated edits/deletions add history even when current resource count is stable. Recurrence rules are stored as submitted resources rather than materialized into an unbounded occurrence table. Retention needs storage planning and verified backups.
+V10 retains immutable calendar representations and indexed historical property values. Initial and incremental synchronization freeze a revision watermark and page through names with a durable scoped cursor. Truncated reports return `207`, a collection-level `507` entry and a continuation token; the final token advances only to the original watermark. Concurrent updates, deletions and renamed/recreated names are returned in the following traversal. [ADR 0004](adr/0004-resumable-synchronization.md) specifies the algorithm, selected-response accounting and retry invariants. No aggregate calendar-body quota prevents an accepted collection from being synchronized.
+
+Continuation state expires after 24 hours and is checked against current access, collection generation, actor, recovery epoch and retention state on every request. A separate read-committed cleanup removes at most 1,024 expired states per minute; expiry does not depend on cleanup. A change to a collection's default timezone invalidates existing tokens. Revoked access cannot use old continuation state. Interrupted requests may leave an unused cursor, which confers no access and expires normally.
+
+Monitor database/volume growth, `pg_total_relation_size` for `calendar_resources`, `collection_changes`, `calendar_resource_versions`, `calendar_resource_version_properties` and `sync_continuations`, row counts, dead tuples and ordinary PostgreSQL vacuum statistics. Repeated edits/deletions add historical bodies and properties even when current resource count is stable. Recurrence rules are stored as submitted resources rather than materialized into an unbounded occurrence table. Retention needs storage planning and verified backups.
 
 Keep history intact under the supported default. Any future operator pruning interface must perform deletion and the minimum-token update atomically under the same per-collection lock; removing history rows alone cannot provide complete deltas to old clients. No unsupported manual pruning automation is prescribed here.
 
@@ -200,16 +217,18 @@ install -d -m 700 /private/backups
 
 The script creates a consistent PostgreSQL custom-format archive and a SHA-256 checksum with private file permissions. It refuses to overwrite an existing archive. Retain the exact application version, Compose configuration, and secret material separately. Never publish backups as CI artifacts.
 
-Restore only to a newly initialized, isolated database using the same application schema version. Stop the application first. The script refuses a running application or any nonempty target database; it never removes an existing volume or database:
+Restore only to a newly initialized, isolated database. Stop every application instance first. The script accepts a complete, unique, successful migration history from V1 through at most V13; failed, missing, duplicate, gapped and future histories fail closed. It refuses a running application or any nonempty target database and never removes an existing volume or database:
 
 ```sh
 docker compose stop application
 ./scripts/restore.sh /private/backups/caldav-2026-10-27.dump
 ```
 
-After loading an archive at schema versions 1 through 9, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. DAV bindings, folders, dead properties, sharing groups, group memberships/grants and the retired-principal identity registry remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
+After loading an archive at schema versions 1 through 13, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. DAV bindings, folders, dead properties, sharing groups, group memberships/grants and the retired-principal identity registry remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
 
-Keep **all** application instances stopped during recovery: no running instance may authenticate against state while it is being restored and invalidated. After independently verifying a user's identity, use the controlled local recovery operation with an owner-only file containing a fresh password:
+Keep **all** application instances stopped while loading and invalidating restored state. For a supported older archive, including the reviewed V9 schema, the current image can then start with every account disabled to apply forward migrations; stop it again before controlled account recovery. This is an offline upgrade arrangement, not a rolling upgrade. Do not start another older application instance against the upgraded database. The required operations harness exercises both same-version restoration and V9 restoration followed by migration to V13.
+
+After independently verifying a user's identity, use the controlled local recovery operation with an owner-only file containing a fresh password:
 
 ```sh
 docker compose run --rm --no-deps --user "$(id -u):$(id -g)" \

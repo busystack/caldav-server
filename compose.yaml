@@ -40,7 +40,7 @@ services:
       BUSYSTACK_PUBLIC_BASE_URL: ${BUSYSTACK_PUBLIC_BASE_URL:?Set the externally visible HTTPS base URL}
       BUSYSTACK_ISSUER: ${BUSYSTACK_ISSUER:?Set the externally visible HTTPS OAuth issuer}
       BUSYSTACK_ALLOW_INSECURE_LOCAL: ${BUSYSTACK_ALLOW_INSECURE_LOCAL:-false}
-      BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE: ${BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE:-false}
+      BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE: ${BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE:-true}
     secrets:
       - source: database_password
         target: spring.datasource.password
