@@ -3,9 +3,9 @@ import {createServer} from 'node:http';
 import {randomBytes, createHash} from 'node:crypto';
 import {call, json} from './transport.mjs';
 
-export async function qualifyOAuth(page, base, privateValues, administratorPage = page) {
-  const clientId = 'browser-native-qualification';
-  const clientName = 'Browser Native Calendar';
+export async function qualifyOAuth(page, base, privateValues, administratorPage = page, options = {}) {
+  const clientId = options.clientId || 'browser-native-qualification';
+  const clientName = options.clientName || 'Browser Native Calendar';
   const state = randomBytes(32).toString('base64url');
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
@@ -29,12 +29,14 @@ export async function qualifyOAuth(page, base, privateValues, administratorPage 
   let deadline;
   try {
     const redirect = `http://127.0.0.1:${callback.address().port}/callback`;
+    if (!options.existingClient) {
     await administratorPage.goto(base + '/admin/oauth-clients');
     await administratorPage.getByLabel('Client ID', {exact: true}).fill(clientId);
     await administratorPage.getByLabel('Name', {exact: true}).fill(clientName);
     await administratorPage.getByLabel('Redirect URIs, one per line', {exact: true}).fill(redirect);
     await Promise.all([administratorPage.waitForURL(base + '/admin/oauth-clients'), administratorPage.getByRole('button', {name: 'Register application', exact: true}).click()]);
     await administratorPage.getByRole('cell', {name: clientId, exact: true}).waitFor();
+    }
     const parameters = new URLSearchParams({response_type: 'code', client_id: clientId, redirect_uri: redirect,
       scope: 'dav', state, code_challenge: challenge, code_challenge_method: 'S256'});
     const authorizationPage = await page.goto(base + '/oauth2/authorize?' + parameters);
@@ -44,6 +46,14 @@ export async function qualifyOAuth(page, base, privateValues, administratorPage 
       const headings = await page.locator('h1').allInnerTexts();
       throw new Error(`Consent page unavailable: status=${authorizationPage.status()}, path=${new URL(page.url()).pathname}, headings=${JSON.stringify(headings)}`);
     }
+    const consentState = await page.locator('form').filter({has: page.getByRole('button', {name: 'Authorize application', exact: true})}).locator('input[name=state]').inputValue();
+    privateValues.push(consentState);
+    const missingCsrf = await page.evaluate(async values => (await fetch(values.target, {
+      method: 'POST', credentials: 'same-origin', redirect: 'manual', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id: values.clientId, state: values.state, scope: 'dav'})
+    })).status, {target: base + '/oauth2/authorize', clientId, state: consentState});
+    assert.equal(missingCsrf, 403, 'A consent POST with the session and state still requires its CSRF token');
+    console.log('BROWSER_CONSENT_WITHOUT_CSRF_REJECTED');
     await page.getByRole('checkbox', {name: 'Calendar and task access', exact: true}).check();
     const timeout = new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error('Authorization callback timed out')), 30000); });
     await page.getByRole('button', {name: 'Authorize application', exact: true}).click();
@@ -73,6 +83,12 @@ export async function qualifyOAuth(page, base, privateValues, administratorPage 
       assert.notEqual(current[key], initial[key]);
     }
     assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Bearer ' + current.access_token}})).status, 404);
+    if (options.retainGrant) {
+      await page.goto(base + '/');
+      assert.ok(Number.isInteger(current.expires_in) && current.expires_in > 0);
+      return {clientId, accessToken: current.access_token, refreshToken: current.refresh_token,
+        accessExpiresAt: Date.now() + current.expires_in * 1000};
+    }
     await page.goto(base + '/oauth-grants');
     const grant = page.locator('tbody tr').filter({hasText: clientId});
     await Promise.all([page.waitForURL(base + '/oauth-grants'), grant.getByRole('button', {name: 'Revoke access', exact: true}).click()]);

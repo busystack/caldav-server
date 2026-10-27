@@ -30,8 +30,8 @@ DO $recovery$
 DECLARE
   affected integer;
 BEGIN
-  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE success AND version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8')) THEN
-    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 8 only; leave application stopped and update recovery procedure';
+  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE success AND version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9')) THEN
+    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 9 only; leave application stopped and update recovery procedure';
   END IF;
   UPDATE system_state SET recovery_epoch = gen_random_uuid();
   GET DIAGNOSTICS affected = ROW_COUNT;

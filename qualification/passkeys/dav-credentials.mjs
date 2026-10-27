@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {call} from './transport.mjs';
 
-export async function qualifyDavCredentials(page, base, privateValues, username = process.env.BUSYSTACK_BROWSER_USERNAME) {
-  const label = 'Browser-qualified DAV device';
+export async function issueDavCredential(page, base, privateValues, label, username = process.env.BUSYSTACK_BROWSER_USERNAME) {
   await page.goto(base + '/');
   const form = page.locator('form').filter({has: page.locator('input[name=label]')});
   await form.locator('input[name=label]').fill(label);
@@ -15,6 +14,14 @@ export async function qualifyDavCredentials(page, base, privateValues, username 
   assert.equal(credential.length, 80);
   const encoded = Buffer.from(username + ':' + credential).toString('base64');
   privateValues.push(credential, encoded);
+  await page.goto(base + '/');
+  assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in management');
+  return {credential, encoded};
+}
+
+export async function qualifyDavCredentials(page, base, privateValues, username = process.env.BUSYSTACK_BROWSER_USERNAME) {
+  const label = 'Browser-qualified DAV device';
+  const {credential, encoded} = await issueDavCredential(page, base, privateValues, label, username);
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Basic ' + encoded}})).status, 404);
   await page.goto(base + '/');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in the management page');

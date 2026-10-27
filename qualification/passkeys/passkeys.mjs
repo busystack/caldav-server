@@ -4,6 +4,9 @@ import { createInterface } from 'node:readline';
 import { readFileSync } from 'node:fs';
 import { qualifyOAuth } from './oauth.mjs';
 import { qualifyDavCredentials } from './dav-credentials.mjs';
+import {qualifyAccountRecovery} from './account-recovery.mjs';
+import {qualifyGroups} from './groups.mjs';
+import {qualifyRestoration} from './recovery.mjs';
 import { newFederatedUser, organizationPrimary, primaryCannotMutate, signOut } from './oidc.mjs';
 
 const base = process.env.BUSYSTACK_BROWSER_URL;
@@ -34,6 +37,7 @@ try {
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
   const passwordSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
   assert.ok(passwordSession);
+  privateValues.push(passwordSession);
   const passwordOnly = await page.evaluate(async path => {
     const csrf = document.querySelector('input[name=_csrf]').value;
     const response = await fetch(path, {method: 'POST', redirect: 'manual',
@@ -47,6 +51,7 @@ try {
   await page.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
   const mfaSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
+  if (mfaSession) privateValues.push(mfaSession);
   assert.ok(mfaSession && mfaSession !== passwordSession, 'Passkey authentication must rotate session ID');
   const collectionForm = page.locator(`form[action="${prefix}/collections"]`);
   await collectionForm.locator('input[name=name]').fill('Browser-qualified tasks');
@@ -56,7 +61,10 @@ try {
   await createdCollection.waitFor();
   assert.ok((await createdCollection.innerText()).includes('VTODO'), 'The created collection must actually advertise VTODO');
   console.log('PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED');
+  if (process.env.BUSYSTACK_BROWSER_GROUPS === 'true') await qualifyGroups(page, base, privateValues);
   const administratorPage = page;
+  let activeCdp = cdp;
+  let activeAuthenticatorId = localAuthenticator.authenticatorId;
   let currentUsername = process.env.BUSYSTACK_BROWSER_USERNAME;
   let collectionName = 'Browser-qualified tasks';
   if (process.env.BUSYSTACK_BROWSER_OIDC === 'true') {
@@ -64,12 +72,21 @@ try {
     const federated = await newFederatedUser(browser, base, privateValues);
     context = federated.context;
     page = federated.page;
+    activeCdp = federated.cdp;
+    activeAuthenticatorId = federated.authenticatorId;
     currentUsername = process.env.BUSYSTACK_FEDERATED_USERNAME;
     collectionName = 'Federated browser-qualified tasks';
   }
+  await qualifyAccountRecovery({page, base, privateValues, administratorPage, username: currentUsername,
+    cdp: activeCdp, authenticatorId: activeAuthenticatorId});
   await qualifyDavCredentials(page, base, privateValues, currentUsername);
   await qualifyOAuth(page, base, privateValues, administratorPage);
+  if (process.env.BUSYSTACK_BROWSER_RESTORE === 'true') {
+    await qualifyRestoration({page, base, privateValues, administratorPage, username: currentUsername,
+      collectionName, cdp: activeCdp, authenticatorId: activeAuthenticatorId, waitFor});
+  }
   const persistentCookie = (await context.cookies()).find(value => value.name === 'JSESSIONID')?.value;
+  if (persistentCookie) privateValues.push(persistentCookie);
   console.log('READY_RESTART');
   await waitFor('RESTARTED');
   await page.goto(base + '/');
@@ -84,7 +101,9 @@ try {
   } else {
   await page.goto(base + '/login');
   await page.locator('input[name=username]').fill(process.env.BUSYSTACK_BROWSER_USERNAME);
-  await page.locator('input[name=password]').fill(password);
+  const currentPassword = process.env.BUSYSTACK_BROWSER_RESTORE === 'true' ? readFileSync(process.env.BUSYSTACK_BROWSER_RECOVERY_PASSWORD_FILE, 'utf8').trimEnd() : password;
+  privateValues.push(currentPassword);
+  await page.locator('input[name=password]').fill(currentPassword);
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
   }
   await page.goto(base + '/login');

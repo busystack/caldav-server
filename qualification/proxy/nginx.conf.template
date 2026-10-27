@@ -3,6 +3,7 @@ error_log /dev/null crit;
 pid /tmp/nginx.pid;
 events { worker_connections 128; }
 http {
+    gzip off;
     log_format safe '$request_id $request_method $status $request_time';
     access_log /dev/stdout safe;
     client_body_temp_path /tmp/client_temp;

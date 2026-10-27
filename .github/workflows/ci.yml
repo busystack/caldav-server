@@ -19,15 +19,13 @@ concurrency:
 jobs:
   application:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
-        with:
-          distribution: temurin
-          java-version: '25.0.4.1+1'
+      - name: Install the exact pinned Temurin JDK
+        run: bash scripts/install-ci-jdk.sh
       - name: Install pinned independent CalDAV client test dependencies
         run: |
           python3 -m venv .client-venv
@@ -43,19 +41,29 @@ jobs:
           ./mvnw --batch-mode --no-transfer-progress -f investigation/protocol/pom.xml -s investigation/protocol/settings.xml test
           ./mvnw --batch-mode --no-transfer-progress -f investigation/oauth/pom.xml test
       - name: Build deployable container
-        run: docker build --tag busystack-caldav:ci .
+        run: |
+          docker build --tag busystack-caldav:ci .
+          docker image inspect --format '{{.Id}}' busystack-caldav:ci | tee target/application-image-id.txt
+          host_jar_sha=$(sha256sum target/caldav-server-0.0.1-SNAPSHOT.jar)
+          image_jar_sha=$(docker run --rm --entrypoint sha256sum busystack-caldav:ci /opt/busystack/application.jar)
+          test "${host_jar_sha%% *}" = "${image_jar_sha%% *}"
+          printf '%s\n' "${host_jar_sha%% *}" > target/application-jar-sha256.txt
       - name: Verify packaged startup, restart, and database recovery
         run: python3 scripts/verify-operations.py --image busystack-caldav:ci | tee target/operations-qualification.txt
       - name: Build isolated browser qualification image
         run: docker build --tag busystack-passkey-browser:qualification qualification/passkeys
       - name: Verify browser WebAuthn and MFA over trusted test TLS
-        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci | tee target/browser-qualification.txt
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --groups | tee target/browser-qualification.txt
       - name: Verify HTTPS reverse proxy with preserved servlet path
-        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy | tee target/proxy-qualification.txt
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups | tee target/proxy-qualification.txt
       - name: Build disposable real Keycloak browser fixture
         run: docker build --tag busystack-keycloak-browser:26.8.1 qualification/keycloak
       - name: Verify cross-site organization login and local passkey MFA
-        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc | tee target/oidc-browser-qualification.txt
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc --groups | tee target/oidc-browser-qualification.txt
+      - name: Verify HTTPS local account recovery after restoring an older database
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups --restore --workload | tee target/https-restore-qualification.txt
+      - name: Verify HTTPS federated recovery against the same real upstream provider
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc --groups --restore | tee target/oidc-restore-qualification.txt
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -68,6 +76,8 @@ jobs:
             target/classes/META-INF/sbom/application.cdx.json
             target/*.cdx.json
             target/*-qualification.txt
+            target/application-image-id.txt
+            target/application-jar-sha256.txt
             target/qualification/
             investigation/*/target/surefire-reports/
           if-no-files-found: error
@@ -79,10 +89,8 @@ jobs:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
-        with:
-          distribution: temurin
-          java-version: '25.0.4.1+1'
+      - name: Install the exact pinned Temurin JDK
+        run: bash scripts/install-ci-jdk.sh
       - name: Generate runtime inventory and verify advisory gate failure behavior
         run: |
           ./mvnw --batch-mode --no-transfer-progress -DskipTests package

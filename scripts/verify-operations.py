@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import subprocess
@@ -312,6 +313,29 @@ COMMIT;
             checks(restored)
             print("PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).")
             print("Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.")
+        except Exception:
+            for created in reversed(projects):
+                try:
+                    application = compose(created, "ps", "--all", "--quiet", "application")
+                    if application:
+                        state = json.loads(execute(["docker", "inspect", application], created))[0]
+                        print("OPERATIONS_FAILURE_STATE=" + json.dumps({
+                            "status": state["State"]["Status"], "exitCode": state["State"]["ExitCode"],
+                            "oomKilled": state["State"]["OOMKilled"], "restarts": state["RestartCount"],
+                            "health": state["State"].get("Health", {}).get("Status")}), flush=True)
+                    logs = compose(created, "logs", "--no-log-prefix", "--tail", "120", "application")
+                    for file in private.iterdir():
+                        if file.is_file() and "password" in file.name:
+                            value = file.read_text().strip()
+                            if value: logs = logs.replace(value, "[redacted]")
+                    logs = re.sub(r"[A-Za-z0-9_+/=-]{40,}", "[redacted-value]", logs)
+                    for line in logs.splitlines():
+                        if any(marker in line for marker in (" ERROR ", "Caused by:", "APPLICATION FAILED",
+                            "Description:", "Reason:", "Action:", "Started BusyStackApplication")):
+                            print("OPERATIONS_APPLICATION_DIAGNOSTIC " + line, flush=True)
+                except (RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired):
+                    print("OPERATIONS_FAILURE_DIAGNOSTICS_UNAVAILABLE", flush=True)
+            raise
         finally:
             for created in reversed(projects):
                 compose(created, "down", "--volumes", "--remove-orphans", "--timeout", "10")

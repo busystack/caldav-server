@@ -20,6 +20,7 @@ import urllib.request
 import proxy
 import tls
 import oidc
+import recovery
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,8 +29,8 @@ operations = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(operations)
 
 
-def ready(base, ca, public_proxy=False, check_path=None):
-    deadline = time.monotonic() + 240
+def ready(base, ca, public_proxy=False, check_path=None, timeout=240):
+    deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
             path = check_path or ("/login" if public_proxy else "/actuator/health/readiness")
@@ -46,7 +47,7 @@ def ready(base, ca, public_proxy=False, check_path=None):
             pass
         # Poll a concrete readiness condition with an explicit deadline.
         threading.Event().wait(0.25)
-    raise RuntimeError("Packaged TLS application did not become ready within 240 seconds")
+    raise RuntimeError("Packaged TLS endpoint did not become ready within " + str(timeout) + " seconds")
 
 
 def certificates(directory, environment):
@@ -69,7 +70,18 @@ def main():
     parser.add_argument("--context-path", choices=("", "/team"), default="")
     parser.add_argument("--proxy", action="store_true", help="Use pinned Nginx HTTPS termination and the /team prefix")
     parser.add_argument("--oidc", action="store_true", help="Also qualify a real Keycloak login across distinct reserved test sites")
+    parser.add_argument("--restore", action="store_true", help="Qualify actual HTTPS authentication, content and sync after restoring an older database")
+    parser.add_argument("--groups", action="store_true", help="Require the V9 group-management and owner-sharing browser workflow")
+    parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
+    parser.add_argument("--client-python", default=os.environ.get("BUSYSTACK_CLIENT_PYTHON", str(ROOT / ".client-venv/bin/python")))
+    parser.add_argument("--workload-output", default=str(ROOT / "target/qualification/workload.json"))
     args = parser.parse_args()
+    if args.workload and (not args.restore or args.oidc):
+        parser.error("--workload requires the local --restore profile")
+    if args.workload and not Path(args.client_python).is_file():
+        parser.error("--workload requires the pinned independent-client Python environment")
+    if args.restore:
+        args.proxy = True
     if args.oidc:
         args.proxy = True
     if args.proxy:
@@ -86,13 +98,16 @@ def main():
     print("BROWSER_APPLICATION_IMAGE=" + args.application_image, flush=True)
     print("BROWSER_FIXTURE_IMAGE=" + args.browser_image, flush=True)
     print("BROWSER_PROFILE=" + ("proxy-cross-site-oidc" if args.oidc else "proxy-team" if args.proxy else "embedded-tls" + args.context_path), flush=True)
+    print("BROWSER_GROUP_WORKFLOW=" + ("required" if args.groups else "unexecuted"), flush=True)
+    print("HTTPS_RESTORE_WORKFLOW=" + ("required" if args.restore else "unexecuted"), flush=True)
+    print("DAV_SYNC_DEPTH_PROFILE=" + ("explicit compatibility for measured python-caldav workload" if args.workload else "strict"), flush=True)
     with tempfile.TemporaryDirectory(prefix="busystack-browser-") as temporary:
         directory = Path(temporary)
         directory.chmod(0o700)
-        for name in ("database-password", "admin-password", "bootstrap-password"):
+        for name in ("database-password", "admin-password", "bootstrap-password", "restore-password", "reader-restore-password"):
             path = directory / name
             path.write_text(secrets.token_urlsafe(32) + "\n")
-            path.chmod(0o600 if name == "bootstrap-password" else 0o444)
+            path.chmod(0o600 if name in ("bootstrap-password", "restore-password", "reader-restore-password") else 0o444)
         certificates(directory, environment)
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))
@@ -125,26 +140,35 @@ def main():
             BUSYSTACK_ISSUER=base,
             BUSYSTACK_HTTP_PORT="8080",
             BUSYSTACK_ALLOW_INSECURE_LOCAL="false",
+            BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE="true" if args.workload else "false",
         )
         issuer = None
         if args.oidc:
             operations.execute(["docker", "image", "inspect", oidc.IMAGE], environment)
             upstream_override, issuer = oidc.configure(ROOT, directory, base, operations.execute, environment)
             environment["COMPOSE_FILE"] += ":" + str(upstream_override)
+        environments = [environment.copy()]
+        checkpoint = recovery.Checkpoint(ROOT, directory, operations, base, oidc if args.oidc else None, issuer, environments) if args.restore else None
+        if checkpoint is not None:
+            checkpoint.exchange.touch(mode=0o600)
+            if args.workload:
+                checkpoint.workload = {"python": args.client_python, "output": args.workload_output}
         browser = None
         try:
             operations.compose(environment, "up", "-d", "--wait", "--wait-timeout", "120", "database")
             if args.oidc:
                 operations.compose(environment, "up", "-d", "--no-build", "upstream")
+                # The application may resolve trusted issuer metadata at startup; establish the
+                # real provider readiness condition first, rather than depending on restart timing.
+                ready(issuer, directory / "ca.pem", False, "/.well-known/openid-configuration", timeout=480)
+                with tls.opener(directory / "ca.pem").open(issuer + "/.well-known/openid-configuration", timeout=10) as response:
+                    assert json.load(response)["issuer"] == issuer
+                print("UPSTREAM_HTTPS_METADATA_READY", flush=True)
             operations.compose(environment, "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}", "--volume", f"{directory / 'bootstrap-password'}:/bootstrap-password:ro", "application", "--spring.main.web-application-type=none", "--busystack.bootstrap=true", "--busystack.bootstrap-username=browseradmin", "--busystack.bootstrap-password-file=/bootstrap-password")
             operations.compose(environment, "up", "-d", "--no-build", "application")
             if args.proxy:
                 operations.compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "reverse-proxy")
             ready(base, directory / "ca.pem", args.proxy)
-            if args.oidc:
-                ready(issuer, directory / "ca.pem", False, "/.well-known/openid-configuration")
-                with tls.opener(directory / "ca.pem").open(issuer + "/.well-known/openid-configuration", timeout=10) as response:
-                    assert json.load(response)["issuer"] == issuer
             if args.proxy:
                 proxy.verify(base, directory / "ca.pem")
             try:
@@ -159,6 +183,14 @@ def main():
                     "--volume", f"{directory / 'upstream-password'}:/fixture/upstream-password:ro", "--env", "BUSYSTACK_BROWSER_OIDC=true",
                     "--env", "BUSYSTACK_UPSTREAM_USERNAME=" + oidc.USERNAME, "--env", "BUSYSTACK_FEDERATED_USERNAME=" + oidc.INTERNAL_USERNAME,
                     "--env", "BUSYSTACK_UPSTREAM_PASSWORD_FILE=/fixture/upstream-password"]
+            if args.groups:
+                browser_command += ["--env", "BUSYSTACK_BROWSER_GROUPS=true"]
+            if checkpoint is not None:
+                browser_command += ["--env", "BUSYSTACK_BROWSER_RESTORE=true", "--env", "BUSYSTACK_BROWSER_RECOVERY_FILE=/fixture/recovery.json",
+                    "--env", "BUSYSTACK_BROWSER_RECOVERY_PASSWORD_FILE=/fixture/restore-password",
+                    "--env", "BUSYSTACK_BROWSER_READER_PASSWORD_FILE=/fixture/reader-restore-password",
+                    "--volume", f"{directory / 'reader-restore-password'}:/fixture/reader-restore-password:ro",
+                    "--volume", f"{checkpoint.exchange}:/fixture/recovery.json:rw", "--volume", f"{directory / 'restore-password'}:/fixture/restore-password:ro"]
             browser_command.append(args.browser_image)
             browser = subprocess.Popen(
                 browser_command,
@@ -171,7 +203,7 @@ def main():
             selector.register(browser.stdout, selectors.EVENT_READ)
             pending = b""
             signals = set()
-            deadline = time.monotonic() + 600
+            deadline = time.monotonic() + (1200 if args.restore else 600)
             password = (directory / "bootstrap-password").read_text().strip()
             while time.monotonic() < deadline:
                 events = selector.select(timeout=1)
@@ -188,8 +220,25 @@ def main():
                     line = raw.decode(errors="replace")
                     print(line.replace(password, "[redacted]"), flush=True)
                     signals.add(line)
-                    if line == "READY_RESTART":
-                        assert int(operations.sql(environment, "SELECT count(*) FROM user_credentials;")) == (2 if args.oidc else 1)
+                    if line == "READY_RESTORE_BACKUP" and checkpoint is not None:
+                        checkpoint.backup(environment)
+                        browser.stdin.write(b"BACKED_UP\n")
+                        browser.stdin.flush()
+                    elif line == "READY_RESTORE_APPLY" and checkpoint is not None:
+                        environment = checkpoint.restore(environment)
+                        ready(base, directory / "ca.pem", True)
+                        browser.stdin.write(b"RESTORED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_RESTORE_VERIFY" and checkpoint is not None:
+                        checkpoint.verify()
+                        browser.stdin.write(b"RESTORE_VERIFIED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_RESTORE_REVOKED_READER_VERIFY" and checkpoint is not None:
+                        checkpoint.verify_revoked_reader()
+                        browser.stdin.write(b"RESTORE_REVOKED_READER_VERIFIED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_RESTART":
+                        assert int(operations.sql(environment, "SELECT count(*) FROM user_credentials;")) == (2 if args.restore else 2 if args.oidc else 1)
                         operations.compose(environment, "restart", "application")
                         ready(base, directory / "ca.pem", args.proxy)
                         browser.stdin.write(b"RESTARTED\n")
@@ -205,17 +254,28 @@ def main():
             except subprocess.TimeoutExpired as error:
                 raise RuntimeError("Browser qualification exceeded its deadline") from error
             assert result == 0, "Browser qualification failed"
-            for expected in ("PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED", "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED", "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED", "PERSISTED_PASSKEY_AFTER_RESTART_PASSED", "DISABLED_SESSION_AND_PASSKEY_PASSED"):
+            for expected in ("PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED", "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED", "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED", "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED", "BROWSER_CONSENT_WITHOUT_CSRF_REJECTED", "PERSISTED_PASSKEY_AFTER_RESTART_PASSED", "DISABLED_SESSION_AND_PASSKEY_PASSED"):
                 assert expected in signals, expected
             if args.oidc:
                 assert "CROSS_SITE_ORGANIZATION_PLUS_PASSKEY_AND_NONADMIN_PROVISIONING_PASSED" in signals
+            if args.groups:
+                assert "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED" in signals
+            if args.restore:
+                assert "HTTPS_RESTORE_OLD_ACCESS_REJECTED_FRESH_MFA_DAV_OAUTH_CONTENT_AND_SYNC_PASSED" in signals
+                assert "HTTPS_RESTORE_SHARED_RECIPIENT_FRESH_MFA_READ_WRITE_DENIAL_AND_REVOCATION_PASSED" in signals
             print("PASS: trusted test-CA HTTPS, Chromium virtual CTAP2 enrollment/assertion, password+passkey MFA enforcement, session rotation, persistence across restart, disabled-session/passkey denial.")
         except Exception:
             # Emit only sanitized error diagnostics from this disposable application, before cleanup.
-            raw = operations.compose(environment, "logs", "--no-log-prefix", "--tail", "120", "application")
-            for name in ("bootstrap-password", "server-password", "database-password", "admin-password", "upstream-password", "upstream-client-secret"):
+            try:
+                raw = operations.compose(environment, "logs", "--no-log-prefix", "--tail", "120", "application")
+            except (RuntimeError, subprocess.TimeoutExpired):
+                raw = ""
+                print("APPLICATION_DIAGNOSTICS_UNAVAILABLE", flush=True)
+            for name in ("bootstrap-password", "restore-password", "reader-restore-password", "server-password", "database-password", "admin-password", "upstream-password", "upstream-client-secret"):
                 path = directory / name
-                if path.exists(): raw = raw.replace(path.read_text().strip(), "[redacted]")
+                if path.exists():
+                    value = path.read_text().strip()
+                    if value: raw = raw.replace(value, "[redacted]")
             raw = re.sub(r"[A-Za-z0-9_+/=-]{40,}", "[redacted-value]", raw)
             raw = re.sub(r"([?&](?:code|state|code_challenge)=)[^&\s)\"]+", r"\1[redacted]", raw)
             for line in raw.splitlines():
@@ -223,10 +283,22 @@ def main():
                     print("APPLICATION_DIAGNOSTIC " + line, flush=True)
             raise
         finally:
-            subprocess.run(["docker", "rm", "--force", browser_name], capture_output=True)
-            if browser is not None and browser.poll() is None:
-                browser.wait(timeout=15)
-            operations.compose(environment, "down", "--volumes", "--remove-orphans", "--timeout", "10")
+            try:
+                subprocess.run(["docker", "rm", "--force", browser_name], capture_output=True)
+                if browser is not None and browser.poll() is None:
+                    browser.wait(timeout=15)
+            finally:
+                try:
+                    if checkpoint is not None: checkpoint.disconnect(environment)
+                finally:
+                    cleanup_errors = []
+                    for created in reversed(environments):
+                        try:
+                            operations.compose(created, "down", "--volumes", "--remove-orphans", "--timeout", "10")
+                        except (RuntimeError, subprocess.TimeoutExpired) as failure:
+                            cleanup_errors.append(failure)
+                    if cleanup_errors:
+                        raise RuntimeError("A disposable qualification project could not be cleaned up") from cleanup_errors[0]
 
 
 if __name__ == "__main__":

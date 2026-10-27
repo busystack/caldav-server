@@ -6,10 +6,10 @@ certificate validation remains enabled. This qualifies the desktop client's nati
 provider, not a person manually completing its graphical account wizard.
 """
 
-import base64
 import importlib.metadata
 import json
 import os
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import socket
 import subprocess
@@ -18,6 +18,7 @@ import threading
 import time
 
 import caldav
+import icalendar
 from marionette_driver.marionette import Marionette
 
 
@@ -77,15 +78,53 @@ const done=arguments[arguments.length-1];
   const reloaded=await events.getItem('thunderbird-event');
   if(reloaded.title!=='Thunderbird changed'||reloaded.getProperty('X-NATIVE-CLIENT')!=='preserved'||!reloaded.recurrenceInfo||reloaded.getAlarms().length!==1)throw new Error('Event round trip lost data');
   const task=Cc['@mozilla.org/calendar/todo;1'].createInstance(Ci.calITodo);
-  task.icalString='BEGIN:VTODO\r\nUID:thunderbird-task\r\nDTSTAMP:20261027T000000Z\r\nSUMMARY:Thunderbird undated task\r\nPRIORITY:2\r\nPERCENT-COMPLETE:25\r\nEND:VTODO\r\n';
+  task.icalString='BEGIN:VTODO\r\nUID:thunderbird-task\r\nDTSTAMP:20261027T000000Z\r\nSUMMARY:Thunderbird undated task\r\nPRIORITY:2\r\nPERCENT-COMPLETE:25\r\nX-NATIVE-TASK:preserved\r\nEND:VTODO\r\n';
   let savedTask=await tasks.addItem(task);
   if(savedTask.entryDate||savedTask.dueDate)throw new Error('Task dates were invented');
   const before=savedTask;savedTask=savedTask.clone();savedTask.isCompleted=true;
   savedTask=await tasks.modifyItem(savedTask,before);
   await globalThis.busystackRefresh(tasks);
   const reloadedTask=await tasks.getItem('thunderbird-task');
-  if(!reloadedTask.isCompleted||reloadedTask.percentComplete!==100)throw new Error('Task completion changed');
+  if(!reloadedTask.isCompleted||reloadedTask.percentComplete!==100||reloadedTask.getProperty('X-NATIVE-TASK')!=='preserved')throw new Error('Task completion changed');
+  const allDay=Cc['@mozilla.org/calendar/event;1'].createInstance(Ci.calIEvent);
+  allDay.icalString='BEGIN:VEVENT\r\nUID:thunderbird-all-day\r\nDTSTAMP:20261027T000000Z\r\nDTSTART;VALUE=DATE:20261028\r\nDTEND;VALUE=DATE:20261030\r\nSUMMARY:Thunderbird all-day event\r\nX-NATIVE-SHAPE:all-day\r\nEND:VEVENT\r\n';
+  await events.addItem(allDay);
+  const floating=Cc['@mozilla.org/calendar/event;1'].createInstance(Ci.calIEvent);
+  floating.icalString='BEGIN:VEVENT\r\nUID:thunderbird-floating\r\nDTSTAMP:20261027T000000Z\r\nDTSTART:20261027T133000\r\nDTEND:20261027T141500\r\nSUMMARY:Thunderbird floating event\r\nX-NATIVE-SHAPE:floating\r\nEND:VEVENT\r\n';
+  await events.addItem(floating);
+  await globalThis.busystackRefresh(events);
+  const reloadedDay=await events.getItem('thunderbird-all-day');
+  const reloadedFloating=await events.getItem('thunderbird-floating');
+  if(!reloadedDay.startDate.isDate||!reloadedDay.endDate.isDate||reloadedDay.startDate.icalString!=='20261028'||reloadedDay.endDate.icalString!=='20261030')throw new Error('Native all-day value or exclusive end changed');
+  if(!reloadedFloating.startDate.timezone.isFloating||!reloadedFloating.endDate.timezone.isFloating||reloadedFloating.startDate.icalString!=='20261027T133000'||reloadedFloating.endDate.icalString!=='20261027T141500')throw new Error('Native floating date became zoned');
   return {event:reloaded.icalString,task:reloadedTask.icalString};
+})().then(done,error=>done({error:String(error.message)}));
+"""
+
+CROSS_CLIENT = r"""
+const done=arguments[arguments.length-1];
+(async()=>{
+  const [events,tasks]=globalThis.busystackCalendars;
+  await globalThis.busystackRefresh(events);await globalThis.busystackRefresh(tasks);
+  const event=await events.getItem('thunderbird-event');
+  if(event.title!=='Python changed native recurring event 雪'||event.getProperty('X-PYTHON-ROUNDTRIP')!=='event'||event.getProperty('X-NATIVE-CLIENT')!=='preserved'||!event.recurrenceInfo||event.getAlarms().length!==1)throw new Error('Native refresh lost Python event edit, recurrence, alarm or extension');
+  const rangeStart=Cc['@mozilla.org/calendar/datetime;1'].createInstance(Ci.calIDateTime);
+  rangeStart.icalString='20261027T000000Z';
+  const rangeEnd=rangeStart.clone();rangeEnd.day+=4;
+  const occurrences=event.recurrenceInfo.getOccurrences(rangeStart,rangeEnd,0);
+  if(occurrences.length!==3||occurrences.some(item=>item.getAlarms().length!==1))throw new Error('Native recurrence instances or alarms changed after Python edit');
+  const task=await tasks.getItem('thunderbird-task');
+  if(task.title!=='Python changed native undated task 雪'||task.getProperty('X-PYTHON-ROUNDTRIP')!=='task'||task.getProperty('X-NATIVE-TASK')!=='preserved'||!task.isCompleted||task.percentComplete!==100||task.priority!==5||task.entryDate||task.dueDate)throw new Error('Native refresh lost Python task edit or invented dates');
+  const allDay=await events.getItem('thunderbird-all-day');
+  if(allDay.title!=='Python changed native all-day event'||allDay.getProperty('X-PYTHON-ROUNDTRIP')!=='all-day'||allDay.getProperty('X-NATIVE-SHAPE')!=='all-day'||!allDay.startDate.isDate||!allDay.endDate.isDate||allDay.startDate.icalString!=='20261028'||allDay.endDate.icalString!=='20261030')throw new Error('Cross-client all-day end or value type changed');
+  const floating=await events.getItem('thunderbird-floating');
+  if(floating.title!=='Python changed native floating event'||floating.getProperty('X-PYTHON-ROUNDTRIP')!=='floating'||floating.getProperty('X-NATIVE-SHAPE')!=='floating'||!floating.startDate.timezone.isFloating||!floating.endDate.timezone.isFloating||floating.startDate.icalString!=='20261027T133000'||floating.endDate.icalString!=='20261027T141500')throw new Error('Cross-client floating value became zoned');
+  for(const [calendar,item,kind] of [[events,event,'event'],[tasks,task,'task'],[events,allDay,'all-day'],[events,floating,'floating']]) {
+    const changed=item.clone();changed.title='Thunderbird final '+kind;changed.setProperty('X-NATIVE-RETURN',kind);
+    await calendar.modifyItem(changed,item);
+  }
+  await globalThis.busystackRefresh(events);await globalThis.busystackRefresh(tasks);
+  return {crossClient:true,nativeOccurrenceCount:occurrences.length};
 })().then(done,error=>done({error:String(error.message)}));
 """
 
@@ -94,15 +133,93 @@ const done=arguments[arguments.length-1];
 (async()=>{
   const [events,tasks]=globalThis.busystackCalendars;
   await events.deleteItem(await events.getItem('thunderbird-event'));
+  await events.deleteItem(await events.getItem('thunderbird-all-day'));
+  await events.deleteItem(await events.getItem('thunderbird-floating'));
   await tasks.deleteItem(await tasks.getItem('thunderbird-task'));
   await globalThis.busystackRefresh(events);await globalThis.busystackRefresh(tasks);
-  if(await events.getItem('thunderbird-event')||await tasks.getItem('thunderbird-task'))throw new Error('Deleted item remained');
+  if(await events.getItem('thunderbird-event')||await events.getItem('thunderbird-all-day')||await events.getItem('thunderbird-floating')||await tasks.getItem('thunderbird-task'))throw new Error('Deleted item remained');
   return {deleted:true};
 })().then(done,error=>done({error:String(error.message)}));
 """
 
 
+def independent_items(events, tasks):
+    result = {}
+    for item in [*events.events(), *tasks.todos(include_completed=True)]:
+        item.load()
+        model = icalendar.Calendar.from_ical(item.data)
+        primary = [part for part in model.subcomponents if part.name in {"VEVENT", "VTODO"}]
+        assert len(primary) == 1, "Cross-client fixture must remain one authoritative resource"
+        uid = str(primary[0]["UID"])
+        assert uid not in result, "Cross-client operation created a duplicate UID"
+        result[uid] = (item, model, primary[0])
+    assert set(result) == {"thunderbird-event", "thunderbird-task", "thunderbird-all-day", "thunderbird-floating"}
+    return result
+
+
+def assert_independent_data(items, final=False, completed=None):
+    event = items["thunderbird-event"][2]
+    assert event.name == "VEVENT"
+    assert event.decoded("DTSTART") == datetime(2026, 10, 27, 10, tzinfo=timezone.utc)
+    assert event.decoded("DTEND") == datetime(2026, 10, 27, 11, tzinfo=timezone.utc)
+    assert event["RRULE"]["FREQ"] == ["DAILY"] and event["RRULE"]["COUNT"] == [3]
+    assert str(event["X-NATIVE-CLIENT"]) == "preserved"
+    alarms = [part for part in event.subcomponents if part.name == "VALARM"]
+    assert len(alarms) == 1 and alarms[0].decoded("TRIGGER") == timedelta(minutes=-15)
+    assert str(alarms[0]["ACTION"]) == "DISPLAY" and str(alarms[0]["DESCRIPTION"]) == "Stored alarm"
+    task = items["thunderbird-task"][2]
+    assert task.name == "VTODO" and "DTSTART" not in task and "DUE" not in task
+    assert str(task["STATUS"]) == "COMPLETED" and int(task["PERCENT-COMPLETE"]) == 100
+    assert str(task["X-NATIVE-TASK"]) == "preserved"
+    assert task.decoded("COMPLETED").tzinfo is not None
+    if completed is not None:
+        assert task.decoded("COMPLETED") == completed, "Summary/priority edits changed task completion timestamp"
+    all_day = items["thunderbird-all-day"][2]
+    assert all_day.decoded("DTSTART") == date(2026, 10, 28) and all_day.decoded("DTEND") == date(2026, 10, 30)
+    assert str(all_day["DTSTART"].params["VALUE"]) == "DATE" and str(all_day["DTEND"].params["VALUE"]) == "DATE"
+    assert str(all_day["X-NATIVE-SHAPE"]) == "all-day"
+    floating = items["thunderbird-floating"][2]
+    assert floating.decoded("DTSTART") == datetime(2026, 10, 27, 13, 30)
+    assert floating.decoded("DTEND") == datetime(2026, 10, 27, 14, 15)
+    assert floating.decoded("DTSTART").tzinfo is None and floating.decoded("DTEND").tzinfo is None
+    assert "TZID" not in floating["DTSTART"].params and "TZID" not in floating["DTEND"].params
+    assert str(floating["X-NATIVE-SHAPE"]) == "floating"
+    if final:
+        for uid, kind in [("thunderbird-event", "event"), ("thunderbird-task", "task"), ("thunderbird-all-day", "all-day"), ("thunderbird-floating", "floating")]:
+            component = items[uid][2]
+            assert str(component["SUMMARY"]) == "Thunderbird final " + kind
+            assert str(component["X-PYTHON-ROUNDTRIP"]) == kind and str(component["X-NATIVE-RETURN"]) == kind
+        assert int(task["PRIORITY"]) == 5
+
+
+def python_edits_native_items(events, tasks):
+    items = independent_items(events, tasks)
+    assert_independent_data(items)
+    completed = items["thunderbird-task"][2].decoded("COMPLETED")
+    urls = {uid: str(item.url) for uid, (item, _, _) in items.items()}
+    for uid, kind, summary in [
+        ("thunderbird-event", "event", "Python changed native recurring event 雪"),
+        ("thunderbird-task", "task", "Python changed native undated task 雪"),
+        ("thunderbird-all-day", "all-day", "Python changed native all-day event"),
+        ("thunderbird-floating", "floating", "Python changed native floating event"),
+    ]:
+        item, model, component = items[uid]
+        component.pop("SUMMARY", None)
+        component.add("SUMMARY", summary)
+        component.add("X-PYTHON-ROUNDTRIP", kind)
+        if kind == "task":
+            component.pop("PRIORITY", None)
+            component.add("PRIORITY", 5)
+        item.data = model.to_ical()
+        item.save()
+    reloaded = independent_items(events, tasks)
+    assert_independent_data(reloaded, completed=completed)
+    assert {uid: str(item.url) for uid, (item, _, _) in reloaded.items()} == urls
+    return urls, completed
+
+
 def main():
+    assert importlib.metadata.version("caldav") == "3.6.0" and importlib.metadata.version("icalendar") == "7.3.0", "Install pinned independent-client dependencies"
     binary = os.environ["BUSYSTACK_THUNDERBIRD_BINARY"]
     password = Path(os.environ["BUSYSTACK_CLIENT_SECRET_FILE"]).read_text().strip()
     with caldav.DAVClient(url=os.environ["BUSYSTACK_CLIENT_URL"], username=os.environ["BUSYSTACK_CLIENT_USER"], password=password, auth_type="basic", ssl_verify_cert=os.environ["BUSYSTACK_CLIENT_CA"], timeout=30) as client:
@@ -147,12 +264,20 @@ def main():
                     artifacts = Path("target/qualification")
                     artifacts.mkdir(parents=True, exist_ok=True)
                     for kind in ("event", "task"):
-                        (artifacts / ("thunderbird-" + kind + ".ics")).write_text(result[kind])
-                    assert len(events.events()) == 1 and len(tasks.todos(include_completed=True)) == 1
+                        (artifacts / ("thunderbird-" + kind + ".ics")).write_bytes(result[kind].encode("utf-8"))
+                    assert len(events.events()) == 3 and len(tasks.todos(include_completed=True)) == 1
+                    urls, completed = python_edits_native_items(events, tasks)
+                    cross = driver.execute_async_script(CROSS_CLIENT, new_sandbox=False)
+                    assert cross == {"crossClient": True, "nativeOccurrenceCount": 3}, cross
+                    final = independent_items(events, tasks)
+                    assert_independent_data(final, final=True, completed=completed)
+                    assert {uid: str(item.url) for uid, (item, _, _) in final.items()} == urls
+                    for uid, (_, model, _) in final.items():
+                        (artifacts / (uid + "-cross-client.ics")).write_bytes(model.to_ical())
                     deleted = driver.execute_async_script(DELETE, new_sandbox=False)
                     assert deleted == {"deleted": True}, deleted
                     assert len(events.events()) == 0 and len(tasks.todos(include_completed=True)) == 0
-                    print(json.dumps({"client": info["app"], "version": info["version"], "driver": importlib.metadata.version("marionette_driver"), "mode": "isolated headless native desktop CalDAV provider", "allowSyncDepthOne": True, "status": "passed", "operations": ["server discovery by native provider", "recurring event CRUD", "Unicode and unknown-property round trip", "alarm preservation without execution", "undated VTODO CRUD and completion", "native refresh and deletion synchronization"]}, sort_keys=True))
+                    print(json.dumps({"client": info["app"], "version": info["version"], "driver": importlib.metadata.version("marionette_driver"), "crossClient": {"python-caldav": importlib.metadata.version("caldav"), "icalendar": importlib.metadata.version("icalendar"), "sameResources": 4, "nativeRecurrenceInstances": cross["nativeOccurrenceCount"]}, "mode": "isolated headless native desktop CalDAV provider", "allowSyncDepthOne": True, "status": "passed", "operations": ["server discovery by native provider", "recurring event CRUD", "Unicode and unknown-property round trip", "alarm preservation without execution", "undated VTODO CRUD and completion", "same-object Thunderbird to Python to Thunderbird to Python edits", "cross-client recurrence, alarm, extension and completion timestamp preservation", "all-day DATE and exclusive end preservation across both clients", "floating DATE-TIME preservation across both clients", "native refresh and deletion synchronization"]}, sort_keys=True))
                 finally:
                     try:
                         if driver is not None:

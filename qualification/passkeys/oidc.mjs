@@ -23,7 +23,7 @@ export async function organizationPrimary(page, base, privateValues, requirePass
     await Promise.all([page.waitForURL(url => url.origin === new URL(base).origin), page.locator('#kc-login').click()]);
   }
   await dashboard.waitFor();
-  await page.getByText(process.env.BUSYSTACK_FEDERATED_USERNAME, {exact: true}).waitFor();
+  await page.locator('main > p').first().getByText(process.env.BUSYSTACK_FEDERATED_USERNAME, {exact: true}).waitFor();
   const cookie = (await page.context().cookies()).find(value => value.name === 'JSESSIONID');
   assert.ok(cookie && cookie.secure && cookie.httpOnly && cookie.sameSite === 'Lax', 'Cross-site OIDC callback must retain a protected Lax session');
 }
@@ -50,7 +50,7 @@ export async function newFederatedUser(browser, base, privateValues) {
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send('WebAuthn.enable');
-  await cdp.send('WebAuthn.addVirtualAuthenticator', {options: {protocol: 'ctap2', transport: 'internal',
+  const authenticator = await cdp.send('WebAuthn.addVirtualAuthenticator', {options: {protocol: 'ctap2', transport: 'internal',
     hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true}});
   await organizationPrimary(page, base, privateValues, true);
   await primaryCannotMutate(page, base);
@@ -81,5 +81,5 @@ export async function newFederatedUser(browser, base, privateValues) {
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
   console.log('FEDERATED_LOCAL_PASSWORD_FALLBACK_DENIED');
   console.log('CROSS_SITE_ORGANIZATION_PLUS_PASSKEY_AND_NONADMIN_PROVISIONING_PASSED');
-  return {context, page};
+  return {context, page, cdp, authenticatorId: authenticator.authenticatorId};
 }
