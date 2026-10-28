@@ -122,6 +122,19 @@ class CalendarTimezoneCoverageTest {
         adjusted =
             adjusted.replace(
                 "BYMONTH=10;BYDAY=-1SU;BYWEEKNO=13", "BYMONTH=10;BYDAY=-1SU;BYWEEKNO=43");
+        String invalid = adjusted;
+        assertThatThrownBy(
+                () ->
+                    FloatingTimezone.parse(
+                        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack coverage fixture//EN\r\n"
+                            + invalid
+                            + "END:VCALENDAR\r\n"))
+            .isInstanceOfSatisfying(
+                QueryException.class,
+                error -> assertThat(error.kind()).isEqualTo(QueryException.Kind.INVALID_DATA));
+        // RFC5545§3.3.10 forbids numeric BYDAY together with YEARLY BYWEEKNO.
+        // Unnumbered Sundays retain the valid unsupported-shape coverage assertion below.
+        adjusted = adjusted.replace("BYDAY=-1SU;BYWEEKNO=", "BYDAY=SU;BYWEEKNO=");
       }
       var zone =
           FloatingTimezone.parse(
