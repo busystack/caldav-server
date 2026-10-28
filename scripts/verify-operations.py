@@ -22,6 +22,57 @@ import urllib.request
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def sanitized_diagnostic(value, private_values, maximum=1200):
+    """Bound failure-only diagnostics without emitting fixture credentials or terminal controls."""
+    value = str(value)
+    for private_value in private_values:
+        if private_value:
+            value = value.replace(private_value, "[redacted]")
+    value = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", value)
+    value = re.sub(r"(?i)\b(?:Basic|Bearer)\s+[^\s,;]+", "[redacted-authorization]", value)
+    value = re.sub(
+        r"(?i)\b(authorization|password|client_secret|access_token|refresh_token|id_token)"
+        r"\s*[:=]\s*(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)",
+        r"\1=[redacted]", value,
+    )
+    value = re.sub(r"[A-Za-z0-9_+/=-]{40,}", "[redacted-value]", value)
+    value = "".join(character for character in value if character in "\n\r\t" or ord(character) >= 32)
+    return value if len(value) <= maximum else value[:maximum] + "[truncated]"
+
+
+def failure_state(state, private_values):
+    health = state["State"].get("Health", {})
+    configuration = state.get("Config", {}).get("Healthcheck", {})
+    return {
+        "status": state["State"]["Status"], "exitCode": state["State"]["ExitCode"],
+        "oomKilled": state["State"]["OOMKilled"], "restarts": state["RestartCount"],
+        "startedAt": state["State"].get("StartedAt"),
+        "health": health.get("Status"), "failingStreak": health.get("FailingStreak"),
+        "healthcheck": {key: configuration.get(key) for key in ("StartPeriod", "Interval", "Timeout", "Retries")},
+        "healthLog": [{
+            "start": attempt.get("Start"), "end": attempt.get("End"),
+            "exitCode": attempt.get("ExitCode"),
+            "output": sanitized_diagnostic(attempt.get("Output", ""), private_values, 1024),
+        } for attempt in health.get("Log", [])[-5:]],
+    }
+
+
+def startup_diagnostics(logs, private_values):
+    lines = [sanitized_diagnostic(line, private_values) for line in logs.splitlines()]
+    startup = [line for line in lines if any(marker in line for marker in (
+        "Starting BusyStackApplication", "Started BusyStackApplication", "HikariPool-",
+        "Tomcat initialized", "Tomcat started", "Root WebApplicationContext",
+    ))]
+    migrations = [line for line in lines if any(marker in line for marker in (
+        "Validated", "Successfully validated", "Current version of schema", "Migrating schema",
+        "Successfully applied", "Schema ",
+    ))]
+    errors = [line for line in lines if any(marker in line for marker in (
+        " ERROR ", "Caused by:", "APPLICATION FAILED", "Description:", "Reason:", "Action:",
+    ))]
+    return {"startupMilestones": startup[-8:], "lastMigrations": migrations[-8:], "errors": errors[-8:]}
+
+
 def execute(command, environment, *, content=None, expected=0):
     result = subprocess.run(
         command,
@@ -355,23 +406,16 @@ COMMIT;
         except Exception:
             for created in reversed(projects):
                 try:
+                    private_values = [
+                        file.read_text().strip() for file in private.iterdir()
+                        if file.is_file() and "password" in file.name
+                    ]
                     application = compose(created, "ps", "--all", "--quiet", "application")
                     if application:
                         state = json.loads(execute(["docker", "inspect", application], created))[0]
-                        print("OPERATIONS_FAILURE_STATE=" + json.dumps({
-                            "status": state["State"]["Status"], "exitCode": state["State"]["ExitCode"],
-                            "oomKilled": state["State"]["OOMKilled"], "restarts": state["RestartCount"],
-                            "health": state["State"].get("Health", {}).get("Status")}), flush=True)
+                        print("OPERATIONS_FAILURE_STATE=" + json.dumps(failure_state(state, private_values)), flush=True)
                     logs = compose(created, "logs", "--no-log-prefix", "--tail", "120", "application")
-                    for file in private.iterdir():
-                        if file.is_file() and "password" in file.name:
-                            value = file.read_text().strip()
-                            if value: logs = logs.replace(value, "[redacted]")
-                    logs = re.sub(r"[A-Za-z0-9_+/=-]{40,}", "[redacted-value]", logs)
-                    for line in logs.splitlines():
-                        if any(marker in line for marker in (" ERROR ", "Caused by:", "APPLICATION FAILED",
-                            "Description:", "Reason:", "Action:", "Started BusyStackApplication")):
-                            print("OPERATIONS_APPLICATION_DIAGNOSTIC " + line, flush=True)
+                    print("OPERATIONS_APPLICATION_DIAGNOSTICS=" + json.dumps(startup_diagnostics(logs, private_values)), flush=True)
                 except (RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired):
                     print("OPERATIONS_FAILURE_DIAGNOSTICS_UNAVAILABLE", flush=True)
             raise
