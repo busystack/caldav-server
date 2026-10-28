@@ -1,0 +1,174 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-28T00:37:15.570168+00:00",
+  "sourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+  "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+  "imageCreated": "2026-10-27T17:34:13.000625994-07:00",
+  "projectLicense": "Apache-2.0",
+  "expectedApplicationJarSha256": "4e97297d42102584da1ec78ac038362d2ed75eaf9874456ae4d4ec098c41aa6a",
+  "host": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "kernel": "7.0.0-38-generic",
+    "logicalCpus": 4,
+    "loadAverageBefore": [
+      4.61865234375,
+      5.5732421875,
+      7.82666015625
+    ],
+    "loadAverageAfter": [
+      4.81494140625,
+      5.5029296875,
+      7.44580078125
+    ]
+  },
+  "independentParser": {
+    "name": "icalendar",
+    "version": "7.3.0"
+  },
+  "configurationInput": {
+    "davAllowSyncDepthOne": "omitted; Compose/application default",
+    "tls": "embedded HTTPS, isolated trusted test CA; hostname and certificate verification enabled",
+    "overrides": "random loopback port, fixture TLS key store; Compose healthcheck disabled because verified HTTPS readiness is used for this TLS fixture; no query/work/heap/memory-limit override",
+    "proxy": "none; root/subpath deployment profiles are qualified separately"
+  },
+  "interpretation": "One owned application and PostgreSQL fixture; no other BusyStack qualification profiles run concurrently. The host is shared with unrelated workloads. Cold calendar-query followed by free/busy; no capacity, scalability, HTTP bulk-ingestion throughput or high-availability claim. JDK attach/cgroup/database observation adds overhead.",
+  "reports": [
+    {
+      "method": "REPORT",
+      "status": 207,
+      "elapsedSeconds": 35.088,
+      "responseBytes": 439,
+      "responseSha256": "4472804cd44e282a485445228e0b8d15457d3451b8fbe68617f2d079f9fc374f",
+      "clientTimeoutSeconds": 150,
+      "report": "calendar-query",
+      "requestSha256": "e5738fd877b8b15d71a2a33f9b48b6e2902a14dd3cfc7564e4e79553ba459576",
+      "depth": "1",
+      "selectedProperties": [
+        "DAV:getetag"
+      ],
+      "windowStart": "20261027T000000Z",
+      "windowEnd": "20261028T000000Z",
+      "returnedResources": 1,
+      "expectedResourceVerified": true
+    },
+    {
+      "method": "REPORT",
+      "status": 200,
+      "elapsedSeconds": 28.206,
+      "responseBytes": 317,
+      "responseSha256": "8778ffb637c9aba0bc4f7c6933325faa07ea9f1da6c669dc96eb444c9c5ee806",
+      "clientTimeoutSeconds": 60,
+      "report": "free-busy-query",
+      "requestSha256": "74c5725b751bb4caeb92a159aeb4002ee1004eeda1a04e34a67e98badfd681f5",
+      "depth": "1",
+      "windowStart": "20261027T000000Z",
+      "windowEnd": "20261028T000000Z",
+      "returnedFreeBusyComponents": 1,
+      "returnedPeriods": 1,
+      "expectedPeriod": [
+        "2026-10-27T00:00:00+00:00",
+        "2026-10-27T01:00:00+00:00"
+      ],
+      "independentParserAccepted": true
+    }
+  ],
+  "ownedProject": "busystack-selective-final-39df6962f370",
+  "applicationStartToHttpsReadySeconds": 40.236,
+  "jvmHeap": {
+    "containerMemoryLimitBytes": 1073741824,
+    "applicationJvmCommand": [
+      "java",
+      "-XX:MaxRAMPercentage=70.0",
+      "-Djava.io.tmpdir=/tmp",
+      "-jar",
+      "/opt/busystack/application.jar"
+    ],
+    "configuredMaxRAMPercentage": "70.0",
+    "source": "actual owned-container jcmd PID1 VM.flags",
+    "maxHeapBytes": 752877568,
+    "vmFlags": "1:\n-XX:-AOTInvokeDynamicLinking -XX:-AOTRecordTraining -XX:-AOTReplayTraining -XX:CICompilerCount=3 -XX:InitialHeapSize=16777216 -XX:-IntelJccErratumMitigation -XX:MaxHeapSize=752877568 -XX:MaxNewSize=250937344 -XX:MaxRAM=1073741824 -XX:MaxRAMPercentage=70.000000 -XX:MinHeapDeltaBytes=196608 -XX:MinHeapSize=8388608 -XX:NewSize=5570560 -XX:NonNMethodCodeHeapSize=5836800 -XX:NonProfiledCodeHeapSize=122912768 -XX:ProfiledCodeHeapSize=122912768 -XX:ReservedCodeCacheSize=251662336 -XX:+SegmentedCodeCache -XX:SoftMaxHeapSize=752877568 -XX:-THPStackMitigation -XX:+UseCompressedOops -XX:+UseSerialGC -XX:X86ICacheSync=1"
+  },
+  "applicationNanoCpuLimit": 0,
+  "effectiveLaunchConfiguration": {
+    "BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE": "true",
+    "SERVER_SSL_ENABLED": "true",
+    "SERVER_PORT": "8443"
+  },
+  "applicationJarSha256": "4e97297d42102584da1ec78ac038362d2ed75eaf9874456ae4d4ec098c41aa6a",
+  "javaVersion": "openjdk 25.0.4.1 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+  "postgresVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "dockerVersion": "29.9.2",
+  "populationMethod": "Owned disposable SQL transaction; identical independently generated valid folded iCalendar fixture to the d2e baseline, not HTTP ingestion throughput.",
+  "populationSeconds": 6.811,
+  "dataset": {
+    "resources": 10037,
+    "calendarBodyBytes": 46158025,
+    "largestCalendarBytes": 4601
+  },
+  "databaseBeforeReports": {
+    "databaseBytes": 26171071,
+    "resourceTableBytes": 6651904,
+    "commits": 223,
+    "rollbacks": 0,
+    "blocksRead": 533,
+    "blocksHit": 407230,
+    "rowsReturned": 101328,
+    "rowsFetched": 89079,
+    "rowsInserted": 32872,
+    "rowsUpdated": 242,
+    "rowsDeleted": 50,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "sampleCalendarValidation": [
+    {
+      "name": "capacity-00001.ics",
+      "bytes": 4593,
+      "independentParserAccepted": true
+    },
+    {
+      "name": "capacity-05000.ics",
+      "bytes": 4599,
+      "independentParserAccepted": true
+    }
+  ],
+  "databaseAfterReports": {
+    "databaseBytes": 26220223,
+    "resourceTableBytes": 6660096,
+    "commits": 288,
+    "rollbacks": 0,
+    "blocksRead": 546,
+    "blocksHit": 1346385,
+    "rowsReturned": 12754403,
+    "rowsFetched": 12730891,
+    "rowsInserted": 32901,
+    "rowsUpdated": 243,
+    "rowsDeleted": 50,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "containerStatsAfterReports": {
+    "BlockIO": "1.99MB / 0B",
+    "CPUPerc": "0.59%",
+    "Container": "f66f8c6948a26e66fb12cd17fce521893b89c4afb433a937722ebd62cfebb0b6",
+    "ID": "f66f8c6948a2",
+    "MemPerc": "25.17%",
+    "MemUsage": "257.8MiB / 1GiB",
+    "Name": "busystack-selective-final-39df6962f370-application-1",
+    "NetIO": "100MB / 1.82MB",
+    "PIDs": "34"
+  },
+  "containerMemory": {
+    "source": "actual owned application cgroup v2",
+    "peakBytes": 285282304,
+    "currentBytes": 272084992
+  },
+  "elapsedSecondsBeforeCleanup": 164.522,
+  "cleanupComplete": true,
+  "finishedAt": "2026-10-28T00:40:08.436741+00:00"
+}

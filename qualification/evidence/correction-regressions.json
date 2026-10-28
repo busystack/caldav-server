@@ -1,0 +1,539 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Durable failure-before-fix regression evidence for the BusyStack CalDAV correction pass. This file is not green qualification or a final artifact report.",
+  "recordedAtUtc": "2026-10-27T23:49:11.777549+00:00",
+  "recordedFromRevision": "d2e13441899ace16a76116f172c93fc86c448fa3",
+  "evidenceBoundary": [
+    "The paths under /tmp identify retained local raw logs. Their hashes, exact outcomes, and selected failure text are recorded here; availability of those local raw files is not implied for a fresh checkout.",
+    "No failed, interrupted, inferred, or unexecuted run is represented as a pass. Counts refer to complete Maven test summaries, not assertion counts.",
+    "Exact shell invocations are included only where retained. Observed goals and test names do not establish all original CLI/environment options.",
+    "The original namespace regression attempt that hit a same-calendar UID collision is excluded. Only the corrected baseline2 execution supports that finding."
+  ],
+  "sources": {
+    "isolatedReviewedSource": {
+      "kind": "isolated-reviewed-production-source",
+      "revision": "495989db3e7644c36ec099e16da981c5768676d3",
+      "archiveDirectory": "/tmp/busystack-correction-baseline-jRBCmD",
+      "testSource": "New regression methods copied into the isolated archive; tests are intentionally additional to the reviewed commit. Production sources and resources remain unchanged.",
+      "productionVerification": {
+        "filesCompared": 155,
+        "changedFiles": 0,
+        "extraProductionFiles": 0,
+        "manifestSha256": "6b5eddde32e5abbd29faedcdb2b1d8e2dce972f0f4813b6383990d539cd7bf5a",
+        "manifestAlgorithm": "SHA-256 of UTF-8 compact JSON array [[path,sha256(file bytes)],...] in git ls-tree -r --name-only order for src/main; compared against git show <revision>:<path>."
+      }
+    },
+    "completionPassPreFix": {
+      "kind": "completion-pass-working-tree-before-specific-fix",
+      "baselineRevision": "495989db3e7644c36ec099e16da981c5768676d3",
+      "committedParentAtExecution": "69c06145d73ac94c07e5020cd10cd70c4872ccbf",
+      "exactProductionTreeHash": null,
+      "identityLimit": "The then-uncommitted runtime correction tree was not independently snapshotted by these logs. These runs reproduce additional defects before their narrow fixes; they are not executions of the unchanged reviewed commit or final b24baae/d2e1344 commits."
+    }
+  },
+  "regressionRuns": [
+    {
+      "id": "busystack-correction-root-baseline",
+      "scope": "isolated-reviewed-source",
+      "rawLog": {
+        "path": "/tmp/busystack-correction-root-baseline.log",
+        "sha256": "ab93f8cb0130713f9a1d87addb4427981759b5d35725040a12a78ebc16104d89",
+        "bytes": 63213
+      },
+      "finishedAtUtc": "2026-10-27T21:54:54Z",
+      "result": {
+        "build": "failure",
+        "tests": 9,
+        "failures": 5,
+        "errors": 4,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "failsafe:3.5.6:integration-test",
+          "failsafe:3.5.6:verify"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.storage.SyncPagingIT.initialSmallPageReturnsContinuationRatherThanRejectingAcceptedCollection",
+          "org.busystack.caldav.storage.SyncPagingIT.initialSyncExceedsFormerRowAndBodyThresholdsWithoutMissingSubsequentChanges",
+          "org.busystack.caldav.storage.DavStoreIT.transferPreflightRejectsInaccessibleDescendantsBeforeReplacingDestination",
+          "org.busystack.caldav.storage.DavStoreIT.namespaceAdmissionReservesFixedComponentsAndTheCalendarResourceLeaf",
+          "org.busystack.caldav.sharing.GroupServiceIT.largeOwnedGrantSetsRemainListableAndRevocable",
+          "org.busystack.caldav.sharing.GroupServiceIT.aGroupSpanningMoreThanTenThousandCollectionsRemainsMaintainable",
+          "org.busystack.caldav.protocol.DavPropertyBoundsIT.inheritedLanguageIsStoredWithMixedPropertyContentAcrossTransfer",
+          "org.busystack.caldav.protocol.DavPropertyBoundsIT.repeatedValidUpdatesCannotAccumulateUnboundedProperties",
+          "org.busystack.caldav.protocol.DavHttpIT.multigetAtHomePreservesSuccessfulEntriesBesideMissingAncestors"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.storage.SyncPagingIT.initialSmallPageReturnsContinuationRatherThanRejectingAcceptedCollection",
+          "outcome": "error",
+          "failureExcerpt": "org.busystack.caldav.storage.StoreException: LIMIT"
+        },
+        {
+          "test": "org.busystack.caldav.storage.SyncPagingIT.initialSyncExceedsFormerRowAndBodyThresholdsWithoutMissingSubsequentChanges",
+          "outcome": "error",
+          "failureExcerpt": "org.busystack.caldav.storage.StoreException: LIMIT"
+        },
+        {
+          "test": "org.busystack.caldav.storage.DavStoreIT.transferPreflightRejectsInaccessibleDescendantsBeforeReplacingDestination",
+          "outcome": "failure",
+          "failureExcerpt": "java.lang.AssertionError: \n\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "org.busystack.caldav.storage.DavStoreIT.namespaceAdmissionReservesFixedComponentsAndTheCalendarResourceLeaf",
+          "outcome": "failure",
+          "failureExcerpt": "java.lang.AssertionError: \n\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "org.busystack.caldav.sharing.GroupServiceIT.largeOwnedGrantSetsRemainListableAndRevocable",
+          "outcome": "error",
+          "failureExcerpt": "org.busystack.caldav.storage.StoreException: LIMIT"
+        },
+        {
+          "test": "org.busystack.caldav.sharing.GroupServiceIT.aGroupSpanningMoreThanTenThousandCollectionsRemainsMaintainable",
+          "outcome": "error",
+          "failureExcerpt": "org.busystack.caldav.storage.StoreException: LIMIT"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavPropertyBoundsIT.inheritedLanguageIsStoredWithMixedPropertyContentAcrossTransfer",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: \"fr\"\n but was: \"\""
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavPropertyBoundsIT.repeatedValidUpdatesCannotAccumulateUnboundedProperties",
+          "outcome": "failure",
+          "failureExcerpt": "java.lang.AssertionError: \n\nExpecting actual:\n  0\nto be greater than:\n  0"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.multigetAtHomePreservesSuccessfulEntriesBesideMissingAncestors",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 207\n but was: 404"
+        }
+      ],
+      "interpretation": [
+        "Nine new regressions all fail against the unchanged reviewed production source: five assertion failures and four expected-behavior errors.",
+        "Both initial synchronization tests fail with StoreException LIMIT. The capacity fixture contains 10,037 resources and asserts its stored content exceeds 32 MiB before requesting pages of 137.",
+        "Group grant listing and membership maintenance fail with StoreException LIMIT after accepting the large states.",
+        "Namespace admission and transfer preflight unexpectedly accept inaccessible destination states.",
+        "Inherited xml:lang is empty instead of fr; repeated individually valid property updates encounter no aggregate rejection; mixed-success calendar-multiget returns whole-request 404 rather than 207."
+      ]
+    },
+    {
+      "id": "busystack-correction-http-baseline",
+      "scope": "isolated-reviewed-source",
+      "rawLog": {
+        "path": "/tmp/busystack-correction-http-baseline.log",
+        "sha256": "5575b2e14bd970a1804e90dbe1b033dbdd9322658b6b39be40a58cd4e9bcb6df",
+        "bytes": 23574
+      },
+      "finishedAtUtc": "2026-10-27T21:57:53Z",
+      "result": {
+        "build": "failure",
+        "tests": 5,
+        "failures": 5,
+        "errors": 0,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "failsafe:3.5.6:integration-test",
+          "failsafe:3.5.6:verify"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.protocol.DavHttpIT.nestedExpansionPreservesAvailablePropertiesBesideMissingAncestors",
+          "org.busystack.caldav.protocol.DavHttpIT.syncTokenOnlyPropertiesAndConditionsDoNotLoadCollectionBodies",
+          "org.busystack.caldav.protocol.DavHttpIT.initialIncrementalDeletedExpiredAndLimitedSyncAreExplicit",
+          "org.busystack.caldav.protocol.DavHttpIT.selectiveQueriesAndFreeBusyScanBodiesInBatchesBeyondTheFormerAggregateLimit",
+          "org.busystack.caldav.protocol.DavHttpIT.multigetBoundsRepeatedResourceResolutionBeforeBuildingAnUnboundedResponse"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.nestedExpansionPreservesAvailablePropertiesBesideMissingAncestors",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 207\n but was: 404"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.syncTokenOnlyPropertiesAndConditionsDoNotLoadCollectionBodies",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 207\n but was: 507"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.initialIncrementalDeletedExpiredAndLimitedSyncAreExplicit",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 207\n but was: 400"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.selectiveQueriesAndFreeBusyScanBodiesInBatchesBeyondTheFormerAggregateLimit",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 207\n but was: 507"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.multigetBoundsRepeatedResourceResolutionBeforeBuildingAnUnboundedResponse",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 207\n but was: 507"
+        }
+      ],
+      "interpretation": [
+        "Five additional raw HTTP regressions fail against the unchanged reviewed production source.",
+        "Default Depth: 1 synchronization returns 400 rather than 207. Metadata-only property/synchronization and multiget requests return 507 after loading unrelated calendar content.",
+        "Nested property expansion returns whole-request 404, and selective query/free-busy traversal of a collection beyond the former aggregate body budget returns 507."
+      ]
+    },
+    {
+      "id": "busystack-property-baseline-unit",
+      "scope": "pre-correction-xml-unit",
+      "rawLog": {
+        "path": "/tmp/busystack-property-baseline-unit.log",
+        "sha256": "ac30bc11e961d6da6e4d219728a463e4d2196be16e24dd7452fa79de1cd85157",
+        "bytes": 3718
+      },
+      "finishedAtUtc": "2026-10-27T21:20:33Z",
+      "result": {
+        "build": "failure",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "surefire:3.5.6:test"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.protocol.DavXmlConstructionTest.constructionRejectsOversizedTextBeforeAttachingIt"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.protocol.DavXmlConstructionTest.constructionRejectsOversizedTextBeforeAttachingIt",
+          "outcome": "failure",
+          "failureExcerpt": "java.lang.AssertionError: \n\nExpecting code to raise a throwable."
+        }
+      ],
+      "interpretation": [
+        "The XML construction regression expects an exception before an oversized text value is attached. The old implementation attaches it without throwing.",
+        "This early unit log records Java compilation and the failing method, but not a production source-tree hash or working directory. It is separate pre-correction evidence and does not independently establish an exact reviewed-revision execution."
+      ]
+    },
+    {
+      "id": "busystack-correction-namespace-baseline2",
+      "scope": "isolated-reviewed-source",
+      "rawLog": {
+        "path": "/tmp/busystack-correction-namespace-baseline2.log",
+        "sha256": "4f4ff0f6ea6aa18a1eceefe15a6ba8945ae76c752c019a69b824565404ed8816",
+        "bytes": 19216
+      },
+      "finishedAtUtc": "2026-10-27T23:14:33Z",
+      "result": {
+        "build": "failure",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "failsafe:3.5.6:integration-test",
+          "failsafe:3.5.6:verify"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.protocol.DavHttpIT.copyAndMoveRejectFirewallInaccessibleDestinationSegmentsBeforeMutation"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.copyAndMoveRejectFirewallInaccessibleDestinationSegmentsBeforeMutation",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 400\n but was: 201"
+        }
+      ],
+      "interpretation": [
+        "The corrected destination regression copies into a different calendar, avoiding the same-collection UID collision that invalidated the first attempted test setup.",
+        "The reviewed server accepts a firewall-inaccessible destination with HTTP 201 rather than rejecting it with HTTP 400 before mutation. The earlier namespace-baseline.log attempt is deliberately excluded from defect proof."
+      ]
+    },
+    {
+      "id": "busystack-correction-final-boundaries-red",
+      "scope": "completion-pass-pre-fix",
+      "rawLog": {
+        "path": "/tmp/busystack-correction-final-boundaries-red.log",
+        "sha256": "eee7eef8ed1a49a24ac6aaed5a60aee714f8885b6b29387aa72d20e6e7bfb340",
+        "bytes": 23068
+      },
+      "finishedAtUtc": "2026-10-27T23:28:04Z",
+      "result": {
+        "build": "failure",
+        "tests": 2,
+        "failures": 1,
+        "errors": 1,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "spotless:3.10.4:apply",
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "failsafe:3.5.6:integration-test",
+          "failsafe:3.5.6:verify"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.protocol.DavHttpIT.copyAndMoveRejectXmlInvalidDestinationSegmentsBeforeMutation",
+          "org.busystack.caldav.protocol.DavHttpIT.syncContinuationParentLockWaitFailsBoundedlyWithoutAdvancingToken"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.copyAndMoveRejectXmlInvalidDestinationSegmentsBeforeMutation",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError:"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.syncContinuationParentLockWaitFailsBoundedlyWithoutAdvancingToken",
+          "outcome": "error",
+          "failureExcerpt": "java.util.concurrent.TimeoutException"
+        }
+      ],
+      "interpretation": [
+        "Two additional boundary regressions fail before their narrow completion-pass fixes.",
+        "COPY accepts XML 1.0-invalid U+FFFE in a destination segment (201 rather than 400).",
+        "A synchronization continuation waits beyond the bounded test deadline when its parent row is locked; the test reports TimeoutException. The raw diagnostics record a later 207 after approximately 15 seconds. This is failure evidence, not a completed successful report qualification."
+      ]
+    },
+    {
+      "id": "busystack-correction-sync-contract-red",
+      "scope": "completion-pass-pre-fix",
+      "rawLog": {
+        "path": "/tmp/busystack-correction-sync-contract-red.log",
+        "sha256": "9e87be99f9073770c5267b142d9d33dffdab68d30e9cb12497c4a90cae6bf171",
+        "bytes": 24078
+      },
+      "finishedAtUtc": "2026-10-27T23:34:39Z",
+      "result": {
+        "build": "failure",
+        "tests": 2,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "spotless:3.10.4:apply",
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "failsafe:3.5.6:integration-test",
+          "failsafe:3.5.6:verify"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.protocol.DavHttpIT.syncEmptyPropertySelectionReturnsAnEmptySuccessfulPropstat",
+          "org.busystack.caldav.protocol.DavHttpIT.resourceMultigetCardinalityAndUnsignedSyncLimitsHaveDistinctContracts"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.syncEmptyPropertySelectionReturnsAnEmptySuccessfulPropstat",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError: \n\nexpected: 1\n but was: 0"
+        },
+        {
+          "test": "org.busystack.caldav.protocol.DavHttpIT.resourceMultigetCardinalityAndUnsignedSyncLimitsHaveDistinctContracts",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.AssertionFailedError:"
+        }
+      ],
+      "interpretation": [
+        "A valid client nresults ceiling larger than the server page ceiling produces 507 instead of a bounded 207 response.",
+        "An empty requested property selection produces no successful propstat instead of one empty 200 propstat."
+      ]
+    },
+    {
+      "id": "busystack-correction-labels-red",
+      "scope": "completion-pass-pre-fix",
+      "rawLog": {
+        "path": "/tmp/busystack-correction-labels-red.log",
+        "sha256": "2d8c621fdbfafd6be26fbb4df27f3fda80990362aee3ff2d4ca1a2238f266fd3",
+        "bytes": 44258
+      },
+      "finishedAtUtc": "2026-10-27T23:37:15Z",
+      "result": {
+        "build": "failure",
+        "tests": 3,
+        "failures": 3,
+        "errors": 0,
+        "skipped": 0
+      },
+      "invocation": {
+        "shellCommand": null,
+        "reason": "The preserved Maven stdout/stderr log does not echo the shell invocation; no exact command is reconstructed.",
+        "observedMavenPlugins": [
+          "spotless:3.10.4:apply",
+          "enforcer:3.6.2:enforce",
+          "spotless:3.10.4:check",
+          "resources:3.3.1:resources",
+          "compiler:3.15.0:compile",
+          "resources:3.3.1:testResources",
+          "compiler:3.15.0:testCompile",
+          "failsafe:3.5.6:integration-test",
+          "failsafe:3.5.6:verify"
+        ],
+        "observedTestMethods": [
+          "org.busystack.caldav.storage.DavStoreIT.xmlInvalidCollectionDisplayNamesAreRejectedAcrossCreationAndRename",
+          "org.busystack.caldav.storage.DavStoreIT.xmlInvalidAccountDisplayNamesAreRejectedBeforePersistence",
+          "org.busystack.caldav.sharing.GroupServiceIT.xmlInvalidGroupNamesAreRejectedBeforeCreationOrRename"
+        ]
+      },
+      "cases": [
+        {
+          "test": "org.busystack.caldav.storage.DavStoreIT.xmlInvalidCollectionDisplayNamesAreRejectedAcrossCreationAndRename",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.MultipleFailuresError: \nMultiple Failures (6 failures)\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable."
+        },
+        {
+          "test": "org.busystack.caldav.storage.DavStoreIT.xmlInvalidAccountDisplayNamesAreRejectedBeforePersistence",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.MultipleFailuresError: \nMultiple Failures (2 failures)\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable."
+        },
+        {
+          "test": "org.busystack.caldav.sharing.GroupServiceIT.xmlInvalidGroupNamesAreRejectedBeforeCreationOrRename",
+          "outcome": "failure",
+          "failureExcerpt": "org.opentest4j.MultipleFailuresError: \nMultiple Failures (4 failures)\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable.\n\tjava.lang.AssertionError: \nExpecting code to raise a throwable."
+        }
+      ],
+      "interpretation": [
+        "All three real PostgreSQL service regressions fail because invalid XML label values are accepted.",
+        "Two invalid account labels, six collection create/direct-create/rename checks, and four group create/rename checks do not throw. Subassertions are grouped into three JUnit tests; they are not twelve separately executed tests."
+      ]
+    }
+  ],
+  "supplementaryCompiledProbes": [
+    {
+      "source": {
+        "path": "/tmp/BusyStackLabelIngressProbe.java",
+        "sha256": "1971f2eca166a843ea9ba550a502547578b3df20d31adbfeb19eaf7a28d09710",
+        "bytes": 534
+      },
+      "rawLog": {
+        "path": "/tmp/busystack-oidc-label-baseline.log",
+        "sha256": "57f3cdc756ce905ebd97a66b5ee7f2107a8a3f493e8b0dfbd7251e9e4df4a7ef",
+        "bytes": 213
+      },
+      "scope": "compiled-completion-pass-classes-before-label-fix; not an unchanged-495989d or final-artifact claim",
+      "command": [
+        "/tmp/busystack-tools/jdk-current/bin/java",
+        "--class-path",
+        "target/classes",
+        "/tmp/BusyStackLabelIngressProbe.java"
+      ],
+      "commandProvenance": "Retained execution record from the agent that ran the Java source-file probe.",
+      "workingDirectory": "/home/albert/busystack/caldav-server",
+      "result": "exit 1, AssertionError; two invalid labels accepted",
+      "output": [
+        "OIDC_CONFIG_XML_INVALID_LABELS_ACCEPTED=2",
+        "Exception in thread \"main\" java.lang.AssertionError: XML-invalid OIDC display labels were accepted",
+        "\tat BusyStackLabelIngressProbe.main(BusyStackLabelIngressProbe.java:11)"
+      ],
+      "interpretation": "Configured OIDC account labels with U+FFFE/U+FFFF are accepted before the shared XML character validation."
+    },
+    {
+      "source": {
+        "path": "/tmp/BusyStackLegacyXmlLabelProbe.java",
+        "sha256": "8a8ff1044f56a1e391772009e6eb89c9270fc045402b2d90a7bca31c0bf216b7",
+        "bytes": 816
+      },
+      "rawLog": {
+        "path": "/tmp/busystack-legacy-label-baseline.log",
+        "sha256": "2f07d4dbb990f215ee71494f220e3336302083bb7ca519e99853869effba4526",
+        "bytes": 217
+      },
+      "scope": "compiled-completion-pass-classes-before-label-fix; not an unchanged-495989d or final-artifact claim",
+      "command": [
+        "/tmp/busystack-tools/jdk-current/bin/java",
+        "--class-path",
+        "target/classes",
+        "/tmp/BusyStackLegacyXmlLabelProbe.java"
+      ],
+      "commandProvenance": "Retained execution record from the agent that ran the Java source-file probe.",
+      "workingDirectory": "/home/albert/busystack/caldav-server",
+      "result": "exit 1, AssertionError; two invalid labels accepted",
+      "output": [
+        "XML_INVALID_LABEL_TEXT_ACCEPTED=2",
+        "Exception in thread \"main\" java.lang.AssertionError: XML-invalid label text was attached to a response DOM",
+        "\tat BusyStackLegacyXmlLabelProbe.main(BusyStackLegacyXmlLabelProbe.java:11)"
+      ],
+      "interpretation": "DavXml.text attaches legacy U+FFFE/U+FFFF text to a response DOM instead of failing before attachment."
+    }
+  ],
+  "knownIntermediateFullVerification": {
+    "record": "qualification/evidence/correction-intermediate-attempt1.json",
+    "recordSha256": "374d591eb8f7be839e72f389e77783ef8891468e9d9afd8c5d4d88690bc6fe84",
+    "rawLog": {
+      "path": "/tmp/busystack-correction-final-verify.log",
+      "sha256": "25c122c53106733e28bf9da2abf1d37b8d656843e04f73b8a0dbd6c3fa692263",
+      "bytes": 353938
+    },
+    "status": "failed intermediate run; preserved separately and not final qualification",
+    "unit": {
+      "tests": 157,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "integration": {
+      "tests": 166,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0
+    },
+    "failure": "GroupServiceIT.aGroupSpanningMoreThanTenThousandCollectionsRemainsMaintainable: QueryTimeout while executing INSERT INTO dav_bindings in dav_reconcile_group_memberships. This led to the measured set-based V13 correction without increasing the operation deadline."
+  },
+  "finalVerificationAtRecordTime": {
+    "status": "pending",
+    "scope": "The final clean verify is ongoing in the parent agent. Partial class or unit successes are deliberately not recorded here as a completed final pass. Final packaged, client, security, upgrade and restore results belong in separate final qualification evidence."
+  }
+}

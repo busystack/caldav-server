@@ -1,6 +1,6 @@
 # Dependency and distribution baseline
 
-Verified on 2026-10-27. The application uses the exact dependency-management baseline below. Actual raw HTTPS, PostgreSQL, native OAuth and independent calendar/task client suites have passed; final packaged browser/restoration qualification is recorded separately in the [conformance matrix](conformance.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately.
+Baseline verified on 2026-10-27 and retained through qualified source `47b3543`. The clean 169-unit/174-integration suite, packaged root/proxy/Keycloak/default/strict profiles, independent clients, upgrades and restoration passed in the [actual CI record](../qualification/evidence/correction-ci-final.json); local artifact/measurement records are distinguished in the [qualification index](../qualification/evidence/README.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately. No dependency or base-image pin changed during this correction pass.
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |

@@ -174,6 +174,7 @@ The database connection pool is bounded to 10 connections; connection acquisitio
 | Query filter nodes / range days | 256 / 3,660 |
 | Generated recurrence instances / rule increments / candidate work | 10,000 / 900 / 500,000 |
 | Matched calendar-query resources | 10,000 |
+| Complete DAV collection grant listing / ACL replacement | 1,000 direct/group entries; browser sharing uses separate paged management |
 | Serialized XML response and cumulative report-copy/expansion reservations | 16 MiB (conservative traversal reservations may fail earlier) |
 | Response DOM construction / nodes / concurrent DAV work | 16 MiB conservative work / 50,000 nodes / 4 requests |
 | Dead properties per target / individual XML / aggregate XML | 1,000 / 64 KiB / 1 MiB |

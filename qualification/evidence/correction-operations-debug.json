@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "scope": "Supplementary diagnostic rerun of the intermediate d2e1344 image, not final corrected-artifact qualification",
+  "recordedAtUtc": "2026-10-28T00:32:25.915991+00:00",
+  "originalFailure": {
+    "log": {
+      "path": "/tmp/busystack-correction-operations-attempt1-failure.log",
+      "bytes": 3123,
+      "sha256": "daf0a58b66d51eed6d7207d2bc91bec5f7291031c809deb3a4e4be47a3ff4d6d"
+    },
+    "preservation": "Read-only byte-identical copy retained before rerunning; the original final-operations.log was not overwritten.",
+    "sameVersionProfile": "passed, including all five unsupported-history negative cases",
+    "v9Profile": "created a genuine V9 archive before current startup; application then reported unhealthy to docker compose up --wait",
+    "recordedState": {
+      "status": "running",
+      "exitCode": 0,
+      "oomKilled": false,
+      "restarts": 0,
+      "health": "unhealthy"
+    },
+    "diagnosticLimit": "The original harness recorded no health-attempt output or startup/migration milestones. Its filtered diagnostics retained no ERROR or Started marker. This does not establish the exact failed boot phase or its cause.",
+    "cause": "unclassified from original retained diagnostics; not inferred as a product defect, resource pressure, migration failure or a timeout threshold defect"
+  },
+  "harnessCorrection": {
+    "source": "scripts/verify-operations.py",
+    "sourceAtRun": {
+      "path": "/home/albert/busystack/caldav-server/scripts/verify-operations.py",
+      "bytes": 31128,
+      "sha256": "313d131647886c0a3cc10f82e22b192bd0e6953e1ae6264dd3c248919033cac5"
+    },
+    "changes": [
+      "Record container startedAt, health status/failing streak and configured health timings.",
+      "Retain last five health attempts with start/end/exitCode and at most 1,024 output characters plus a truncation marker.",
+      "Retain bounded startup/Hikari/Tomcat milestones and last migration lines separately from bounded errors.",
+      "Redact fixture passwords, named credential fields, Basic/Bearer values including short values, long token-like values and terminal controls before output.",
+      "Retain existing failure semantics, verification assertions, cleanup and all production health/probe timings."
+    ],
+    "unitValidation": {
+      "command": "python3 -m unittest discover -s qualification/passkeys -p 'test_operation_diagnostics.py'",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "status": "passed"
+    },
+    "additionalValidation": [
+      "python3 -m py_compile scripts/verify-operations.py",
+      "git diff --check -- scripts/verify-operations.py qualification/passkeys/test_operation_diagnostics.py"
+    ],
+    "ciInclusion": "test_operation_diagnostics.py resides in the existing required qualification/passkeys unittest discovery."
+  },
+  "debugRerun": {
+    "status": "passed",
+    "exitCode": 0,
+    "log": {
+      "path": "/tmp/busystack-v9-debug-operations-attempt2.log",
+      "bytes": 18027,
+      "sha256": "14ae9673bd28d8560272c8ef4ab1d8d14f7898492952352b89539396842bb7d0"
+    },
+    "command": "/usr/bin/time -p python3 -u /tmp/busystack-v9-operations-debug.py > /tmp/busystack-v9-debug-operations-attempt2.log 2>&1",
+    "invocationNote": "Created with shell noclobber enabled; previous failure logs were preserved. No Maven or Docker build ran concurrently from the coordinating agents; unrelated host services were not stopped.",
+    "wrapper": {
+      "path": "/tmp/busystack-v9-operations-debug.py",
+      "bytes": 1662,
+      "sha256": "8d88133bb7ce535a63aec566505b3e85d84321fb03132707e5f87aca458576c0"
+    },
+    "wrapperBehavior": "Calls verify(SimpleNamespace(image=<immutable image>), initial_version=9) with unchanged verification assertions, while measuring application up/health duration and printing sanitized health/startup diagnostics on successful starts. Failure diagnostics remain those in the corrected harness.",
+    "imageId": "sha256:11fbec310b28238096e70d071062c34c407cda8d2acc9cdc1278c9f23ee95308",
+    "imageSourceRevision": "d2e13441899ace16a76116f172c93fc86c448fa3",
+    "profile": "restore-V9-then-upgrade",
+    "wallSeconds": 398.74,
+    "runnerUserSeconds": 15.17,
+    "runnerSystemSeconds": 6.37,
+    "timingScope": "/usr/bin/time measurements cover the Python/Docker-client harness. Runner CPU times do not include all container CPU usage.",
+    "schemaMarkers": [
+      "OPERATIONS_APPLICATION_IMAGE=sha256:11fbec310b28238096e70d071062c34c407cda8d2acc9cdc1278c9f23ee95308",
+      "OPERATIONS_PROFILE=restore-V9-then-upgrade",
+      "OPERATIONS_SCHEMA_VERSIONS=1,2,3,4,5,6,7,8,9",
+      "OPERATIONS_V9_ARCHIVE_CREATED_BEFORE_CURRENT_STARTUP",
+      "OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V13_PASSED"
+    ],
+    "applicationStarts": [
+      {
+        "stage": "existing V9 source startup/upgrade",
+        "elapsedSeconds": 42.291,
+        "state": {
+          "status": "running",
+          "exitCode": 0,
+          "oomKilled": false,
+          "restarts": 0,
+          "startedAt": "2026-10-28T00:25:38.545951682Z",
+          "health": "healthy",
+          "failingStreak": 0,
+          "healthcheck": {
+            "StartPeriod": 60000000000,
+            "Interval": 15000000000,
+            "Timeout": 5000000000,
+            "Retries": 5
+          },
+          "healthLog": [
+            {
+              "start": "2026-10-27T17:25:54.845573687-07:00",
+              "end": "2026-10-27T17:25:55.063902111-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:00.065884086-07:00",
+              "end": "2026-10-27T17:26:00.305439722-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:05.308425133-07:00",
+              "end": "2026-10-27T17:26:05.504273504-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:10.507966519-07:00",
+              "end": "2026-10-27T17:26:10.695201551-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:15.700514332-07:00",
+              "end": "2026-10-27T17:26:16.48424451-07:00",
+              "exitCode": 0,
+              "output": ""
+            }
+          ]
+        },
+        "milestones": {
+          "startupMilestones": [
+            "2026-10-28T00:25:45.309Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Starting BusyStackApplication v0.0.1-SNAPSHOT using Java 25.0.4.1 with PID 1 (/opt/busystack/application.jar started by busystack in /opt/busystack)",
+            "2026-10-28T00:25:56.494Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)",
+            "2026-10-28T00:25:56.806Z  INFO 1 --- [busystack-caldav] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 11062 ms",
+            "2026-10-28T00:25:59.251Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...",
+            "2026-10-28T00:26:00.258Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@699e0bf0",
+            "2026-10-28T00:26:00.273Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.",
+            "2026-10-28T00:26:10.912Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'",
+            "2026-10-28T00:26:10.983Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Started BusyStackApplication in 28.916 seconds (process running for 31.699)"
+          ],
+          "lastMigrations": [
+            "2026-10-28T00:26:00.791Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 13 migrations (execution time 00:00.169s)",
+            "2026-10-28T00:26:00.847Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema \"public\": 9",
+            "2026-10-28T00:26:01.018Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"10 - resumable sync history\"",
+            "2026-10-28T00:26:01.272Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"11 - property storage budgets\"",
+            "2026-10-28T00:26:01.407Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"12 - namespace bounds\"",
+            "2026-10-28T00:26:01.516Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"13 - group reconciliation\"",
+            "2026-10-28T00:26:01.600Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 4 migrations to schema \"public\", now at version v13 (execution time 00:00.251s)"
+          ],
+          "errors": []
+        }
+      },
+      {
+        "stage": "source application restart",
+        "elapsedSeconds": 33.537,
+        "state": {
+          "status": "running",
+          "exitCode": 0,
+          "oomKilled": false,
+          "restarts": 0,
+          "startedAt": "2026-10-28T00:26:20.376852825Z",
+          "health": "healthy",
+          "failingStreak": 0,
+          "healthcheck": {
+            "StartPeriod": 60000000000,
+            "Interval": 15000000000,
+            "Timeout": 5000000000,
+            "Retries": 5
+          },
+          "healthLog": [
+            {
+              "start": "2026-10-27T17:26:31.411808238-07:00",
+              "end": "2026-10-27T17:26:31.629573786-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:36.63366156-07:00",
+              "end": "2026-10-27T17:26:36.863595249-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:41.87552883-07:00",
+              "end": "2026-10-27T17:26:42.184039281-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:47.186088179-07:00",
+              "end": "2026-10-27T17:26:47.426863297-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:26:52.429501392-07:00",
+              "end": "2026-10-27T17:26:53.772958978-07:00",
+              "exitCode": 0,
+              "output": ""
+            }
+          ]
+        },
+        "milestones": {
+          "startupMilestones": [
+            "2026-10-28T00:26:27.735Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Starting BusyStackApplication v0.0.1-SNAPSHOT using Java 25.0.4.1 with PID 1 (/opt/busystack/application.jar started by busystack in /opt/busystack)",
+            "2026-10-28T00:26:39.277Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)",
+            "2026-10-28T00:26:39.517Z  INFO 1 --- [busystack-caldav] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 11328 ms",
+            "2026-10-28T00:26:41.953Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...",
+            "2026-10-28T00:26:42.994Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@699e0bf0",
+            "2026-10-28T00:26:43.006Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.",
+            "2026-10-28T00:26:52.434Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'",
+            "2026-10-28T00:26:52.538Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Started BusyStackApplication in 27.956 seconds (process running for 31.432)"
+          ],
+          "lastMigrations": [
+            "2026-10-28T00:26:01.018Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"10 - resumable sync history\"",
+            "2026-10-28T00:26:01.272Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"11 - property storage budgets\"",
+            "2026-10-28T00:26:01.407Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"12 - namespace bounds\"",
+            "2026-10-28T00:26:01.516Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"13 - group reconciliation\"",
+            "2026-10-28T00:26:01.600Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 4 migrations to schema \"public\", now at version v13 (execution time 00:00.251s)",
+            "2026-10-28T00:26:43.521Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 13 migrations (execution time 00:00.153s)",
+            "2026-10-28T00:26:43.611Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema \"public\": 13",
+            "2026-10-28T00:26:43.635Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Schema \"public\" is up to date. No migration necessary."
+          ],
+          "errors": []
+        }
+      },
+      {
+        "stage": "restored V9 startup/upgrade after invalidation",
+        "elapsedSeconds": 42.615,
+        "state": {
+          "status": "running",
+          "exitCode": 0,
+          "oomKilled": false,
+          "restarts": 0,
+          "startedAt": "2026-10-28T00:27:20.626346126Z",
+          "health": "healthy",
+          "failingStreak": 0,
+          "healthcheck": {
+            "StartPeriod": 60000000000,
+            "Interval": 15000000000,
+            "Timeout": 5000000000,
+            "Retries": 5
+          },
+          "healthLog": [
+            {
+              "start": "2026-10-27T17:27:36.966536192-07:00",
+              "end": "2026-10-27T17:27:37.157834949-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:27:42.159974972-07:00",
+              "end": "2026-10-27T17:27:42.379981685-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:27:47.381299892-07:00",
+              "end": "2026-10-27T17:27:47.599264629-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:27:52.60242948-07:00",
+              "end": "2026-10-27T17:27:52.862397206-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:27:57.864862517-07:00",
+              "end": "2026-10-27T17:27:58.673950458-07:00",
+              "exitCode": 0,
+              "output": ""
+            }
+          ]
+        },
+        "milestones": {
+          "startupMilestones": [
+            "2026-10-28T00:27:27.736Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Starting BusyStackApplication v0.0.1-SNAPSHOT using Java 25.0.4.1 with PID 1 (/opt/busystack/application.jar started by busystack in /opt/busystack)",
+            "2026-10-28T00:27:39.497Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)",
+            "2026-10-28T00:27:39.941Z  INFO 1 --- [busystack-caldav] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 11769 ms",
+            "2026-10-28T00:27:42.686Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...",
+            "2026-10-28T00:27:43.510Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@12e007be",
+            "2026-10-28T00:27:43.515Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.",
+            "2026-10-28T00:27:54.406Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'",
+            "2026-10-28T00:27:54.478Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Started BusyStackApplication in 30.043 seconds (process running for 33.06)"
+          ],
+          "lastMigrations": [
+            "2026-10-28T00:27:44.131Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 13 migrations (execution time 00:00.224s)",
+            "2026-10-28T00:27:44.260Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema \"public\": 9",
+            "2026-10-28T00:27:44.489Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"10 - resumable sync history\"",
+            "2026-10-28T00:27:44.720Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"11 - property storage budgets\"",
+            "2026-10-28T00:27:44.905Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"12 - namespace bounds\"",
+            "2026-10-28T00:27:45.046Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"13 - group reconciliation\"",
+            "2026-10-28T00:27:45.133Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 4 migrations to schema \"public\", now at version v13 (execution time 00:00.186s)"
+          ],
+          "errors": []
+        }
+      },
+      {
+        "stage": "final startup after controlled offline recovery",
+        "elapsedSeconds": 52.302,
+        "state": {
+          "status": "running",
+          "exitCode": 0,
+          "oomKilled": false,
+          "restarts": 0,
+          "startedAt": "2026-10-28T00:30:14.887137374Z",
+          "health": "healthy",
+          "failingStreak": 0,
+          "healthcheck": {
+            "StartPeriod": 60000000000,
+            "Interval": 15000000000,
+            "Timeout": 5000000000,
+            "Retries": 5
+          },
+          "healthLog": [
+            {
+              "start": "2026-10-27T17:30:42.602619158-07:00",
+              "end": "2026-10-27T17:30:42.917611873-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:30:47.919625341-07:00",
+              "end": "2026-10-27T17:30:48.100656186-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:30:53.102649249-07:00",
+              "end": "2026-10-27T17:30:53.293739101-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:30:58.295186045-07:00",
+              "end": "2026-10-27T17:30:58.506384129-07:00",
+              "exitCode": 1,
+              "output": "bash: connect: Connection refused\nbash: line 4: /dev/tcp/127.0.0.1/8080: Connection refused\n"
+            },
+            {
+              "start": "2026-10-27T17:31:03.507782897-07:00",
+              "end": "2026-10-27T17:31:04.409079228-07:00",
+              "exitCode": 0,
+              "output": ""
+            }
+          ]
+        },
+        "milestones": {
+          "startupMilestones": [
+            "2026-10-28T00:30:25.128Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Starting BusyStackApplication v0.0.1-SNAPSHOT using Java 25.0.4.1 with PID 1 (/opt/busystack/application.jar started by busystack in /opt/busystack)",
+            "2026-10-28T00:30:44.859Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)",
+            "2026-10-28T00:30:45.200Z  INFO 1 --- [busystack-caldav] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 19321 ms",
+            "2026-10-28T00:30:48.449Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...",
+            "2026-10-28T00:30:49.494Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2499b971",
+            "2026-10-28T00:30:49.500Z  INFO 1 --- [busystack-caldav] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.",
+            "2026-10-28T00:30:59.231Z  INFO 1 --- [busystack-caldav] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'",
+            "2026-10-28T00:30:59.294Z  INFO 1 --- [busystack-caldav] [           main] o.busystack.caldav.BusyStackApplication  : Started BusyStackApplication in 39.152 seconds (process running for 43.57)"
+          ],
+          "lastMigrations": [
+            "2026-10-28T00:27:44.489Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"10 - resumable sync history\"",
+            "2026-10-28T00:27:44.720Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"11 - property storage budgets\"",
+            "2026-10-28T00:27:44.905Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"12 - namespace bounds\"",
+            "2026-10-28T00:27:45.046Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema \"public\" to version \"13 - group reconciliation\"",
+            "2026-10-28T00:27:45.133Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 4 migrations to schema \"public\", now at version v13 (execution time 00:00.186s)",
+            "2026-10-28T00:30:50.038Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 13 migrations (execution time 00:00.180s)",
+            "2026-10-28T00:30:50.115Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema \"public\": 13",
+            "2026-10-28T00:30:50.142Z  INFO 1 --- [busystack-caldav] [           main] o.f.core.internal.command.DbMigrate      : Schema \"public\" is up to date. No migration necessary."
+          ],
+          "errors": []
+        }
+      }
+    ],
+    "passedAssertions": "Packaged startup, non-root/read-only runtime, health probes, configured discovery/issuer, DAV challenge, restart, genuine V9 backup and restoration, fail-closed invalidation before migration to V13, content/ownership/individual and group sharing/property preservation, removal of restored sessions/grants/credentials/factors/continuations, controlled local/external account recovery and wrong external-subject rejection.",
+    "cleanup": [
+      {
+        "project": "busystack-operations-39ac0452ea61",
+        "remainingContainers": [],
+        "remainingVolumes": []
+      },
+      {
+        "project": "busystack-operations-39ac0452ea61-restore",
+        "remainingContainers": [],
+        "remainingVolumes": []
+      }
+    ],
+    "scopeLimit": "This was a V9-only diagnostic rerun of the intermediate image. It does not replace the full required operations entry point against the final corrected artifact, browser MFA/HTTPS/client profiles or the larger corrected capacity workload."
+  },
+  "conclusion": {
+    "observation": "All four application health waits passed within 33.537\u201352.302 seconds in the coordinated quiet window. The recorded probes show transient connection-refused before port binding, followed by successful probes. The V9-to-V13 migrations completed in 0.251s and 0.186s. No OOM, restart or application error was recorded in this rerun.",
+    "productionHealthConfigurationChanged": false,
+    "interpretation": "The quiet reproduction provides no measured basis for increasing production health timings. The original failed boot remains unclassified because its older diagnostics were insufficient; the harness now preserves the missing evidence for any recurrence.",
+    "finalQualification": "A later final-image full operations run is required and must be recorded separately. The successful d2e CI operations profile remains in correction-ci-attempt1.json; its overall CI job was still failed for the distinct capacity query."
+  }
+}

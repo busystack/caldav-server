@@ -2,7 +2,7 @@
 
 Independent, self-hosted Java server for calendars and tasks, with PostgreSQL persistence and built-in accounts. Local deployment works without another identity service; an existing Keycloak installation can provide optional OIDC login.
 
-The maintained [qualification record](qualification/evidence/README.md) identifies exact source and artifact versions, executed tests, independent clients, packaged deployment/recovery checks and their results. It distinguishes current correction qualification from historical checkpoints. The [standards matrix](docs/conformance.md) connects capabilities and limits to their implementation and regression coverage.
+Source `47b3543` passed 169 unit and 174 PostgreSQL/HTTPS integration tests with no skips and zero SpotBugs findings, plus all packaged deployment, client, security and recovery profiles. The maintained [qualification record](qualification/evidence/README.md) identifies exact artifacts, commands and configurations and distinguishes current results from historical checkpoints. The [standards matrix](docs/conformance.md) connects capabilities and limits to implementation and regression coverage.
 
 ## Capabilities
 

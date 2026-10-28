@@ -1,0 +1,238 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-28T01:14:27.860194+00:00",
+  "scope": "Final local immutable application, both mandatory packaged restoration profiles, independent clients and bounded workloads; full final-source suite and complete operations are separately qualified in CI.",
+  "runtimeSourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+  "branch": "release/v0.0.1",
+  "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+  "executableJarSha256": "4e97297d42102584da1ec78ac038362d2ed75eaf9874456ae4d4ec098c41aa6a",
+  "runtimeSbomSha256": "5276edd230a6f1b7906d693c0aaec3bf3269f6ada5187bea07cc3dc71ed7bdce",
+  "ciQualification": {
+    "path": "correction-ci-final.json",
+    "runUrl": "https://github.com/busystack/caldav-server/actions/runs/40608661738",
+    "sourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+    "cleanUnitTests": 169,
+    "postgresHttpsIntegrationTests": 174,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "spotBugsFindings": 0,
+    "allSixBrowserProfiles": "passed",
+    "completeSameVersionV9AndNegativeHistoryOperations": "passed"
+  },
+  "localProfiles": [
+    {
+      "profile": "final47 local HTTPS proxy/groups/restoration/extended workload",
+      "status": "passed",
+      "completedAt": "2026-10-28T00:58:02.654130+00:00",
+      "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+      "applicationSourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+      "browserImage": "sha256:687b77e803263ce03be5c90732dd3482ca95a5ed83ce5bccc39a496e08d61cfe",
+      "command": [
+        "python3",
+        "-u",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+        "--browser-image",
+        "sha256:687b77e803263ce03be5c90732dd3482ca95a5ed83ce5bccc39a496e08d61cfe",
+        "--proxy",
+        "--groups",
+        "--restore",
+        "--workload",
+        "--client-python",
+        "/tmp/busystack-client-venv/bin/python",
+        "--thunderbird-binary",
+        "/tmp/busystack-thunderbird-official/thunderbird/thunderbird",
+        "--workload-output",
+        "/tmp/busystack-correction-final47-workload.json"
+      ],
+      "log": "/tmp/busystack-correction-final47-restore-local.log",
+      "logSha256": "68e79d610d22d88c796389822f2ab61880ae7d7a8677503b0de81991e1e65db1",
+      "syncConfigurations": [
+        {
+          "configurationInput": "setting absent; Compose/application default",
+          "observedDepthStatus": {
+            "0": 207,
+            "1": 207,
+            "missing": 207
+          },
+          "depthOneWithOtherSyncLevelStatus": 400,
+          "allowSyncDepthOne": true
+        }
+      ],
+      "workloadReport": "/tmp/busystack-correction-final47-workload.json",
+      "workloadSha256": "66f88178d88e9222a84aa615add57f71d487f862020f27e4ac8ae7d37ec834e2",
+      "sharingReport": "/tmp/busystack-correction-final47-sharing-capacity.json",
+      "scope": "This executed local packaged profile; federated restoration remains a separate profile"
+    },
+    {
+      "profile": "final47 federated HTTPS OIDC/groups/restoration",
+      "status": "passed",
+      "completedAt": "2026-10-28T01:13:03.768438+00:00",
+      "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+      "applicationSourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+      "browserImage": "sha256:687b77e803263ce03be5c90732dd3482ca95a5ed83ce5bccc39a496e08d61cfe",
+      "command": [
+        "python3",
+        "-u",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+        "--browser-image",
+        "sha256:687b77e803263ce03be5c90732dd3482ca95a5ed83ce5bccc39a496e08d61cfe",
+        "--oidc",
+        "--groups",
+        "--restore"
+      ],
+      "log": "/tmp/busystack-correction-final47-restore-oidc.log",
+      "logSha256": "b344193f818fe7a7e570276450779ff69c14167b717b07ad3c84c44612425bd9",
+      "syncConfigurations": [
+        {
+          "configurationInput": "setting absent; Compose/application default",
+          "observedDepthStatus": {
+            "0": 207,
+            "1": 207,
+            "missing": 207
+          },
+          "depthOneWithOtherSyncLevelStatus": 400,
+          "allowSyncDepthOne": true
+        }
+      ],
+      "scope": "This executed final packaged federated profile with real disposable Keycloak 26.8.1. Local extended workload and restoration are recorded separately. All owned fixture containers were removed after exit 0."
+    }
+  ],
+  "buildAndInspectionCommands": [
+    {
+      "command": "docker build --build-arg SOURCE_REVISION=\"$(git rev-parse HEAD)\" --tag busystack-caldav:ci .",
+      "sourceRevisionAtExecution": "47b3543674644d075ece97045088fc1e309e7d1e",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 scripts/verify-distribution.py --image busystack-caldav:ci --output target/qualification/distribution-final.json",
+      "exitCode": 0,
+      "evidence": "correction-local47-distribution.json"
+    },
+    {
+      "command": "python3 scripts/check-container-advisories.py --image busystack-caldav:ci --cache-dir /home/albert/.cache/busystack-trivy --output target/container-os-advisories-final.json",
+      "exitCode": 0,
+      "evidence": "correction-local47-container-os-advisories.json"
+    },
+    {
+      "command": "./mvnw -B -ntp '-Dtest=Calendar*Test' '-Dit.test=DavHttpIT#selectiveTimeRangesHandleMoreOriginalResourcesThanTheRecurrenceInstanceLimit+selectiveQueriesAndFreeBusyScanBodiesInBatchesBeyondTheFormerAggregateLimit' verify",
+      "exitCode": 0,
+      "calendarUnitTests": 103,
+      "realHttpsIntegrationTests": 2,
+      "integrationHeapBytes": 268435456,
+      "spotBugsFindings": 0
+    }
+  ],
+  "licensing": {
+    "project": "Apache-2.0",
+    "sourceJarContainerInspection": "passed",
+    "originalThirdPartyLicensesPreserved": true,
+    "springSession41PublishingMetadata": "resolved Apache-2.0 conclusion; original POM/JAR provenance retained"
+  },
+  "advisoryScope": {
+    "runtimeMavenVersions": 112,
+    "osvReturnedAdvisories": 0,
+    "containerOsPackages": 115,
+    "medium": 46,
+    "low": 12,
+    "high": 0,
+    "critical": 0,
+    "unknown": 0,
+    "suppressions": []
+  },
+  "additionalBeforeFixProof": {
+    "sourceRevision": "d2e13441899ace16a76116f172c93fc86c448fa3",
+    "resources": 10037,
+    "calendarBytes": 46158025,
+    "selectiveQueryStatus": 507,
+    "condition": "DAV:number-of-matches-within-limits",
+    "control10000QueryStatus": 207,
+    "redUnitCases": 7,
+    "redUnitFailures": 1,
+    "redUnitErrors": 4,
+    "correctedUnits": 103,
+    "correctedHttpsTests": 2,
+    "logs": [
+      {
+        "name": "busystack-selective-query-repro.log",
+        "sha256": "3bdb55457c8ec567ba0c4dbba09269ae643a8bf053180ada0567bbb217063a76"
+      },
+      {
+        "name": "busystack-selective-query-red.log",
+        "sha256": "aa1049f3652c8764e7e56090e4ce343f8c9d4566ad7fd8498c1871127b68aed2"
+      },
+      {
+        "name": "busystack-selective-query-green.log",
+        "sha256": "2001c0dc7273fb009ddfa1bff3a4b26afc3b9529a8654d0f6bd3d188279ba394"
+      }
+    ]
+  },
+  "evidenceFiles": [
+    {
+      "path": "correction-local47-restore-local.txt",
+      "sha256": "68e79d610d22d88c796389822f2ab61880ae7d7a8677503b0de81991e1e65db1",
+      "bytes": 3534
+    },
+    {
+      "path": "correction-local47-restore-local.json",
+      "sha256": "e0af9d23b02956520ec55d989253a1898c8106fb6f127d307641aad2f5d7d9d4",
+      "bytes": 1801
+    },
+    {
+      "path": "correction-local47-restore-oidc.txt",
+      "sha256": "b344193f818fe7a7e570276450779ff69c14167b717b07ad3c84c44612425bd9",
+      "bytes": 2512
+    },
+    {
+      "path": "correction-local47-restore-oidc.json",
+      "sha256": "46bcc7b2cb212fc9cc75805ec0994126605af60d114125ba0bfdc0073941cf75",
+      "bytes": 1405
+    },
+    {
+      "path": "correction-local47-workload.json",
+      "sha256": "66f88178d88e9222a84aa615add57f71d487f862020f27e4ac8ae7d37ec834e2",
+      "bytes": 31589
+    },
+    {
+      "path": "correction-local47-sharing-capacity.json",
+      "sha256": "32931b3a1500d9153f90af632492eb0b1652b04040cb357f3e9c261e462e4e49",
+      "bytes": 1415
+    },
+    {
+      "path": "correction-local47-query-proof.json",
+      "sha256": "9ff85173ecd10180f5e84bb98188077836cd5bb5240a2ddfe3b1b45d9428f1e3",
+      "bytes": 6672
+    },
+    {
+      "path": "correction-local47-distribution.json",
+      "sha256": "f5760d7cfda59c07d8faad9bd0197d4a86a04f90292eb9398434ff9169192bdf",
+      "bytes": 25961
+    },
+    {
+      "path": "correction-local47-container-os-advisories.json",
+      "sha256": "e85389671a9719eba38276d139c6a7d5646a7d977af61df5264c5180de7603a1",
+      "bytes": 30978
+    },
+    {
+      "path": "correction-local47-osv-runtime-advisories.json",
+      "sha256": "540730d0bd26dbd717885c196bf4dff96d38d413f3ac0ed6959eba3fe8324f98",
+      "bytes": 21864
+    }
+  ],
+  "unexecuted": [
+    "Manual graphical account-wizard setup",
+    "Physical WebAuthn authenticators",
+    "Additional calendar/task platforms",
+    "Optional NVD scan without a configured feed credential"
+  ],
+  "boundaries": [
+    "Native Thunderbird is an actual headless desktop-provider test, not manual graphical setup.",
+    "Workload measurements are synthetic observations on a shared host, not production capacity or high-availability guarantees.",
+    "Historical failed attempts retain their original scope; they are not relabeled as passes.",
+    "No release tag or container image was published."
+  ]
+}
