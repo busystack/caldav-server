@@ -2606,6 +2606,83 @@ class DavHttpIT {
   }
 
   @Test
+  void queryTimezonesAreValidatedBeforeEnumeratingEmptyCalendar() throws Exception {
+    String calendar = create("empty-query-timezone", "VEVENT");
+    String archived;
+    try (var fixture = getClass().getResourceAsStream("/calendar/audit/future-zone.ics")) {
+      assertThat(fixture).isNotNull();
+      archived = new String(fixture.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    String valid =
+        archived.substring(0, archived.indexOf("BEGIN:VEVENT\r\n")) + "END:VCALENDAR\r\n";
+    String template =
+        query("<C:comp-filter name='VEVENT'/>")
+            .replace(
+                "</C:calendar-query>",
+                "<C:timezone><![CDATA[__TIMEZONE__]]></C:timezone></C:calendar-query>");
+    String selected = "<D:displayname/><C:calendar-timezone/><D:sync-token/>";
+    var before = send("PROPFIND", calendar, propRequest(selected), "Depth", "0");
+    String token = text(before, DavXml.DAV, "sync-token");
+    var control = send("REPORT", calendar, template.replace("__TIMEZONE__", valid), "Depth", "1");
+    assertThat(control.statusCode()).isEqualTo(207);
+    assertThat(principalReportHrefs(control)).isEmpty();
+    for (String invalid :
+        List.of(
+            "not a calendar",
+            valid.replace("UNTIL=20290531T230000Z", "UNTIL=20290531T230000"),
+            valid.replace("UNTIL=20290531T230000Z", "UNTIL=20290531"))) {
+      var failure =
+          send("REPORT", calendar, template.replace("__TIMEZONE__", invalid), "Depth", "1");
+      assertThat(failure.statusCode()).isEqualTo(403);
+      assertThat(xml(failure).getElementsByTagNameNS(DavXml.CAL, "valid-calendar-data").getLength())
+          .isEqualTo(1);
+      assertThat(xml(failure).getElementsByTagNameNS(DavXml.CAL, "valid-filter").getLength())
+          .isZero();
+      var after = send("PROPFIND", calendar, propRequest(selected), "Depth", "0");
+      assertThat(after.body()).isEqualTo(before.body());
+      assertThat(text(after, DavXml.DAV, "sync-token")).isEqualTo(token);
+    }
+    String repeated =
+        template
+            .replace("__TIMEZONE__", valid)
+            .replace(
+                "</C:calendar-query>",
+                "<C:timezone><![CDATA[" + valid + "]]></C:timezone></C:calendar-query>");
+    assertThat(send("REPORT", calendar, repeated, "Depth", "1").statusCode()).isEqualTo(400);
+    String extension =
+        template
+            .replace("__TIMEZONE__", valid)
+            .replace(
+                "</C:calendar-query>",
+                "<X:ignored xmlns:X='urn:audit'><C:timezone>not a calendar</C:timezone></X:ignored></C:calendar-query>");
+    var extended = send("REPORT", calendar, extension, "Depth", "1");
+    assertThat(extended.statusCode()).isEqualTo(207);
+    assertThat(extended.body()).isEqualTo(control.body());
+    String bounded =
+        valid.replace(
+            "BEGIN:VTIMEZONE\r\n", "X-WORK-LIMIT:" + "a".repeat(65536) + "\r\nBEGIN:VTIMEZONE\r\n");
+    var limited = send("REPORT", calendar, template.replace("__TIMEZONE__", bounded), "Depth", "1");
+    assertThat(limited.statusCode()).isEqualTo(507);
+    assertThat(
+            xml(limited)
+                .getElementsByTagNameNS(DavXml.DAV, "number-of-matches-within-limits")
+                .getLength())
+        .isEqualTo(1);
+    assertThat(send("PROPFIND", calendar, propRequest(selected), "Depth", "0").body())
+        .isEqualTo(before.body());
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM calendar_resources r JOIN collections c ON c.id=r.collection_id WHERE c.owner_id=?",
+                Integer.class,
+                alice))
+        .isZero();
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice))
+        .isEqualTo(1);
+  }
+
+  @Test
   void timezonePropertyFailuresKeepCalDavConditionAndAtomicSiblingState() throws Exception {
     String calendar = create("timezone-property-errors", "VEVENT");
     String valid =

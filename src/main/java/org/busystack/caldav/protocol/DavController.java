@@ -693,6 +693,7 @@ final class DavController {
   private ResponseEntity<byte[]> query(
       UUID actor, DavNode node, HttpServletRequest request, Element root) {
     var filter = CalendarQueryXml.filter(root);
+    FloatingTimezone suppliedTimezone = queryTimezone(root);
     var matcher = new CalendarQuery(QueryLimits.defaults());
     var requested = DavProperties.requested(root);
     var document = document();
@@ -702,8 +703,10 @@ final class DavController {
       DavNode candidate = resources.content(actor, metadata);
       if (candidate.kind() == DavNode.Kind.RESOURCE) {
         var timezone =
-            timezones.computeIfAbsent(
-                candidate.collectionId(), id -> timezone(actor, candidate, root));
+            suppliedTimezone != null
+                ? suppliedTimezone
+                : timezones.computeIfAbsent(
+                    candidate.collectionId(), id -> timezone(actor, candidate, null));
         var parsed =
             CalendarContent.parse(
                 candidate.resource().content(), candidate.entry().collection().component());
@@ -712,6 +715,19 @@ final class DavController {
       }
     }
     return xml(207, document);
+  }
+
+  private static FloatingTimezone queryTimezone(Element root) {
+    Element supplied = child(root, CAL, "timezone");
+    if (supplied == null) return null;
+    try {
+      return FloatingTimezone.parse(scalarText(supplied));
+    } catch (QueryException failure) {
+      if (failure.kind() == QueryException.Kind.LIMIT_EXCEEDED) throw failure;
+      throw new DavException(403, c("valid-calendar-data"));
+    } catch (IllegalArgumentException failure) {
+      throw new DavException(403, c("valid-calendar-data"));
+    }
   }
 
   private ResponseEntity<byte[]> multiget(UUID actor, DavNode node, Element root) {
