@@ -9,7 +9,7 @@ import java.util.Map;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.TimeZone;
 import net.fortuna.ical4j.model.TimeZoneRegistry;
-import net.fortuna.ical4j.model.TimeZoneRegistryImpl;
+import net.fortuna.ical4j.model.ZoneRulesProviderImpl;
 import net.fortuna.ical4j.model.component.Observance;
 import net.fortuna.ical4j.model.property.DtStart;
 import net.fortuna.ical4j.model.property.RRule;
@@ -18,7 +18,9 @@ import org.busystack.caldav.calendar.recurrence.WorkBudget;
 
 /** Checks observance work before the library eagerly constructs timezone transition rules. */
 public final class BoundedTimeZoneRegistry implements TimeZoneRegistry {
-  private final TimeZoneRegistryImpl delegate = new TimeZoneRegistryImpl();
+  private final Map<String, TimeZone> timezones = new HashMap<>();
+  private final Map<String, ZoneRules> rules = new HashMap<>();
+  private final Map<String, String> identifiers = new HashMap<>();
   private final WorkBudget budget = new WorkBudget(QueryLimits.defaults());
   private int zones;
   private final Map<String, Instant> coverage = new HashMap<>();
@@ -93,21 +95,25 @@ public final class BoundedTimeZoneRegistry implements TimeZoneRegistry {
       for (var dates : observance.getProperties(Property.RDATE))
         budget.charge(dates.getValue().length());
     }
-    delegate.register(timezone, false);
     var corrected =
-        new org.busystack.caldav.calendar.timezone.Ical4jZoneRulesBuilder()
-            .vTimeZone(timezone.getVTimeZone())
-            .periodEnds(ends)
-            .perpetualAnnual(!bounded)
-            .build();
-    for (var id : delegate.getZoneRules().keySet())
-      if (timezone.getID().equals(delegate.getTzId(id))) {
-        delegate.getZoneRules().put(id, corrected);
-        if (bounded) {
-          coverage.put(id, horizon.toInstant(ZoneOffset.MAX));
-          coverage.put(timezone.getID(), horizon.toInstant(ZoneOffset.MAX));
-        }
-      }
+        new ObservanceZoneRules(budget).build(timezone.getVTimeZone(), ends, horizon, !bounded);
+    // TimeZoneRegistry is the library's extension point. Allocate a registry-local ZoneId without
+    // invoking its eager, wall-clock-selected ZoneRulesBuilder first. Weak registry references in
+    // the provider's bounded id pool retain the ordinary lifecycle and prevent a global-id leak.
+    String id =
+        identifiers.computeIfAbsent(
+            timezone.getID(),
+            ignored ->
+                ZoneRulesProviderImpl.getInstance()
+                    .orElseThrow(QueryException::limit)
+                    .getZoneIdPool()
+                    .allocate(this));
+    timezones.put(timezone.getID(), timezone);
+    rules.put(id, corrected.rules());
+    if (corrected.coverageEnd() != null) {
+      coverage.put(id, corrected.coverageEnd());
+      coverage.put(timezone.getID(), corrected.coverageEnd());
+    }
   }
 
   private LocalDateTime countedEnd(
@@ -154,27 +160,33 @@ public final class BoundedTimeZoneRegistry implements TimeZoneRegistry {
 
   @Override
   public void clear() {
-    delegate.clear();
+    timezones.clear();
     coverage.clear();
   }
 
   @Override
   public TimeZone getTimeZone(String id) {
-    return delegate.getTimeZone(id);
+    return timezones.get(id);
   }
 
   @Override
   public Map<String, ZoneRules> getZoneRules() {
-    return delegate.getZoneRules();
+    return rules;
   }
 
   @Override
   public java.time.ZoneId getZoneId(String id) {
-    return delegate.getZoneId(id);
+    String allocated = identifiers.get(id);
+    if (allocated == null) throw new DateTimeException("Unknown timezone identifier");
+    return ZoneId.of(allocated);
   }
 
   @Override
   public String getTzId(String id) {
-    return delegate.getTzId(id);
+    return identifiers.entrySet().stream()
+        .filter(entry -> entry.getValue().equals(id))
+        .map(Map.Entry::getKey)
+        .findFirst()
+        .orElse(null);
   }
 }

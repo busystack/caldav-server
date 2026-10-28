@@ -56,9 +56,23 @@ public final class CalendarFilter {
     }
 
     public boolean matches(String value) {
-      boolean found =
-          collation.equals("i;octet") ? value.contains(text) : ascii(value).contains(ascii(text));
+      return negate != contains(value);
+    }
+
+    public boolean matchesAny(Iterable<String> values) {
+      boolean found = false;
+      for (String value : values)
+        if (contains(value)) {
+          found = true;
+          break;
+        }
       return negate != found;
+    }
+
+    private boolean contains(String value) {
+      return collation.equals("i;octet")
+          ? value.contains(text)
+          : ascii(value).contains(ascii(text));
     }
   }
 

@@ -5,7 +5,8 @@ public final class CalendarValidationException extends IllegalArgumentException 
   public enum Reason {
     INVALID_DATA,
     INVALID_OBJECT,
-    UNSUPPORTED_COMPONENT
+    UNSUPPORTED_COMPONENT,
+    UNSUPPORTED_RSCALE
   }
 
   private final Reason reason;
@@ -16,6 +17,7 @@ public final class CalendarValidationException extends IllegalArgumentException 
           case INVALID_DATA -> "Calendar data is invalid";
           case INVALID_OBJECT -> "Calendar object resource restrictions were violated";
           case UNSUPPORTED_COMPONENT -> "Calendar component is unsupported by this collection";
+          case UNSUPPORTED_RSCALE -> "Recurrence scale is unsupported by this server";
         });
     this.reason = reason;
   }

@@ -1,15 +1,10 @@
 package org.busystack.caldav.calendar;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.ByteBuffer;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fortuna.ical4j.data.ParserException;
-import net.fortuna.ical4j.data.UnfoldingReader;
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.Property;
@@ -49,13 +44,7 @@ public final class CalendarContent {
     if (bytes.length == 0 || bytes.length > MAX_BYTES)
       throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_DATA);
     try {
-      String text =
-          StandardCharsets.UTF_8
-              .newDecoder()
-              .onMalformedInput(CodingErrorAction.REPORT)
-              .onUnmappableCharacter(CodingErrorAction.REPORT)
-              .decode(ByteBuffer.wrap(bytes))
-              .toString();
+      String text = CalendarParsingInput.decode(bytes);
       CalendarTextProfile.validate(text);
       var calendar = new AtomicReference<Calendar>();
       var registry = new BoundedTimeZoneRegistry();
@@ -65,7 +54,7 @@ public final class CalendarContent {
           new LexicalContentHandler(
               new org.busystack.caldav.calendar.parser.ParsingLimitsHandler(handler));
       new org.busystack.caldav.calendar.parser.Ical4jCalendarParser()
-          .parse(new UnfoldingReader(new StringReader(text)), lexical);
+          .parse(CalendarParsingInput.reader(text), lexical);
       Calendar model = calendar.get();
       if (model == null)
         throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_DATA);
@@ -78,6 +67,7 @@ public final class CalendarContent {
       validateTimezones(model);
       if (model.validate().hasErrors())
         throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_DATA);
+      CalendarConstraints.validate(model, lexical.values(model));
       String uid = null;
       int masters = 0;
       Set<java.time.temporal.Temporal> recurrenceIds = new HashSet<>();
@@ -114,6 +104,7 @@ public final class CalendarContent {
     } catch (IOException | ParserException ex) {
       Throwable nested = ex;
       for (int i = 0; i < 8 && nested != null; i++, nested = nested.getCause()) {
+        if (nested instanceof CalendarValidationException invalid) throw invalid;
         if (nested instanceof org.busystack.caldav.calendar.query.QueryException query) throw query;
       }
       // Library exception messages can contain submitted data; never return or log them.

@@ -9,7 +9,12 @@ import net.fortuna.ical4j.model.*;
 final class LexicalContentHandler
     implements org.busystack.caldav.calendar.parser.ParameterListHandler {
   private static final Set<String> RETAIN =
-      Set.of(Property.DURATION, Property.RDATE, Property.TRIGGER);
+      Set.of(
+          Property.DURATION,
+          Property.RDATE,
+          Property.TRIGGER,
+          Property.CATEGORIES,
+          Property.RESOURCES);
   private final ContentHandler delegate;
   private final List<Frame> frames = new ArrayList<>();
   private final Deque<Frame> stack = new ArrayDeque<>();
@@ -68,6 +73,8 @@ final class LexicalContentHandler
 
   @Override
   public void propertyValue(String value) {
+    if (currentName.equals(Property.CATEGORIES) || currentName.equals(Property.RESOURCES))
+      CalendarTextValues.list(value);
     if (RETAIN.contains(currentName)) stack.peek().values.put(stack.peek().nextProperty, value);
     delegate.propertyValue(value);
   }

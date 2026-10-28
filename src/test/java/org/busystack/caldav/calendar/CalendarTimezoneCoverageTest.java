@@ -116,6 +116,13 @@ class CalendarTimezoneCoverageTest {
               : rule.startsWith(";BYDAY=")
                   ? text.replace(";BYDAY=-1SU", rule)
                   : text.replace(";BYDAY=-1SU", ";BYDAY=-1SU" + rule);
+      if (rule.equals(";BYWEEKNO=13")) {
+        // Different observances must not prescribe conflicting offsets at the same UTC onset.
+        // Keep this a valid unsupported-shape coverage fixture, with separate seasonal weeks.
+        adjusted =
+            adjusted.replace(
+                "BYMONTH=10;BYDAY=-1SU;BYWEEKNO=13", "BYMONTH=10;BYDAY=-1SU;BYWEEKNO=43");
+      }
       var zone =
           FloatingTimezone.parse(
               "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack coverage fixture//EN\r\n"

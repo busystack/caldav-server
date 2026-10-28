@@ -158,8 +158,8 @@ public final class CalendarQuery {
       if (temporal == null || !filter.timeRange().contains(TemporalSupport.instant(temporal, zone)))
         return false;
     }
-    if (filter.textMatch() != null && !filter.textMatch().matches(property.getValue()))
-      return false;
+    if (filter.textMatch() != null
+        && !filter.textMatch().matchesAny(semanticText(parsed, property))) return false;
     for (ParameterFilter parameter : filter.parameters()) {
       var found = property.getParameters(parameter.name());
       if (parameter.notDefined()) {
@@ -173,6 +173,13 @@ public final class CalendarQuery {
                   .noneMatch(parameter.textMatch()::matches)) return false;
     }
     return true;
+  }
+
+  private static Iterable<String> semanticText(CalendarContent.Parsed parsed, Property property) {
+    // A single typed-boundary decode avoids searching escaped serialization or unescaping twice.
+    if (property instanceof Categories || property instanceof Resources)
+      return org.busystack.caldav.calendar.CalendarTextValues.list(parsed.lexicalValue(property));
+    return List.of(property.getValue());
   }
 
   private static List<String> parameterValues(Parameter parameter) {
