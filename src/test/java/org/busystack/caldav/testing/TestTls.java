@@ -56,6 +56,8 @@ public final class TestTls {
           "secp256r1",
           "-ext",
           "bc:c=ca:true",
+          "-ext",
+          "ku:c=keyCertSign,cRLSign",
           "-validity",
           "7",
           "-keystore",

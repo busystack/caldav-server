@@ -1,5 +1,7 @@
 # Security verification checklist
 
+For the later independent standards findings and current developer corrections, use the [single correction record](standards-corrections.md) and its linked evidence. The historical ASVS checklist below does not establish the passkey user-handle check, verified backup-state persistence or protected-resource metadata behavior; those have specific new HTTP/database regressions. The audit did not demonstrate account takeover or protected-calendar-content disclosure.
+
 This is an application-specific applicability and evidence checklist against [OWASP ASVS 5.0.0](https://asvs.owasp.org/), checked against the [versioned official requirements](https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/docs_en/OWASP_Application_Security_Verification_Standard_5.0.0_en.csv) on 2026-10-27. Requirement identifiers below use that exact version. It is not a complete per-requirement assessment, an ASVS level claim or external certification. “Focused evidence” means the named checks passed in the identified recorded runs; it does not pass an entire ASVS chapter. Source `47b3543` passed the clean 169-unit/174-integration suite and all packaged profiles, with zero skipped tests and zero SpotBugs findings; [current CI evidence](../qualification/evidence/correction-ci-final.json) and the [qualification index](../qualification/evidence/README.md) identify exact artifacts and separate local runs. Results from `495989d` remain historical.
 
 | ASVS 5.0.0 reference | Application scope and current evidence | Assessment or remaining work |

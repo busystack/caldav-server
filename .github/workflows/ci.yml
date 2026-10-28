@@ -71,7 +71,7 @@ jobs:
       - name: Verify cross-site organization login and local passkey MFA
         run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc --groups | tee target/oidc-browser-qualification.txt
       - name: Verify HTTPS local account recovery after restoring an older database
-        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups --restore --workload | tee target/https-restore-qualification.txt
+        run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups --restore --clients | tee target/https-restore-qualification.txt
       - name: Verify HTTPS federated recovery against the same real upstream provider
         run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc --groups --restore | tee target/oidc-restore-qualification.txt
       - name: Retain qualification evidence

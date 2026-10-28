@@ -63,6 +63,11 @@ Ordinary CalDAV clients that do not support this OAuth onboarding use a separate
 issued DAV credential with HTTP Basic over HTTPS. CalDAV service discovery does
 not register an OAuth client or make every client OAuth capable.
 
+The optional RFC 9728 protected-resource metadata extension is not advertised or
+implemented. DAV Bearer challenges retain their RFC 6750 error and status
+information without a `resource_metadata` parameter. Authorization-server
+metadata described above remains available; it is a separate protocol endpoint.
+
 ## Manage and revoke access
 
 Users view grant metadata at `/oauth-grants`; tokens are never displayed there.

@@ -1,0 +1,30 @@
+{
+  "baselineRevision": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
+  "branch": "release/v0.0.1",
+  "independentInputsSha256": {
+    "audit-report.txt": "29a39850582f028331724ff1f2207b7f10682a5e005f3dfa1c9617d904eae396",
+    "conformance-matrix.csv": "a45b11df96eb975addd7c512aa395c6b53aa4b704180575a210095f74ffb80de",
+    "audit-evidence.zip": "bf1549d4b968cd3cd85ad9c255d5b95a8f59214c9e362d551fef39eea524bb09"
+  },
+  "freshRecordedDavCalendarRequests": 96,
+  "results": {
+    "CAL-01": "reproduced",
+    "CAL-02": "reproduced",
+    "CAL-03": "reproduced",
+    "CAL-04": "reproduced",
+    "CAL-05": "reproduced",
+    "AUTH-01": "reproduced",
+    "AUTH-02": "reproduced",
+    "AUTH-03": "reproduced",
+    "DAV-01": "reproduced",
+    "DAV-02": "reproduced",
+    "DAV-03": "reproduced",
+    "DAV-04": "reproduced",
+    "DAV-05": "reproduced",
+    "DAV-06": "reproduced",
+    "DAV-07": "reproduced",
+    "DAV-08": "reproduced",
+    "DAV-09": "reproduced"
+  },
+  "fixtureDifference": "Only project-owned TestTls CA critical keyUsage added in a shadow test helper; baseline production classes unchanged. Copied metadata TLS bypass removed; normal strict CA/hostname checks retained. Probe paths regenerated; actual pinned159-entry classpath from fresh Maven test XML. Original input and historical outcomes preserved."
+}

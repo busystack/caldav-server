@@ -22,6 +22,7 @@ http {
         ssl_certificate /tls/server.pem;
         ssl_certificate_key /tls/server.key;
         ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
         add_header X-Request-ID $request_id always;
         location = @@PREFIX@@ { return 308 @@ORIGIN@@@@PREFIX@@/; }
         location = /.well-known/caldav { return 308 @@ORIGIN@@@@PREFIX@@/dav/; }

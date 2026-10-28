@@ -1,0 +1,68 @@
+[
+  {
+    "label": "unshared-resource-get",
+    "method": "GET",
+    "path": "/dav/calendars/8eb08940-c2ff-4060-8954-e77084c9aa20/audit-sync/a.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 403,
+    "headers": {
+      "X-Request-ID": "ee7e3a6c-63c5-4267-8828-83a59472fa9e",
+      "Date": "Wed, 28 Oct 2026 03:54:05 GMT",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "79"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"/>"
+  },
+  {
+    "label": "unshared-resource-options",
+    "method": "OPTIONS",
+    "path": "/dav/calendars/8eb08940-c2ff-4060-8954-e77084c9aa20/audit-sync/a.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "a1fa665a-906f-4350-aaf8-cb8ece6c9c38",
+      "Allow": "OPTIONS, GET, HEAD, PROPFIND, PROPPATCH, REPORT, MKCALENDAR, MKCOL, PUT, DELETE, COPY, MOVE, ACL",
+      "DAV": "1, access-control, calendar-access, sync-collection",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Wed, 28 Oct 2026 03:54:05 GMT"
+    },
+    "body": ""
+  },
+  {
+    "label": "unshared-nonexistent-options",
+    "method": "OPTIONS",
+    "path": "/dav/calendars/8eb08940-c2ff-4060-8954-e77084c9aa20/audit-sync/a.ics-not-present",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "025fcb67-b2ac-466a-9449-c5a02cb76cdf",
+      "Allow": "OPTIONS, GET, HEAD, PROPFIND, PROPPATCH, REPORT, MKCALENDAR, MKCOL, PUT, DELETE, COPY, MOVE, ACL",
+      "DAV": "1, access-control, calendar-access, sync-collection",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Wed, 28 Oct 2026 03:54:05 GMT"
+    },
+    "body": ""
+  }
+]

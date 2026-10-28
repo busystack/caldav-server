@@ -62,12 +62,15 @@ server {
     ssl_certificate /etc/ssl/caldav/fullchain.pem;
     ssl_certificate_key /etc/ssl/caldav/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
     gzip off;
     # Insert the matching root or /calendar locations below.
 }
 ```
 
 Obtain and renew that certificate through your operator's CA/ACME procedure, protect its private key and test renewal before deployment. The application image contains no production certificate or trust bypass. Run the proxy's configuration validation before reloading it.
+
+The TLS 1.2 list permits ephemeral elliptic-curve key exchange with AEAD suites. It excludes static RSA and finite-field DH suites deprecated by RFC 10015; TLS 1.3 uses the runtime's modern TLS 1.3 suites. The embedded listener has the corresponding protocol/cipher allow-list when explicitly enabled with `server.ssl.enabled=true` and configured key material. Its default remains plain loopback HTTP behind the configured TLS terminator. The disposable qualification negotiates TLS 1.2/1.3, rejects obsolete protocol/key-exchange offers, and checks trusted certificate identity, wrong hostname and untrusted CA. These local tests do not qualify an operator's public certificate, DNS or network boundaries.
 
 Configured public and issuer URLs must use canonical ASCII deployment prefixes such as `/calendar`; literal or percent-encoded Unicode prefixes, semicolons and invalid ports are rejected at startup. Unicode names in calendar/resource segments remain supported. The configured path becomes the servlet context and must be preserved by the proxy.
 

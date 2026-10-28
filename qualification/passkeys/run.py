@@ -74,11 +74,16 @@ def main():
     parser.add_argument("--restore", action="store_true", help="Qualify actual HTTPS authentication, content and sync after restoring an older database")
     parser.add_argument("--groups", action="store_true", help="Require the V9 group-management and owner-sharing browser workflow")
     parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
+    parser.add_argument("--clients", action="store_true", help="Run existing Python/native Thunderbird correctness profiles on the packaged server, without performance workload")
     parser.add_argument("--client-python", default=os.environ.get("BUSYSTACK_CLIENT_PYTHON", str(ROOT / ".client-venv/bin/python")))
     parser.add_argument("--workload-output", default=str(ROOT / "target/qualification/workload.json"))
     parser.add_argument("--strict-sync-depth", action="store_true", help="Explicit false override; default qualification leaves the setting absent")
     parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
     args = parser.parse_args()
+    if args.clients and (not args.restore or args.strict_sync_depth):
+        parser.error("--clients requires --restore and the default synchronization compatibility profile")
+    if args.clients and (not Path(args.client_python).is_file() or not os.access(args.thunderbird_binary, os.X_OK)):
+        parser.error("--clients requires the pinned Python environment and native Thunderbird binary")
     if args.workload and args.strict_sync_depth:
         parser.error("Independent client workload requires the default sync accommodation; strict override has its own protocol checks")
     if args.workload and (not args.restore or args.oidc):
@@ -159,6 +164,9 @@ def main():
         environments = [environment.copy()]
         checkpoint = recovery.Checkpoint(ROOT, directory, operations, base, oidc if args.oidc else None, issuer, environments) if args.restore else None
         if checkpoint is not None:
+            if args.clients:
+                checkpoint.clients = {"python": args.client_python, "thunderbird": args.thunderbird_binary,
+                    "image": args.application_image}
             checkpoint.exchange.touch(mode=0o600)
             if args.workload:
                 checkpoint.workload = {"python": args.client_python, "output": args.workload_output, "thunderbird": args.thunderbird_binary}
@@ -179,6 +187,7 @@ def main():
             if args.proxy:
                 operations.compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "reverse-proxy")
             ready(base, directory / "ca.pem", args.proxy)
+            tls.verify_profile(base, directory / "ca.pem")
             if args.proxy:
                 proxy.verify(base, directory / "ca.pem")
             try:

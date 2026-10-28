@@ -1,0 +1,514 @@
+{
+  "submissionType": "developer correction and verification submission for independent re-verification",
+  "status": "verification in progress; no complete release qualification claimed",
+  "branch": "release/v0.0.1",
+  "auditedBaseline": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
+  "originalInputs": {
+    "baselineRevision": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
+    "branch": "release/v0.0.1",
+    "independentInputsSha256": {
+      "audit-report.txt": "29a39850582f028331724ff1f2207b7f10682a5e005f3dfa1c9617d904eae396",
+      "conformance-matrix.csv": "a45b11df96eb975addd7c512aa395c6b53aa4b704180575a210095f74ffb80de",
+      "audit-evidence.zip": "bf1549d4b968cd3cd85ad9c255d5b95a8f59214c9e362d551fef39eea524bb09"
+    },
+    "freshRecordedDavCalendarRequests": 96,
+    "results": {
+      "CAL-01": "reproduced",
+      "CAL-02": "reproduced",
+      "CAL-03": "reproduced",
+      "CAL-04": "reproduced",
+      "CAL-05": "reproduced",
+      "AUTH-01": "reproduced",
+      "AUTH-02": "reproduced",
+      "AUTH-03": "reproduced",
+      "DAV-01": "reproduced",
+      "DAV-02": "reproduced",
+      "DAV-03": "reproduced",
+      "DAV-04": "reproduced",
+      "DAV-05": "reproduced",
+      "DAV-06": "reproduced",
+      "DAV-07": "reproduced",
+      "DAV-08": "reproduced",
+      "DAV-09": "reproduced"
+    },
+    "fixtureDifference": "Only project-owned TestTls CA critical keyUsage added in a shadow test helper; baseline production classes unchanged. Copied metadata TLS bypass removed; normal strict CA/hostname checks retained. Probe paths regenerated; actual pinned159-entry classpath from fresh Maven test XML. Original input and historical outcomes preserved."
+  },
+  "environment": {
+    "java": "Eclipse Temurin25.0.4.1+1",
+    "maven": "3.9.12",
+    "springBoot": "4.1.2",
+    "springSecurity": "7.1.2",
+    "ical4j": "4.4.0",
+    "postgresql": "18.6",
+    "pythonCaldav": "3.6.0",
+    "thunderbird": "157.0.1",
+    "preexistingServices": "Unrelated PostgreSQL, ADS catalog, website and unrelated Maven container were preserved. New fixtures use Testcontainers or uniquely named Compose projects."
+  },
+  "scopeDistinctions": {
+    "originalFindingSeverityCounts": {
+      "High": 1,
+      "Medium": 11,
+      "Low": 5
+    },
+    "notDemonstratedByAudit": [
+      "account takeover",
+      "protected calendar-content disclosure",
+      "permanent alteration of stored authoritative calendar bytes"
+    ],
+    "approvedDepthCompatibility": "Default Depth1 only for sync-collection with sync-level1; standard Depth0 and strict override retained.",
+    "davAuthenticationProfile": "HTTPS revocable DAV credentials and Bearer; historical Digest deviation retained.",
+    "thirdPartySources": "Existing copied parser and timezone builder unchanged; no dependencies or base-image pins changed."
+  },
+  "findings": {
+    "CAL-04": {
+      "originalSeverity": "High",
+      "originalTitle": "Future VTIMEZONE era produces wrong UTC instants, query omissions and busy periods",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "CalendarAuditCorrectionsTest",
+        "CalendarAuditAtomicityIT",
+        "DavHttpIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "CAL-01": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Invalid VEVENT, VTODO and RRULE data accepted and persisted",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "CalendarAuditCorrectionsTest",
+        "CalendarAuditAtomicityIT",
+        "DavHttpIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "CAL-02": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Valid case-insensitive calendar delimiters rejected",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "CalendarAuditCorrectionsTest",
+        "CalendarAuditAtomicityIT",
+        "DavHttpIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "CAL-03": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Escaped CATEGORIES text produces false-negative calendar queries",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "CalendarAuditCorrectionsTest",
+        "CalendarAuditAtomicityIT",
+        "DavHttpIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "CAL-05": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Generated free/busy has duplicate DTSTAMP",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "AUTH-01": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Anonymous passkey assertions accept absent or unrelated userHandle",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "4161cddbd1955835fb3510870ad1e39f0524967d",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "PasskeyHttpIT",
+        "PasskeyRestartIT",
+        "OAuthHttpIT",
+        "OidcBoundaryIT",
+        "SecurityBoundaryIT",
+        "PasskeyPersistenceIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "AUTH-03": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Bearer challenge advertises unavailable protected-resource metadata",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "4161cddbd1955835fb3510870ad1e39f0524967d",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "PasskeyHttpIT",
+        "PasskeyRestartIT",
+        "OAuthHttpIT",
+        "OidcBoundaryIT",
+        "SecurityBoundaryIT",
+        "PasskeyPersistenceIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-01": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Harmless XML command/filter extensions rejected",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-02": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Abstract privileges accepted/reported inconsistently with ACL rules",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-03": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Required DAV:group and owner propname ACL discovery missing",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-04": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Report-capable home/resource targets lack supported collations property",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-05": {
+      "originalSeverity": "Medium",
+      "originalTitle": "Resource OPTIONS bypasses read authorization; generic capabilities only",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "AUTH-02": {
+      "originalSeverity": "Low",
+      "originalTitle": "Verified passkey assertion does not update credential backup state",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "4161cddbd1955835fb3510870ad1e39f0524967d",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "PasskeyHttpIT",
+        "PasskeyRestartIT",
+        "OAuthHttpIT",
+        "OidcBoundaryIT",
+        "SecurityBoundaryIT",
+        "PasskeyPersistenceIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-06": {
+      "originalSeverity": "Low",
+      "originalTitle": "Invalid calendar-timezone returns wrong precondition QName",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-07": {
+      "originalSeverity": "Low",
+      "originalTitle": "Nonempty MKCALENDAR without mandatory DAV:set accepted",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-08": {
+      "originalSeverity": "Low",
+      "originalTitle": "405 Allow and context-specific DAV error contracts omitted",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    },
+    "DAV-09": {
+      "originalSeverity": "Low",
+      "originalTitle": "Report-only calendar-data returned as a PROPFIND property",
+      "disposition": "implemented; final verification pending",
+      "baselineEvidence": "baseline/summary.json and linked request/response records",
+      "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
+      "verifiedSourceRevision": null,
+      "regressionTests": [
+        "DavHttpIT",
+        "DavXmlTest",
+        "CalendarStoreIT"
+      ],
+      "independentOutcome": null,
+      "remainingLimitations": []
+    }
+  },
+  "executions": [
+    {
+      "id": "baseline-source-build",
+      "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current /tmp/busystack-tools/maven/bin/mvn -o -B -ntp -Dtest=DavPathsTest test",
+      "cwd": "/tmp/busystack-corrections/baseline/source",
+      "sourceRevision": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
+      "result": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "baseline/classpath-build.txt"
+    },
+    {
+      "id": "independent-baseline",
+      "commands": "Original path-adapted probes in the archived REPRODUCE.txt order; isolated timezone calendar, signed HTTP WebAuthn, method-level verified-BS, metadata",
+      "sourceRevision": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
+      "result": "All17 finding groups reproduced. 96 recorded DAV/calendar requests, separate authentication probes. Defective outcomes preserved.",
+      "evidence": "baseline/summary.json"
+    },
+    {
+      "id": "integrated-unit-checkpoint",
+      "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current ./mvnw -B -ntp spotless:apply test",
+      "sourceRevision": "working-tree corrections before final additional H01/H04 boundary cases",
+      "result": {
+        "tests": 242,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/integrated-unit.log"
+    },
+    {
+      "id": "qualification-python-fixtures",
+      "command": "python3 -m unittest discover -s qualification/passkeys -p 'test_*.py'",
+      "result": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/python-fixture-tests.txt"
+    },
+    {
+      "id": "distribution-python-fixtures",
+      "command": "python3 -m unittest discover -s qualification/distribution -p 'test_*.py'",
+      "result": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/distribution-tests.txt"
+    },
+    {
+      "id": "final-targeted-unit",
+      "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current MAVEN_OPTS=-Xmx768m ./mvnw -B -ntp spotless:apply test -Dtest=CalendarAuditCorrectionsTest,DavXmlTest,PasskeyCeremonyGuardTest,DavBearerAuthenticationEntryPointTest",
+      "result": {
+        "tests": 129,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/final-targeted-unit.log",
+      "qualification": "Final current implementation and test bytes, before coherent commit recording; full clean verify remains required."
+    }
+  ],
+  "failedAndSupersededAttempts": [],
+  "artifacts": {},
+  "remote": {},
+  "remainingVerification": [
+    "Final clean verify and exact counts",
+    "Original independent corrected probes",
+    "Actual packaged deployment/root/prefix/TLS/clients/recovery profiles",
+    "Remote SHA and CI outcome",
+    "Operator production DNS/certificates/network boundaries unavailable",
+    "Physical authenticators and optional authenticator extensions not exercised"
+  ],
+  "evidenceLocations": {
+    "independentOriginals": "/home/albert/busystack/caldav-server-audit",
+    "extractedWorkingCopy": "/home/albert/busystack/caldav-server-audit/correction-work-20261027",
+    "scratchLogs": "/tmp/busystack-corrections",
+    "maintainedRecord": "docs/standards-corrections.md",
+    "derivedMatrix": "qualification/evidence/standards-corrections/matrix-dispositions.csv"
+  },
+  "fixCommits": {
+    "calendar": "00bedd0891c0c6809fab941a1151e194a1c9f413",
+    "authentication": "4161cddbd1955835fb3510870ad1e39f0524967d",
+    "dav": "46d86871c11323087603104341eee72f5537b62c"
+  },
+  "focusedAuthenticationResults": {
+    "scope": "Authentication developer correction focused verification; final integrated source/artifact/CI qualification is recorded by root",
+    "fresh_successes": [
+      {
+        "class": "PasskeyHttpIT",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused7.log",
+        "reports": "auth-checkpoint7-reports"
+      },
+      {
+        "class": "PasskeyRestartIT",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-restart-final.log",
+        "reports": "auth-restart-final-reports"
+      },
+      {
+        "class": "OAuthHttpIT",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused6.log",
+        "reports": "auth-checkpoint6-reports"
+      },
+      {
+        "class": "OidcBoundaryIT",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused5.log",
+        "reports": "auth-checkpoint5-reports"
+      },
+      {
+        "class": "SecurityBoundaryIT",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused3.log",
+        "reports": "auth-checkpoint3-reports"
+      },
+      {
+        "class": "PasskeyPersistenceIT",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused3.log",
+        "reports": "auth-checkpoint3-reports"
+      },
+      {
+        "class": "DavBearerAuthenticationEntryPointTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused6.log"
+      },
+      {
+        "class": "PasskeyCeremonyGuardTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log": "auth-focused6.log"
+      }
+    ],
+    "intermediate_failures_preserved": [
+      "auth-focused.log",
+      "auth-focused2.log",
+      "auth-focused3.log",
+      "auth-focused4.log",
+      "auth-focused5.log",
+      "auth-focused6.log",
+      "auth-registration-redirect.log"
+    ],
+    "limits": [
+      "Older unchanged-path focused results are identified per log and do not substitute for final integrated clean verify.",
+      "No public production TLS/DNS/operator proxy or physical authenticator verification.",
+      "Configured RS256 OIDC path tested; no universal JOSE/optional authenticator extension claim.",
+      "Additional-audience trust policy scope is explicit in AUTH-R078/R085; no exploit inferred."
+    ],
+    "fixture_cleanup": {
+      "application_child": "exit asserted by test; normal graceful shutdown in auth-process-restart-final-child.log",
+      "postgres": "92a61d2a2f56 removed; scoped docker ps -a filter empty",
+      "ryuk": "55ab6bbcb44f removed; scoped docker ps -a filter empty"
+    }
+  }
+}

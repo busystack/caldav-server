@@ -1,6 +1,6 @@
 # Dependency and distribution baseline
 
-Baseline verified on 2026-10-27 and retained through qualified source `47b3543`. The clean 169-unit/174-integration suite, packaged root/proxy/Keycloak/default/strict profiles, independent clients, upgrades and restoration passed in the [actual CI record](../qualification/evidence/correction-ci-final.json); local artifact/measurement records are distinguished in the [qualification index](../qualification/evidence/README.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately. No dependency or base-image pin changed during this correction pass.
+Historical baseline verified on 2026-10-27 and retained through qualified source `47b3543`. Fresh evidence for the independent standards corrections is maintained in the [correction submission](standards-corrections.md). The clean 169-unit/174-integration suite, packaged root/proxy/Keycloak/default/strict profiles, independent clients, upgrades and restoration passed in the [actual CI record](../qualification/evidence/correction-ci-final.json); local artifact/measurement records are distinguished in the [qualification index](../qualification/evidence/README.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately. No dependency or base-image pin changed during this correction pass.
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ Baseline verified on 2026-10-27 and retained through qualified source `47b3543`.
 
 The Boot dependency-management baseline selects framework versions together. No Spring Framework or Spring Security version is independently overridden. Boot 4.1.2 supports Java 17 through 27 and Servlet 6.1; Java 25 is the application toolchain requirement. Java's LTS classification follows the [Java support roadmap](https://www.oracle.com/java/technologies/java-se-support-roadmap.html).
 
-The required BSD-licensed iCal4j source corrections, provenance, exact changes and tests are recorded in [parser patch](ical4j-parser-patch.md) and [timezone patch](ical4j-timezone-patch.md).
+The pre-existing BSD-licensed iCal4j source adaptations, provenance and notices remain recorded in [parser patch](ical4j-parser-patch.md) and [timezone patch](ical4j-timezone-patch.md). Those copied sources are unchanged by the independent-audit corrections. Current structural parsing and chronological timezone interpretation use independently implemented application adapters through supported APIs; see [calendar semantics](calendar-semantics.md).
 
 The Maven JVM timezone is pinned to UTC in `.mvn/jvm.config`, using the [supported Maven JVM options file](https://maven.apache.org/configure.html#jvm-options). Spring Boot 4.1.2 repackage otherwise emitted timezone-dependent NTFS extra timestamp fields despite a fixed `project.build.outputTimestamp`: the host UTC−07 and container UTC JARs had identical entry bytes/order but different ZIP metadata. UTC removes that environment difference without modifying archive bytes with a custom tool. Exact final host/container SHA256 comparison belongs to the packaged qualification record.
 

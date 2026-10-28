@@ -103,27 +103,24 @@ class IndependentClientIT {
       String desktop =
           System.getProperty(
               "busystack.thunderbird-binary", System.getenv("BUSYSTACK_THUNDERBIRD_BINARY"));
-      if (desktop == null || desktop.isBlank()) {
-        Files.writeString(
-            Path.of("target/qualification/thunderbird.json"),
-            "{\"client\":\"Thunderbird\",\"status\":\"unexecuted\",\"reason\":\"BUSYSTACK_THUNDERBIRD_BINARY was not configured\"}\n");
-      } else {
-        assertThat(Files.isExecutable(Path.of(desktop)))
-            .as("Configured Thunderbird prerequisite")
-            .isTrue();
-        builder.command(python, "qualification/clients/thunderbird.py");
-        builder.environment().put("BUSYSTACK_THUNDERBIRD_BINARY", desktop);
-        var desktopProcess = builder.start();
-        boolean desktopFinished = desktopProcess.waitFor(360, TimeUnit.SECONDS);
-        if (!desktopFinished) desktopProcess.destroyForcibly();
-        assertThat(desktopFinished).as("Desktop-client qualification timed out").isTrue();
-        String desktopResult = Files.readString(output);
-        assertThat(desktopProcess.exitValue())
-            .withFailMessage("Desktop-client qualification failed:%n%s", desktopResult)
-            .isZero();
-        assertThat(desktopResult).contains("\"status\": \"passed\"", "\"client\": \"Thunderbird\"");
-        Files.writeString(Path.of("target/qualification/thunderbird.json"), desktopResult);
-      }
+      assertThat(desktop)
+          .as("Required native Thunderbird prerequisite: configure BUSYSTACK_THUNDERBIRD_BINARY")
+          .isNotBlank();
+      assertThat(Files.isExecutable(Path.of(desktop)))
+          .as("Configured Thunderbird prerequisite")
+          .isTrue();
+      builder.command(python, "qualification/clients/thunderbird.py");
+      builder.environment().put("BUSYSTACK_THUNDERBIRD_BINARY", desktop);
+      var desktopProcess = builder.start();
+      boolean desktopFinished = desktopProcess.waitFor(360, TimeUnit.SECONDS);
+      if (!desktopFinished) desktopProcess.destroyForcibly();
+      assertThat(desktopFinished).as("Desktop-client qualification timed out").isTrue();
+      String desktopResult = Files.readString(output);
+      assertThat(desktopProcess.exitValue())
+          .withFailMessage("Desktop-client qualification failed:%n%s", desktopResult)
+          .isZero();
+      assertThat(desktopResult).contains("\"status\": \"passed\"", "\"client\": \"Thunderbird\"");
+      Files.writeString(Path.of("target/qualification/thunderbird.json"), desktopResult);
     } finally {
       Files.deleteIfExists(secret);
       Files.deleteIfExists(output);
