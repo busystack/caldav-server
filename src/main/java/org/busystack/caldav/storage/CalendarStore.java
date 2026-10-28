@@ -113,6 +113,14 @@ public class CalendarStore {
           StoreException.Kind.FORBIDDEN, StoreException.RequiredAccess.OWNER, c.id());
     if (actor.equals(member))
       throw new IllegalArgumentException("Owner permissions cannot be replaced");
+    var previous =
+        jdbc.queryForList(
+            "SELECT permission FROM collection_members WHERE collection_id=? AND account_id=?",
+            String.class,
+            collection,
+            member);
+    if (java.util.Objects.equals(permission, previous.isEmpty() ? null : previous.getFirst()))
+      return;
     if (permission == null)
       jdbc.update(
           "DELETE FROM collection_members WHERE collection_id=? AND account_id=?",

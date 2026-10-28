@@ -12,10 +12,15 @@ import org.springframework.stereotype.Service;
 final class DavResources {
   private final DavStore store;
   private final CalendarStore calendars;
+  private final DavPaths paths;
 
-  DavResources(DavStore store, CalendarStore calendars) {
+  DavResources(
+      DavStore store,
+      CalendarStore calendars,
+      org.busystack.caldav.config.DeploymentProperties deployment) {
     this.store = store;
     this.calendars = calendars;
+    this.paths = new DavPaths(deployment);
   }
 
   DavNode resolve(UUID actor, List<String> parts) {
@@ -35,7 +40,9 @@ final class DavResources {
     if (!parts.getFirst().equals("calendars")) throw new DavException(404, null);
     if (parts.size() == 1) return new DavNode(parts, DavNode.Kind.CALENDARS, actor, null, null);
     UUID home = uuid(parts.get(1));
-    if (!home.equals(actor)) throw new DavException(403, null);
+    if (!home.equals(actor))
+      throw new DavException(
+          403, DavXml.d("need-privileges"), paths.href(parts, parts.size() == 2), DavXml.d("read"));
     if (parts.size() == 2) return new DavNode(parts, DavNode.Kind.HOME, home, null, null);
     String relative = String.join("/", parts.subList(2, parts.size()));
     try {
@@ -64,7 +71,9 @@ final class DavResources {
       return resolve(actor, parts);
     } catch (StoreException unavailable) {
       if (unavailable.kind() == StoreException.Kind.NOT_FOUND) throw new DavException(404, null);
-      if (unavailable.kind() == StoreException.Kind.FORBIDDEN) throw new DavException(403, null);
+      if (unavailable.kind() == StoreException.Kind.FORBIDDEN)
+        throw new DavException(
+            403, DavXml.d("need-privileges"), paths.href(parts, false), DavXml.d("read"));
       throw unavailable;
     }
   }

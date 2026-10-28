@@ -650,8 +650,7 @@ class DavHttpIT {
       assertThat(xml(response).getElementsByTagNameNS("DAV:", "write-acl").getLength()).isZero();
     }
     var resource = send("PROPFIND", calendar + "one.ics", current, "Depth", "0");
-    assertThat(xml(resource).getElementsByTagNameNS("DAV:", "write-content").getLength())
-        .isEqualTo(1);
+    assertThat(xml(resource).getElementsByTagNameNS("DAV:", "write-content").getLength()).isZero();
     assertThat(xml(resource).getElementsByTagNameNS("DAV:", "write-acl").getLength()).isZero();
     assertThat(xml(resource).getElementsByTagNameNS("DAV:", "bind").getLength()).isZero();
     var collection = send("PROPFIND", calendar, current, "Depth", "0");
@@ -2222,5 +2221,1021 @@ class DavHttpIT {
     assertThat(DavXml.required(propstat, "DAV:", "status").getTextContent())
         .isEqualTo("HTTP/1.1 200 OK");
     assertThat(result.getElementsByTagNameNS("DAV:", "sync-token").getLength()).isEqualTo(1);
+  }
+
+  private int propertyStatus(HttpResponse<String> response, String namespace, String local) {
+    for (Element item : DavXml.children(xml(response)))
+      if (DavXml.is(item, DavXml.DAV, "response"))
+        for (Element propstat : DavXml.children(item, DavXml.DAV, "propstat"))
+          if (DavXml.child(DavXml.required(propstat, DavXml.DAV, "prop"), namespace, local) != null)
+            return Integer.parseInt(
+                DavXml.required(propstat, DavXml.DAV, "status").getTextContent().split(" ")[1]);
+    throw new AssertionError("Property status missing: " + namespace + local);
+  }
+
+  private String propRequest(String body) {
+    return "<D:propfind xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav'><D:prop>"
+        + body
+        + "</D:prop></D:propfind>";
+  }
+
+  private String aclGrant(UUID principal, String grants) {
+    return "<D:ace><D:principal><D:href>https://calendar.example/team/dav/principals/"
+        + principal
+        + "/</D:href></D:principal><D:grant>"
+        + grants
+        + "</D:grant></D:ace>";
+  }
+
+  private String aclBody(String aces) {
+    return "<D:acl xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:X='urn:audit'>"
+        + aces
+        + "</D:acl>";
+  }
+
+  @Test
+  void commandExtensionsAreIgnoredAsWholeSubtreesWithoutLosingDeadXml() throws Exception {
+    String calendar = create("xml-extensions", "VEVENT");
+    send("PUT", calendar + "one.ics", event("xml-extensions", "One"));
+    String set =
+        "<D:set><D:prop><X:kept xml:lang='ja'>before<X:mixed a='v'/>after</X:kept></D:prop></D:set>";
+    String normal =
+        "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:audit'>" + set + "</D:propertyupdate>";
+    String extension =
+        normal.replace(
+            "</D:propertyupdate>",
+            "<X:ignored><D:set><D:prop><X:smuggled>bad</X:smuggled></D:prop></D:set></X:ignored></D:propertyupdate>");
+    assertThat(send("PROPPATCH", calendar, normal).statusCode()).isEqualTo(207);
+    assertThat(send("PROPPATCH", calendar, extension).statusCode()).isEqualTo(207);
+    var values =
+        send(
+            "PROPFIND",
+            calendar,
+            propRequest("<X:kept xmlns:X='urn:audit'/><X:smuggled xmlns:X='urn:audit'/>"),
+            "Depth",
+            "0");
+    assertThat(propertyStatus(values, "urn:audit", "kept")).isEqualTo(200);
+    assertThat(propertyStatus(values, "urn:audit", "smuggled")).isEqualTo(404);
+    assertThat(values.body()).contains("before", "after", "xml:lang=\"ja\"", "a=\"v\"");
+    String base = query("<C:comp-filter name='VEVENT'/>");
+    String added =
+        base.replace(
+            "<C:comp-filter name='VEVENT'/>",
+            "<C:comp-filter name='VEVENT' xmlns:X='urn:audit' X:ignored='yes'><X:ignored><C:comp-filter name='VTODO'/></X:ignored></C:comp-filter>");
+    assertThat(principalReportHrefs(send("REPORT", calendar, added, "Depth", "1")))
+        .isEqualTo(principalReportHrefs(send("REPORT", calendar, base, "Depth", "1")));
+    String selector =
+        "<C:comp name='VCALENDAR'><C:comp name='VEVENT'><C:prop name='UID'/></C:comp></C:comp>";
+    String projection =
+        base.replace("<C:calendar-data/>", "<C:calendar-data>" + selector + "</C:calendar-data>");
+    String extraSelector =
+        selector.replace(
+            "</C:comp></C:comp>",
+            "<X:ignored xmlns:X='urn:audit'><C:prop name='SUMMARY'/></X:ignored></C:comp></C:comp>");
+    assertThat(
+            text(
+                send("REPORT", calendar, projection.replace(selector, extraSelector), "Depth", "1"),
+                DavXml.CAL,
+                "calendar-data"))
+        .isEqualTo(
+            text(send("REPORT", calendar, projection, "Depth", "1"), DavXml.CAL, "calendar-data"));
+    String read = aclGrant(bob, "<D:privilege><D:read/></D:privilege>");
+    String ignoredWrite =
+        "<X:ignored>"
+            + aclGrant(
+                bob, "<D:privilege><D:read/></D:privilege><D:privilege><D:write/></D:privilege>")
+            + "</X:ignored>";
+    assertThat(send("ACL", calendar, aclBody(read + ignoredWrite)).statusCode()).isEqualTo(200);
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='xml-extensions'",
+            UUID.class,
+            alice);
+    assertThat(
+            sendAs("PUT", "/calendars/" + bob + "/" + id + "/bad.ics", event("bad", "Bad"), bobAuth)
+                .statusCode())
+        .isEqualTo(403);
+    String search =
+        "<D:principal-search-property-set xmlns:D='DAV:' xmlns:X='urn:audit' X:ignored='yes'><X:ignored><D:property-search/></X:ignored></D:principal-search-property-set>";
+    assertThat(send("REPORT", "/principals/", search, "Depth", "0").statusCode()).isEqualTo(200);
+    assertThat(send("REPORT", "/principals/", search, "Depth", "0", "Depth", "1").statusCode())
+        .isEqualTo(400);
+
+    String expanded =
+        "<D:expand-property xmlns:D='DAV:' xmlns:X='urn:audit'><D:property name='owner'><X:ignored><D:property name='acl'/></X:ignored><D:property name='displayname'/></D:property><X:ignored><D:property name='calendar-data' namespace='urn:ietf:params:xml:ns:caldav'/></X:ignored></D:expand-property>";
+    var expansion = send("REPORT", calendar, expanded, "Depth", "0");
+    assertThat(expansion.statusCode()).isEqualTo(207);
+    assertThat(expansion.body())
+        .contains("Alice &amp; Calendar")
+        .doesNotContain("calendar-data", "<D:acl>");
+    var duplicate = send("PROPPATCH", calendar, normal.replace("<D:set>", "<D:set><D:prop/>"));
+    assertThat(duplicate.statusCode()).isEqualTo(400);
+  }
+
+  @Test
+  void abstractAclGrantsFailAtomicallyAndEffectivePrivilegesAreNonabstract() throws Exception {
+    String calendar = create("model", "VEVENT");
+    send("PUT", calendar + "one.ics", event("model", "One"));
+    String read = aclGrant(bob, "<D:privilege><D:read/></D:privilege>");
+    assertThat(send("ACL", calendar, aclBody(read)).statusCode()).isEqualTo(200);
+    String before =
+        text(
+            send("PROPFIND", calendar, propRequest("<D:sync-token/>"), "Depth", "0"),
+            DavXml.DAV,
+            "sync-token");
+    for (String abstractName :
+        List.of(
+            "read-current-user-privilege-set",
+            "write-properties",
+            "bind",
+            "unbind",
+            "C:read-free-busy")) {
+      String element = abstractName.startsWith("C:") ? abstractName : "D:" + abstractName;
+      var failure =
+          send(
+              "ACL",
+              calendar,
+              aclBody(
+                  aclGrant(
+                      bob,
+                      "<D:privilege><D:read/></D:privilege><D:privilege><"
+                          + element
+                          + "/></D:privilege>")));
+      assertThat(failure.statusCode()).isEqualTo(403);
+      assertThat(xml(failure).getElementsByTagNameNS(DavXml.DAV, "no-abstract").getLength())
+          .isEqualTo(1);
+    }
+    assertThat(
+            text(
+                send("PROPFIND", calendar, propRequest("<D:sync-token/>"), "Depth", "0"),
+                DavXml.DAV,
+                "sync-token"))
+        .isEqualTo(before);
+    assertThat(send("ACL", calendar, aclBody(read)).statusCode()).isEqualTo(200);
+    assertThat(
+            text(
+                send("PROPFIND", calendar, propRequest("<D:sync-token/>"), "Depth", "0"),
+                DavXml.DAV,
+                "sync-token"))
+        .isEqualTo(before);
+    assertThat(send("MKCOL", home + "ordinary-model/", "").statusCode()).isEqualTo(201);
+    for (String path :
+        List.of(
+            "/",
+            "/principals/",
+            "/principals/" + alice + "/",
+            home,
+            home + "ordinary-model/",
+            calendar,
+            calendar + "one.ics")) {
+      var response =
+          send(
+              "PROPFIND",
+              path,
+              propRequest("<D:supported-privilege-set/><D:current-user-privilege-set/>"),
+              "Depth",
+              "0");
+      assertNonabstractEffectivePrivileges(xml(response), true);
+    }
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='model'", UUID.class, alice);
+    String shared = "/calendars/" + bob + "/" + id + "/";
+    assertNonabstractEffectivePrivileges(
+        xml(
+            sendAs(
+                "PROPFIND",
+                shared,
+                propRequest("<D:supported-privilege-set/><D:current-user-privilege-set/>"),
+                bobAuth,
+                "Depth",
+                "0")),
+        false);
+    assertThat(
+            send(
+                    "ACL",
+                    calendar,
+                    aclBody(
+                        aclGrant(
+                            bob,
+                            "<D:privilege><D:read/></D:privilege><D:privilege><D:write/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    var writer =
+        sendAs(
+            "PROPFIND",
+            shared + "one.ics",
+            propRequest("<D:supported-privilege-set/><D:current-user-privilege-set/>"),
+            bobAuth,
+            "Depth",
+            "0");
+    assertNonabstractEffectivePrivileges(xml(writer), false);
+    assertThat(xml(writer).getElementsByTagNameNS(DavXml.DAV, "write").getLength())
+        .isGreaterThan(1);
+    UUID group =
+        groupDirectory.create(groupAdministrator(), "ACL model group", java.util.Set.of("bob"));
+    assertThat(
+            send("ACL", calendar, aclBody(aclGrant(group, "<D:privilege><D:read/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    assertNonabstractEffectivePrivileges(
+        xml(
+            sendAs(
+                "PROPFIND",
+                shared,
+                propRequest("<D:supported-privilege-set/><D:current-user-privilege-set/>"),
+                bobAuth,
+                "Depth",
+                "0")),
+        false);
+    assertThat(
+            send(
+                    "ACL",
+                    calendar,
+                    aclBody(
+                        aclGrant(
+                            group,
+                            "<D:privilege><D:read/></D:privilege><D:privilege><D:write/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    assertNonabstractEffectivePrivileges(
+        xml(
+            sendAs(
+                "PROPFIND",
+                shared + "one.ics",
+                propRequest("<D:supported-privilege-set/><D:current-user-privilege-set/>"),
+                bobAuth,
+                "Depth",
+                "0")),
+        false);
+  }
+
+  private void assertNonabstractEffectivePrivileges(Element root, boolean owner) {
+    var supported = root.getElementsByTagNameNS(DavXml.DAV, "supported-privilege");
+    java.util.Set<javax.xml.namespace.QName> nonabstract = new java.util.HashSet<>();
+    for (int i = 0; i < supported.getLength(); i++) {
+      Element privilege = (Element) supported.item(i);
+      if (DavXml.child(privilege, DavXml.DAV, "abstract") == null)
+        nonabstract.add(
+            DavXml.name(
+                DavXml.children(DavXml.required(privilege, DavXml.DAV, "privilege")).getFirst()));
+    }
+    Element current =
+        (Element) root.getElementsByTagNameNS(DavXml.DAV, "current-user-privilege-set").item(0);
+    java.util.Set<javax.xml.namespace.QName> actual = new java.util.HashSet<>();
+    for (Element privilege : DavXml.children(current, DavXml.DAV, "privilege"))
+      actual.add(DavXml.name(DavXml.children(privilege).getFirst()));
+    assertThat(nonabstract).containsAll(actual);
+    assertThat(actual.contains(DavXml.d("all"))).isEqualTo(owner);
+  }
+
+  @Test
+  void propertyInventoriesAndQueryCollationsRespectVisibilityAndReportContext() throws Exception {
+    String calendar = create("property-inventory", "VEVENT");
+    send("PUT", calendar + "one.ics", event("property-inventory", "One"));
+    assertThat(send("MKCOL", home + "property-folder/", "").statusCode()).isEqualTo(201);
+    for (String path : List.of(home, home + "property-folder/", calendar, calendar + "one.ics")) {
+      var response =
+          send(
+              "PROPFIND",
+              path,
+              propRequest("<D:group/><D:supported-report-set/><C:supported-collation-set/>"),
+              "Depth",
+              "0");
+      assertThat(propertyStatus(response, DavXml.DAV, "group")).isEqualTo(200);
+      assertThat(propertyStatus(response, DavXml.CAL, "supported-collation-set")).isEqualTo(200);
+      assertThat(response.body()).contains("calendar-query", "i;ascii-casemap", "i;octet");
+    }
+    var names =
+        send(
+            "PROPFIND",
+            calendar,
+            "<D:propfind xmlns:D='DAV:'><D:propname/></D:propfind>",
+            "Depth",
+            "0");
+    assertThat(xml(names).getElementsByTagNameNS(DavXml.DAV, "acl").getLength()).isEqualTo(1);
+    assertThat(xml(names).getElementsByTagNameNS(DavXml.DAV, "group").getLength()).isEqualTo(1);
+    assertThat(xml(names).getElementsByTagNameNS(DavXml.CAL, "calendar-data").getLength()).isZero();
+    var all =
+        send(
+            "PROPFIND",
+            calendar,
+            "<D:propfind xmlns:D='DAV:'><D:allprop/></D:propfind>",
+            "Depth",
+            "0");
+    assertThat(xml(all).getElementsByTagNameNS(DavXml.DAV, "acl").getLength()).isZero();
+    assertThat(xml(all).getElementsByTagNameNS(DavXml.DAV, "sync-token").getLength()).isZero();
+    var data =
+        send("PROPFIND", calendar + "one.ics", propRequest("<C:calendar-data/>"), "Depth", "0");
+    assertThat(propertyStatus(data, DavXml.CAL, "calendar-data")).isEqualTo(404);
+    assertThat(data.body()).doesNotContain("BEGIN:VCALENDAR");
+    for (String property : List.of("<D:group/>", "<C:supported-collation-set/>")) {
+      var protectedWrite =
+          send(
+              "PROPPATCH",
+              calendar,
+              "<D:propertyupdate xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav'><D:set><D:prop>"
+                  + property
+                  + "</D:prop></D:set></D:propertyupdate>");
+      assertThat(protectedWrite.body()).contains("cannot-modify-protected-property");
+    }
+    assertThat(
+            send("ACL", calendar, aclBody(aclGrant(bob, "<D:privilege><D:read/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='property-inventory'",
+            UUID.class,
+            alice);
+    String shared = "/calendars/" + bob + "/" + id + "/";
+    var readerNames =
+        sendAs(
+            "PROPFIND",
+            shared,
+            "<D:propfind xmlns:D='DAV:'><D:propname/></D:propfind>",
+            bobAuth,
+            "Depth",
+            "0");
+    assertThat(xml(readerNames).getElementsByTagNameNS(DavXml.DAV, "acl").getLength()).isZero();
+    var readerAcl = sendAs("PROPFIND", shared, propRequest("<D:acl/>"), bobAuth, "Depth", "0");
+    assertThat(propertyStatus(readerAcl, DavXml.DAV, "acl")).isEqualTo(403);
+    assertThat(readerAcl.body())
+        .contains("need-privileges", "read-acl")
+        .doesNotContain("<D:grant>");
+    assertThat(
+            send("REPORT", calendar, query("<C:comp-filter name='VEVENT'/>"), "Depth", "1").body())
+        .contains("BEGIN:VCALENDAR");
+    assertThat(send("REPORT", calendar, sync("", 10), "Depth", "0").statusCode()).isEqualTo(207);
+  }
+
+  @Test
+  void resourceOptionsChecksCurrentReadAccessAndReportsSupportedTargetMethods() throws Exception {
+    String calendar = create("options-access", "VEVENT");
+    send("PUT", calendar + "one.ics", event("options-access", "One"));
+    assertThat(
+            send("OPTIONS", calendar + "one.ics", "").headers().firstValue("Allow").orElseThrow())
+        .contains("PUT")
+        .doesNotContain("MKCALENDAR", "ACL");
+    assertThat(sendAs("OPTIONS", calendar + "one.ics", "", bobAuth).statusCode()).isEqualTo(403);
+    assertThat(send("OPTIONS", calendar + "missing.ics", "").statusCode()).isEqualTo(404);
+    assertThat(
+            send("ACL", calendar, aclBody(aclGrant(bob, "<D:privilege><D:read/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='options-access'",
+            UUID.class,
+            alice);
+    String shared = "/calendars/" + bob + "/" + id + "/one.ics";
+    assertThat(sendAs("OPTIONS", shared, "", bobAuth).statusCode()).isEqualTo(200);
+    assertThat(
+            send(
+                    "ACL",
+                    calendar,
+                    aclBody(
+                        aclGrant(
+                            bob,
+                            "<D:privilege><D:read/></D:privilege><D:privilege><D:write/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    assertThat(sendAs("OPTIONS", shared, "", bobAuth).statusCode()).isEqualTo(200);
+    assertThat(send("ACL", calendar, aclBody("")).statusCode()).isEqualTo(200);
+    assertThat(sendAs("OPTIONS", shared, "", bobAuth).statusCode()).isIn(403, 404);
+  }
+
+  @Test
+  void timezonePropertyFailuresKeepCalDavConditionAndAtomicSiblingState() throws Exception {
+    String calendar = create("timezone-property-errors", "VEVENT");
+    String valid =
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Timezone property//EN\r\nBEGIN:VTIMEZONE\r\nTZID:Fixed\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0100\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nEND:VCALENDAR\r\n";
+    String start =
+        "<D:propertyupdate xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav'><D:set><D:prop><C:calendar-timezone><![CDATA[";
+    String end =
+        "]]></C:calendar-timezone><D:displayname>changed</D:displayname></D:prop></D:set></D:propertyupdate>";
+    assertThat(send("PROPPATCH", calendar, start + valid + end).statusCode()).isEqualTo(207);
+    var before =
+        send(
+            "PROPFIND",
+            calendar,
+            propRequest("<C:calendar-timezone/><D:displayname/>"),
+            "Depth",
+            "0");
+    for (String invalid :
+        List.of(
+            "not a calendar",
+            event("not-timezone", "Event"),
+            valid.replace(
+                "END:VCALENDAR",
+                valid.substring(valid.indexOf("BEGIN:VTIMEZONE"), valid.indexOf("END:VCALENDAR"))
+                    + "END:VCALENDAR"))) {
+      var failure =
+          send("PROPPATCH", calendar, start + invalid + end.replace("changed", "not-applied"));
+      assertThat(propertyStatus(failure, DavXml.CAL, "calendar-timezone")).isEqualTo(409);
+      assertThat(propertyStatus(failure, DavXml.DAV, "displayname")).isEqualTo(424);
+      assertThat(xml(failure).getElementsByTagNameNS(DavXml.CAL, "valid-calendar-data").getLength())
+          .isEqualTo(1);
+      assertThat(
+              send(
+                      "PROPFIND",
+                      calendar,
+                      propRequest("<C:calendar-timezone/><D:displayname/>"),
+                      "Depth",
+                      "0")
+                  .body())
+          .isEqualTo(before.body());
+    }
+  }
+
+  @Test
+  void nonemptyMkcalendarRequiresRecognizedSetAndPropWithoutCreatingState() throws Exception {
+    int index = 0;
+    for (String content :
+        List.of(
+            "",
+            "<D:set/>",
+            "<D:set><D:prop/></D:set><D:set><D:prop/></D:set>",
+            "<D:set><D:prop/><D:prop/></D:set>",
+            "<X:ignored><D:set><D:prop/></D:set></X:ignored>")) {
+      String path = home + "invalid-mkcalendar-" + index++ + "/";
+      int before =
+          jdbc.queryForObject(
+              "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice);
+      var result =
+          send(
+              "MKCALENDAR",
+              path,
+              "<C:mkcalendar xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:' xmlns:X='urn:audit'>"
+                  + content
+                  + "</C:mkcalendar>");
+      assertThat(result.statusCode()).isEqualTo(400);
+      assertThat(send("GET", path, "").statusCode()).isEqualTo(404);
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice))
+          .isEqualTo(before);
+    }
+    assertThat(send("MKCALENDAR", home + "empty-http-body/", "").statusCode()).isEqualTo(201);
+    assertThat(
+            send(
+                    "MKCALENDAR",
+                    home + "valid-empty-prop/",
+                    "<C:mkcalendar xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:set><D:prop/></D:set></C:mkcalendar>")
+                .statusCode())
+        .isEqualTo(201);
+  }
+
+  @Test
+  void operationSpecificFailureStatusHeadersAndConditionsArePreserved() throws Exception {
+    String calendar = create("failure-contracts", "VEVENT");
+    for (String target : List.of("/", home, "/principals/" + alice)) {
+      var result = send("DELETE", target, "");
+      assertThat(result.statusCode()).isEqualTo(405);
+      assertThat(result.headers().firstValue("Allow").orElseThrow())
+          .contains("GET", "PROPFIND")
+          .doesNotContain("DELETE");
+      assertThat(xml(result).getElementsByTagNameNS(DavXml.DAV, "need-privileges").getLength())
+          .isZero();
+    }
+    for (String method : List.of("MKCOL", "MKCALENDAR")) {
+      var result = send(method, calendar, "");
+      assertThat(result.statusCode()).isEqualTo(405);
+      assertThat(result.headers().firstValue("Allow").orElseThrow())
+          .contains("GET", "PROPFIND", "ACL")
+          .doesNotContain("MKCALENDAR");
+      if (method.equals("MKCALENDAR"))
+        assertThat(
+                xml(result).getElementsByTagNameNS(DavXml.DAV, "resource-must-be-null").getLength())
+            .isEqualTo(1);
+    }
+    var forbidden =
+        send("PROPFIND", "/calendars/" + bob + "/", propRequest("<D:displayname/>"), "Depth", "0");
+    assertThat(forbidden.statusCode()).isEqualTo(403);
+    Element privileges =
+        (Element) xml(forbidden).getElementsByTagNameNS(DavXml.DAV, "need-privileges").item(0);
+    assertThat(DavXml.child(privileges, DavXml.DAV, "resource")).isNotNull();
+    String inaccessibleHome = "/team/dav/calendars/" + bob + "/";
+    assertThat(
+            send(
+                    "PROPPATCH",
+                    calendar,
+                    "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:audit'><D:set><D:prop><X:target><D:href>"
+                        + inaccessibleHome
+                        + "</D:href></X:target></D:prop></D:set></D:propertyupdate>")
+                .statusCode())
+        .isEqualTo(207);
+    var expanded =
+        send(
+            "REPORT",
+            calendar,
+            "<D:expand-property xmlns:D='DAV:'><D:property name='target' namespace='urn:audit'><D:property name='displayname'/></D:property></D:expand-property>",
+            "Depth",
+            "0");
+    assertThat(expanded.statusCode()).isEqualTo(207);
+    Element missingPrivileges =
+        (Element) xml(expanded).getElementsByTagNameNS(DavXml.DAV, "need-privileges").item(0);
+    Element missingResource = DavXml.required(missingPrivileges, DavXml.DAV, "resource");
+    assertThat(DavXml.required(missingResource, DavXml.DAV, "href").getTextContent())
+        .endsWith(inaccessibleHome);
+    assertThat(
+            DavXml.child(
+                DavXml.required(missingResource, DavXml.DAV, "privilege"), DavXml.DAV, "read"))
+        .isNotNull();
+    String read = aclGrant(bob, "<D:privilege><D:read/></D:privilege>");
+    var count = send("ACL", calendar, aclBody(read.repeat(1001)));
+    assertThat(count.statusCode()).isEqualTo(403);
+    assertThat(xml(count).getElementsByTagNameNS(DavXml.DAV, "limited-number-of-aces").getLength())
+        .isEqualTo(1);
+    var duplicate = send("ACL", calendar, aclBody(read.repeat(2)));
+    assertThat(duplicate.statusCode()).isEqualTo(403);
+    assertThat(xml(duplicate).getElementsByTagNameNS(DavXml.DAV, "no-ace-conflict").getLength())
+        .isEqualTo(1);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM collection_members", Integer.class))
+        .isZero();
+  }
+
+  @Test
+  void freeBusyGeneratesOneCompleteValidComponentForEmptyAndOccupiedCalendars() throws Exception {
+    String calendar = create("generated-freebusy", "VEVENT");
+    String request =
+        "<C:free-busy-query xmlns:C='urn:ietf:params:xml:ns:caldav'><C:time-range start='20261027T000000Z' end='20261028T000000Z'/></C:free-busy-query>";
+    for (boolean populated : List.of(false, true)) {
+      if (populated) send("PUT", calendar + "one.ics", event("generated-freebusy", "One"));
+      var response = send("REPORT", calendar, request, "Depth", "1");
+      assertThat(response.statusCode()).isEqualTo(200);
+      var parsed =
+          new net.fortuna.ical4j.data.CalendarBuilder()
+              .build(new java.io.StringReader(response.body()));
+      assertThat(parsed.validate().hasErrors()).isFalse();
+      assertThat(parsed.getComponents()).hasSize(1);
+      var busy = parsed.getComponents().getFirst();
+      assertThat(busy.getName()).isEqualTo("VFREEBUSY");
+      assertThat(busy.getProperties("DTSTAMP")).hasSize(1);
+      assertThat(busy.getProperties("UID")).hasSize(1);
+      assertThat(busy.getProperties("DTSTART")).hasSize(1);
+      assertThat(busy.getProperties("DTEND")).hasSize(1);
+      assertThat(busy.getProperty("DTSTAMP").orElseThrow().getValue()).endsWith("Z");
+      assertThat(busy.getProperties("FREEBUSY").isEmpty()).isEqualTo(!populated);
+      if (populated)
+        assertThat(response.body())
+            .contains("FREEBUSY;FBTYPE=BUSY:20261027T100000Z/20261027T110000Z");
+    }
+  }
+
+  @Test
+  void freeBusyUsesCollectionTimezoneAndIgnoresOutOfContextRequestTimezone() throws Exception {
+    String calendar = create("freebusy-floating-zone", "VEVENT");
+    String zone =
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Floating timezone test//EN\r\nBEGIN:VTIMEZONE\r\nTZID:Fixed\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0100\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nEND:VCALENDAR\r\n";
+    String patch =
+        "<D:propertyupdate xmlns:D='DAV:' xmlns:C='urn:ietf:params:xml:ns:caldav'><D:set><D:prop><C:calendar-timezone><![CDATA["
+            + zone
+            + "]]></C:calendar-timezone></D:prop></D:set></D:propertyupdate>";
+    assertThat(send("PROPPATCH", calendar, patch).statusCode()).isEqualTo(207);
+    String floating =
+        event("freebusy-floating-zone", "Floating")
+            .replace("20261027T100000Z", "20261027T100000")
+            .replace("20261027T110000Z", "20261027T110000");
+    send("PUT", calendar + "floating.ics", floating);
+    String report =
+        "<C:free-busy-query xmlns:C='urn:ietf:params:xml:ns:caldav'><C:time-range start='20261027T000000Z' end='20261028T000000Z'/></C:free-busy-query>";
+    String extra =
+        report.replace(
+            "</C:free-busy-query>",
+            "<C:timezone><![CDATA["
+                + zone.replace("+0100", "+0300")
+                + "]]></C:timezone></C:free-busy-query>");
+    assertThat(send("REPORT", calendar, report, "Depth", "1").body())
+        .contains("20261027T090000Z/20261027T100000Z");
+    assertThat(send("REPORT", calendar, extra, "Depth", "1").body())
+        .contains("20261027T090000Z/20261027T100000Z")
+        .doesNotContain("20261027T070000Z");
+  }
+
+  @Test
+  void namespaceAliasesRetainResourceIdentityAndCurrentSharedAuthorization() throws Exception {
+    String calendar = create("alias+calendar", "VEVENT");
+    String first = calendar + "a+b-%E9%9B%AA.ics";
+    String alias = calendar.replace("+", "%2B") + "a%2Bb-%e9%9b%aa.ics";
+    send("PUT", first, event("alias-identity", "Identity"));
+    var original = send("GET", first, "");
+    var alternate = send("GET", alias, "");
+    assertThat(alternate.statusCode()).isEqualTo(200);
+    assertThat(alternate.body()).isEqualTo(original.body());
+    assertThat(alternate.headers().firstValue("ETag"))
+        .isEqualTo(original.headers().firstValue("ETag"));
+    assertThat(
+            send("ACL", calendar, aclBody(aclGrant(bob, "<D:privilege><D:read/></D:privilege>")))
+                .statusCode())
+        .isEqualTo(200);
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='alias+calendar'",
+            UUID.class,
+            alice);
+    String shared = "/calendars/" + bob + "/" + id + "/a%2Bb-%E9%9B%AA.ics";
+    assertThat(sendAs("GET", shared, "", bobAuth).body()).isEqualTo(original.body());
+    var owner = send("PROPFIND", first, propRequest("<D:owner/>"), "Depth", "0");
+    var sharedOwner = sendAs("PROPFIND", shared, propRequest("<D:owner/>"), bobAuth, "Depth", "0");
+    assertThat(text(sharedOwner, DavXml.DAV, "owner")).isEqualTo(text(owner, DavXml.DAV, "owner"));
+    assertThat(sendAs("PUT", shared, event("alias-identity", "Forbidden"), bobAuth).statusCode())
+        .isEqualTo(403);
+    assertThat(send("ACL", calendar, aclBody("")).statusCode()).isEqualTo(200);
+    assertThat(sendAs("GET", shared, "", bobAuth).statusCode()).isIn(403, 404);
+    assertThat(sendAs("OPTIONS", shared, "", bobAuth).statusCode()).isIn(403, 404);
+  }
+
+  @Test
+  void legacyInvalidResourcesRemainRetrievableButCannotBypassValidationThroughCollectionCopy()
+      throws Exception {
+    String calendar = create("legacy-copy", "VEVENT");
+    String invalid = event("legacy-copy", "Legacy").replace("DTSTART:20261027T100000Z\r\n", "");
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='legacy-copy'",
+            UUID.class,
+            alice);
+    jdbc.update(
+        "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) VALUES(?,?,?,?,?,1)",
+        id,
+        "legacy.ics",
+        "legacy-copy",
+        invalid.getBytes(StandardCharsets.UTF_8),
+        "\"legacy\"");
+    jdbc.update("UPDATE collections SET revision=1 WHERE id=?", id);
+    assertThat(send("GET", calendar + "legacy.ics", "").body()).isEqualTo(invalid);
+    int before =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice);
+    for (String method : List.of("COPY", "MOVE")) {
+      String target = home + "legacy-destination-" + method + "/";
+      var result =
+          send(method, calendar, "", "Destination", "https://calendar.example/team/dav" + target);
+      assertThat(result.statusCode()).isEqualTo(403);
+      assertThat(result.body()).contains("valid-calendar-data");
+      assertThat(send("GET", target, "").statusCode()).isEqualTo(404);
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice))
+          .isEqualTo(before);
+      assertThat(send("GET", calendar + "legacy.ics", "").body()).isEqualTo(invalid);
+    }
+    assertThat(send("DELETE", calendar + "legacy.ics", "").statusCode()).isEqualTo(204);
+  }
+
+  @Test
+  void originalFutureTimezoneFixtureProducesValidFreeBusyAndPreservesSourceBytes()
+      throws Exception {
+    String calendar = create("future-freebusy", "VEVENT");
+    String body;
+    try (var input = getClass().getResourceAsStream("/calendar/audit/future-zone.ics")) {
+      assertThat(input).isNotNull();
+      body = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    assertThat(send("PUT", calendar + "future.ics", body).statusCode()).isEqualTo(201);
+    String request =
+        "<C:free-busy-query xmlns:C='urn:ietf:params:xml:ns:caldav'><C:time-range start='20400401T000000Z' end='20400402T000000Z'/></C:free-busy-query>";
+    var response = send("REPORT", calendar, request, "Depth", "1");
+    assertThat(response.statusCode()).isEqualTo(200);
+    var parsed =
+        new net.fortuna.ical4j.data.CalendarBuilder()
+            .build(new java.io.StringReader(response.body()));
+    assertThat(parsed.validate().hasErrors()).isFalse();
+    assertThat(parsed.getComponents()).hasSize(1);
+    assertThat(parsed.getComponents().getFirst().getProperties("DTSTAMP")).hasSize(1);
+    assertThat(response.body()).contains("20400401T100000Z/20400401T110000Z");
+    assertThat(send("GET", calendar + "future.ics", "").body()).isEqualTo(body);
+  }
+
+  @Test
+  void concurrentPropertyPatchesRetainBothValuesAndCompleteSyncState() throws Exception {
+    String calendar = create("property-interleaving", "VEVENT"), path = calendar + "one.ics";
+    String content = event("property-interleaving", "One");
+    send("PUT", path, content);
+    String token = text(send("REPORT", calendar, sync("", 10)), DavXml.DAV, "sync-token");
+    var etag = send("GET", path, "").headers().firstValue("ETag").orElseThrow();
+    try (var workers = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var a =
+          workers.submit(
+              () ->
+                  send(
+                      "PROPPATCH",
+                      path,
+                      "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:audit'><D:set><D:prop><X:first>one</X:first></D:prop></D:set></D:propertyupdate>"));
+      var b =
+          workers.submit(
+              () ->
+                  send(
+                      "PROPPATCH",
+                      path,
+                      "<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:audit'><D:set><D:prop><X:second>two</X:second></D:prop></D:set></D:propertyupdate>"));
+      assertThat(a.get().statusCode()).isEqualTo(207);
+      assertThat(b.get().statusCode()).isEqualTo(207);
+    }
+    var properties =
+        send(
+            "PROPFIND",
+            path,
+            propRequest("<X:first xmlns:X='urn:audit'/><X:second xmlns:X='urn:audit'/>"),
+            "Depth",
+            "0");
+    assertThat(propertyStatus(properties, "urn:audit", "first")).isEqualTo(200);
+    assertThat(propertyStatus(properties, "urn:audit", "second")).isEqualTo(200);
+    assertThat(text(properties, "urn:audit", "first")).isEqualTo("one");
+    assertThat(text(properties, "urn:audit", "second")).isEqualTo("two");
+    String request =
+        sync(token, 10)
+            .replace(
+                "<D:getetag/>",
+                "<D:getetag/><X:first xmlns:X='urn:audit'/><X:second xmlns:X='urn:audit'/>");
+    var changes = send("REPORT", calendar, request);
+    assertThat(principalReportHrefs(changes))
+        .containsExactly("https://calendar.example/team/dav" + path);
+    assertThat(text(changes, "urn:audit", "first")).isEqualTo("one");
+    assertThat(text(changes, "urn:audit", "second")).isEqualTo("two");
+    var original = send("GET", path, "");
+    assertThat(original.body()).isEqualTo(content);
+    assertThat(original.headers().firstValue("ETag").orElseThrow()).isEqualTo(etag);
+  }
+
+  @Test
+  void oversizedCalendarPutReportsAdvertisedSizePreconditionWithoutChangingState()
+      throws Exception {
+    String calendar = create("size-precondition", "VEVENT"), path = calendar + "one.ics";
+    String content = event("size-precondition", "Original");
+    var created = send("PUT", path, content);
+    var maximum = send("PROPFIND", calendar, propRequest("<C:max-resource-size/>"), "Depth", "0");
+    assertThat(text(maximum, DavXml.CAL, "max-resource-size"))
+        .isEqualTo(Integer.toString(org.busystack.caldav.calendar.CalendarContent.MAX_BYTES));
+    String template =
+        event("size-at-limit", "At limit").replace("END:VEVENT\r\n", "X-BULK:\r\nEND:VEVENT\r\n");
+    String atLimit =
+        template.replace(
+            "X-BULK:\r\n",
+            "X-BULK:"
+                + "a"
+                    .repeat(
+                        org.busystack.caldav.calendar.CalendarContent.MAX_BYTES
+                            - template.getBytes(StandardCharsets.UTF_8).length)
+                + "\r\n");
+    assertThat(atLimit.getBytes(StandardCharsets.UTF_8))
+        .hasSize(org.busystack.caldav.calendar.CalendarContent.MAX_BYTES);
+    assertThat(
+            send("PUT", calendar + "limit.ics", atLimit, "Content-Type", "text/calendar")
+                .statusCode())
+        .isEqualTo(201);
+    assertThat(send("GET", calendar + "limit.ics", "").body()).isEqualTo(atLimit);
+    assertThat(
+            send(
+                    "PUT",
+                    calendar + "limit.ics",
+                    atLimit.replace("X-BULK:a", "X-BULK:"),
+                    "Content-Type",
+                    "text/calendar")
+                .statusCode())
+        .isEqualTo(204);
+    String before =
+        text(
+            send("PROPFIND", calendar, propRequest("<D:sync-token/>"), "Depth", "0"),
+            DavXml.DAV,
+            "sync-token");
+    for (String target : List.of(path, calendar + "missing.ics")) {
+      var response =
+          send(
+              "PUT",
+              target,
+              "x".repeat(org.busystack.caldav.calendar.CalendarContent.MAX_BYTES + 1),
+              "Content-Type",
+              "text/calendar");
+      assertThat(response.statusCode()).isEqualTo(413);
+      assertThat(xml(response).getElementsByTagNameNS(DavXml.CAL, "max-resource-size").getLength())
+          .isEqualTo(1);
+    }
+    assertThat(send("GET", path, "").body()).isEqualTo(content);
+    assertThat(send("GET", path, "").headers().firstValue("ETag"))
+        .isEqualTo(created.headers().firstValue("ETag"));
+    assertThat(send("GET", calendar + "missing.ics", "").statusCode()).isEqualTo(404);
+    assertThat(
+            text(
+                send("PROPFIND", calendar, propRequest("<D:sync-token/>"), "Depth", "0"),
+                DavXml.DAV,
+                "sync-token"))
+        .isEqualTo(before);
+  }
+
+  @Test
+  void semanticListTextQueriesReturnCorrectHrefsOverHttpForEscapesAndCollations() throws Exception {
+    String calendar = create("semantic-text-http", "VEVENT");
+    String original;
+    String originalQuery;
+    try (var input = getClass().getResourceAsStream("/calendar/audit/valid-text-list.ics");
+        var request = getClass().getResourceAsStream("/calendar/audit/categories-query.xml")) {
+      assertThat(input).isNotNull();
+      assertThat(request).isNotNull();
+      original = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+      originalQuery = new String(request.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    String originalPath = calendar + "original.ics";
+    assertThat(send("PUT", originalPath, original, "Content-Type", "text/calendar").statusCode())
+        .isEqualTo(201);
+    assertThat(send("GET", originalPath, "").body()).isEqualTo(original);
+    var originalResult = send("REPORT", calendar, originalQuery, "Depth", "1");
+    assertThat(originalResult.statusCode()).isEqualTo(207);
+    assertThat(principalReportHrefs(originalResult))
+        .containsExactly("https://calendar.example/team/dav" + originalPath);
+
+    // Add typed-value neighbors after checking the original counterexample unchanged.
+    // Columns are resource name, iCalendar encoded TEXT, and decoded semantic TEXT.
+    String[][] cases = {
+      {"original", "alpha\\;beta", "alpha;beta"},
+      {"comma", "alpha\\,beta", "alpha,beta"},
+      {"backslash", "alpha\\\\beta", "alpha\\beta"},
+      {"newline", "alpha\\nbeta", "alpha\nbeta"}
+    };
+    java.util.Set<String> all = new java.util.HashSet<>();
+    for (String[] value : cases) {
+      String resource = calendar + value[0] + ".ics";
+      String body =
+          original
+              .replace("UID:valid-text-list", "UID:semantic-http-" + value[0])
+              .replace("CATEGORIES:alpha\\;beta,other", "CATEGORIES:" + value[1] + ",other")
+              .replace(
+                  "END:VEVENT\r\n",
+                  "RESOURCES:" + value[1] + ",other\r\nSUMMARY:" + value[1] + "\r\nEND:VEVENT\r\n");
+      // The original resource's UID remains immutable during its corrective replacement.
+      if (value[0].equals("original"))
+        body = body.replace("UID:semantic-http-original", "UID:valid-text-list");
+      assertThat(send("PUT", resource, body, "Content-Type", "text/calendar").statusCode())
+          .isEqualTo(value[0].equals("original") ? 204 : 201);
+      assertThat(send("GET", resource, "").body()).isEqualTo(body);
+      all.add("https://calendar.example/team/dav" + resource);
+    }
+    String repeatedPath = calendar + "repeated.ics";
+    String repeated =
+        original
+            .replace("UID:valid-text-list", "UID:semantic-http-repeated")
+            .replace(
+                "CATEGORIES:alpha\\;beta,other",
+                "CATEGORIES:RepeatedFirst\r\nCATEGORIES:RepeatedSecond")
+            .replace(
+                "END:VEVENT\r\n",
+                "RESOURCES:RepeatedFirst\r\nRESOURCES:RepeatedSecond\r\nSUMMARY:RepeatedSummary\r\nEND:VEVENT\r\n");
+    assertThat(send("PUT", repeatedPath, repeated, "Content-Type", "text/calendar").statusCode())
+        .isEqualTo(201);
+    assertThat(send("GET", repeatedPath, "").body()).isEqualTo(repeated);
+    String repeatedHref = "https://calendar.example/team/dav" + repeatedPath;
+    all.add(repeatedHref);
+
+    for (String property : List.of("CATEGORIES", "RESOURCES", "SUMMARY")) {
+      for (String collation : List.of("i;octet", "i;ascii-casemap")) {
+        for (String[] value : cases) {
+          String expected = "https://calendar.example/team/dav" + calendar + value[0] + ".ics";
+          var positive =
+              send(
+                  "REPORT",
+                  calendar,
+                  semanticTextQuery(property, value[2], collation, false),
+                  "Depth",
+                  "1");
+          assertThat(positive.statusCode()).isEqualTo(207);
+          assertThat(principalReportHrefs(positive)).containsExactly(expected);
+          var negative =
+              send(
+                  "REPORT",
+                  calendar,
+                  semanticTextQuery(property, value[2], collation, true),
+                  "Depth",
+                  "1");
+          assertThat(negative.statusCode()).isEqualTo(207);
+          var otherResources = new java.util.HashSet<>(all);
+          otherResources.remove(expected);
+          assertThat(principalReportHrefs(negative))
+              .containsExactlyInAnyOrderElementsOf(otherResources);
+        }
+        var caseMatch =
+            send(
+                "REPORT",
+                calendar,
+                semanticTextQuery(property, "ALPHA;BETA", collation, false),
+                "Depth",
+                "1");
+        assertThat(caseMatch.statusCode()).isEqualTo(207);
+        if (collation.equals("i;ascii-casemap"))
+          assertThat(principalReportHrefs(caseMatch))
+              .containsExactly("https://calendar.example/team/dav" + originalPath);
+        else assertThat(principalReportHrefs(caseMatch)).isEmpty();
+        if (!property.equals("SUMMARY")) {
+          for (String value : List.of("RepeatedFirst", "RepeatedSecond")) {
+            var instance =
+                send(
+                    "REPORT",
+                    calendar,
+                    semanticTextQuery(property, value, collation, false),
+                    "Depth",
+                    "1");
+            assertThat(instance.statusCode()).isEqualTo(207);
+            assertThat(principalReportHrefs(instance)).containsExactly(repeatedHref);
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  void reportsRestoreFoldedUtf8CharactersWithoutChangingAuthoritativeBytes() throws Exception {
+    String calendar = create("split-utf8", "VEVENT"), path = calendar + "folded.ics";
+    String summary = "before€ middle🙂after", original = event("split-utf8", summary);
+    String[] parts = original.split("€|🙂", -1);
+    byte[] euro = "€".getBytes(StandardCharsets.UTF_8);
+    byte[] smile = "🙂".getBytes(StandardCharsets.UTF_8);
+    var folded = new java.io.ByteArrayOutputStream();
+    folded.writeBytes(parts[0].getBytes(StandardCharsets.UTF_8));
+    folded.write(euro, 0, 1);
+    folded.writeBytes("\r\n ".getBytes(StandardCharsets.US_ASCII));
+    folded.write(euro, 1, euro.length - 1);
+    folded.writeBytes(parts[1].getBytes(StandardCharsets.UTF_8));
+    folded.write(smile, 0, 2);
+    folded.writeBytes("\r\n\t".getBytes(StandardCharsets.US_ASCII));
+    folded.write(smile, 2, smile.length - 2);
+    folded.writeBytes(parts[2].getBytes(StandardCharsets.UTF_8));
+    byte[] raw = folded.toByteArray();
+    var put =
+        http.send(
+            request(path, aliceAuth)
+                .header("Content-Type", "text/calendar; charset=utf-8")
+                .header("If-None-Match", "*")
+                .PUT(HttpRequest.BodyPublishers.ofByteArray(raw))
+                .build(),
+            HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    assertThat(put.statusCode()).isEqualTo(201);
+    String etag = put.headers().firstValue("ETag").orElseThrow();
+    var before =
+        http.send(request(path, aliceAuth).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+    assertThat(before.statusCode()).isEqualTo(200);
+    assertThat(before.body()).isEqualTo(raw);
+    assertThat(before.headers().firstValue("ETag")).hasValue(etag);
+    String href = "https://calendar.example/team/dav" + path;
+    String multiget =
+        "<C:calendar-multiget xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:prop><D:getetag/><C:calendar-data/></D:prop><D:href>"
+            + href
+            + "</D:href></C:calendar-multiget>";
+    String synchronization =
+        sync("", 10)
+            .replace(
+                "<D:getetag/>",
+                "<D:getetag/><C:calendar-data xmlns:C='urn:ietf:params:xml:ns:caldav'/>");
+    var queried =
+        send(
+            "REPORT",
+            calendar,
+            semanticTextQuery("SUMMARY", "€ middle🙂", "i;octet", false),
+            "Depth",
+            "1");
+    var fetched = send("REPORT", calendar, multiget);
+    var synchronizedData = send("REPORT", calendar, synchronization, "Depth", "0");
+    for (var report : List.of(queried, fetched, synchronizedData)) {
+      assertThat(report.statusCode()).isEqualTo(207);
+      assertThat(principalReportHrefs(report)).containsExactly(href);
+      assertThat(text(report, DavXml.DAV, "getetag")).isEqualTo(etag);
+      String content = text(report, DavXml.CAL, "calendar-data");
+      assertThat(content).isEqualTo(original).doesNotContain("\uFFFD");
+      var parsed =
+          org.busystack.caldav.calendar.CalendarContent.parse(
+              content.getBytes(StandardCharsets.UTF_8), "VEVENT");
+      var event = parsed.calendar().getComponents().getFirst();
+      assertThat(event.getRequiredProperty(net.fortuna.ical4j.model.Property.SUMMARY).getValue())
+          .isEqualTo(summary);
+      assertThat(event.getRequiredProperty("X-CLIENT-PROPERTY").getValue())
+          .isEqualTo("preserve me");
+    }
+    String selected =
+        "<C:calendar-data><C:comp name='VCALENDAR'><C:comp name='VEVENT'><C:prop name='SUMMARY'/></C:comp></C:comp></C:calendar-data>";
+    var projected = send("REPORT", calendar, multiget.replace("<C:calendar-data/>", selected));
+    assertThat(projected.statusCode()).isEqualTo(207);
+    assertThat(principalReportHrefs(projected)).containsExactly(href);
+    assertThat(text(projected, DavXml.CAL, "calendar-data"))
+        .contains("SUMMARY:" + summary)
+        .doesNotContain("\uFFFD", "UID:", "DTSTART:", "X-CLIENT-PROPERTY");
+    var after =
+        http.send(request(path, aliceAuth).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+    assertThat(after.statusCode()).isEqualTo(200);
+    assertThat(after.body()).isEqualTo(raw);
+    assertThat(after.headers().firstValue("ETag")).hasValue(etag);
+  }
+
+  private String semanticTextQuery(
+      String property, String value, String collation, boolean negate) {
+    String text = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    return query(
+        "<C:comp-filter name='VEVENT'><C:prop-filter name='"
+            + property
+            + "'><C:text-match collation='"
+            + collation
+            + "' negate-condition='"
+            + (negate ? "yes" : "no")
+            + "'>"
+            + text
+            + "</C:text-match></C:prop-filter></C:comp-filter>");
   }
 }

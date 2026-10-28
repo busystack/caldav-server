@@ -24,7 +24,7 @@ final class CalendarQueryXml {
 
   static CalendarFilter.ComponentFilter filter(Element root) {
     Element filter = required(root, CAL, "filter");
-    List<Element> children = children(filter);
+    List<Element> children = children(filter, CAL, "comp-filter");
     if (children.size() != 1 || !is(children.getFirst(), CAL, "comp-filter"))
       throw new DavException(403, c("valid-filter"));
     var result = component(children.getFirst());
@@ -35,14 +35,15 @@ final class CalendarQueryXml {
   private static CalendarFilter.ComponentFilter component(Element node) {
     List<CalendarFilter.PropertyFilter> properties = new ArrayList<>();
     List<CalendarFilter.ComponentFilter> components = new ArrayList<>();
-    for (Element child : children(node)) {
+    for (Element child :
+        children(node, CAL, "prop-filter", "comp-filter", "is-not-defined", "time-range")) {
       if (is(child, CAL, "prop-filter")) properties.add(property(child));
       else if (is(child, CAL, "comp-filter")) components.add(component(child));
-      else if (!is(child, CAL, "is-not-defined") && !is(child, CAL, "time-range"))
-        throw new DavException(403, c("supported-filter"));
     }
     boolean absent = child(node, CAL, "is-not-defined") != null;
-    if (absent && children(node).size() != 1) throw new DavException(403, c("valid-filter"));
+    if (absent
+        && children(node, CAL, "prop-filter", "comp-filter", "is-not-defined", "time-range").size()
+            != 1) throw new DavException(403, c("valid-filter"));
     Element range = child(node, CAL, "time-range");
     return new CalendarFilter.ComponentFilter(
         nameAttribute(node), absent, range == null ? null : range(range), properties, components);
@@ -50,16 +51,17 @@ final class CalendarQueryXml {
 
   private static CalendarFilter.PropertyFilter property(Element node) {
     List<CalendarFilter.ParameterFilter> parameters = new ArrayList<>();
-    for (Element child : children(node)) {
+    for (Element child :
+        children(node, CAL, "param-filter", "is-not-defined", "time-range", "text-match")) {
       if (is(child, CAL, "param-filter")) parameters.add(parameter(child));
-      else if (!is(child, CAL, "is-not-defined")
-          && !is(child, CAL, "time-range")
-          && !is(child, CAL, "text-match")) throw new DavException(403, c("supported-filter"));
     }
     boolean absent = child(node, CAL, "is-not-defined") != null;
     Element range = child(node, CAL, "time-range"), text = child(node, CAL, "text-match");
-    if (absent && children(node).size() != 1 || range != null && text != null)
-      throw new DavException(403, c("valid-filter"));
+    if (absent
+            && children(node, CAL, "param-filter", "is-not-defined", "time-range", "text-match")
+                    .size()
+                != 1
+        || range != null && text != null) throw new DavException(403, c("valid-filter"));
     return new CalendarFilter.PropertyFilter(
         nameAttribute(node),
         absent,
@@ -71,10 +73,8 @@ final class CalendarQueryXml {
   private static CalendarFilter.ParameterFilter parameter(Element node) {
     boolean absent = child(node, CAL, "is-not-defined") != null;
     Element text = child(node, CAL, "text-match");
-    for (Element child : children(node))
-      if (!is(child, CAL, "is-not-defined") && !is(child, CAL, "text-match"))
-        throw new DavException(403, c("supported-filter"));
-    if (absent && children(node).size() != 1) throw new DavException(403, c("valid-filter"));
+    if (absent && children(node, CAL, "is-not-defined", "text-match").size() != 1)
+      throw new DavException(403, c("valid-filter"));
     return new CalendarFilter.ParameterFilter(
         nameAttribute(node), absent, text == null ? null : text(text));
   }
@@ -83,10 +83,9 @@ final class CalendarQueryXml {
     String negate = node.getAttribute("negate-condition");
     if (!negate.isEmpty() && !negate.equals("yes") && !negate.equals("no"))
       throw new DavException(403, c("valid-filter"));
-    if (!children(node).isEmpty() || node.getTextContent().length() > 8192)
-      throw new DavException(403, c("valid-filter"));
+    if (scalarText(node).length() > 8192) throw new DavException(403, c("valid-filter"));
     return new CalendarFilter.TextMatch(
-        node.getTextContent(),
+        scalarText(node),
         node.hasAttribute("collation") ? node.getAttribute("collation") : null,
         negate.equals("yes"));
   }
@@ -110,11 +109,6 @@ final class CalendarQueryXml {
             && !node.getAttribute("content-type").equals("text/calendar")
         || node.hasAttribute("version") && !node.getAttribute("version").equals("2.0"))
       throw new DavException(403, c("supported-calendar-data"));
-    for (Element child : children(node))
-      if (!is(child, CAL, "comp")
-          && !is(child, CAL, "expand")
-          && !is(child, CAL, "limit-recurrence-set")
-          && !is(child, CAL, "limit-freebusy-set")) throw new DavException(400, null);
     Element component = child(node, CAL, "comp"),
         expand = child(node, CAL, "expand"),
         limit = child(node, CAL, "limit-recurrence-set"),
@@ -132,7 +126,7 @@ final class CalendarQueryXml {
     List<CalendarDataProjection.ComponentSelection> components = new ArrayList<>();
     boolean allProps = child(node, CAL, "allprop") != null,
         allComps = child(node, CAL, "allcomp") != null;
-    for (Element child : children(node)) {
+    for (Element child : children(node, CAL, "prop", "comp", "allprop", "allcomp")) {
       if (is(child, CAL, "prop")) {
         String novalue = child.getAttribute("novalue");
         if (!novalue.isEmpty() && !novalue.equals("yes") && !novalue.equals("no"))
@@ -141,8 +135,6 @@ final class CalendarQueryXml {
             new CalendarDataProjection.PropertySelection(
                 nameAttribute(child), novalue.equals("yes")));
       } else if (is(child, CAL, "comp")) components.add(selectionComponent(child));
-      else if (!is(child, CAL, "allprop") && !is(child, CAL, "allcomp"))
-        throw new DavException(400, null);
     }
     if (allProps && !properties.isEmpty() || allComps && !components.isEmpty())
       throw new DavException(400, null);

@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.xml.namespace.QName;
 import org.busystack.caldav.calendar.CalendarContent;
+import org.busystack.caldav.calendar.CalendarParsingInput;
 import org.busystack.caldav.calendar.query.CalendarDataProjection;
 import org.busystack.caldav.calendar.query.FloatingTimezone;
 import org.busystack.caldav.calendar.query.QueryLimits;
@@ -23,13 +24,24 @@ import org.w3c.dom.Node;
 
 @Service
 final class DavProperties {
+  enum Context {
+    PROPERTIES,
+    CALENDAR_REPORT
+  }
+
   record Requested(
       boolean all,
       boolean names,
       Map<QName, Element> properties,
-      CalendarDataProjection projection) {
+      CalendarDataProjection projection,
+      Context context) {
     Requested(boolean all, boolean names, Map<QName, Element> properties) {
-      this(all, names, properties, new CalendarDataProjection(QueryLimits.defaults()));
+      this(
+          all,
+          names,
+          properties,
+          new CalendarDataProjection(QueryLimits.defaults()),
+          Context.PROPERTIES);
     }
 
     Requested {
@@ -42,6 +54,7 @@ final class DavProperties {
           "resourcetype",
           "displayname",
           "owner",
+          "group",
           "current-user-principal",
           "principal-collection-set",
           "supported-report-set",
@@ -78,7 +91,18 @@ final class DavProperties {
         if (selection.put(name(p), p) != null) throw new DavException(400, null);
       }
     if (include != null) for (Element p : children(include)) selection.put(name(p), p);
-    return new Requested(prop == null && names == null, names != null, selection);
+    Context context =
+        is(root, CAL, "calendar-query")
+                || is(root, CAL, "calendar-multiget")
+                || is(root, DAV, "sync-collection")
+            ? Context.CALENDAR_REPORT
+            : Context.PROPERTIES;
+    return new Requested(
+        prop == null && names == null,
+        names != null,
+        selection,
+        new CalendarDataProjection(QueryLimits.defaults()),
+        context);
   }
 
   Element response(
@@ -95,7 +119,18 @@ final class DavProperties {
             : dead(actor, node, requested.all() ? null : requested.properties().keySet());
     Set<QName> names = new LinkedHashSet<>();
     if (requested.all() || requested.names()) {
-      names.addAll(allNames(actor, node));
+      names.addAll(definedNames(actor, node));
+      if (requested.all())
+        names.removeAll(
+            Set.of(
+                d("acl"),
+                d("sync-token"),
+                d("owner"),
+                d("group"),
+                d("supported-privilege-set"),
+                d("current-user-privilege-set"),
+                d("acl-restrictions"),
+                d("inherited-acl-set")));
       names.addAll(requested.names() ? deadNames(actor, node) : dead.keySet());
     }
     names.addAll(requested.properties().keySet());
@@ -118,7 +153,8 @@ final class DavProperties {
                     requested.properties().get(property),
                     dead,
                     timezone,
-                    requested.projection());
+                    requested.projection(),
+                    requested.context());
         if (value == null) {
           status = 404;
           add(holder, property);
@@ -148,9 +184,11 @@ final class DavProperties {
     return response;
   }
 
-  private Set<QName> allNames(UUID actor, DavNode node) {
+  private Set<QName> definedNames(UUID actor, DavNode node) {
     Set<QName> names = new LinkedHashSet<>();
     for (String local : COMMON) names.add(d(local));
+    if (owner(actor, node).equals(actor)) names.add(d("acl"));
+    if (DavPrivileges.calendarReports(node.kind())) names.add(c("supported-collation-set"));
     if (node.kind() == DavNode.Kind.RESOURCE) {
       names.add(d("getetag"));
       if (node.metadata().modifiedAt() != null) names.add(d("getlastmodified"));
@@ -160,10 +198,8 @@ final class DavProperties {
     if (node.kind() == DavNode.Kind.CALENDAR) {
       for (String local :
           List.of(
-              "supported-calendar-component-set",
-              "supported-calendar-data",
-              "max-resource-size",
-              "supported-collation-set")) names.add(c(local));
+              "supported-calendar-component-set", "supported-calendar-data", "max-resource-size"))
+        names.add(c(local));
       names.add(d("sync-token"));
     }
     if (node.kind() == DavNode.Kind.PRINCIPAL) {
@@ -234,7 +270,8 @@ final class DavProperties {
         selector,
         dead,
         timezone,
-        new CalendarDataProjection(QueryLimits.defaults()));
+        new CalendarDataProjection(QueryLimits.defaults()),
+        Context.PROPERTIES);
   }
 
   private Element value(
@@ -245,7 +282,9 @@ final class DavProperties {
       Element selector,
       Map<QName, String> dead,
       FloatingTimezone timezone,
-      CalendarDataProjection projection) {
+      CalendarDataProjection projection,
+      Context context) {
+    if (property.equals(c("calendar-data")) && context != Context.CALENDAR_REPORT) return null;
     if (dead.containsKey(property)) {
       Element stored = parse(dead.get(property).getBytes(StandardCharsets.UTF_8));
       return appendCopy(parent, stored);
@@ -263,6 +302,14 @@ final class DavProperties {
     if (property.equals(d("principal-collection-set")))
       return href(parent, property, paths.href(List.of("principals"), true));
     if (property.equals(d("owner"))) return href(parent, property, principal(owner(actor, node)));
+    if (property.equals(d("group"))) return add(parent, property);
+    if (property.equals(c("supported-collation-set"))
+        && DavPrivileges.calendarReports(node.kind())) {
+      Element value = add(parent, property);
+      text(value, c("supported-collation"), "i;ascii-casemap");
+      text(value, c("supported-collation"), "i;octet");
+      return value;
+    }
     if (property.equals(d("supported-report-set"))) {
       Element value = add(parent, property);
       List<QName> reports =
@@ -276,10 +323,7 @@ final class DavProperties {
           || (node.kind() == DavNode.Kind.PRINCIPAL
               && store.principal(actor, node.principal()).group()))
         reports.add(d("principal-match"));
-      if (node.kind() == DavNode.Kind.CALENDAR
-          || node.kind() == DavNode.Kind.RESOURCE
-          || node.kind() == DavNode.Kind.FOLDER
-          || node.kind() == DavNode.Kind.HOME)
+      if (DavPrivileges.calendarReports(node.kind()))
         reports.addAll(List.of(c("calendar-query"), c("calendar-multiget")));
       if (Set.of(DavNode.Kind.CALENDAR, DavNode.Kind.FOLDER, DavNode.Kind.HOME)
           .contains(node.kind())) reports.add(c("free-busy-query"));
@@ -357,8 +401,10 @@ final class DavProperties {
         }
         String content;
         var selection = selector == null ? null : CalendarQueryXml.selection(selector);
-        if (selector == null || children(selector).isEmpty())
-          content = new String(resource.content(), StandardCharsets.UTF_8);
+        if (selector == null
+            || children(
+                    selector, CAL, "comp", "expand", "limit-recurrence-set", "limit-freebusy-set")
+                .isEmpty()) content = CalendarParsingInput.reportText(resource.content());
         else
           content =
               projection
@@ -387,12 +433,6 @@ final class DavProperties {
       }
       if (property.equals(c("max-resource-size")))
         return text(parent, property, Integer.toString(CalendarContent.MAX_BYTES));
-      if (property.equals(c("supported-collation-set"))) {
-        Element value = add(parent, property);
-        text(value, c("supported-collation"), "i;ascii-casemap");
-        text(value, c("supported-collation"), "i;octet");
-        return value;
-      }
     }
     return null;
   }
@@ -414,36 +454,11 @@ final class DavProperties {
   }
 
   List<QName> privileges(UUID actor, DavNode node) {
-    List<QName> result = new ArrayList<>(List.of(d("read"), d("read-current-user-privilege-set")));
     String permission =
         node.collectionId() == null
             ? (owner(actor, node).equals(actor) ? "OWNER" : "READ")
             : store.permission(actor, node.collectionId());
-    boolean owner = permission.equals("OWNER"), writable = !permission.equals("READ");
-    switch (node.kind()) {
-      case CALENDAR -> {
-        result.add(c("read-free-busy"));
-        if (writable)
-          result.addAll(List.of(d("write"), d("write-properties"), d("bind"), d("unbind")));
-        if (owner) result.addAll(List.of(d("read-acl"), d("write-acl")));
-      }
-      case RESOURCE -> {
-        result.add(c("read-free-busy"));
-        if (writable) result.addAll(List.of(d("write"), d("write-content"), d("write-properties")));
-        if (owner) result.add(d("read-acl"));
-      }
-      case HOME, FOLDER -> {
-        result.add(c("read-free-busy"));
-        if (owner) {
-          result.addAll(List.of(d("write"), d("bind"), d("unbind"), d("read-acl")));
-          if (node.kind() == DavNode.Kind.FOLDER) result.add(d("write-properties"));
-        }
-      }
-      default -> {
-        if (owner) result.add(d("read-acl"));
-      }
-    }
-    return List.copyOf(result);
+    return DavPrivileges.effective(node.kind(), permission);
   }
 
   private Element acl(Element parent, UUID actor, DavNode node, QName property) {
@@ -476,38 +491,18 @@ final class DavProperties {
   }
 
   private Element supportedPrivileges(Element parent, QName property, DavNode node) {
-    Element value = add(parent, property),
-        all = supported(value, d("all"), "All privileges applicable to this resource");
-    Element read = supported(all, d("read"), "Read calendar data and permitted properties");
-    add(
-        supported(read, d("read-current-user-privilege-set"), "Read current privileges"),
-        d("abstract"));
-    if (Set.of(DavNode.Kind.CALENDAR, DavNode.Kind.RESOURCE, DavNode.Kind.HOME, DavNode.Kind.FOLDER)
-        .contains(node.kind()))
-      add(supported(read, c("read-free-busy"), "Read free/busy information"), d("abstract"));
-    if (Set.of(DavNode.Kind.CALENDAR, DavNode.Kind.RESOURCE, DavNode.Kind.HOME, DavNode.Kind.FOLDER)
-        .contains(node.kind())) {
-      Element write = supported(all, d("write"), "Modify supported content or collection members");
-      if (node.kind() == DavNode.Kind.RESOURCE)
-        add(supported(write, d("write-content"), "Modify calendar resource data"), d("abstract"));
-      if (node.kind() != DavNode.Kind.HOME)
-        add(supported(write, d("write-properties"), "Modify writable properties"), d("abstract"));
-      if (node.collection())
-        for (String privilege : List.of("bind", "unbind"))
-          add(supported(write, d(privilege), privilege), d("abstract"));
-    }
-    supported(all, d("read-acl"), "Read the permitted ACL");
-    if (node.kind() == DavNode.Kind.CALENDAR)
-      supported(all, d("write-acl"), "Collection owner manages sharing");
+    Element value = add(parent, property);
+    supported(value, DavPrivileges.supported(node.kind()));
     return value;
   }
 
-  private Element supported(Element parent, QName privilege, String description) {
+  private void supported(Element parent, DavPrivileges.Privilege privilege) {
     Element value = add(parent, d("supported-privilege"));
-    add(add(value, d("privilege")), privilege);
-    Element text = text(value, d("description"), description);
-    text.setAttributeNS(javax.xml.XMLConstants.XML_NS_URI, "xml:lang", "en");
-    return value;
+    add(add(value, d("privilege")), privilege.name());
+    if (privilege.abstractPrivilege()) add(value, d("abstract"));
+    Element description = text(value, d("description"), privilege.description());
+    description.setAttributeNS(javax.xml.XMLConstants.XML_NS_URI, "xml:lang", "en");
+    for (var child : privilege.children()) supported(value, child);
   }
 
   UUID owner(UUID actor, DavNode node) {

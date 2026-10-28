@@ -248,6 +248,26 @@ public final class DavXml {
     return child;
   }
 
+  /** Recognized immediate command children; an ignored extension's whole subtree stays ignored. */
+  public static List<Element> children(Element parent, String namespace, String... locals) {
+    var accepted = java.util.Set.of(locals);
+    return children(parent).stream()
+        .filter(
+            e ->
+                namespace.equals(name(e).getNamespaceURI())
+                    && accepted.contains(name(e).getLocalPart()))
+        .toList();
+  }
+
+  /** Character data of a protocol scalar, without text hidden in ignored extension subtrees. */
+  public static String scalarText(Element element) {
+    StringBuilder value = new StringBuilder();
+    for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling())
+      if (child.getNodeType() == Node.TEXT_NODE || child.getNodeType() == Node.CDATA_SECTION_NODE)
+        value.append(child.getNodeValue());
+    return value.toString();
+  }
+
   public static Element add(Node parent, QName name) {
     Document document = parent instanceof Document d ? d : parent.getOwnerDocument();
     String prefix =

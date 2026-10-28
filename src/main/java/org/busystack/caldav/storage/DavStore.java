@@ -214,6 +214,7 @@ public class DavStore {
       } else requireEnabled(member.account());
     }
     var existing = members(actor, collection);
+    if (Set.copyOf(existing).equals(Set.copyOf(members))) return;
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
     for (Member old : existing)
       if (members.stream()
@@ -237,7 +238,9 @@ public class DavStore {
               + key
               + ",permission) VALUES (?,?,?) ON CONFLICT(collection_id,"
               + key
-              + ") DO UPDATE SET permission=EXCLUDED.permission",
+              + ") DO UPDATE SET permission=EXCLUDED.permission WHERE "
+              + table
+              + ".permission IS DISTINCT FROM EXCLUDED.permission",
           collection,
           member.account(),
           member.permission());
@@ -832,18 +835,25 @@ public class DavStore {
       String target = destinationPath + item.path().substring(sourcePath.length());
       DavNamespace.binding(target, item.calendar());
       propertyCopyBudget(item, deep);
-      if (item.calendar() && deep)
+      if (item.calendar() && deep) {
+        String component = calendars.collection(actor, item.collectionId()).component();
         jdbc.query(
             connection -> {
               var statement =
                   connection.prepareStatement(
-                      "SELECT name FROM calendar_resources WHERE collection_id=? ORDER BY name");
+                      "SELECT name,content FROM calendar_resources WHERE collection_id=? ORDER BY name");
               statement.setObject(1, item.collectionId());
-              statement.setFetchSize(128);
+              statement.setFetchSize(1);
               return statement;
             },
             (org.springframework.jdbc.core.RowCallbackHandler)
-                rs -> DavNamespace.resource(target, rs.getString(1)));
+                rs -> {
+                  DavNamespace.resource(target, rs.getString(1));
+                  // Previously accepted invalid content remains retrievable, but cannot be
+                  // admitted at another URI by bypassing the current write-time constraints.
+                  org.busystack.caldav.calendar.CalendarContent.parse(rs.getBytes(2), component);
+                });
+      }
     }
     if (move && !deep) throw new IllegalArgumentException("MOVE requires complete subtree");
     if (existed) deleteBinding(actor, destinationHome, destinationPath, WriteCondition.none());

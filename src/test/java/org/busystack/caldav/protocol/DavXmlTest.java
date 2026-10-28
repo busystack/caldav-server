@@ -45,4 +45,33 @@ class DavXmlTest {
         .extracting(ex -> ((DavException) ex).status())
         .isEqualTo(507);
   }
+
+  @Test
+  void commandSelectorsIgnoreExtensionSubtreesWithoutPromotingTheirDescendants() {
+    var command =
+        DavXml.parse(
+            ("<D:propertyupdate xmlns:D='DAV:' xmlns:X='urn:audit'>"
+                    + "<X:ignored><D:set><D:prop><X:smuggled/></D:prop></D:set></X:ignored>"
+                    + "<D:set><D:prop><X:kept/></D:prop></D:set></D:propertyupdate>")
+                .getBytes(StandardCharsets.UTF_8));
+    var operations = DavXml.children(command, DavXml.DAV, "set", "remove");
+    assertThat(operations).hasSize(1);
+    assertThat(DavXml.children(DavXml.required(operations.getFirst(), DavXml.DAV, "prop")))
+        .singleElement()
+        .extracting(DavXml::name)
+        .isEqualTo(new javax.xml.namespace.QName("urn:audit", "kept"));
+  }
+
+  @Test
+  void scalarValuesIgnoreExtensionTextWhilePropertyPayloadRemainsIntact() {
+    var scalar =
+        DavXml.parse(
+            ("<D:href xmlns:D='DAV:' xmlns:X='urn:audit'>/team/"
+                    + "<X:ignored><D:href>evil</D:href></X:ignored><![CDATA[dav/]]></D:href>")
+                .getBytes(StandardCharsets.UTF_8));
+    assertThat(DavXml.scalarText(scalar)).isEqualTo("/team/dav/");
+    var copy = DavXml.parse(DavXml.propertyBytes(scalar));
+    assertThat(copy.getTextContent()).isEqualTo("/team/evildav/");
+    assertThat(copy.getElementsByTagNameNS("urn:audit", "ignored").getLength()).isEqualTo(1);
+  }
 }

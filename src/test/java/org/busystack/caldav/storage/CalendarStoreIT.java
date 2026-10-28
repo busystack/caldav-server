@@ -137,6 +137,30 @@ class CalendarStoreIT {
   }
 
   @Test
+  void unchangedDirectGrantsPreserveSyncStateWithoutBypassingOwnerChecks() {
+    String initial = store.currentSyncToken(owner, collection);
+    store.share(owner, collection, other, null);
+    assertThat(store.currentSyncToken(owner, collection)).isEqualTo(initial);
+    store.share(owner, collection, other, "READ");
+    String read = store.currentSyncToken(owner, collection);
+    assertThat(read).isNotEqualTo(initial);
+    store.share(owner, collection, other, "READ");
+    assertThat(store.currentSyncToken(owner, collection)).isEqualTo(read);
+    assertThatThrownBy(() -> store.share(other, collection, owner, null))
+        .isInstanceOf(StoreException.class);
+    store.share(owner, collection, other, "WRITE");
+    String write = store.currentSyncToken(owner, collection);
+    assertThat(write).isNotEqualTo(read);
+    store.share(owner, collection, other, "WRITE");
+    assertThat(store.currentSyncToken(owner, collection)).isEqualTo(write);
+    store.share(owner, collection, other, null);
+    String removed = store.currentSyncToken(owner, collection);
+    assertThat(removed).isNotEqualTo(write);
+    store.share(owner, collection, other, null);
+    assertThat(store.currentSyncToken(owner, collection)).isEqualTo(removed);
+  }
+
+  @Test
   void invalidatesExpiredAndRestoredTokensAndDoesNotTruncateSilently() {
     String initial = store.sync(owner, collection, null, 100).token();
     put("one.ics", "one", WriteCondition.create());

@@ -55,7 +55,7 @@ final class DavPrincipalReports {
         boolean matches = true;
         for (Element search : searches) {
           Element prop = required(search, DAV, "prop"), match = required(search, DAV, "match");
-          if (children(prop).isEmpty() || match.getTextContent().length() > 8192)
+          if (children(prop).isEmpty() || scalarText(match).length() > 8192)
             throw new DavException(400, null);
           boolean propertyMatch = true;
           for (Element p : children(prop)) {
@@ -64,7 +64,7 @@ final class DavPrincipalReports {
                     && principal
                         .displayName()
                         .toLowerCase(Locale.ROOT)
-                        .contains(match.getTextContent().toLowerCase(Locale.ROOT));
+                        .contains(scalarText(match).toLowerCase(Locale.ROOT));
           }
           matches &= propertyMatch;
         }
@@ -136,7 +136,6 @@ final class DavPrincipalReports {
 
   private ResponseEntity<byte[]> searchable(HttpServletRequest request, Element root) {
     requireDepthZero(request);
-    if (!children(root).isEmpty()) throw new DavException(400, null);
     var document = document();
     Element result = add(document, d("principal-search-property-set")),
         property = add(result, d("principal-search-property"));
@@ -149,11 +148,11 @@ final class DavPrincipalReports {
 
   private ResponseEntity<byte[]> expand(
       UUID actor, DavNode node, HttpServletRequest request, Element root) {
-    for (Element property : children(root)) validateExpansion(property);
+    for (Element property : children(root, DAV, "property")) validateExpansion(property);
     var document = document();
     Element multi = add(document, d("multistatus"));
     for (DavNode candidate : resources.descendants(actor, node, reportDepth(request)))
-      expandedResponse(multi, actor, candidate, children(root), 0);
+      expandedResponse(multi, actor, candidate, children(root, DAV, "property"), 0);
     return DavController.xml(207, document);
   }
 
@@ -180,7 +179,7 @@ final class DavPrincipalReports {
                   .filter(s -> expansionName(s).equals(name(property)))
                   .findFirst()
                   .orElse(null);
-          if (selector == null || children(selector).isEmpty()) continue;
+          if (selector == null || children(selector, DAV, "property").isEmpty()) continue;
           for (Element href : new ArrayList<>(children(property)))
             if (is(href, DAV, "href")) {
               String value = href.getTextContent();
@@ -190,13 +189,16 @@ final class DavPrincipalReports {
                     property,
                     actor,
                     resources.resolveMember(actor, paths.parse(value)),
-                    children(selector),
+                    children(selector, DAV, "property"),
                     depth + 1);
               } catch (DavException ex) {
                 if (ex.status() != 403 && ex.status() != 404) throw ex;
                 Element missing = add(property, d("response"));
                 text(missing, d("href"), value);
                 text(missing, d("status"), DavProperties.status(ex.status()));
+                if (ex.condition() != null)
+                  DavErrors.append(
+                      missing, ex.condition(), ex.failingHref(), ex.requiredPrivilege());
               }
             }
         }
@@ -209,7 +211,7 @@ final class DavPrincipalReports {
         || !selector.hasAttribute("name")
         || selector.getAttribute("name").isBlank()) throw new DavException(400, null);
     expansionName(selector);
-    for (Element child : children(selector)) validateExpansion(child);
+    for (Element child : children(selector, DAV, "property")) validateExpansion(child);
   }
 
   private static QName expansionName(Element selector) {
@@ -242,15 +244,21 @@ final class DavPrincipalReports {
   }
 
   private static void requireDepthZero(HttpServletRequest request) {
-    String depth = request.getHeader("Depth");
+    String depth = singleDepth(request);
     if (depth != null && !depth.equals("0")) throw new DavException(400, null);
   }
 
   private static int reportDepth(HttpServletRequest request) {
-    String depth = request.getHeader("Depth");
+    String depth = singleDepth(request);
     if (depth == null || depth.equals("0")) return 0;
     if (depth.equals("1")) return 1;
     if (depth.equals("infinity")) return 20;
     throw new DavException(400, null);
+  }
+
+  private static String singleDepth(HttpServletRequest request) {
+    if (java.util.Collections.list(request.getHeaders("Depth")).size() > 1)
+      throw new DavException(400, null);
+    return request.getHeader("Depth");
   }
 }

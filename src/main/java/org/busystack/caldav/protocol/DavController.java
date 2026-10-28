@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -148,7 +147,7 @@ final class DavController {
                       existing != null);
             }
             return switch (method) {
-              case "OPTIONS" -> options();
+              case "OPTIONS" -> options(actor, parts);
               case "GET", "HEAD" -> get(actor, parts, request);
               case "PROPFIND" -> propfind(actor, parts, request, body);
               case "REPORT" -> report(actor, parts, request, parse(body));
@@ -158,11 +157,13 @@ final class DavController {
               case "PROPPATCH" -> patch(actor, parts, request, parse(body));
               case "COPY", "MOVE" -> transfer(actor, parts, request);
               case "ACL" -> acl(actor, parts, parse(body));
-              default -> ResponseEntity.status(405).header("Allow", allow()).body(new byte[0]);
+              default -> methodNotAllowed(actor, parts, null);
             };
           };
       return (mutating ? mutation : snapshot).execute(status -> handler.get());
     } catch (DavException ex) {
+      if (ex.status() == 405)
+        return methodNotAllowed(actor, paths.parse(request.getRequestURI()), ex.condition());
       return error(ex.status(), ex.condition(), ex.failingHref(), ex.requiredPrivilege());
     } catch (StoreException ex) {
       return switch (ex.kind()) {
@@ -196,7 +197,7 @@ final class DavController {
         case UID_CONFLICT -> error(403, c("no-uid-conflict"));
         case INVALID_TOKEN -> error(403, d("valid-sync-token"));
         case LIMIT -> error(507, d("number-of-matches-within-limits"));
-        case EXISTS -> error(405, null);
+        case EXISTS -> methodNotAllowed(actor, paths.parse(request.getRequestURI()), null);
         case INVALID_PROPERTY -> error(409, d("valid-property-value"));
         default -> error(409, null);
       };
@@ -214,6 +215,7 @@ final class DavController {
                 case INVALID_DATA -> "valid-calendar-data";
                 case INVALID_OBJECT -> "valid-calendar-object-resource";
                 case UNSUPPORTED_COMPONENT -> "supported-calendar-component";
+                case UNSUPPORTED_RSCALE -> "supported-rscale";
               }));
     } catch (org.springframework.dao.QueryTimeoutException
         | org.springframework.transaction.TransactionTimedOutException timeout) {
@@ -261,20 +263,44 @@ final class DavController {
     return "OPTIONS, GET, HEAD, PROPFIND, PROPPATCH, REPORT, MKCALENDAR, MKCOL, PUT, DELETE, COPY, MOVE, ACL";
   }
 
-  private ResponseEntity<byte[]> options() {
+  private static String allow(DavNode.Kind kind) {
+    String read = "OPTIONS, GET, HEAD, PROPFIND, REPORT";
+    return switch (kind) {
+      case CALENDAR -> read + ", PROPPATCH, DELETE, COPY, MOVE, ACL";
+      case FOLDER -> read + ", PROPPATCH, DELETE, COPY, MOVE";
+      case RESOURCE -> read + ", PUT, DELETE, PROPPATCH, COPY, MOVE";
+      default -> read;
+    };
+  }
+
+  private ResponseEntity<byte[]> options(UUID actor, List<String> parts) {
+    DavNode node = resources.resolve(actor, parts);
     return ResponseEntity.ok()
-        .header("Allow", allow())
+        .header("Allow", allow(node.kind()))
         .header("DAV", "1, access-control, calendar-access, sync-collection")
         .body(new byte[0]);
+  }
+
+  private ResponseEntity<byte[]> methodNotAllowed(UUID actor, List<String> parts, QName condition) {
+    DavNode node = resources.resolve(actor, parts);
+    var response = error(405, condition);
+    var headers = new org.springframework.http.HttpHeaders();
+    headers.putAll(response.getHeaders());
+    headers.set("Allow", allow(node.kind()));
+    return new ResponseEntity<>(response.getBody(), headers, response.getStatusCode());
   }
 
   private static byte[] body(HttpServletRequest request) throws IOException {
     String encoding = request.getHeader("Content-Encoding");
     if (encoding != null && !encoding.equalsIgnoreCase("identity"))
       throw new DavException(415, null);
-    if (request.getContentLengthLong() > MAX_REQUEST) throw new DavException(413, null);
-    byte[] bytes = request.getInputStream().readNBytes(MAX_REQUEST + 1);
-    if (bytes.length > MAX_REQUEST) throw new DavException(413, null);
+    boolean calendarPut = request.getMethod().equals("PUT");
+    int limit = calendarPut ? Math.min(MAX_REQUEST, CalendarContent.MAX_BYTES) : MAX_REQUEST;
+    QName condition =
+        calendarPut && limit == CalendarContent.MAX_BYTES ? c("max-resource-size") : null;
+    if (request.getContentLengthLong() > limit) throw new DavException(413, condition);
+    byte[] bytes = request.getInputStream().readNBytes(limit + 1);
+    if (bytes.length > limit) throw new DavException(413, condition);
     return bytes;
   }
 
@@ -380,7 +406,7 @@ final class DavController {
     else if (node.kind() == DavNode.Kind.CALENDAR || node.kind() == DavNode.Kind.FOLDER)
       store.deleteBinding(
           actor, node.principal(), node.relativePath(), HttpConditions.write(request, paths));
-    else throw new DavException(403, d("need-privileges"));
+    else return methodNotAllowed(actor, parts, null);
     return ResponseEntity.noContent().build();
   }
 
@@ -396,30 +422,38 @@ final class DavController {
       if (method.equals("MKCOL")) throw new DavException(415, null);
       Element root = parse(body);
       if (!is(root, CAL, "mkcalendar")) throw new DavException(400, null);
-      Element set = child(root, DAV, "set"), prop = set == null ? null : required(set, DAV, "prop");
-      if (prop != null)
-        for (Element value : children(prop)) {
-          QName name = name(value);
-          if (name.equals(c("supported-calendar-component-set"))) {
-            var components = children(value);
-            if (components.size() != 1
-                || !is(components.getFirst(), CAL, "comp")
-                || !Set.of("VEVENT", "VTODO").contains(components.getFirst().getAttribute("name")))
-              throw new DavException(403, c("supported-calendar-component"));
-            component = components.getFirst().getAttribute("name");
-          } else if (name.equals(d("displayname"))) {
-            validateProperty(name, value);
-            display = value.getTextContent();
-            values.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
-          } else if (DavProperties.protectedProperty(name))
-            throw new DavException(403, d("cannot-modify-protected-property"));
-          else {
-            validateProperty(name, value);
-            values.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
-          }
+      Element set = required(root, DAV, "set"), prop = required(set, DAV, "prop");
+      for (Element value : children(prop)) {
+        QName name = name(value);
+        if (name.equals(c("supported-calendar-component-set"))) {
+          var components = children(value, CAL, "comp");
+          if (components.size() != 1
+              || !is(components.getFirst(), CAL, "comp")
+              || !Set.of("VEVENT", "VTODO").contains(components.getFirst().getAttribute("name")))
+            throw new DavException(403, c("supported-calendar-component"));
+          component = components.getFirst().getAttribute("name");
+        } else if (name.equals(d("displayname"))) {
+          validateProperty(name, value);
+          display = value.getTextContent();
+          values.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
+        } else if (DavProperties.protectedProperty(name))
+          throw new DavException(403, d("cannot-modify-protected-property"));
+        else {
+          validateProperty(name, value);
+          values.put(name, new String(propertyBytes(value), StandardCharsets.UTF_8));
         }
+      }
     }
-    store.create(actor, home, relative, display, component, values);
+    if (!home.equals(actor))
+      throw new DavException(
+          403, d("need-privileges"), paths.href(parts.subList(0, 2), true), d("bind"));
+    try {
+      store.create(actor, home, relative, display, component, values);
+    } catch (StoreException failure) {
+      if (failure.kind() == StoreException.Kind.EXISTS && method.equals("MKCALENDAR"))
+        throw new DavException(405, d("resource-must-be-null"));
+      throw failure;
+    }
     return ResponseEntity.status(201).header("Location", paths.href(parts, true)).body(new byte[0]);
   }
 
@@ -430,17 +464,17 @@ final class DavController {
     if (node.entry() == null) throw new DavException(403, d("cannot-modify-protected-property"));
     Map<QName, String> set = new LinkedHashMap<>();
     Set<QName> remove = new LinkedHashSet<>(), all = new LinkedHashSet<>();
-    Map<QName, Integer> bad = new LinkedHashMap<>();
-    for (Element operation : children(root)) {
-      if (!is(operation, DAV, "set") && !is(operation, DAV, "remove"))
-        throw new DavException(400, null);
+    Map<QName, DavException> bad = new LinkedHashMap<>();
+    for (Element operation : children(root, DAV, "set", "remove")) {
       for (Element value : children(required(operation, DAV, "prop"))) {
         QName name = name(value);
         all.add(name);
-        if (DavProperties.protectedProperty(name)) bad.put(name, 403);
+        if (DavProperties.protectedProperty(name))
+          bad.put(name, new DavException(403, d("cannot-modify-protected-property")));
         else if (name.equals(d("displayname"))
             && node.kind() != DavNode.Kind.RESOURCE
-            && is(operation, DAV, "remove")) bad.put(name, 409);
+            && is(operation, DAV, "remove"))
+          bad.put(name, new DavException(409, d("valid-property-value")));
         else if (is(operation, DAV, "set")) {
           try {
             validateProperty(name, value);
@@ -448,9 +482,15 @@ final class DavController {
             remove.remove(name);
           } catch (DavException ex) {
             if (ex.status() != 403 && ex.status() != 409) throw ex;
-            bad.put(name, ex.status());
+            bad.put(name, ex);
           } catch (QueryException ex) {
-            bad.put(name, 409);
+            bad.put(
+                name,
+                new DavException(
+                    409,
+                    name.equals(c("calendar-timezone"))
+                        ? c("valid-calendar-data")
+                        : d("valid-property-value")));
           }
         } else {
           remove.add(name);
@@ -480,10 +520,13 @@ final class DavController {
     for (QName property : all) {
       Element propstat = add(response, d("propstat"));
       add(add(propstat, d("prop")), property);
-      int status = bad.isEmpty() ? 200 : bad.containsKey(property) ? bad.get(property) : 424;
+      int status =
+          bad.isEmpty() ? 200 : bad.containsKey(property) ? bad.get(property).status() : 424;
       text(propstat, d("status"), DavProperties.status(status));
-      if (status == 403) add(add(propstat, d("error")), d("cannot-modify-protected-property"));
-      else if (status == 409) add(add(propstat, d("error")), d("valid-property-value"));
+      DavException failure = bad.get(property);
+      if (failure != null)
+        DavErrors.append(
+            propstat, failure.condition(), failure.failingHref(), failure.requiredPrivilege());
     }
     return xml(207, document);
   }
@@ -494,7 +537,18 @@ final class DavController {
         && (value.getTextContent().isBlank()
             || value.getTextContent().length() > 200
             || !children(value).isEmpty())) throw new DavException(409, d("valid-property-value"));
-    if (name.equals(c("calendar-timezone"))) FloatingTimezone.parse(value.getTextContent());
+    if (name.equals(c("calendar-timezone"))) {
+      try {
+        FloatingTimezone.parse(value.getTextContent());
+      } catch (QueryException failure) {
+        if (failure.kind() == QueryException.Kind.LIMIT_EXCEEDED)
+          throw new DavException(
+              413, new QName("urn:busystack:params:xml:ns:dav", "calendar-complexity-limit"));
+        throw new DavException(409, c("valid-calendar-data"));
+      } catch (IllegalArgumentException failure) {
+        throw new DavException(409, c("valid-calendar-data"));
+      }
+    }
   }
 
   private ResponseEntity<byte[]> transfer(
@@ -531,6 +585,12 @@ final class DavController {
     } else if (source.kind() == DavNode.Kind.CALENDAR || source.kind() == DavNode.Kind.FOLDER) {
       if (target.size() < 3 || !target.getFirst().equals("calendars"))
         throw new DavException(409, null);
+      if (!DavResources.uuid(target.get(1)).equals(actor))
+        throw new DavException(
+            403,
+            d("need-privileges"),
+            paths.href(target.subList(0, target.size() - 1), true),
+            d("bind"));
       created =
           store.transfer(
               actor,
@@ -553,50 +613,57 @@ final class DavController {
     DavNode node = resources.resolve(actor, parts);
     if (node.kind() != DavNode.Kind.CALENDAR)
       throw new DavException(403, d("no-inherited-ace-conflict"));
+    if (!properties.privileges(actor, node).contains(d("write-acl")))
+      throw new DavException(403, d("need-privileges"), paths.href(parts, true), d("write-acl"));
     List<DavStore.Member> members = new ArrayList<>();
-    for (Element ace : children(root)) {
-      if (!is(ace, DAV, "ace")) throw new DavException(400, null);
+    List<Element> aces = children(root, DAV, "ace");
+    if (aces.size() > 1000) throw new DavException(403, d("limited-number-of-aces"));
+    Set<UUID> principals = new LinkedHashSet<>();
+    for (Element ace : aces) {
       if (child(ace, DAV, "deny") != null) throw new DavException(403, d("grant-only"));
       if (child(ace, DAV, "invert") != null) throw new DavException(403, d("no-invert"));
       if (child(ace, DAV, "protected") != null || child(ace, DAV, "inherited") != null)
         throw new DavException(403, d("no-protected-ace-conflict"));
       Element principal = required(ace, DAV, "principal");
+      var principalForms =
+          children(
+              principal,
+              DAV,
+              "href",
+              "all",
+              "authenticated",
+              "unauthenticated",
+              "self",
+              "property");
+      if (principalForms.size() != 1) throw new DavException(400, null);
       Element href = child(principal, DAV, "href");
-      if (href == null) throw new DavException(403, d("recognized-principal"));
-      List<String> who = paths.parse(href.getTextContent());
+      if (href == null) throw new DavException(403, d("allowed-principal"));
+      List<String> who = paths.parse(scalarText(href));
       if (who.size() != 2 || !who.getFirst().equals("principals"))
         throw new DavException(403, d("recognized-principal"));
       UUID id = DavResources.uuid(who.get(1));
       if (!store.recognizedPrincipal(id)) throw new DavException(403, d("recognized-principal"));
       if (id.equals(node.entry().collection().owner()))
         throw new DavException(403, d("no-protected-ace-conflict"));
+      if (!principals.add(id)) throw new DavException(403, d("no-ace-conflict"));
       Set<QName> grants = new LinkedHashSet<>();
-      for (Element privilege : children(required(ace, DAV, "grant"))) {
-        if (!is(privilege, DAV, "privilege") || children(privilege).size() != 1)
+      var privileges = children(required(ace, DAV, "grant"), DAV, "privilege");
+      if (privileges.isEmpty()) throw new DavException(400, null);
+      for (Element privilege : privileges) {
+        // A privilege's ANY child is its requested QName, including unknown privileges.
+        // Siblings outside the known model are extensions unless no known QName exists.
+        List<Element> names = children(privilege);
+        List<Element> recognized =
+            names.stream()
+                .filter(value -> DavPrivileges.find(node.kind(), name(value)) != null)
+                .toList();
+        if (recognized.size() > 1 || recognized.isEmpty() && names.size() != 1)
           throw new DavException(400, null);
-        grants.add(name(children(privilege).getFirst()));
+        grants.add(name(recognized.isEmpty() ? names.getFirst() : recognized.getFirst()));
       }
-      Set<QName> allowed =
-          Set.of(
-              d("read"),
-              d("read-current-user-privilege-set"),
-              c("read-free-busy"),
-              d("write"),
-              d("write-content"),
-              d("write-properties"),
-              d("bind"),
-              d("unbind"));
-      if (!allowed.containsAll(grants)) throw new DavException(403, d("not-supported-privilege"));
-      if (!grants.contains(d("read"))) throw new DavException(403, d("no-ace-conflict"));
-      boolean write = grants.contains(d("write"));
-      if (!write
-          && grants.stream()
-              .anyMatch(
-                  q ->
-                      Set.of("write-content", "write-properties", "bind", "unbind")
-                          .contains(q.getLocalPart())))
-        throw new DavException(403, d("no-ace-conflict"));
-      members.add(new DavStore.Member(id, write ? "WRITE" : "READ", store.isGroupPrincipal(id)));
+      members.add(
+          new DavStore.Member(
+              id, DavPrivileges.permission(node.kind(), grants), store.isGroupPrincipal(id)));
     }
     store.replaceAcl(actor, node.collectionId(), members);
     return ResponseEntity.ok().body(new byte[0]);
@@ -658,7 +725,7 @@ final class DavController {
     Map<UUID, FloatingTimezone> timezones = timezoneCache();
     for (Element href : hrefs) {
       if (++count > 10000) throw new DavException(507, d("number-of-matches-within-limits"));
-      List<String> parts = paths.parse(href.getTextContent());
+      List<String> parts = paths.parse(scalarText(href));
       boolean member =
           node.kind() == DavNode.Kind.RESOURCE
               ? parts.equals(node.segments())
@@ -679,6 +746,8 @@ final class DavController {
         Element response = add(multi, d("response"));
         text(response, d("href"), paths.href(parts, false));
         text(response, d("status"), DavProperties.status(ex.status()));
+        if (ex.condition() != null)
+          DavErrors.append(response, ex.condition(), ex.failingHref(), ex.requiredPrivilege());
       }
     }
     return xml(207, document);
@@ -687,19 +756,19 @@ final class DavController {
   private ResponseEntity<byte[]> sync(
       UUID actor, DavNode node, HttpServletRequest request, Element root) {
     if (node.kind() != DavNode.Kind.CALENDAR) throw new DavException(403, d("supported-report"));
-    String level = required(root, DAV, "sync-level").getTextContent();
+    String level = scalarText(required(root, DAV, "sync-level"));
     int depth = depth(request, 0);
     if (depth != 0 && !(compatibility.allowSyncDepthOne() && depth == 1 && level.equals("1")))
       throw new DavException(400, null);
     if (!Set.of("1", "infinite").contains(level))
       throw new DavException(403, d("sync-traversal-supported"));
     required(root, DAV, "prop");
-    String token = required(root, DAV, "sync-token").getTextContent();
+    String token = scalarText(required(root, DAV, "sync-token"));
     int limit = 10000;
     Element limitElement = child(root, DAV, "limit");
     if (limitElement != null)
       try {
-        String digits = required(limitElement, DAV, "nresults").getTextContent();
+        String digits = scalarText(required(limitElement, DAV, "nresults"));
         if (digits.isEmpty() || !digits.chars().allMatch(value -> value >= '0' && value <= '9'))
           throw new DavException(400, null);
         int significant = 0;
@@ -800,7 +869,7 @@ final class DavController {
                             CalendarContent.parse(
                                 resources.content(actor, candidate).resource().content(), "VEVENT"),
                             timezones.computeIfAbsent(
-                                candidate.collectionId(), id -> timezone(actor, candidate, root))))
+                                candidate.collectionId(), id -> timezone(actor, candidate, null))))
                 .iterator();
     var periods = new CalendarFreeBusy(QueryLimits.defaults()).querySources(parsed, range);
     var calendar = new net.fortuna.ical4j.model.Calendar();
@@ -810,7 +879,6 @@ final class DavController {
             new net.fortuna.ical4j.model.ParameterList(), "2.0"));
     var busy = new net.fortuna.ical4j.model.component.VFreeBusy(range.start(), range.end());
     busy.add(new net.fortuna.ical4j.model.property.Uid(UUID.randomUUID().toString()));
-    busy.add(new net.fortuna.ical4j.model.property.DtStamp(Instant.now()));
     for (var period : periods) {
       var value =
           new net.fortuna.ical4j.model.property.FreeBusy(
@@ -840,14 +908,16 @@ final class DavController {
       DavProperties.Requested requested,
       Element report,
       Map<UUID, FloatingTimezone> cache) {
-    if (node.collectionId() == null || !requested.properties().containsKey(c("calendar-data")))
+    if (requested.context() != DavProperties.Context.CALENDAR_REPORT
+        || node.collectionId() == null
+        || !requested.properties().containsKey(c("calendar-data")))
       return FloatingTimezone.of(ZoneOffset.UTC);
     return cache.computeIfAbsent(node.collectionId(), id -> timezone(actor, node, report));
   }
 
   private FloatingTimezone timezone(UUID actor, DavNode node, Element report) {
     Element timezone = report == null ? null : child(report, CAL, "timezone");
-    if (timezone != null) return FloatingTimezone.parse(timezone.getTextContent());
+    if (timezone != null) return FloatingTimezone.parse(scalarText(timezone));
     if (node.collectionId() != null) {
       String value = store.deadProperty(actor, node.collectionId(), null, c("calendar-timezone"));
       if (value != null)
@@ -891,7 +961,12 @@ final class DavController {
   static ResponseEntity<byte[]> error(int status, QName condition, String href, QName privilege) {
     var document = document();
     DavErrors.append(document, condition, href, privilege);
-    return xml(status, document);
+    var response = xml(status, document);
+    if (status != 405) return response;
+    return ResponseEntity.status(status)
+        .headers(response.getHeaders())
+        .header("Allow", allow())
+        .body(response.getBody());
   }
 
   private static ResponseEntity<byte[]> queryError(QueryException ex) {
