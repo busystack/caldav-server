@@ -162,9 +162,13 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   console.log('READY_RESTORE_VERIFY');
   await waitFor('RESTORE_VERIFIED');
   await page.goto(base + '/');
-  const restoredShare = page.locator('tbody tr').filter({has: page.getByText(readerUsername, {exact: true})});
+  const readerShares = page.locator('tbody tr').filter({has: page.getByText(readerUsername, {exact: true})});
+  const readerShareCount = await readerShares.count();
+  const restoredShare = readerShares.filter({has: page.locator(`input[name="collection"][value="${collection}"]`)});
+  assert.equal(await restoredShare.count(), 1);
   await Promise.all([page.waitForURL(base + '/'), restoredShare.getByRole('button', {name: 'Remove individual access', exact: true}).click()]);
-  assert.equal(await page.locator('tbody tr').filter({has: page.getByText(readerUsername, {exact: true})}).count(), 0);
+  assert.equal(await restoredShare.count(), 0);
+  assert.equal(await readerShares.count(), readerShareCount - 1);
   console.log('READY_RESTORE_REVOKED_READER_VERIFY');
   await waitFor('RESTORE_REVOKED_READER_VERIFIED');
   console.log('HTTPS_RESTORE_SHARED_RECIPIENT_FRESH_MFA_READ_WRITE_DENIAL_AND_REVOCATION_PASSED');

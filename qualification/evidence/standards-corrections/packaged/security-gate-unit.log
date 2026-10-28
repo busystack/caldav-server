@@ -1,0 +1,7 @@
+.Advisory check could not complete: <urlopen error feed unavailable>
+..........
+----------------------------------------------------------------------
+Ran 11 tests in 0.007s
+
+OK
+OSV: 1 Maven package versions checked; 1 with returned advisories; report=/tmp/tmpl2keozar/result.json

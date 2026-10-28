@@ -2,7 +2,7 @@
 
 The later [independent-audit correction submission](../../docs/standards-corrections.md) is maintained separately under [standards-corrections/](standards-corrections/). Its original-audit input hashes, fresh failing baseline, new project tests, independent probe outcomes and matrix dispositions are distinct from the historical qualification below. Existing evidence files are not rewritten to turn earlier failures into passes.
 
-## Current runtime source `47b3543` — CI qualification passed
+## Historical runtime source `47b3543` — CI qualification passed
 
 Runtime source **`47b3543674644d075ece97045088fc1e309e7d1e`** on `release/v0.0.1` passed [CI run 40608661738](https://github.com/busystack/caldav-server/actions/runs/40608661738): **169 unit tests, 174 integration tests, zero failures/errors/skips, and SpotBugs zero findings**. Both application and dependency-audit jobs passed. The [final CI record](correction-ci-final.json) identifies the downloaded artifacts, exact commands, environments and individual results. It qualifies the rebuilt server and its packaged workflows; the test totals alone are not the qualification claim.
 

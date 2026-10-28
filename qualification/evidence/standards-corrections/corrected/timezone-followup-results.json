@@ -1,0 +1,144 @@
+[
+  {
+    "label": "create-audit-timezone",
+    "method": "MKCALENDAR",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/",
+    "request_body": "<C:mkcalendar xmlns:C=\"urn:ietf:params:xml:ns:caldav\" xmlns:D=\"DAV:\"><D:set><D:prop><C:supported-calendar-component-set><C:comp name=\"VEVENT\"/></C:supported-calendar-component-set></D:prop></D:set></C:mkcalendar>",
+    "request_headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "00e64b33-722e-4691-bab3-b1cf8e0bd815",
+      "Location": "https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Wed, 28 Oct 2026 06:15:11 GMT"
+    },
+    "body": ""
+  },
+  {
+    "label": "isolated-zone-put",
+    "method": "PUT",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/future-zone.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//IndependentAudit//EN\r\nBEGIN:VTIMEZONE\r\nTZID:AuditRules\r\nBEGIN:STANDARD\r\nDTSTART:20200101T000000\r\nRRULE:FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nEND:STANDARD\r\nBEGIN:DAYLIGHT\r\nDTSTART:20200601T000000\r\nRRULE:FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=1;UNTIL=20290531T230000Z\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nEND:DAYLIGHT\r\nBEGIN:DAYLIGHT\r\nDTSTART:20300301T000000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=1\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nEND:DAYLIGHT\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:future-zone\r\nDTSTAMP:20261027T000000Z\r\nDTSTART;TZID=AuditRules:20400401T120000\r\nDURATION:PT1H\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "e2087cbf-5ae9-4a21-84a7-bbb4ee162aad",
+      "ETag": "\"43513a833f5742292a2dcf1f34d0a79b8296168ac1d003de27f58eaadf1cf1ea\"",
+      "Location": "https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/future-zone.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Wed, 28 Oct 2026 06:15:11 GMT"
+    },
+    "body": ""
+  },
+  {
+    "label": "future-query-correct.xml",
+    "method": "REPORT",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/",
+    "request_body": "<c:calendar-query xmlns:c=\"urn:ietf:params:xml:ns:caldav\" xmlns:d=\"DAV:\"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name=\"VCALENDAR\"><c:comp-filter name=\"VEVENT\"><c:time-range start=\"20400401T100000Z\" end=\"20400401T100001Z\"/></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>",
+    "request_headers": {
+      "Content-Type": "application/xml",
+      "Depth": "1"
+    },
+    "status": 207,
+    "headers": {
+      "X-Request-ID": "e52d170a-43ed-4000-bc70-bbc809839341",
+      "Date": "Wed, 28 Oct 2026 06:15:11 GMT",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "1286"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/future-zone.ics</D:href><D:propstat><D:prop><D:getetag>\"43513a833f5742292a2dcf1f34d0a79b8296168ac1d003de27f58eaadf1cf1ea\"</D:getetag><C:calendar-data xmlns:C=\"urn:ietf:params:xml:ns:caldav\">BEGIN:VCALENDAR&#13;\nVERSION:2.0&#13;\nPRODID:-//IndependentAudit//EN&#13;\nBEGIN:VTIMEZONE&#13;\nTZID:AuditRules&#13;\nBEGIN:STANDARD&#13;\nDTSTART:20200101T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0200&#13;\nTZOFFSETTO:+0100&#13;\nEND:STANDARD&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20200601T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=1;UNTIL=20290531T230000Z&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20300301T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nEND:VTIMEZONE&#13;\nBEGIN:VEVENT&#13;\nUID:future-zone&#13;\nDTSTAMP:20261027T000000Z&#13;\nDTSTART;TZID=AuditRules:20400401T120000&#13;\nDURATION:PT1H&#13;\nEND:VEVENT&#13;\nEND:VCALENDAR&#13;\n</C:calendar-data></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>"
+  },
+  {
+    "label": "future-query-incorrect.xml",
+    "method": "REPORT",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/",
+    "request_body": "<c:calendar-query xmlns:c=\"urn:ietf:params:xml:ns:caldav\" xmlns:d=\"DAV:\"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name=\"VCALENDAR\"><c:comp-filter name=\"VEVENT\"><c:time-range start=\"20400401T110000Z\" end=\"20400401T110001Z\"/></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>",
+    "request_headers": {
+      "Content-Type": "application/xml",
+      "Depth": "1"
+    },
+    "status": 207,
+    "headers": {
+      "X-Request-ID": "fcc653dd-fefb-4f00-b1ed-7a6227135a3e",
+      "Date": "Wed, 28 Oct 2026 06:15:11 GMT",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "85"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:multistatus xmlns:D=\"DAV:\"/>"
+  },
+  {
+    "label": "isolated-zone-freebusy",
+    "method": "REPORT",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/",
+    "request_body": "<C:free-busy-query xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><C:time-range start=\"20400401T090000Z\" end=\"20400401T130000Z\"/></C:free-busy-query>",
+    "request_headers": {
+      "Content-Type": "application/xml",
+      "Depth": "1"
+    },
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "50a81544-3ab5-4787-8b2b-0e6227b48647",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "291",
+      "Date": "Wed, 28 Oct 2026 06:15:11 GMT"
+    },
+    "body": "BEGIN:VCALENDAR\r\nPRODID:-//BusyStack//CalDAV Server//EN\r\nVERSION:2.0\r\nBEGIN:VFREEBUSY\r\nDTSTAMP:20261028T061511Z\r\nDTSTART:20400401T090000Z\r\nDTEND:20400401T130000Z\r\nUID:c5e3a6ae-0cf5-4c82-ba39-a68c4969284c\r\nFREEBUSY;FBTYPE=BUSY:20400401T100000Z/20400401T110000Z\r\nEND:VFREEBUSY\r\nEND:VCALENDAR\r\n"
+  },
+  {
+    "label": "isolated-zone-expand",
+    "method": "REPORT",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/",
+    "request_body": "<C:calendar-multiget xmlns:C=\"urn:ietf:params:xml:ns:caldav\" xmlns:D=\"DAV:\"><D:prop><C:calendar-data><C:expand start=\"20400401T090000Z\" end=\"20400401T130000Z\"/></C:calendar-data></D:prop><D:href>/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/future-zone.ics</D:href></C:calendar-multiget>",
+    "request_headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 207,
+    "headers": {
+      "X-Request-ID": "cb6920d8-e47b-41a0-b641-1818f2abb60d",
+      "Date": "Wed, 28 Oct 2026 06:15:12 GMT",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "630"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-timezone/future-zone.ics</D:href><D:propstat><D:prop><C:calendar-data xmlns:C=\"urn:ietf:params:xml:ns:caldav\">BEGIN:VCALENDAR&#13;\nVERSION:2.0&#13;\nPRODID:-//IndependentAudit//EN&#13;\nBEGIN:VEVENT&#13;\nUID:future-zone&#13;\nDTSTAMP:20261027T000000Z&#13;\nDTSTART:20400401T100000Z&#13;\nDTEND:20400401T110000Z&#13;\nEND:VEVENT&#13;\nEND:VCALENDAR&#13;\n</C:calendar-data></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>"
+  }
+]

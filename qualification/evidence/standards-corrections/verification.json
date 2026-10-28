@@ -1,6 +1,6 @@
 {
   "submissionType": "developer correction and verification submission for independent re-verification",
-  "status": "verification in progress; no complete release qualification claimed",
+  "status": "All17 finding groups corrected and locally verified; developer submission for independent re-verification. Exact pushed-commit CI receipt is recorded after push in the persistent developer evidence directory.",
   "branch": "release/v0.0.1",
   "auditedBaseline": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
   "originalInputs": {
@@ -63,85 +63,345 @@
     "CAL-04": {
       "originalSeverity": "High",
       "originalTitle": "Future VTIMEZONE era produces wrong UTC instants, query omissions and busy periods",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "CalendarAuditCorrectionsTest",
         "CalendarAuditAtomicityIT",
         "DavHttpIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original isolated fixture resolves2040-04-01 local noon to10:00–11:00Z; correct-range inclusion, wrong-range exclusion, freebusy/expandedUTC, restart and actual restored bytes/reports passed.",
+      "remainingLimitations": [
+        "Complex shapes outside proven coverage explicitly fail; no guessed instants or host-zone substitution. No claim that every possible valid VTIMEZONE shape has perpetual execution coverage."
+      ],
+      "applicableStandardSections": "RFC5545 §§3.3.5,3.6.5; RFC4791 §§7.4,7.10,9.6.5,9.9",
+      "originalCounterexampleAndRootCause": "Valid future observance replacement resolved local noon2040 to11Z, omitting its correct10Z range; current-era last rules outlived finite materialization.",
+      "correctedImplementation": "`ObservanceZoneRules` builds chronological eras and proves a final annual tail; unproven coverage fails explicitly. Submitted VTIMEZONE remains authoritative.",
+      "regressionDescription": "`CalendarAuditCorrectionsTest`, `DavHttpIT`; original isolated timezone probe; packaged audit-corpus restoration.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/ObservanceZoneRules.java",
+          "method": "build",
+          "line": 39,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/ObservanceZoneRules.java",
+          "method": "history",
+          "line": 124,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/ObservanceZoneRules.java",
+          "method": "prove",
+          "line": 203,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/BoundedTimeZoneRegistry.java",
+          "method": "register",
+          "line": 33,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/BoundedTimeZoneRegistry.java",
+          "method": "register",
+          "line": 38,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "00bedd0891c0c6809fab941a1151e194a1c9f413"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D50",
+        "D53",
+        "D54",
+        "D57",
+        "CAL-R013",
+        "CAL-R032",
+        "CAL-R050",
+        "CAL-R051",
+        "CAL-R052",
+        "CAL-R054",
+        "CAL-R064",
+        "CAL-R068",
+        "CAL-R069",
+        "CAL-R070",
+        "CAL-R084",
+        "CAL-R085",
+        "CAL-R088",
+        "CAL-R091",
+        "CAL-R093"
+      ]
     },
     "CAL-01": {
       "originalSeverity": "Medium",
       "originalTitle": "Invalid VEVENT, VTODO and RRULE data accepted and persisted",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "CalendarAuditCorrectionsTest",
         "CalendarAuditAtomicityIT",
         "DavHttpIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "All nine original invalid submissions now403 CALDAV:valid-calendar-data; legal controls remain accepted; atomic rejected create/replacement/legacy transfer and timezone-only admission regressions passed.",
+      "remainingLimitations": [
+        "Legacy invalid objects/properties are preserved for authorized retrieval and corrective replacement/deletion/PROPPATCH; no bulk rewrite/migration. Broader unenumerated grammar remains partial in matrix."
+      ],
+      "applicableStandardSections": "RFC4791 §5.3.2.1; RFC5545 §§3.3.10,3.6.1,3.6.2,3.8.2",
+      "originalCounterexampleAndRootCause": "Nine invalid event/task/RRULE fixtures accepted201 and persisted; generic library validation missed cross-property and lexical rule constraints. Fresh follow-up at5e15eb6 also exposed timezone-only property admission bypass; shared constraints corrected it in279ae33.",
+      "correctedImplementation": "`CalendarConstraints`, `RecurrenceRuleSyntax` and handler integration check original syntax before normalization and before persistence; transfers also preflight content. FloatingTimezone shares validation for collection properties and report timezones; query timezone validation occurs even for empty results.",
+      "regressionDescription": "Original nine fixtures, legal neighbors, broader normative corpus, `CalendarAuditAtomicityIT`, legacy transfer regressions and independent PUT/GET records.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarContent.java",
+          "method": "parse",
+          "line": 43,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarConstraints.java",
+          "method": "validate",
+          "line": 23,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarConstraints.java",
+          "method": "validate",
+          "line": 27,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarConstraints.java",
+          "method": "validateTimezone",
+          "line": 19,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/RecurrenceRuleSyntax.java",
+          "method": "validate",
+          "line": 10,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/FloatingTimezone.java",
+          "method": "parse",
+          "line": 29,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/storage/DavStore.java",
+          "method": "putResource",
+          "line": 156,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "00bedd0891c0c6809fab941a1151e194a1c9f413",
+        "46d86871c11323087603104341eee72f5537b62c",
+        "279ae332b488eb3725736a2701baab2e3fde0b58",
+        "028bcd55728b1b7317e3b2e01542db436f92c06c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D16",
+        "D21",
+        "D22",
+        "D25",
+        "D33",
+        "D36",
+        "D37",
+        "D41",
+        "D50",
+        "D55",
+        "CAL-R009",
+        "CAL-R010",
+        "CAL-R012",
+        "CAL-R016",
+        "CAL-R017",
+        "CAL-R018",
+        "CAL-R019",
+        "CAL-R025",
+        "CAL-R026",
+        "CAL-R028",
+        "CAL-R029",
+        "CAL-R031",
+        "CAL-R033",
+        "CAL-R036",
+        "CAL-R037",
+        "CAL-R038",
+        "CAL-R039",
+        "CAL-R040",
+        "CAL-R041",
+        "CAL-R042",
+        "CAL-R043",
+        "CAL-R044",
+        "CAL-R046",
+        "CAL-R048",
+        "CAL-R049",
+        "CAL-R050",
+        "CAL-R051",
+        "CAL-R052",
+        "CAL-R053",
+        "CAL-R056",
+        "CAL-R057",
+        "CAL-R062",
+        "CAL-R064",
+        "CAL-R065",
+        "CAL-R067",
+        "CAL-R068",
+        "CAL-R069",
+        "CAL-R070",
+        "CAL-R071",
+        "CAL-R072",
+        "CAL-R073",
+        "CAL-R074",
+        "CAL-R075",
+        "CAL-R076",
+        "CAL-R078",
+        "CAL-R079",
+        "CAL-R082",
+        "CAL-R084"
+      ]
     },
     "CAL-02": {
       "originalSeverity": "Medium",
       "originalTitle": "Valid case-insensitive calendar delimiters rejected",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "CalendarAuditCorrectionsTest",
         "CalendarAuditAtomicityIT",
         "DavHttpIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original lowercase fixture accepted; structural hierarchy/case-sensitive value and mismatched-end controls passed; raw GET remains exact.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC5545 §§2,3.1,3.4; RFC5234 §2.3",
+      "originalCounterexampleAndRootCause": "Legal lowercase BEGIN/END rejected403 before later identifier handling.",
+      "correctedImplementation": "`CalendarParsingInput` canonicalizes only structural identifiers in a derived reader; raw input and case-sensitive values are preserved.",
+      "regressionDescription": "Original lowercase fixture, mixed hierarchy and mismatched-component controls.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarParsingInput.java",
+          "method": "reader",
+          "line": 61,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarParsingInput.java",
+          "method": "decode",
+          "line": 38,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "00bedd0891c0c6809fab941a1151e194a1c9f413"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D33",
+        "D53",
+        "CAL-R001"
+      ]
     },
     "CAL-03": {
       "originalSeverity": "Medium",
       "originalTitle": "Escaped CATEGORIES text produces false-negative calendar queries",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "00bedd0891c0c6809fab941a1151e194a1c9f413",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "CalendarAuditCorrectionsTest",
         "CalendarAuditAtomicityIT",
         "DavHttpIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original escaped category query now contains the required href; both collations and escaped/repeated/negated TEXT controls passed.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC5545 §§3.3.11,3.8.1.2; RFC4791 §§7.8,9.7.2,9.7.5",
+      "originalCounterexampleAndRootCause": "Encoded list-TEXT was searched directly; accepted escaped category returned no matching href.",
+      "correctedImplementation": "`CalendarTextValues` and typed query extraction decode TEXT once before required collation; URI data is not indiscriminately unescaped.",
+      "regressionDescription": "Both collations, escaped semicolon/comma/backslash/newline, repeated properties, positive/negated matches and SUMMARY controls.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarTextValues.java",
+          "method": "list",
+          "line": 24,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/CalendarQuery.java",
+          "method": "semanticText",
+          "line": 178,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "00bedd0891c0c6809fab941a1151e194a1c9f413"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D52",
+        "D54",
+        "CAL-R005",
+        "CAL-R021",
+        "CAL-R038",
+        "CAL-R046",
+        "CAL-R086"
+      ]
     },
     "CAL-05": {
       "originalSeverity": "Medium",
       "originalTitle": "Generated free/busy has duplicate DTSTAMP",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original future fixture freebusy has one UID and one UTC DTSTAMP; completed empty/nonempty generated calendars validate in HTTP regressions.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC5545 §3.6.4; RFC4791 §7.10",
+      "originalCounterexampleAndRootCause": "Every generated freebusy had two DTSTAMPs: constructor and application each supplied one.",
+      "correctedImplementation": "`DavController.freeBusy` uses the constructor timestamp once.",
+      "regressionDescription": "Complete generated calendar parsing/validation for empty/nonempty freebusy and corrected future timezone.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "freeBusy",
+          "line": 871,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D57",
+        "CAL-R030",
+        "CAL-R075",
+        "CAL-R091"
+      ]
     },
     "AUTH-01": {
       "originalSeverity": "Medium",
       "originalTitle": "Anonymous passkey assertions accept absent or unrelated userHandle",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "4161cddbd1955835fb3510870ad1e39f0524967d",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "PasskeyHttpIT",
         "PasskeyRestartIT",
@@ -150,16 +410,44 @@
         "SecurityBoundaryIT",
         "PasskeyPersistenceIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original real signed HTTP correct handle200; unrelated/missing handle401 and cryptographic negative controls401; account/allow-list/MFA continuity regressions passed.",
+      "remainingLimitations": [
+        "No physical authenticator/optional extension qualification; original audit did not demonstrate account takeover."
+      ],
+      "applicableStandardSections": "WebAuthn L3 §7.2 step6",
+      "originalCounterexampleAndRootCause": "Real anonymous signed assertions accepted missing/unrelated handles; signature still selected the stored key owner.",
+      "correctedImplementation": "`AccountRelyingPartyOperations` checks persistent owner, required handle, saved allow-list and identified account before one delegated verification.",
+      "regressionDescription": "Original signed HTTP probe; `PasskeyHttpIT` binding, allow-list, account and cryptographic controls.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/security/passkey/AccountRelyingPartyOperations.java",
+          "method": "authenticate",
+          "line": 89,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/security/passkey/PasskeyCeremonyGuard.java",
+          "method": "doFilterInternal",
+          "line": 34,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "4161cddbd1955835fb3510870ad1e39f0524967d"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "AUTH-R062",
+        "AUTH-R072"
+      ]
     },
     "AUTH-03": {
       "originalSeverity": "Medium",
       "originalTitle": "Bearer challenge advertises unavailable protected-resource metadata",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "4161cddbd1955835fb3510870ad1e39f0524967d",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "PasskeyHttpIT",
         "PasskeyRestartIT",
@@ -168,91 +456,320 @@
         "SecurityBoundaryIT",
         "PasskeyPersistenceIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original invalid-Bearer response401 omits resource_metadata; actual root/prefix challenges and working AS metadata/OAuth remain verified. Optional endpoint is unadvertised, not newly implemented.",
+      "remainingLimitations": [
+        "Optional protected-resource metadata intentionally unadvertised; no service added."
+      ],
+      "applicableStandardSections": "RFC9728 §§3,5.1; RFC6750 §3",
+      "originalCounterexampleAndRootCause": "Invalid Bearer challenge advertised metadata returning anonymous302/authenticated404.",
+      "correctedImplementation": "Supported application RFC6750 entry point omits the unwanted optional metadata promise; authorization-server metadata is retained.",
+      "regressionDescription": "Actual root/prefix401 challenges,403 response and exact-framework challenge controls, revocation and AS metadata.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/security/DavBearerAuthenticationEntryPoint.java",
+          "method": "commence",
+          "line": 16,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "4161cddbd1955835fb3510870ad1e39f0524967d"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "AUTH-R051",
+        "AUTH-R052"
+      ]
     },
     "DAV-01": {
       "originalSeverity": "Medium",
       "originalTitle": "Harmless XML command/filter extensions rejected",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original harmless XML extension counterexamples now accepted with identical state/results; ignored-subtree smuggling, malformed recognized syntax and atomicity controls passed.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC4918 §17; RFC4791 §1.2; RFC3744 §10",
+      "originalCounterexampleAndRootCause": "Harmless command/filter extensions returned400/403; unfiltered child counts rejected unknown subtrees.",
+      "correctedImplementation": "Contextual immediate-child selection and scalar text handling ignore whole extension subtrees without promoting descendant commands; stored XML remains untouched.",
+      "regressionDescription": "Paired PROPPATCH/ACL/filter/projection/principal-report controls, smuggling negatives, XML language/mixed content.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavXml.java",
+          "method": "children",
+          "line": 214,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavXml.java",
+          "method": "children",
+          "line": 252,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavXml.java",
+          "method": "scalarText",
+          "line": 263,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/CalendarQueryXml.java",
+          "method": "filter",
+          "line": 25,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavPrincipalReports.java",
+          "method": "report",
+          "line": 36,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "queryTimezone",
+          "line": 720,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c",
+        "028bcd55728b1b7317e3b2e01542db436f92c06c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D29",
+        "D50",
+        "D53",
+        "D55",
+        "D71",
+        "D75",
+        "D76",
+        "D77",
+        "D81",
+        "S03",
+        "S18"
+      ]
     },
     "DAV-02": {
       "originalSeverity": "Medium",
       "originalTitle": "Abstract privileges accepted/reported inconsistently with ACL rules",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original abstract grants rejected403 DAV:no-abstract before aggregate collapse; effective privilege sets contain applicable nonabstract privileges and owner aggregate.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC3744 §§5.3,5.4,8.1.1",
+      "originalCounterexampleAndRootCause": "Explicit abstract grant accepted200, abstract effective entries returned and owner all omitted.",
+      "correctedImplementation": "`DavPrivileges` shares supported tree, nonabstract current privileges and coarse grant validation; no widened permission system.",
+      "regressionDescription": "Every resource kind; owner/READ/WRITE/group actors; atomic no-abstract rejection and unchanged effective access.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavPrivileges.java",
+          "method": "supported",
+          "line": 31,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavPrivileges.java",
+          "method": "effective",
+          "line": 72,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavPrivileges.java",
+          "method": "permission",
+          "line": 84,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "acl",
+          "line": 611,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D47",
+        "D60",
+        "D62",
+        "D63",
+        "D65",
+        "D68",
+        "D70",
+        "D71",
+        "S10"
+      ]
     },
     "DAV-03": {
       "originalSeverity": "Medium",
       "originalTitle": "Required DAV:group and owner propname ACL discovery missing",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original required group property200 empty; owner propname includes ACL; shared-reader privacy/status controls passed.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC3744 §§5,5.2; RFC4918 §§9.1,14.18",
+      "originalCounterexampleAndRootCause": "Required group404; owner propname omitted the defined ACL.",
+      "correctedImplementation": "Protected empty group; distinct explicit/name/allprop inventories; owner-only ACL visibility without loading values for names.",
+      "regressionDescription": "Owner/reader property statuses and name-only budget controls.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "definedNames",
+          "line": 187,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "response",
+          "line": 108,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "value",
+          "line": 257,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "value",
+          "line": 277,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D14",
+        "D15",
+        "D61",
+        "D68",
+        "S28"
+      ]
     },
     "DAV-04": {
       "originalSeverity": "Medium",
       "originalTitle": "Report-capable home/resource targets lack supported collations property",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original query-capable home/object supported-collation-set200; calendar/folder coverage and actual collation controls passed.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC4791 §§7.5,7.5.1",
+      "originalCounterexampleAndRootCause": "Home/resource advertised matching reports but returned collation404.",
+      "correctedImplementation": "Shared actual report capability drives protected collation values/names for calendars/homes/folders/objects.",
+      "regressionDescription": "Advertisement, explicit property and write protection on all four target kinds; actual collation queries.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavPrivileges.java",
+          "method": "calendarReports",
+          "line": 21,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "value",
+          "line": 257,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "value",
+          "line": 277,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D49",
+        "D51"
+      ]
     },
     "DAV-05": {
       "originalSeverity": "Medium",
       "originalTitle": "Resource OPTIONS bypasses read authorization; generic capabilities only",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original unrelated resource OPTIONS now403 with privilege error; authorized owner/reader/writer and revoked/nonexistent controls passed. Prior exposure was generic capability metadata.",
+      "remainingLimitations": [
+        "Resource-targeted authorization fixed; original audit did not demonstrate calendar-content disclosure."
+      ],
+      "applicableStandardSections": "RFC3744 §§3,3.1",
+      "originalCounterexampleAndRootCause": "Unshared event GET403 but OPTIONS200 disclosed generic capabilities.",
+      "correctedImplementation": "Target resolution/current read authorization precedes kind-specific OPTIONS response.",
+      "regressionDescription": "Owner/READ/WRITE/unrelated/revoked/nonexistent and discovery controls.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "options",
+          "line": 276,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavResources.java",
+          "method": "resolve",
+          "line": 26,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D07",
+        "D66",
+        "D85"
+      ]
     },
     "AUTH-02": {
       "originalSeverity": "Low",
       "originalTitle": "Verified passkey assertion does not update credential backup state",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "4161cddbd1955835fb3510870ad1e39f0524967d",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "PasskeyHttpIT",
         "PasskeyRestartIT",
@@ -261,68 +778,236 @@
         "SecurityBoundaryIT",
         "PasskeyPersistenceIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Historical original real-cryptography method probe reproduced the baseline defect. Corrected state maintenance was verified by fresh actual HTTPS/JDBC false→true→false, rejected-state immutability and separate-JVM regressions. The old method main was not rerun as a corrected JDBC test.",
+      "remainingLimitations": [
+        "State transitions verified in actual JDBC and restart tests; physical devices unexercised."
+      ],
+      "applicableStandardSections": "WebAuthn L3 §7.2 step24",
+      "originalCounterexampleAndRootCause": "Accepted BS changes remained unstored; initial audit JDBC conclusion was static.",
+      "correctedImplementation": "Supported relying-party/repository composition defers the framework update and saves verified BS/UV/counter/last-used once after the full decision, under existing account/revocation checks.",
+      "regressionDescription": "Real HTTPS/JDBC false→true→false, rejected-state immutability and separate JVM persistence in `PasskeyHttpIT`/`PasskeyRestartIT`.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/security/passkey/AccountRelyingPartyOperations.java",
+          "method": "authenticate",
+          "line": 89,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/security/passkey/VerifiedCredentialRepository.java",
+          "method": "verification",
+          "line": 18,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/security/passkey/AccountPasskeyCredentials.java",
+          "method": "save",
+          "line": 35,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "4161cddbd1955835fb3510870ad1e39f0524967d"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "AUTH-R070",
+        "AUTH-R071"
+      ]
     },
     "DAV-06": {
       "originalSeverity": "Low",
       "originalTitle": "Invalid calendar-timezone returns wrong precondition QName",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original invalid calendar-timezone propstat409 retains CALDAV:valid-calendar-data; sibling424 and prior-state preservation passed.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC4791 §§1.3,5.2.10",
+      "originalCounterexampleAndRootCause": "Invalid timezone409 used generic DAV:valid-property-value.",
+      "correctedImplementation": "Typed property errors retain CALDAV:valid-calendar-data and atomic dependent failures.",
+      "regressionDescription": "Invalid/multiple/inappropriate timezone values, valid control, sibling424 and unchanged properties.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "patch",
+          "line": 460,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "validateProperty",
+          "line": 534,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/FloatingTimezone.java",
+          "method": "parse",
+          "line": 29,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c",
+        "279ae332b488eb3725736a2701baab2e3fde0b58"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D16",
+        "D28",
+        "D36",
+        "D37",
+        "D41"
+      ]
     },
     "DAV-07": {
       "originalSeverity": "Low",
       "originalTitle": "Nonempty MKCALENDAR without mandatory DAV:set accepted",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original bare nonempty mkcalendar400 without collection; missing/duplicate recognized children and valid empty-body/container controls passed.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC4791 §§5.3.1,9.2",
+      "originalCounterexampleAndRootCause": "Nonempty bare mkcalendar returned201 despite missing mandatory set/prop.",
+      "correctedImplementation": "Recognized structure required for a supplied XML body after contextual extension handling.",
+      "regressionDescription": "Missing/duplicate children reject without creation; empty HTTP body and legal empty/populated prop controls.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "create",
+          "line": 413,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D41",
+        "D42"
+      ]
     },
     "DAV-08": {
       "originalSeverity": "Low",
       "originalTitle": "405 Allow and context-specific DAV error contracts omitted",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original bounded requests now yield405+Allow,405+resource-must-be-null,403+need-privileges children,403+limited-number-of-aces and409+no-ace-conflict, without mutation.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC9110 §15.5.6; RFC4791 §§1.3,5.3.1; RFC3744 §§7.1.1,8.1.1",
+      "originalCounterexampleAndRootCause": "Missing405 Allow; missing existing-resource/privilege conditions; ACE count507 and duplicate400 lost specific contracts.",
+      "correctedImplementation": "Operation-aware status/QName/header paths; report/sync limits keep their own behavior.",
+      "regressionDescription": "Exact405 headers, resource-must-be-null, privilege children, limited-number-of-aces and no-ace-conflict with no mutation.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "dispatch",
+          "line": 111,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "methodNotAllowed",
+          "line": 284,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavController.java",
+          "method": "acl",
+          "line": 611,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavErrors.java",
+          "method": "append",
+          "line": 11,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D06",
+        "D07",
+        "D28",
+        "D44",
+        "D56",
+        "D67",
+        "D70",
+        "D71",
+        "D72"
+      ]
     },
     "DAV-09": {
       "originalSeverity": "Low",
       "originalTitle": "Report-only calendar-data returned as a PROPFIND property",
-      "disposition": "implemented; final verification pending",
+      "disposition": "corrected; freshly verified for the reported counterexample and specified regressions; submitted for independent review",
       "baselineEvidence": "baseline/summary.json and linked request/response records",
       "fixCommit": "46d86871c11323087603104341eee72f5537b62c",
-      "verifiedSourceRevision": null,
+      "verifiedSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
       "regressionTests": [
         "DavHttpIT",
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": null,
-      "remainingLimitations": []
+      "independentOutcome": "Original explicit PROPFIND calendar-data now404 and absent from allprop/propname; authorized reports retain calendar data.",
+      "remainingLimitations": [],
+      "applicableStandardSections": "RFC4791 §9.6",
+      "originalCounterexampleAndRootCause": "PROPFIND returned report-only calendar-data as a successful property.",
+      "correctedImplementation": "Explicit rendering context separates DAV properties from report selectors/data.",
+      "regressionDescription": "Explicit404 and absent allprop/propname data; authorized query/multiget/sync retain calendar-data.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "requested",
+          "line": 80,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "value",
+          "line": 257,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/protocol/DavProperties.java",
+          "method": "value",
+          "line": 277,
+          "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
+        }
+      ],
+      "fixCommits": [
+        "46d86871c11323087603104341eee72f5537b62c"
+      ],
+      "finalIntegratedVerification": "Fresh58f279a clean verify:295unit+209integration,0failures/errors/skips,SpotBugs0; original independent counterexamples checked separately; all six packaged HTTPS/browser profiles and both independent clients passed. Exact final pushed-commit CI is an additional external receipt.",
+      "matrixRows": [
+        "D14",
+        "D58",
+        "S07"
+      ]
     }
   },
   "executions": [
@@ -391,30 +1076,127 @@
       },
       "evidence": "/tmp/busystack-corrections/results/final-targeted-unit.log",
       "qualification": "Final current implementation and test bytes, before coherent commit recording; full clean verify remains required."
+    },
+    {
+      "id": "timezone-admission-regressions",
+      "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current MAVEN_OPTS=-Xmx768m ./mvnw -B -ntp spotless:apply test -Dtest=CalendarAuditCorrectionsTest -Dit.test=DavHttpIT#timezonePropertyFailuresKeepCalDavConditionAndAtomicSiblingState failsafe:integration-test failsafe:verify",
+      "result": {
+        "unitTests": 121,
+        "integrationTests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/timezone-admission-regression.log"
+    },
+    {
+      "id": "h06-isolated-large-group",
+      "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current MAVEN_OPTS=-Xmx768m ./mvnw -B -ntp -Dit.test=GroupServiceIT#aGroupSpanningMoreThanTenThousandCollectionsRemainsMaintainable failsafe:integration-test failsafe:verify",
+      "result": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/group-isolated.log",
+      "limitsAndAssertions": "unchanged; no competing qualification JVM/Docker workload"
+    },
+    {
+      "id": "coverage-fixture-regression",
+      "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current MAVEN_OPTS=-Xmx768m ./mvnw -B -ntp test -Dtest=CalendarTimezoneCoverageTest",
+      "result": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      "evidence": "/tmp/busystack-corrections/results/coverage-fixture-regression.log"
     }
   ],
-  "failedAndSupersededAttempts": [],
-  "artifacts": {},
-  "remote": {},
+  "failedAndSupersededAttempts": [
+    {
+      "id": "clean-verify-attempt1",
+      "sourceRevision": "028bcd55728b1b7317e3b2e01542db436f92c06c",
+      "result": {
+        "unitTests": 295,
+        "failures": 0,
+        "errors": 1,
+        "skips": 0,
+        "integration": "not reached"
+      },
+      "evidence": "/tmp/busystack-corrections/results/clean-verify-attempt1",
+      "reason": "Existing coverage fixture illegally combined numeric BYDAY and YEARLY BYWEEKNO; corrected to legal SU and retained explicit illegal-form rejection. Production validation was not weakened."
+    },
+    {
+      "id": "independent-working-copy-attempt1",
+      "result": "Incomplete harness run: omitted original top-level dav-requests.json; no product failure inferred",
+      "evidence": "/home/albert/busystack/caldav-server-audit/correction-work-20261027/corrected-attempt1-missing-fixture"
+    },
+    {
+      "id": "timezone-admission-initial-correction",
+      "sourceRevision": "5e15eb6",
+      "result": "Fresh valid/floating-UNTIL/DATE-UNTIL PROPPATCH all200 propstat; corrected by279ae33 with shared constraints and exact atomic regressions",
+      "evidence": "/home/albert/busystack/caldav-server-audit/correction-work-20261027/corrected-5e15eb6/evidence/timezone-admission-results.json"
+    },
+    {
+      "id": "focused-authentication-attempts",
+      "result": "All original failures/interrupted/attach-prerequisite runs are retained and distinguished in focusedAuthenticationResults; final per-class successes do not erase them",
+      "evidence": "/tmp/busystack-corrections/results/auth-results-manifest.json"
+    },
+    {
+      "id": "host-node-syntax-check",
+      "command": "node --check qualification/passkeys/recovery.mjs",
+      "exitCode": 127,
+      "result": "Host Node absent; actual official browser-image execution remains the required verification, not a passed syntax check",
+      "supersededBy": "Official browser image node --check exit0, followed by all six actual browser profiles passed; host prerequisite failure retained."
+    },
+    {
+      "id": "investigation-external-cache-prerequisite",
+      "command": "./mvnw -B -ntp -f investigation/protocol/pom.xml -s investigation/protocol/settings.xml test",
+      "result": "Failed before tests: external Maven cache _remote.repositories not writable. User cache not modified; rerun used fresh disposable Maven cache and both investigation suites passed.",
+      "evidence": "/tmp/busystack-corrections/results/investigation-protocol-attempt1.log"
+    }
+  ],
+  "artifacts": {
+    "imageReference": "busystack-caldav:standards-58f279a",
+    "imageId": "sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c",
+    "sourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+    "hostJarSha256": "d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da",
+    "containerJarSha256": "d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da",
+    "identity": "byte-identical JAR",
+    "runtimeSourceTree": "aa53f2166d2a1d2075f0da06d6d9b745fd3e6f48",
+    "pomSha256": "14befda6e75a7e0645f8ccd98608665e33dab202b90c3483b7827c847267458d"
+  },
+  "remote": {
+    "branch": "release/v0.0.1",
+    "pushPolicy": "Existing remote branch only; non-force; no main merge, tags, releases or image publication.",
+    "receipt": "/home/albert/busystack/caldav-server-audit/developer-correction-evidence/remote-ci.json",
+    "revisionRule": "The final evidence/qualification commit cannot contain its own SHA or later CI result. Resolve its SHA from Git and use the exact-SHA push-run receipt above; qualified production source/test/POM trees and artifact identity are pinned below. The final handoff links the actual completed run."
+  },
   "remainingVerification": [
-    "Final clean verify and exact counts",
-    "Original independent corrected probes",
-    "Actual packaged deployment/root/prefix/TLS/clients/recovery profiles",
-    "Remote SHA and CI outcome",
-    "Operator production DNS/certificates/network boundaries unavailable",
-    "Physical authenticators and optional authenticator extensions not exercised"
+    "Operator-specific public production DNS/certificates/network isolation were unavailable; controlled root/prefix HTTPS, forwarded headers, TLS1.2/1.3, trust and hostname negatives actually passed.",
+    "Physical authenticators and optional authenticator extensions unexecuted; signed automated ES256/RS256/EdDSA and real Chromium virtual CTAP2 ceremonies passed.",
+    "Broad per-property/calendar grammar, full Cartesian recurrence cases, extreme timezone offsets and output-fold boundaries remain only partly verified in the derived matrix.",
+    "Additional OIDC audience-trust policy and any narrowly unresolved filter interpretation are identified in the derived matrix; no demonstrated exploit is inferred.",
+    "Optional additional NVD feed audit not run locally; required OSV positive/runtime and separate strict container OS gates passed.",
+    "Leap-second60 fallback is a documented narrow SHOULD exception. Approved Depth1 accommodation and HTTPS Basic/Bearer historical Digest deviation remain separate from17 defects."
   ],
   "evidenceLocations": {
     "independentOriginals": "/home/albert/busystack/caldav-server-audit",
     "extractedWorkingCopy": "/home/albert/busystack/caldav-server-audit/correction-work-20261027",
     "scratchLogs": "/tmp/busystack-corrections",
     "maintainedRecord": "docs/standards-corrections.md",
-    "derivedMatrix": "qualification/evidence/standards-corrections/matrix-dispositions.csv"
+    "derivedMatrix": "qualification/evidence/standards-corrections/matrix-dispositions.csv",
+    "persistentDeveloperEvidence": "/home/albert/busystack/caldav-server-audit/developer-correction-evidence",
+    "persistentDeveloperArchive": "/home/albert/busystack/caldav-server-audit/developer-correction-evidence.zip"
   },
   "fixCommits": {
     "calendar": "00bedd0891c0c6809fab941a1151e194a1c9f413",
     "authentication": "4161cddbd1955835fb3510870ad1e39f0524967d",
-    "dav": "46d86871c11323087603104341eee72f5537b62c"
+    "dav": "46d86871c11323087603104341eee72f5537b62c",
+    "timezoneAdmission": "279ae332b488eb3725736a2701baab2e3fde0b58",
+    "requestTimezone": "028bcd55728b1b7317e3b2e01542db436f92c06c",
+    "coverageFixture": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05"
   },
   "focusedAuthenticationResults": {
     "scope": "Authentication developer correction focused verification; final integrated source/artifact/CI qualification is recorded by root",
@@ -510,5 +1292,929 @@
       "postgres": "92a61d2a2f56 removed; scoped docker ps -a filter empty",
       "ryuk": "55ab6bbcb44f removed; scoped docker ps -a filter empty"
     }
+  },
+  "qualificationFixtureChanges": [
+    "Critical CA key-usage fixture; normal trust/name verification retained",
+    "Actual embedded/proxy TLS profile assertions",
+    "Packaged original corpus with immutable resource/property/deletion history, collection XML properties, READ/WRITE grants and old-token invalidation",
+    "Existing small Python/native Thunderbird profiles on packaged local HTTPS; performance workload deferred",
+    "Recovered-share browser locator scoped to its collection, preserving separate corpus grants",
+    "--clients explicitly requires local --restore, default sync compatibility and pinned client prerequisites"
+  ],
+  "qualifiedRuntimeSourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+  "fullSuite": {
+    "sourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+    "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current MAVEN_OPTS=-Xmx768m BUSYSTACK_CLIENT_PYTHON=/tmp/busystack-client-venv/bin/python BUSYSTACK_THUNDERBIRD_BINARY=/tmp/busystack-thunderbird-official/thunderbird/thunderbird ./mvnw -B -ntp clean verify",
+    "phases": {
+      "surefire": {
+        "totals": {
+          "tests": 295,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "classes": [
+          {
+            "name": "org.busystack.caldav.protocol.HttpConditionsTest",
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarParameterSemanticsTest",
+            "tests": 6,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarSemanticsTest",
+            "tests": 26,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarContentTest",
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.password.PasswordPolicyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.DavBearerAuthenticationEntryPointTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.ThunderbirdCalendarFixturesTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.DavSecretVerifierTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.query.CalendarDataProjectionTest",
+            "tests": 10,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.DavXmlTest",
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.RecentAuthenticationTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarAuditCorrectionsTest",
+            "tests": 121,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oidc.OidcPropertiesTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.storage.WriteConditionTest",
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarTimezoneCoverageTest",
+            "tests": 8,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarExpansionSemanticsTest",
+            "tests": 6,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarCandidateBudgetTest",
+            "tests": 8,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.DavPathsTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarTimezoneRequirementTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.passkey.PasskeyCeremonyGuardTest",
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.HttpDateValuesTest",
+            "tests": 22,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.DavXmlConstructionTest",
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.xml.XmlCharactersTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.storage.DavNamespaceTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.testing.TestTlsTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarErrataTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarEdgeSemanticsTest",
+            "tests": 13,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarTextProfileTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.DavOriginFilterTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarFreeBusySourcesTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oidc.LinkingAuthorizationRequestResolverTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarTimezoneRdateTest",
+            "tests": 9,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.config.DeploymentPropertiesTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.config.DavCompatibilityPropertiesTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.calendar.CalendarDuplicateRecurrenceTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      "failsafe": {
+        "totals": {
+          "tests": 209,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "classes": [
+          {
+            "name": "org.busystack.caldav.security.passkey.PasskeyHttpIT",
+            "tests": 8,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.testing.ContainerIsolationIT",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.passkey.PasskeyRestartIT",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.DavPropertyBoundsIT",
+            "tests": 8,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oauth.OAuthHttpIT",
+            "tests": 17,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.storage.DavStoreIT",
+            "tests": 19,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.DavHttpIT",
+            "tests": 63,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.storage.SyncPagingIT",
+            "tests": 12,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oidc.ExternalIdentityIT",
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.passkey.PasskeyPersistenceIT",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oidc.OidcBoundaryIT",
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.storage.CalendarAuditAtomicityIT",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.sharing.GroupServiceIT",
+            "tests": 13,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.session.AccountSecurityWorkflowsIT",
+            "tests": 19,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.protocol.IndependentClientIT",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oauth.RefreshFamilyStoreIT",
+            "tests": 9,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.oidc.KeycloakOidcIT",
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.DavCredentialIT",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.storage.CalendarStoreIT",
+            "tests": 11,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          {
+            "name": "org.busystack.caldav.security.SecurityBoundaryIT",
+            "tests": 6,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        ]
+      }
+    },
+    "spotbugs": {
+      "bugInstances": 0,
+      "result": "passed; zero findings/errors"
+    },
+    "jar": {
+      "path": "target/caldav-server-0.0.1-SNAPSHOT.jar",
+      "sha256": "d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da",
+      "bytes": 41559806
+    },
+    "runtimeSourceTree": "aa53f2166d2a1d2075f0da06d6d9b745fd3e6f48"
+  },
+  "independentFinalSummary": {
+    "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+    "originalSixScriptRequestCount": 88,
+    "additionalTimezoneAdmissionRequests": 4,
+    "originalProbeAssertions": "All checked original request/response obligations passed; AUTH-02 persistent state is established by the separately executed signed HTTP/JDBC and restart project regressions, not by pretending the original in-memory method probe queried PostgreSQL.",
+    "depthCompatibility": "Original default Depth1 returns207; original separate strict process returns Depth0=207/Depth1=400.",
+    "optionalMetadata": "No resource_metadata promise; optional endpoint remains unimplemented.",
+    "leapSecond": "Original legal leap60 fixture still403, documented narrow SHOULD exception; ordinary59 succeeds.",
+    "inputFixturePreservation": "Original report/CSV/ZIP and original fixtures unchanged. Working copies only adapt paths; metadata working copy removes archived TLS bypass and uses corrected CA fixture.",
+    "filesSha256": {
+      "calendar-followup-results.json": "0afb213118d929f068761aec30e15b884e8f072ae82e4603777f1545a363ce7a",
+      "case-results.json": "312cfc977319d7b961cb24c3efa26b157a667d5c08c912c51a0fcb100cc77b6b",
+      "final-embedded-tls.log": "219bea33c2eefbaa50ebb0afc6d2f649d1ab647529306dcd5f23a201488b4c33",
+      "dav-followup-results.json": "58e6ead393f47d2a82d52b3d7d7dcb5d693bd30200c5c0a8182346bb1f0a43fa",
+      "timezone-followup-results.json": "b96401c9f8790259fd1a50a74e27596dcb195a0c04dd3d36afbe804470419c18",
+      "final-restart-strict.log": "b57913d5410e4eb5681bf00d8e1130405a840146f78a16f13c8f2bb4e91f0a47",
+      "timezone-admission-results.json": "0a0a1e50a3fe6a6e50265136c77b222d2813f3d88e1f65f68c96ccb516e9c145",
+      "final-future-method.log": "787bf584f7535481224a357b35918c26bead4598d3871e47a24da36d3053a7fd",
+      "final-metadata.log": "02656d3cad5fbe0cabca021c8f97d9e5feaafc7f8fac7074fa91103e49357bf9",
+      "options-results.json": "8c9200bf1b5d4a1f00d7027ce1c8b883790c57ccc6eedde29a23ea8c20226185",
+      "final-timezone-admission.log": "1e8420b99263dcabb1722a8cabf00bc7c2a88e5af8e1cb1c3bb1b1d70792a700",
+      "final-webauthn-http.log": "1244be28f60238756b40761cb6eedd01b3cc855145ebdabad7481c1e36022f14",
+      "protocol-results.json": "1e75f6b263f12996dccb50c459d826240983738c1064a08b7112a7dadae9a93d"
+    }
+  },
+  "packagedGates": [
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "qualification/distribution",
+        "-p",
+        "test_*.py"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "distribution-unit.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/verify-distribution.py",
+        "--image",
+        "busystack-caldav:standards-58f279a"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "distribution-inspection.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "qualification/security",
+        "-p",
+        "test_*.py"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "security-gate-unit.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check-advisories.py",
+        "--sbom",
+        "qualification/security/positive-control.cdx.json",
+        "--output",
+        "target/osv-positive-control.json"
+      ],
+      "expectedExitCode": 1,
+      "exitCode": 1,
+      "log": "osv-positive.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check-advisories.py"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "osv-runtime.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check-container-advisories.py",
+        "--image",
+        "busystack-caldav:standards-58f279a"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "container-os-advisories.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/verify-operations.py",
+        "--image",
+        "busystack-caldav:standards-58f279a"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "operations-qualification.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "qualification/passkeys",
+        "-p",
+        "test_*.py"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "browser-fixture-unit.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "docker",
+        "build",
+        "--tag",
+        "busystack-passkey-browser:qualification",
+        "qualification/passkeys"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "browser-image-build.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "node",
+        "busystack-passkey-browser:qualification",
+        "--check",
+        "/qualification/recovery.mjs"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "browser-js-syntax.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "docker",
+        "build",
+        "--tag",
+        "busystack-keycloak-browser:26.8.1",
+        "qualification/keycloak"
+      ],
+      "expectedExitCode": 0,
+      "exitCode": 0,
+      "log": "keycloak-image-build.log",
+      "status": "passed"
+    }
+  ],
+  "investigationResults": [
+    {
+      "command": [
+        "./mvnw",
+        "-B",
+        "-ntp",
+        "-Dmaven.repo.local=/tmp/busystack-corrections/investigation-m2",
+        "-f",
+        "investigation/protocol/pom.xml",
+        "-s",
+        "investigation/protocol/settings.xml",
+        "test"
+      ],
+      "exitCode": 0,
+      "log": "investigation-protocol.log",
+      "counts": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      }
+    },
+    {
+      "command": [
+        "./mvnw",
+        "-B",
+        "-ntp",
+        "-Dmaven.repo.local=/tmp/busystack-corrections/investigation-m2",
+        "-f",
+        "investigation/oauth/pom.xml",
+        "test"
+      ],
+      "exitCode": 0,
+      "log": "investigation-oauth.log",
+      "counts": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      }
+    }
+  ],
+  "advisoryReports": {
+    "osv-positive-control.json": {
+      "api": "https://api.osv.dev/v1/querybatch",
+      "checkedAt": "2026-10-28T06:30:43.966159+00:00",
+      "status": "advisories-returned",
+      "sbomSha256": "858b274d8c7fb4448ec0fa27c36ced9ea81438f6652ec9fc32fc15eb0ebec35f",
+      "ignoredNonMavenComponents": 0,
+      "requestCount": 1,
+      "packageCount": 1,
+      "affectedPackageCount": 1
+    },
+    "container-os-advisories.json": {
+      "blockingFindings": 0,
+      "coverage": "final-container OS packages; separate from Maven/JAR advisories",
+      "database": {
+        "DownloadedAt": "2026-10-28T06:31:32.265885174Z",
+        "NextUpdate": "2026-10-29T01:21:08.391884123Z",
+        "UpdatedAt": "2026-10-28T01:21:08.391884645Z",
+        "Version": 2
+      },
+      "databaseSha256": "e68b667c74000c274351566d7bce26de2022f7937e4cc6e2787e2dbdac96e978",
+      "gate": "HIGH, CRITICAL or UNKNOWN fail, including unfixed findings; all other severities remain reported",
+      "image": {
+        "id": "sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c",
+        "labels": {
+          "org.opencontainers.image.created": "2026-10-06T21:25:30.040262+00:00",
+          "org.opencontainers.image.description": "Independent calendar and task server",
+          "org.opencontainers.image.licenses": "Apache-2.0",
+          "org.opencontainers.image.revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+          "org.opencontainers.image.source": "https://github.com/busystack/caldav-server",
+          "org.opencontainers.image.title": "BusyStack CalDAV Server",
+          "org.opencontainers.image.version": "0.0.1-SNAPSHOT"
+        },
+        "repoDigests": [
+          "busystack-caldav@sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c"
+        ]
+      },
+      "os": {
+        "Family": "ubuntu",
+        "Name": "26.04"
+      },
+      "packageCount": 115,
+      "rawReportSha256": "914ca353b66872aeb52906811c30be15c7693865922be80ba8f97670c7bedf1b",
+      "recordedAt": "2026-10-28T06:30:45.695866+00:00",
+      "scanner": {
+        "archiveSha256": "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0",
+        "name": "Trivy",
+        "version": "0.76.1"
+      },
+      "scannerConfiguration": {
+        "config": "empty private config",
+        "environment": "TRIVY_* overrides removed",
+        "ignoreFile": "empty private ignore file",
+        "ignoreUnfixed": false,
+        "includedSeverities": [
+          "UNKNOWN",
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ]
+      },
+      "status": "passed",
+      "suppressions": []
+    }
+  },
+  "artifactDistributionReport": "packaged/distribution.json",
+  "operationsQualification": "Actual packaged same-version and V9 archive restore/upgrade passed. Local and real-Keycloak HTTPS restoration separately passed with nine original accepted calendar fixtures, nine rejected controls, byte/ETag preservation, corrected timezone query/freebusy/expansion, immutable resource/property/deletion history, collection XML properties, READ/WRITE shares, old-credential/grant/session/cursor invalidation and revocation.",
+  "browserProfiles": [
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:standards-58f279a",
+        "--groups"
+      ],
+      "exitCode": 0,
+      "log": "browser-default.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:standards-58f279a",
+        "--groups",
+        "--strict-sync-depth"
+      ],
+      "exitCode": 0,
+      "log": "browser-strict.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:standards-58f279a",
+        "--proxy",
+        "--groups"
+      ],
+      "exitCode": 0,
+      "log": "browser-proxy.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:standards-58f279a",
+        "--oidc",
+        "--groups"
+      ],
+      "exitCode": 0,
+      "log": "browser-oidc.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:standards-58f279a",
+        "--proxy",
+        "--groups",
+        "--restore",
+        "--clients",
+        "--client-python",
+        "/tmp/busystack-client-venv/bin/python",
+        "--thunderbird-binary",
+        "/tmp/busystack-thunderbird-official/thunderbird/thunderbird"
+      ],
+      "exitCode": 0,
+      "log": "browser-local-restore.log",
+      "status": "passed"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:standards-58f279a",
+        "--oidc",
+        "--groups",
+        "--restore"
+      ],
+      "exitCode": 0,
+      "log": "browser-oidc-restore.log",
+      "status": "passed"
+    }
+  ],
+  "packagedIndependentClients": [
+    {
+      "client": "python-caldav",
+      "icalendar": "7.3.0",
+      "operations": [
+        "principal and home discovery",
+        "calendar and VTODO collection creation",
+        "Unicode event CRUD",
+        "unknown-property round trip",
+        "event time-range query",
+        "server recurrence expansion",
+        "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+        "EXDATE exclusion in server expansion",
+        "undated task CRUD and completion",
+        "initial and incremental synchronization",
+        "resource and collection deletion"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting omitted; packaged application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "syncFallbackDisabled": true,
+      "version": "3.6.0"
+    },
+    {
+      "client": "Thunderbird",
+      "crossClient": {
+        "excludedOccurrences": 1,
+        "icalendar": "7.3.0",
+        "nativeDetachedExceptions": 1,
+        "nativeRecurrenceInstances": 3,
+        "python-caldav": "3.6.0",
+        "sameResources": 4
+      },
+      "driver": "3.7.1",
+      "mode": "isolated headless native desktop CalDAV provider",
+      "operations": [
+        "server discovery by native provider",
+        "recurring event CRUD",
+        "Unicode and unknown-property round trip",
+        "alarm preservation without execution",
+        "undated VTODO CRUD and completion",
+        "same-object Thunderbird to Python to Thunderbird to Python edits",
+        "cross-client recurrence, alarm, extension and completion timestamp preservation",
+        "same-resource detached exception identity/time/title edits in both clients",
+        "EXDATE exclusion verified by native occurrence expansion",
+        "all-day DATE and exclusive end preservation across both clients",
+        "floating DATE-TIME preservation across both clients",
+        "native refresh and deletion synchronization"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting omitted; packaged application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "version": "157.0.1"
+    }
+  ],
+  "artifactOsFindings": {
+    "MEDIUM": 46,
+    "LOW": 12,
+    "blocking": 0,
+    "suppressions": [],
+    "note": "Strict HIGH/CRITICAL/UNKNOWN gate passed, including unfixed findings; not a zero-finding scan."
+  },
+  "qualifiedTrees": {
+    "src/main": "aa53f2166d2a1d2075f0da06d6d9b745fd3e6f48",
+    "src/test": "575ef834d277ed9873a0e6e0d57c3e46dde3ca73",
+    "pomSha256": "14befda6e75a7e0645f8ccd98608665e33dab202b90c3483b7827c847267458d"
+  },
+  "matrixDispositionCounts": {
+    "conformant": 217,
+    "partially conformant": 75,
+    "intentional deviation": 1,
+    "not applicable": 15,
+    "nonconformant": 1
+  },
+  "originalMatrixCounts": {
+    "conformant": 156,
+    "nonconformant": 29,
+    "partially conformant": 55,
+    "unverified": 56,
+    "not applicable": 13
+  },
+  "retainedEvidenceSha256": {
+    "packaged/browser-default.log": "0740bcbcbbb73ba9b47c81e5f3f505560810f6581e288f68c8548559d47ab850",
+    "packaged/browser-fixture-unit.log": "7a2f95e61c4f954755e88ae40c1f78dea2d41bd773fc1d7deea90703e04d186d",
+    "packaged/browser-local-restore.log": "14ea115816f93a84585be65d5d5ec9b4c946c0ac2c4d654b423b7009018bc77d",
+    "packaged/browser-oidc-restore.log": "85814d5cdf8f7ec740e153bff9a3448986d2c631485660cc37e68d6694980a2a",
+    "packaged/browser-oidc.log": "4c54dd1a2251efe9970448568be6ed72d5424afd86422e7189543ab6d22b9702",
+    "packaged/browser-profiles.json": "480edad01f36cfd504a77e14431cc86b7180af02755b4b23384ecb0ac8f7eb1d",
+    "packaged/browser-proxy.log": "4930737c0f6c89d7a9eb063a2f375fa4b56fcf3bbdbc1389d889ca14d2cdff32",
+    "packaged/browser-strict.log": "009fb31e2a59b3c35dc59a10f63ee5b4acf61eedde9fc24a47a57b558cceb749",
+    "packaged/container-os-advisories.json": "3224dcdcd6abf4a6fbf0fddcc3abc5bc9bf63703713ca3893fe91582e4e97a40",
+    "packaged/container-os-advisories.log": "02ef819bbae3023f246222b121cb6f9d5ee1623d46d0e57b02b92db2717efab6",
+    "packaged/distribution-inspection.log": "b2c05f505bbe45d9f6750291cddad67581a12e4dd02bb782acffd2e5385797e1",
+    "packaged/distribution-unit.log": "ab375eafefc78c1d3b1b90c8db1a8fc977ca803445defb14698267cf6ec055b3",
+    "packaged/distribution.json": "1139f1f68449c6c5b9852e4e495cc6f16bcf22703c4f3e82b27b1e6c942090bd",
+    "packaged/independent-clients.json": "a7cda49e632837386221dda8870437dd411d0186100a2d5e258fe48244c88524",
+    "packaged/operations-qualification.log": "463e1c3c140e9d2bde916d94b2fea72455ab2de05ce28a0081d92e1a09a25fc2",
+    "packaged/osv-positive-control.json": "d51d5c42b4079a9337ddcbdae2882f31aba3db541d274770474f9af057f6426a",
+    "packaged/osv-positive.log": "26037e5a8d96e7cf2ddc04944a86abe275a84b958583db768ce05d650a716719",
+    "packaged/osv-runtime-advisories.json": "f4db7bc73fefd9c08088f1db50dcea10cba7b0060498b29554e759eab7f385b4",
+    "packaged/osv-runtime.log": "8690f05e9b26e6fb9b23341cf0194a2fe33f7b18233cabf5dc5da707e9e87427",
+    "packaged/security-gate-unit.log": "15a442c5b55a145bc5f52e427e39317b9884d635d7481676ea06b5b603a791c5"
   }
 }

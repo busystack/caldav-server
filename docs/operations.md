@@ -1,5 +1,7 @@
 # Operations
 
+Current standards-correction behavior, artifact identities and fresh root/prefix/recovery results are maintained in the [developer correction record](standards-corrections.md). Earlier qualification links below retain their historical source scope.
+
 This deployment runs one application and PostgreSQL. Automated evidence includes real HTTPS DAV, account-security/native OAuth, optional real Keycloak, and independent calendar/task client operations. The [conformance matrix](conformance.md) and [artifact qualification records](../qualification/evidence/README.md) record completed packaged recovery/browser checks and explicitly unexecuted environments. The project is Apache-2.0, with [separate third-party licensing and notice delivery](third-party-licenses.md).
 
 ## Build and verification

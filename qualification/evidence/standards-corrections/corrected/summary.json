@@ -1,0 +1,25 @@
+{
+  "revision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+  "originalSixScriptRequestCount": 88,
+  "additionalTimezoneAdmissionRequests": 4,
+  "originalProbeAssertions": "All checked original request/response obligations passed; AUTH-02 persistent state is established by the separately executed signed HTTP/JDBC and restart project regressions, not by pretending the original in-memory method probe queried PostgreSQL.",
+  "depthCompatibility": "Original default Depth1 returns207; original separate strict process returns Depth0=207/Depth1=400.",
+  "optionalMetadata": "No resource_metadata promise; optional endpoint remains unimplemented.",
+  "leapSecond": "Original legal leap60 fixture still403, documented narrow SHOULD exception; ordinary59 succeeds.",
+  "inputFixturePreservation": "Original report/CSV/ZIP and original fixtures unchanged. Working copies only adapt paths; metadata working copy removes archived TLS bypass and uses corrected CA fixture.",
+  "filesSha256": {
+    "calendar-followup-results.json": "0afb213118d929f068761aec30e15b884e8f072ae82e4603777f1545a363ce7a",
+    "case-results.json": "312cfc977319d7b961cb24c3efa26b157a667d5c08c912c51a0fcb100cc77b6b",
+    "final-embedded-tls.log": "219bea33c2eefbaa50ebb0afc6d2f649d1ab647529306dcd5f23a201488b4c33",
+    "dav-followup-results.json": "58e6ead393f47d2a82d52b3d7d7dcb5d693bd30200c5c0a8182346bb1f0a43fa",
+    "timezone-followup-results.json": "b96401c9f8790259fd1a50a74e27596dcb195a0c04dd3d36afbe804470419c18",
+    "final-restart-strict.log": "b57913d5410e4eb5681bf00d8e1130405a840146f78a16f13c8f2bb4e91f0a47",
+    "timezone-admission-results.json": "0a0a1e50a3fe6a6e50265136c77b222d2813f3d88e1f65f68c96ccb516e9c145",
+    "final-future-method.log": "787bf584f7535481224a357b35918c26bead4598d3871e47a24da36d3053a7fd",
+    "final-metadata.log": "02656d3cad5fbe0cabca021c8f97d9e5feaafc7f8fac7074fa91103e49357bf9",
+    "options-results.json": "8c9200bf1b5d4a1f00d7027ce1c8b883790c57ccc6eedde29a23ea8c20226185",
+    "final-timezone-admission.log": "1e8420b99263dcabb1722a8cabf00bc7c2a88e5af8e1cb1c3bb1b1d70792a700",
+    "final-webauthn-http.log": "1244be28f60238756b40761cb6eedd01b3cc855145ebdabad7481c1e36022f14",
+    "protocol-results.json": "1e75f6b263f12996dccb50c459d826240983738c1064a08b7112a7dadae9a93d"
+  }
+}

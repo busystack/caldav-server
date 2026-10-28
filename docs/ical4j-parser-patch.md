@@ -1,5 +1,7 @@
 # iCal4j parser compatibility patch
 
+This records the parser adaptation already present in the audited baseline. Its copied source and attribution remain unchanged by the independent-audit corrections. Current structural case, UTF-8 folding and additional validation use application-owned integration described in [calendar semantics](calendar-semantics.md).
+
 The production calendaring dependency remains `org.mnode.ical4j:ical4j:4.4.0` (BSD-3-Clause). The application keeps an isolated copy of its established content-line parser in its own namespace; the original copyright and complete license header remain in that file. No independent calendar grammar was introduced.
 
 Upstream source: https://repo.maven.apache.org/maven2/org/mnode/ical4j/ical4j/4.4.0/ical4j-4.4.0-sources.jar

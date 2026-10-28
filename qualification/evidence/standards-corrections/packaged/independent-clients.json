@@ -1,0 +1,73 @@
+[
+  {
+    "client": "python-caldav",
+    "icalendar": "7.3.0",
+    "operations": [
+      "principal and home discovery",
+      "calendar and VTODO collection creation",
+      "Unicode event CRUD",
+      "unknown-property round trip",
+      "event time-range query",
+      "server recurrence expansion",
+      "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+      "EXDATE exclusion in server expansion",
+      "undated task CRUD and completion",
+      "initial and incremental synchronization",
+      "resource and collection deletion"
+    ],
+    "status": "passed",
+    "syncConfiguration": {
+      "allowSyncDepthOne": true,
+      "configurationInput": "setting omitted; packaged application default",
+      "depthOneWithOtherSyncLevelStatus": 400,
+      "observedDepthStatus": {
+        "0": 207,
+        "1": 207,
+        "missing": 207
+      },
+      "verifiedBy": "actual authenticated REPORTs to this collection"
+    },
+    "syncFallbackDisabled": true,
+    "version": "3.6.0"
+  },
+  {
+    "client": "Thunderbird",
+    "crossClient": {
+      "excludedOccurrences": 1,
+      "icalendar": "7.3.0",
+      "nativeDetachedExceptions": 1,
+      "nativeRecurrenceInstances": 3,
+      "python-caldav": "3.6.0",
+      "sameResources": 4
+    },
+    "driver": "3.7.1",
+    "mode": "isolated headless native desktop CalDAV provider",
+    "operations": [
+      "server discovery by native provider",
+      "recurring event CRUD",
+      "Unicode and unknown-property round trip",
+      "alarm preservation without execution",
+      "undated VTODO CRUD and completion",
+      "same-object Thunderbird to Python to Thunderbird to Python edits",
+      "cross-client recurrence, alarm, extension and completion timestamp preservation",
+      "same-resource detached exception identity/time/title edits in both clients",
+      "EXDATE exclusion verified by native occurrence expansion",
+      "all-day DATE and exclusive end preservation across both clients",
+      "floating DATE-TIME preservation across both clients",
+      "native refresh and deletion synchronization"
+    ],
+    "status": "passed",
+    "syncConfiguration": {
+      "allowSyncDepthOne": true,
+      "configurationInput": "setting omitted; packaged application default",
+      "depthOneWithOtherSyncLevelStatus": 400,
+      "observedDepthStatus": {
+        "0": 207,
+        "1": 207,
+        "missing": 207
+      },
+      "verifiedBy": "actual authenticated REPORTs to this collection"
+    },
+    "version": "157.0.1"
+  }
+]

@@ -1,0 +1,64 @@
+[
+  {
+    "label": "unshared-resource-get",
+    "method": "GET",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-sync/a.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 403,
+    "headers": {
+      "X-Request-ID": "1b7645fa-acfa-4d99-b9ba-b658d8861d32",
+      "Date": "Wed, 28 Oct 2026 06:15:13 GMT",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "290"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"><D:need-privileges><D:resource><D:href>https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-sync/a.ics</D:href><D:privilege><D:read/></D:privilege></D:resource></D:need-privileges></D:error>"
+  },
+  {
+    "label": "unshared-resource-options",
+    "method": "OPTIONS",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-sync/a.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 403,
+    "headers": {
+      "X-Request-ID": "2aefdc08-1b87-4581-bcc1-daeef0717ad8",
+      "Date": "Wed, 28 Oct 2026 06:15:13 GMT",
+      "Cache-Control": "private, no-store",
+      "Allow": "GET, HEAD, POST, PUT, DELETE, OPTIONS, TRACE, PATCH",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "290"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"><D:need-privileges><D:resource><D:href>https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-sync/a.ics</D:href><D:privilege><D:read/></D:privilege></D:resource></D:need-privileges></D:error>"
+  },
+  {
+    "label": "unshared-nonexistent-options",
+    "method": "OPTIONS",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-sync/a.ics-not-present",
+    "request_body": "",
+    "request_headers": {},
+    "status": 403,
+    "headers": {
+      "X-Request-ID": "11bdeee8-4221-41df-8d47-5c5ae43378d5",
+      "Date": "Wed, 28 Oct 2026 06:15:13 GMT",
+      "Cache-Control": "private, no-store",
+      "Allow": "GET, HEAD, POST, PUT, DELETE, OPTIONS, TRACE, PATCH",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "302"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"><D:need-privileges><D:resource><D:href>https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-sync/a.ics-not-present</D:href><D:privilege><D:read/></D:privilege></D:resource></D:need-privileges></D:error>"
+  }
+]

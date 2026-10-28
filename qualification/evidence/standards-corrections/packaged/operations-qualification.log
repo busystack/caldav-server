@@ -1,0 +1,16 @@
+OPERATIONS_APPLICATION_IMAGE=sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c
+OPERATIONS_PROFILE=same-version
+OPERATIONS_SCHEMA_VERSIONS=1,2,3,4,5,6,7,8,9,10,11,12,13
+OPERATIONS_UNSUPPORTED_HISTORY_REJECTED=future; application remains stopped; no success message
+OPERATIONS_UNSUPPORTED_HISTORY_REJECTED=failed; application remains stopped; no success message
+OPERATIONS_UNSUPPORTED_HISTORY_REJECTED=gap; application remains stopped; no success message
+OPERATIONS_UNSUPPORTED_HISTORY_REJECTED=duplicate; application remains stopped; no success message
+OPERATIONS_UNSUPPORTED_HISTORY_REJECTED=missing-v1; application remains stopped; no success message
+PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).
+Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.
+OPERATIONS_PROFILE=restore-V9-then-upgrade
+OPERATIONS_SCHEMA_VERSIONS=1,2,3,4,5,6,7,8,9
+OPERATIONS_V9_ARCHIVE_CREATED_BEFORE_CURRENT_STARTUP
+OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V13_PASSED
+PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).
+Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.

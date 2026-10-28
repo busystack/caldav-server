@@ -1,0 +1,8 @@
+anonymous /dav/ 401 challenge Bearer error="invalid_token", error_description="Invalid access token", error_uri="https://tools.ietf.org/html/rfc6750#section-3.1" location None
+anonymous /.well-known/oauth-protected-resource 302 challenge None location https://localhost/login
+anonymous /.well-known/oauth-protected-resource/dav 302 challenge None location https://localhost/login
+fixture password login 302
+authenticated /.well-known/oauth-protected-resource 404 content-type application/json
+{"timestamp":"2026-10-28T06:15:28.330Z","status":404,"error":"Not Found","path":"/.well-known/oauth-protected-resource"}
+authenticated /.well-known/oauth-protected-resource/dav 404 content-type application/json
+{"timestamp":"2026-10-28T06:15:28.412Z","status":404,"error":"Not Found","path":"/.well-known/oauth-protected-resource/dav"}

@@ -1,0 +1,421 @@
+{
+  "sourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+  "command": "JAVA_HOME=/tmp/busystack-tools/jdk-current MAVEN_OPTS=-Xmx768m BUSYSTACK_CLIENT_PYTHON=/tmp/busystack-client-venv/bin/python BUSYSTACK_THUNDERBIRD_BINARY=/tmp/busystack-thunderbird-official/thunderbird/thunderbird ./mvnw -B -ntp clean verify",
+  "phases": {
+    "surefire": {
+      "totals": {
+        "tests": 295,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "classes": [
+        {
+          "name": "org.busystack.caldav.protocol.HttpConditionsTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarParameterSemanticsTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarSemanticsTest",
+          "tests": 26,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarContentTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.password.PasswordPolicyTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.DavBearerAuthenticationEntryPointTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.ThunderbirdCalendarFixturesTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.DavSecretVerifierTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.query.CalendarDataProjectionTest",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavXmlTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.RecentAuthenticationTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarAuditCorrectionsTest",
+          "tests": 121,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.OidcPropertiesTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.storage.WriteConditionTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTimezoneCoverageTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarExpansionSemanticsTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarCandidateBudgetTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavPathsTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTimezoneRequirementTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.passkey.PasskeyCeremonyGuardTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.HttpDateValuesTest",
+          "tests": 22,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavXmlConstructionTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.xml.XmlCharactersTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.storage.DavNamespaceTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.testing.TestTlsTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarErrataTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarEdgeSemanticsTest",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTextProfileTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.DavOriginFilterTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarFreeBusySourcesTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.LinkingAuthorizationRequestResolverTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTimezoneRdateTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.config.DeploymentPropertiesTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.config.DavCompatibilityPropertiesTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarDuplicateRecurrenceTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    "failsafe": {
+      "totals": {
+        "tests": 209,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "classes": [
+        {
+          "name": "org.busystack.caldav.security.passkey.PasskeyHttpIT",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.testing.ContainerIsolationIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.passkey.PasskeyRestartIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavPropertyBoundsIT",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oauth.OAuthHttpIT",
+          "tests": 17,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.storage.DavStoreIT",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavHttpIT",
+          "tests": 63,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.storage.SyncPagingIT",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.ExternalIdentityIT",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.passkey.PasskeyPersistenceIT",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.OidcBoundaryIT",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.storage.CalendarAuditAtomicityIT",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.sharing.GroupServiceIT",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.session.AccountSecurityWorkflowsIT",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.protocol.IndependentClientIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oauth.RefreshFamilyStoreIT",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.KeycloakOidcIT",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.DavCredentialIT",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.storage.CalendarStoreIT",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "org.busystack.caldav.security.SecurityBoundaryIT",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    }
+  },
+  "spotbugs": {
+    "bugInstances": 0,
+    "result": "passed; zero findings/errors"
+  },
+  "jar": {
+    "path": "target/caldav-server-0.0.1-SNAPSHOT.jar",
+    "sha256": "d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da",
+    "bytes": 41559806
+  },
+  "runtimeSourceTree": "aa53f2166d2a1d2075f0da06d6d9b745fd3e6f48"
+}

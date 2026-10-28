@@ -10,6 +10,9 @@ docs/ical4j-4.4.0-timezone.patch -whitespace
 src/test/resources/calendar/**/*.ics -text whitespace=cr-at-eol
 src/test/resources/calendar/*.ics -text whitespace=cr-at-eol
 
+# Preserve recorded protocol output and its evidence checksums exactly.
+qualification/evidence/standards-corrections/**/*.log -text whitespace=cr-at-eol
+
 # Deliver upstream license texts verbatim, including their original trailing whitespace.
 licenses/EPL-2.0.txt -text -whitespace
 licenses/LGPL-2.1.txt -text

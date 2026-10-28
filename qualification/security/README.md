@@ -1,5 +1,7 @@
 # Runtime dependency advisory checks
 
+The later standards-correction artifact has [fresh advisory and licensing evidence](../evidence/standards-corrections/verification.json). Earlier retained records below qualify their identified historical revisions.
+
 Generate the runtime CycloneDX inventory with `./mvnw package`, then run:
 
 ```sh

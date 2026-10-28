@@ -80,8 +80,8 @@ def main():
     parser.add_argument("--strict-sync-depth", action="store_true", help="Explicit false override; default qualification leaves the setting absent")
     parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
     args = parser.parse_args()
-    if args.clients and (not args.restore or args.strict_sync_depth):
-        parser.error("--clients requires --restore and the default synchronization compatibility profile")
+    if args.clients and (not args.restore or args.oidc or args.strict_sync_depth):
+        parser.error("--clients requires local --restore and the default synchronization compatibility profile")
     if args.clients and (not Path(args.client_python).is_file() or not os.access(args.thunderbird_binary, os.X_OK)):
         parser.error("--clients requires the pinned Python environment and native Thunderbird binary")
     if args.workload and args.strict_sync_depth:

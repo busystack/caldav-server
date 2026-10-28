@@ -59,6 +59,12 @@ class Corpus:
             assert self.call(encoded, path)[0] == 404
             after = point.report(encoded, path=collection["path"])[2]
             assert XML.fromstring(after).findtext("{DAV:}sync-token") == old
+        # Keep one immutable deletion history entry in the actual archive.
+        self.deleted_path = self.collections["VTODO"]["path"] + "deleted-history.ics"
+        assert self.call(encoded, self.deleted_path, "PUT", point.content,
+            **{"Content-Type": "text/calendar"})[0] == 201
+        assert self.call(encoded, self.deleted_path, "DELETE")[0] == 204
+        assert self.call(encoded, self.deleted_path)[0] == 404
         # Explicit resource properties add real history and historical property snapshots.
         properties = (b'<D:propertyupdate xmlns:D="DAV:" xmlns:A="urn:busystack:audit-restore" xml:lang="en">'
             b'<D:set><D:prop><A:proof>before <A:b xml:lang="fr">apres</A:b> after</A:proof></D:prop></D:set>'
@@ -67,6 +73,8 @@ class Corpus:
         assert self.call(encoded, self.property_path, "PROPPATCH", properties,
             **{"Content-Type": "application/xml"})[0] == 207
         for collection in self.collections.values():
+            assert self.call(encoded, collection["path"], "PROPPATCH", properties,
+                **{"Content-Type": "application/xml"})[0] == 207
             self.grant(encoded, collection["path"], point.reader, point.writer)
             status, _, body = point.report(encoded, path=collection["path"])
             assert status == 207
@@ -81,7 +89,8 @@ class Corpus:
             "acceptedOriginals": len(self.resources), "rejectedOriginals": 9,
             "contentSha256": {Path(path).name: hashlib.sha256(value["content"]).hexdigest()
                 for path, value in self.resources.items()},
-            "historyAndPropertySnapshots": True, "durablePartialCursor": True,
+            "historyAndPropertySnapshots": True, "deletedResourceHistory": True,
+            "collectionPropertiesAndDirectReadWriteGrants": True, "durablePartialCursor": True,
         }, sort_keys=True), flush=True)
 
     def grant(self, encoded, path, *principals):
@@ -102,7 +111,11 @@ class Corpus:
             "FROM (SELECT collection_id,name,revision,deleted,encode(sha256(content),'hex') AS sha256,etag,updated_at "
             "FROM calendar_resource_versions WHERE collection_id IN (" + ids + ")) v),"
             "'properties',(SELECT json_agg(row_to_json(p) ORDER BY collection_id,resource_name,revision,namespace,property_name) "
-            "FROM calendar_resource_version_properties p WHERE collection_id IN (" + ids + ")));")
+            "FROM calendar_resource_version_properties p WHERE collection_id IN (" + ids + ")),"
+            "'collectionProperties',(SELECT json_agg(row_to_json(p) ORDER BY collection_id,namespace,name) "
+            "FROM dav_collection_properties p WHERE collection_id IN (" + ids + ")),"
+            "'directGrants',(SELECT json_agg(row_to_json(m) ORDER BY collection_id,account_id) "
+            "FROM collection_members m WHERE collection_id IN (" + ids + ")));")
         return json.loads(self.checkpoint.operations.sql(environment, query))
 
     def assert_database(self, environment):
@@ -110,6 +123,7 @@ class Corpus:
         print("HTTPS_AUDIT_CORPUS_RESTORED_IMMUTABLE_HISTORY_AND_PROPERTIES_PASSED", flush=True)
 
     def verify_owner(self, encoded):
+        assert self.call(encoded, self.deleted_path)[0] == 404
         for path, value in self.resources.items():
             status, headers, content = self.call(encoded, path)
             assert status == 200 and content == value["content"] and headers["ETag"] == value["etag"], path

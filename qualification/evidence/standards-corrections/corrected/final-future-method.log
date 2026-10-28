@@ -1,0 +1,9 @@
+future-only ACCEPT DTSTART;TZID=AuditFuture:20310101T120000
+ coverage={}
+future-only resolved=2031-01-01T12:00+01:00[ical4j-local-b6289dc7-67]
+future-in-period ACCEPT DTSTART;TZID=AuditRules:20320401T120000
+ coverage={}
+future-in-period resolved=2032-04-01T12:00+02:00[ical4j-local-b6289dc7-66]
+future-after-period ACCEPT DTSTART;TZID=AuditRules:20400401T120000
+ coverage={}
+future-after-period resolved=2040-04-01T12:00+02:00[ical4j-local-b6289dc7-69]
