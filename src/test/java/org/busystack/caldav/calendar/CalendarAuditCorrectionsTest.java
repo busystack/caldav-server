@@ -118,6 +118,32 @@ class CalendarAuditCorrectionsTest {
                     .isEqualTo(CalendarValidationException.Reason.INVALID_DATA));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"20290531T230000", "20290531"})
+  void timezoneOnlyParsingRejectsObservanceUntilWithoutUtcForm(String until) throws Exception {
+    String calendar = timezoneFixture().replace("UNTIL=20290531T230000Z", "UNTIL=" + until);
+    assertThat(calendar).contains("UNTIL=" + until + "\r\n");
+    assertThatThrownBy(() -> FloatingTimezone.parse(calendar))
+        .isInstanceOfSatisfying(
+            QueryException.class,
+            error -> assertThat(error.kind()).isEqualTo(QueryException.Kind.INVALID_DATA));
+  }
+
+  @Test
+  void timezoneOnlyParsingRetainsValidUtcUntilAndFutureEra() throws Exception {
+    var timezone = FloatingTimezone.parse(timezoneFixture());
+    assertThat(timezone.zoneId().getRules().getOffset(Instant.parse("2040-04-01T10:00:00Z")))
+        .isEqualTo(ZoneOffset.ofHours(2));
+  }
+
+  private static String timezoneFixture() throws Exception {
+    String fixture = new String(fixture("future-zone.ics"), StandardCharsets.UTF_8);
+    int start = fixture.indexOf("BEGIN:VTIMEZONE"), end = fixture.indexOf("END:VTIMEZONE");
+    return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Timezone admission//EN\r\n"
+        + fixture.substring(start, end + "END:VTIMEZONE".length())
+        + "\r\nEND:VCALENDAR\r\n";
+  }
+
   static byte[] fixture(String name) throws Exception {
     try (var input =
         CalendarAuditCorrectionsTest.class.getResourceAsStream("/calendar/audit/" + name)) {

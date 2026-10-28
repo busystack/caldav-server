@@ -19,6 +19,7 @@ public final class FloatingTimezone {
   }
 
   public static FloatingTimezone from(VTimeZone component) {
+    validate(component);
     var registry = new BoundedTimeZoneRegistry();
     var timezone = new net.fortuna.ical4j.model.TimeZone(component);
     registry.register(timezone, false);
@@ -43,6 +44,7 @@ public final class FloatingTimezone {
           || !(calendar.getComponents().getFirst() instanceof VTimeZone zone)
           || calendar.validate().hasErrors())
         throw QueryException.invalid("A calendar timezone must contain exactly one VTIMEZONE");
+      validate(zone);
       var timezone = new net.fortuna.ical4j.model.TimeZone(zone);
       return new FloatingTimezone(registry.getZoneId(timezone.getID()), registry);
     } catch (java.io.IOException | net.fortuna.ical4j.data.ParserException ex) {
@@ -50,6 +52,14 @@ public final class FloatingTimezone {
       for (int index = 0; index < 8 && nested != null; index++, nested = nested.getCause())
         if (nested instanceof QueryException query) throw query;
       throw QueryException.invalid("Malformed calendar timezone");
+    }
+  }
+
+  private static void validate(VTimeZone component) {
+    try {
+      org.busystack.caldav.calendar.CalendarConstraints.validateTimezone(component);
+    } catch (org.busystack.caldav.calendar.CalendarValidationException invalid) {
+      throw new QueryException(QueryException.Kind.INVALID_DATA, "Calendar timezone is invalid");
     }
   }
 

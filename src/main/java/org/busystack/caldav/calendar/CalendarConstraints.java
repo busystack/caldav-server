@@ -12,8 +12,13 @@ import org.busystack.caldav.calendar.recurrence.TemporalSupport;
  * Application write-boundary checks for RFC 5545 cross-property constraints. Parsing, typed values
  * and their ordinary validators remain iCal4j responsibilities; no recurrence is expanded here.
  */
-final class CalendarConstraints {
+public final class CalendarConstraints {
   private CalendarConstraints() {}
+
+  /** Apply the same observance constraints to collection properties and request timezones. */
+  public static void validateTimezone(net.fortuna.ical4j.model.component.VTimeZone timezone) {
+    validate(timezone, null, Map.of());
+  }
 
   static void validate(net.fortuna.ical4j.model.Calendar calendar, Map<Property, String> lexical) {
     for (Component component : calendar.getComponents()) validate(component, null, lexical);

@@ -2615,13 +2615,20 @@ class DavHttpIT {
     String end =
         "]]></C:calendar-timezone><D:displayname>changed</D:displayname></D:prop></D:set></D:propertyupdate>";
     assertThat(send("PROPPATCH", calendar, start + valid + end).statusCode()).isEqualTo(207);
-    var before =
-        send(
-            "PROPFIND",
-            calendar,
-            propRequest("<C:calendar-timezone/><D:displayname/>"),
-            "Depth",
-            "0");
+    String archived;
+    try (var fixture = getClass().getResourceAsStream("/calendar/audit/future-zone.ics")) {
+      assertThat(fixture).isNotNull();
+      archived = new String(fixture.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    String utcUntil =
+        archived.substring(0, archived.indexOf("BEGIN:VEVENT\r\n")) + "END:VCALENDAR\r\n";
+    var validRecurrence = send("PROPPATCH", calendar, start + utcUntil + end);
+    assertThat(propertyStatus(validRecurrence, DavXml.CAL, "calendar-timezone")).isEqualTo(200);
+    assertThat(propertyStatus(validRecurrence, DavXml.DAV, "displayname")).isEqualTo(200);
+    String selected = "<C:calendar-timezone/><D:displayname/><D:sync-token/>";
+    var before = send("PROPFIND", calendar, propRequest(selected), "Depth", "0");
+    String syncToken = text(before, DavXml.DAV, "sync-token");
+    int index = 0;
     for (String invalid :
         List.of(
             "not a calendar",
@@ -2629,23 +2636,57 @@ class DavHttpIT {
             valid.replace(
                 "END:VCALENDAR",
                 valid.substring(valid.indexOf("BEGIN:VTIMEZONE"), valid.indexOf("END:VCALENDAR"))
-                    + "END:VCALENDAR"))) {
+                    + "END:VCALENDAR"),
+            utcUntil.replace("UNTIL=20290531T230000Z", "UNTIL=20290531T230000"),
+            utcUntil.replace("UNTIL=20290531T230000Z", "UNTIL=20290531"))) {
       var failure =
           send("PROPPATCH", calendar, start + invalid + end.replace("changed", "not-applied"));
       assertThat(propertyStatus(failure, DavXml.CAL, "calendar-timezone")).isEqualTo(409);
       assertThat(propertyStatus(failure, DavXml.DAV, "displayname")).isEqualTo(424);
       assertThat(xml(failure).getElementsByTagNameNS(DavXml.CAL, "valid-calendar-data").getLength())
           .isEqualTo(1);
+      var after = send("PROPFIND", calendar, propRequest(selected), "Depth", "0");
+      assertThat(after.body()).isEqualTo(before.body());
+      assertThat(text(after, DavXml.DAV, "sync-token")).isEqualTo(syncToken);
+      String rejected = home + "timezone-initialization-" + index++ + "/";
+      int collectionCount =
+          jdbc.queryForObject(
+              "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice);
+      String initialization =
+          "<C:mkcalendar xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:set><D:prop><D:displayname>not-created</D:displayname><C:calendar-timezone><![CDATA["
+              + invalid
+              + "]]></C:calendar-timezone></D:prop></D:set></C:mkcalendar>";
+      var rejectedCreation = send("MKCALENDAR", rejected, initialization);
+      assertThat(rejectedCreation.statusCode()).isEqualTo(409);
       assertThat(
-              send(
-                      "PROPFIND",
-                      calendar,
-                      propRequest("<C:calendar-timezone/><D:displayname/>"),
-                      "Depth",
-                      "0")
-                  .body())
+              xml(rejectedCreation)
+                  .getElementsByTagNameNS(DavXml.CAL, "valid-calendar-data")
+                  .getLength())
+          .isEqualTo(1);
+      assertThat(send("GET", rejected, "").statusCode()).isEqualTo(404);
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM collections WHERE owner_id=?", Integer.class, alice))
+          .isEqualTo(collectionCount);
+      assertThat(send("PROPFIND", calendar, propRequest(selected), "Depth", "0").body())
           .isEqualTo(before.body());
     }
+    String initialized = home + "timezone-initialization-valid/";
+    assertThat(
+            send(
+                    "MKCALENDAR",
+                    initialized,
+                    "<C:mkcalendar xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:set><D:prop><C:calendar-timezone><![CDATA["
+                        + utcUntil
+                        + "]]></C:calendar-timezone></D:prop></D:set></C:mkcalendar>")
+                .statusCode())
+        .isEqualTo(201);
+    assertThat(
+            propertyStatus(
+                send("PROPFIND", initialized, propRequest("<C:calendar-timezone/>"), "Depth", "0"),
+                DavXml.CAL,
+                "calendar-timezone"))
+        .isEqualTo(200);
   }
 
   @Test
