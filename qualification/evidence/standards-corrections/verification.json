@@ -913,7 +913,7 @@
         "DavXmlTest",
         "CalendarStoreIT"
       ],
-      "independentOutcome": "Original bounded requests now yield405+Allow,405+resource-must-be-null,403+need-privileges children,403+limited-number-of-aces and409+no-ace-conflict, without mutation.",
+      "independentOutcome": "Original bounded requests now yield405+Allow,405+resource-must-be-null,403+need-privileges children,403+limited-number-of-aces and403+no-ace-conflict, without mutation.",
       "remainingLimitations": [],
       "applicableStandardSections": "RFC9110 §15.5.6; RFC4791 §§1.3,5.3.1; RFC3744 §§7.1.1,8.1.1",
       "originalCounterexampleAndRootCause": "Missing405 Allow; missing existing-resource/privilege conditions; ACE count507 and duplicate400 lost specific contracts.",
