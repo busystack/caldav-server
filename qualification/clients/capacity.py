@@ -14,21 +14,31 @@ from urllib.error import HTTPError
 from urllib.parse import quote, urljoin, urlsplit
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as XML
-import icalendar
 
 D='{DAV:}'; C='{urn:ietf:params:xml:ns:caldav}'
 
 
+def open_response(request, context, timeout=60):
+    try: return urlopen(request,context=context,timeout=timeout)
+    except HTTPError as error: return error
+
+
+def selective_query(request):
+    query=XML.Element(C+'calendar-query');XML.SubElement(XML.SubElement(query,D+'prop'),D+'getetag')
+    filters=XML.SubElement(query,C+'filter');top=XML.SubElement(filters,C+'comp-filter',name='VCALENDAR');event=XML.SubElement(top,C+'comp-filter',name='VEVENT')
+    XML.SubElement(event,C+'time-range',start='20261027T000000Z',end='20261028T000000Z')
+    return request('REPORT',body=XML.tostring(query),headers={'Depth':'1','Content-Type':'application/xml'},timeout=150)
+
+
 def main():
+    import icalendar
     url=os.environ['BUSYSTACK_CAPACITY_URL']
     auth='Basic '+base64.b64encode((os.environ['BUSYSTACK_CLIENT_USER']+':'+Path(os.environ['BUSYSTACK_CLIENT_SECRET_FILE']).read_text().strip()).encode()).decode()
     context=ssl.create_default_context(cafile=os.environ['BUSYSTACK_CLIENT_CA'])
     metrics={'requests':0,'responseBytes':0,'largestResponseBytes':0,'pageLimit':97,'syncFallbackDisabled':True,'configurationInput':os.environ['BUSYSTACK_CLIENT_SYNC_DEPTH_INPUT']}
     metrics_lock=threading.Lock()
-    def request(method,target=url,body=None,headers=None):
-        response=None
-        try: response=urlopen(Request(target,data=body,method=method,headers={'Authorization':auth,**(headers or {})}),context=context,timeout=60)
-        except HTTPError as error: response=error
+    def request(method,target=url,body=None,headers=None,timeout=60):
+        response=open_response(Request(target,data=body,method=method,headers={'Authorization':auth,**(headers or {})}),context,timeout=timeout)
         with response:
             data=response.read(9*1024*1024)
             assert len(data)<9*1024*1024, 'Response exceeded supported serialized budget'
@@ -106,11 +116,8 @@ def main():
         if not partial:break
         assert metadata_pages<200
     assert len(metadata_seen)==10037 and resource('000-added-雪.ics') in metadata_seen
-    query=XML.Element(C+'calendar-query');XML.SubElement(XML.SubElement(query,D+'prop'),D+'getetag')
-    filters=XML.SubElement(query,C+'filter');top=XML.SubElement(filters,C+'comp-filter',name='VCALENDAR');event=XML.SubElement(top,C+'comp-filter',name='VEVENT')
-    XML.SubElement(event,C+'time-range',start='20261027T000000Z',end='20261028T000000Z')
-    query_start=time.monotonic();status,_,body=request('REPORT',body=XML.tostring(query),headers={'Depth':'1','Content-Type':'application/xml'})
-    assert status==207;assert len(XML.fromstring(body).findall(D+'response'))==1
+    query_start=time.monotonic();status,_,body=selective_query(request)
+    assert status==207, (status,body[:256]);assert len(XML.fromstring(body).findall(D+'response'))==1
     query_ms=round((time.monotonic()-query_start)*1000,2)
     # Many individually admitted property updates exercise aggregate storage and selected response work.
     values='x'*60000

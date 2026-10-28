@@ -12,6 +12,12 @@ These fixtures measure bounded traversal and management, not SQL population or b
 
 The production limits remain explicit: one resource is at most 1 MiB; a dead-property target admits at most 1 MiB aggregate XML, 64 KiB per value and 1,000 names; XML construction has a 16 MiB conservative work and 50,000-node bound in addition to final serialized limits. These are implementation limits, not measured multi-user sizing. Historical resource/property versions increase durable storage and remain within the backup/privacy policy. The [sync algorithm](adr/0004-resumable-synchronization.md), [operating guidance](operations.md) and [conformance matrix](conformance.md) define the exact behavior.
 
+### Proxy/read deadline for the expanded fixture
+
+A targeted fixed real-HTTP selective query over 10,037 resources returned one matching entry in **41.564 seconds** with a 256 MiB JVM heap and no other owned application fixture active. This is a targeted correctness/timing observation, not final packaged workload qualification. A 10,000-resource control also returned 207 in 50.732 seconds under the earlier shared-host conditions. Both demonstrate that the former 30-second proxy read deadline could terminate a valid bounded query before its response.
+
+The qualification proxy and matching deployment example therefore use a 120-second read deadline, retaining the 5-second connect deadline. Only the extended fixture's selective calendar-query request uses a 150-second client timeout; its other requests remain at 60 seconds and its total capacity-process deadline remains 900 seconds. Authentication/MFA windows, token expiry and computation/response budgets are unchanged. The final packaged 46 MB traversal/query measurements will record actual durations and limits separately; these observations are not a throughput or capacity guarantee.
+
 ## Historical measurement — reviewed `495989d` checkpoint
 
 On 2026-10-27, the final packaged application completed a bounded independent-client workload and the local HTTPS backup/restore profile. [The full measurement record](../qualification/evidence/workload-final-date.json) includes the exact image, environment, dataset, client versions, container samples and PostgreSQL counters. This is one sequential client on a shared host, not a capacity, concurrency, scalability or high-availability result.

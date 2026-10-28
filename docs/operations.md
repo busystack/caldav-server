@@ -79,7 +79,7 @@ location ^~ /actuator/ { return 404; }
 location / {
     client_max_body_size 1m;
     proxy_connect_timeout 5s;
-    proxy_read_timeout 30s;
+    proxy_read_timeout 120s;
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
@@ -172,7 +172,8 @@ The database connection pool is bounded to 10 connections; connection acquisitio
 | Accepted iCalendar component depth / components | 8 / 2,000 |
 | iCalendar properties / parameter values | 20,000 / 40,000 |
 | Query filter nodes / range days | 256 / 3,660 |
-| Recurrence instances / rule increments / candidate work | 10,000 / 900 / 500,000 |
+| Generated recurrence instances / rule increments / candidate work | 10,000 / 900 / 500,000 |
+| Matched calendar-query resources | 10,000 |
 | Serialized XML response and cumulative report-copy/expansion reservations | 16 MiB (conservative traversal reservations may fail earlier) |
 | Response DOM construction / nodes / concurrent DAV work | 16 MiB conservative work / 50,000 nodes / 4 requests |
 | Dead properties per target / individual XML / aggregate XML | 1,000 / 64 KiB / 1 MiB |
@@ -181,6 +182,8 @@ The database connection pool is bounded to 10 connections; connection acquisitio
 | Synchronization page | At most 10,000 returned members; larger valid client ceilings are accepted and capped, further bounded by actual selected XML and DOM work; 4 MiB retained bodies and 4 MiB metadata work |
 
 The fixed query budgets are maintained in `QueryLimits.defaults()`, with additional timezone and aggregate report guards. Raising a limit requires renewed hostile-input and memory qualification.
+
+Existing non-recurring components, consumed one resource at a time, spend cumulative candidate work rather than generated-instance capacity. Calendar-query counts actual matching resources separately. Recurrence generation and retained free/busy periods retain their existing instance guards; calendar-data projection separately bounds returned components. Unrelated originals therefore cannot exhaust a narrow query's result capacity merely by exceeding 10,000 stored resources. Exceeding computation or actual response limits still fails explicitly.
 
 Property writes enforce the aggregate limit under storage locks and V11 database guards. Existing oversized property sets remain stored: explicit small-value and name-only requests remain usable, while oversized all-property requests fail before retrieving all XML. Removal and nonincreasing repairs remain possible. Property names and selected values use separate SQL projections, including historical synchronization properties. Calendar bodies are fetched only when needed. Queries and free/busy scan at most 16 bodies / 4 MiB per batch; collection timezones are read directly and reused in a bounded cache.
 

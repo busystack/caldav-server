@@ -1800,6 +1800,45 @@ class DavHttpIT {
   }
 
   @Test
+  void selectiveTimeRangesHandleMoreOriginalResourcesThanTheRecurrenceInstanceLimit()
+      throws Exception {
+    String calendar = create("many-originals", "VEVENT");
+    UUID id = datedCollection("many-originals");
+    String body = event("{UID}", "Cardinality needle");
+    new org.springframework.transaction.support.TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              jdbc.update(
+                  "INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision) SELECT ?,n::text||'.ics',n::text,convert_to(replace(CASE WHEN n=5000 THEN ? ELSE replace(?,'20261027','20000101') END,'{UID}',n::text),'UTF8'),'\"cardinality-fixture\"',n FROM generate_series(1,10037) n",
+                  id,
+                  body,
+                  body);
+              jdbc.update("UPDATE collections SET revision=10037 WHERE id=?", id);
+            });
+    var result =
+        send(
+            "REPORT",
+            calendar,
+            query(
+                    "<C:comp-filter name='VEVENT'><C:time-range start='20261027T000000Z' end='20261028T000000Z'/></C:comp-filter>")
+                .replace("<C:calendar-data/>", ""),
+            "Depth",
+            "1");
+    assertThat(result.statusCode()).describedAs(result.body()).isEqualTo(207);
+    assertThat(xml(result).getElementsByTagNameNS("DAV:", "response").getLength()).isEqualTo(1);
+    assertThat(result.body()).contains("5000.ics");
+    var busy =
+        send(
+            "REPORT",
+            calendar,
+            "<C:free-busy-query xmlns:C='urn:ietf:params:xml:ns:caldav'><C:time-range start='20261027T000000Z' end='20261028T000000Z'/></C:free-busy-query>",
+            "Depth",
+            "1");
+    assertThat(busy.statusCode()).describedAs(busy.body()).isEqualTo(200);
+    assertThat(busy.body()).contains("20261027T100000Z/20261027T110000Z");
+  }
+
+  @Test
   void rawSyncPagesFreezeContentAndPropertiesAcrossWritesAndRetries() throws Exception {
     String calendar = create("paged-wire", "VEVENT");
     for (String name : List.of("a", "b", "c")) {

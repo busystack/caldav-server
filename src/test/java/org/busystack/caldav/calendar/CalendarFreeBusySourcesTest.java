@@ -44,11 +44,15 @@ class CalendarFreeBusySourcesTest {
     var source = new CalendarFreeBusy.Source(parsed, FloatingTimezone.of(ZoneOffset.UTC));
     var range =
         new TimeRange(Instant.parse("2026-01-01T00:00:00Z"), Instant.parse("2026-01-02T00:00:00Z"));
-    var limited = new QueryLimits(5, 900, 500000, 3660, 256);
+    var limited = new QueryLimits(2, 900, 500000, 3660, 256);
     assertThat(new CalendarFreeBusy(limited).querySources(List.of(source), range)).hasSize(1);
     assertThatThrownBy(
             () ->
                 new CalendarFreeBusy(limited).querySources(List.of(source, source, source), range))
         .isInstanceOf(QueryException.class);
+    assertThat(
+            new CalendarFreeBusy(new QueryLimits(5, 900, 500000, 3660, 256))
+                .querySources(List.of(source, source, source), range))
+        .hasSize(1);
   }
 }

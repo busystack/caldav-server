@@ -59,7 +59,7 @@ public final class RecurrenceExpander {
     if (master == null) {
       var result = new ArrayList<Occurrence>();
       for (Component c : components) {
-        budget.instance();
+        budget.charge(1);
         result.add(single(parsed, c, null, null, zone));
       }
       return result;
@@ -69,11 +69,13 @@ public final class RecurrenceExpander {
         !master.getProperties(RRULE).isEmpty() || !master.getProperties(RDATE).isEmpty();
     if (!recurring) {
       var result = new ArrayList<Occurrence>();
-      budget.instance();
+      // Existing components are consumed one resource at a time. They spend shared candidate
+      // work; generated recurrence dates and retained report results have separate instance bounds.
+      budget.charge(1);
       result.add(single(parsed, master, null, null, zone));
       for (Component c : components)
         if (c != master) {
-          budget.instance();
+          budget.charge(1);
           result.add(single(parsed, c, null, null, zone));
         }
       return result;

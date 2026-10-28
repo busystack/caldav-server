@@ -37,7 +37,7 @@ jobs:
           BUSYSTACK_THUNDERBIRD_BINARY: ${{ github.workspace }}/.client-tools/thunderbird/thunderbird
         run: |
           docker info > /dev/null
-          ./mvnw --batch-mode --no-transfer-progress verify
+          ./mvnw --batch-mode --no-transfer-progress clean verify
           ./mvnw --batch-mode --no-transfer-progress -f investigation/protocol/pom.xml -s investigation/protocol/settings.xml test
           ./mvnw --batch-mode --no-transfer-progress -f investigation/oauth/pom.xml test
       - name: Build deployable container

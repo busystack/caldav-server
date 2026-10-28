@@ -17,6 +17,7 @@ public final class CalendarQuery {
   private final QueryLimits limits;
   private final WorkBudget budget;
   private final RecurrenceExpander recurrence;
+  private int matchedResources;
 
   public CalendarQuery(QueryLimits limits) {
     this.limits = limits;
@@ -43,6 +44,7 @@ public final class CalendarQuery {
     for (ComponentFilter child : filter.components())
       if (!components(parsed, parsed.calendar().getComponents(), child, null, timezone))
         return false;
+    if (++matchedResources > limits.maximumInstances()) throw QueryException.limit();
     return true;
   }
 
