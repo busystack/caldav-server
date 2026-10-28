@@ -31,16 +31,19 @@ public class PasskeyConfiguration {
   }
 
   @Bean
-  Webauthn4JRelyingPartyOperations relyingParty(
+  AccountRelyingPartyOperations relyingParty(
       AccountPasskeyUsers users,
       AccountPasskeyCredentials credentials,
-      DeploymentProperties properties) {
+      DeploymentProperties properties,
+      org.busystack.caldav.account.AccountService accounts,
+      org.busystack.caldav.security.session.SessionSecurity sessions) {
     var base = properties.publicBaseUrl();
     String origin = base.getScheme() + "://" + base.getRawAuthority();
+    var updates = new VerifiedCredentialRepository(credentials);
     var operations =
         new Webauthn4JRelyingPartyOperations(
             users,
-            credentials,
+            updates,
             PublicKeyCredentialRpEntity.builder()
                 .id(base.getHost())
                 .name("BusyStack CalDAV")
@@ -55,7 +58,13 @@ public class PasskeyConfiguration {
                     .build()));
     operations.setCustomizeRequestOptions(
         options -> options.userVerification(UserVerificationRequirement.REQUIRED));
-    return operations;
+    return new AccountRelyingPartyOperations(
+        operations,
+        users,
+        credentials,
+        updates,
+        org.busystack.caldav.security.oidc.OidcConfiguration.passkeyUsers(accounts),
+        sessions);
   }
 
   public static void configure(

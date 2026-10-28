@@ -1,5 +1,6 @@
 package org.busystack.caldav.security.passkey;
 
+import com.webauthn4j.verifier.exception.VerificationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,6 +49,17 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
       }
     }
     boolean post = "POST".equals(request.getMethod());
+    if (post && path.equals("/webauthn/authenticate/options")) {
+      var authentication = SecurityContextHolder.getContext().getAuthentication();
+      if (authentication != null
+          && authentication.isAuthenticated()
+          && !(authentication
+              instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)
+          && !users.hasCredentials(authentication.getName())) {
+        response.sendError(403, "This account has no available passkey");
+        return;
+      }
+    }
     if (post && (path.equals("/login/webauthn") || path.equals("/webauthn/register"))) {
       CeremonyStore.Purpose purpose =
           path.equals("/login/webauthn")
@@ -96,6 +108,13 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
         && (path.equals("/webauthn/authenticate/options")
             || path.equals("/webauthn/register/options")))
       processed = new ChallengeRecordingRequest(processed, ceremonies);
-    chain.doFilter(processed, response);
+    try {
+      chain.doFilter(processed, response);
+    } catch (VerificationException | PasskeyRegistrationRejectedException ex) {
+      // The configured registration filter has no failure handler. Its supported RP operation
+      // has already unwound (including transaction rollback) before this boundary is reached.
+      if (!post || !path.equals("/webauthn/register") || response.isCommitted()) throw ex;
+      response.sendError(400, "Invalid passkey registration");
+    }
   }
 }

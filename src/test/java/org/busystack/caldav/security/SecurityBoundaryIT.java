@@ -168,6 +168,30 @@ class SecurityBoundaryIT {
   }
 
   @Test
+  void bearerErrorsRetainTheirChallengeWithoutAdvertisingUnavailableResourceMetadata()
+      throws Exception {
+    var rejected =
+        send(request("/dav/").header("Authorization", "Bearer independent-invalid-token"));
+    assertThat(rejected.statusCode()).isEqualTo(401);
+    assertThat(rejected.headers().firstValue("WWW-Authenticate").orElseThrow())
+        .startsWith("Bearer ")
+        .contains("error=\"invalid_token\"")
+        .doesNotContain("resource_metadata", "tls_client_certificate_bound_access_tokens");
+    assertThat(rejected.headers().firstValue("Location")).isEmpty();
+    var malformed = send(request("/dav/").header("Authorization", "Bearer not a permitted token"));
+    assertThat(malformed.statusCode()).isEqualTo(401);
+    assertThat(malformed.headers().firstValue("WWW-Authenticate").orElseThrow())
+        .startsWith("Bearer ")
+        .doesNotContain("resource_metadata");
+    var metadata = send(request("/.well-known/oauth-authorization-server"));
+    assertThat(metadata.statusCode()).isEqualTo(200);
+    assertThat(metadata.body()).contains("https://calendar.example/team", "S256");
+    assertThat(metadata.body())
+        .doesNotContain(
+            "protected_resource_metadata", "tls_client_certificate_bound_access_tokens");
+  }
+
+  @Test
   void savedLoginRedirectUsesConfiguredOriginWithAnUntrustedHostHeader() throws Exception {
     String first;
     try (var socket =

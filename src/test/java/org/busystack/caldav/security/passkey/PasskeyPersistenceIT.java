@@ -120,5 +120,19 @@ class PasskeyPersistenceIT {
                         .userEntityUserId(Bytes.random())
                         .build()))
         .isInstanceOf(BadCredentialsException.class);
+    assertThatThrownBy(
+            () ->
+                credentials.save(
+                    ImmutableCredentialRecord.fromCredentialRecord(record)
+                        .backupEligible(true)
+                        .build()))
+        .isInstanceOf(BadCredentialsException.class);
+    assertThatThrownBy(
+            () ->
+                credentials.save(
+                    ImmutableCredentialRecord.fromCredentialRecord(record)
+                        .uvInitialized(false)
+                        .build()))
+        .isInstanceOf(BadCredentialsException.class);
   }
 }

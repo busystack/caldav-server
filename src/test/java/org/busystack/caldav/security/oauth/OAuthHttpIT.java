@@ -115,7 +115,13 @@ class OAuthHttpIT {
   void publicPkceIssuesScopedOpaqueTokensAndRefreshReplayRevokesDescendants() throws Exception {
     var initial = exchange(seedCode());
     assertThat(initial.statusCode()).isEqualTo(200);
+    assertThat(initial.headers().firstValue("Cache-Control").orElseThrow()).contains("no-store");
+    assertThat(initial.headers().firstValue("Pragma")).hasValue("no-cache");
+    assertThat(initial.headers().firstValue("Content-Type").orElseThrow())
+        .startsWith("application/json");
     JsonNode first = json.readTree(initial.body());
+    assertThat(first.path("token_type").asString()).isEqualTo("Bearer");
+    assertThat(first.path("expires_in").asLong()).isPositive();
     String firstAccess = first.path("access_token").asString();
     String firstRefresh = first.path("refresh_token").asString();
     assertThat(firstAccess).doesNotContain(".");
@@ -134,6 +140,141 @@ class OAuthHttpIT {
     assertThat(replay.body()).contains("invalid_grant");
     assertThat(dav(secondAccess).statusCode()).isEqualTo(401);
     assertThat(refresh(secondRefresh).statusCode()).isEqualTo(400);
+  }
+
+  @Test
+  void rootBearerChallengeAndAuthorizationRequestBoundariesMatchTheSelectedProfile()
+      throws Exception {
+    var invalid =
+        http.send(
+            HttpRequest.newBuilder(URI.create(base() + "/dav/"))
+                .header("Authorization", "Bearer invalid-boundary-fixture")
+                .GET()
+                .build(),
+            HttpResponse.BodyHandlers.ofString());
+    assertThat(invalid.statusCode()).isEqualTo(401);
+    assertThat(invalid.headers().firstValue("WWW-Authenticate").orElseThrow())
+        .startsWith("Bearer ")
+        .contains("invalid_token")
+        .doesNotContain("resource_metadata");
+    String common =
+        form(
+            Map.of(
+                "response_type",
+                "code",
+                "client_id",
+                "native-http",
+                "redirect_uri",
+                CALLBACK,
+                "scope",
+                "dav",
+                "code_challenge",
+                "012345678901234567890123456789012345678901234",
+                "code_challenge_method",
+                "S256"));
+    for (String query :
+        List.of(
+            common.replace("client_id=native-http", "client_id=unknown-audit-client"),
+            common.replace(
+                java.net.URLEncoder.encode(CALLBACK, StandardCharsets.UTF_8),
+                java.net.URLEncoder.encode(
+                    "https://attacker.invalid/callback", StandardCharsets.UTF_8)),
+            common + "&client_id=native-http",
+            common + "&response_type=code")) {
+      var rejected =
+          http.send(
+              HttpRequest.newBuilder(URI.create(base() + "/oauth2/authorize?" + query))
+                  .GET()
+                  .build(),
+              HttpResponse.BodyHandlers.ofString());
+      assertThat(rejected.statusCode()).as(rejected.body()).isEqualTo(400);
+      assertThat(rejected.headers().firstValue("Location")).isEmpty();
+    }
+    var ordinary =
+        http.send(
+            HttpRequest.newBuilder(URI.create(base() + "/oauth2/authorize?" + common))
+                .header("Accept", "text/html")
+                .GET()
+                .build(),
+            HttpResponse.BodyHandlers.ofString());
+    var extension =
+        http.send(
+            HttpRequest.newBuilder(
+                    URI.create(
+                        base()
+                            + "/oauth2/authorize?"
+                            + common
+                            + "&unrecognized-audit-extension=opaque"))
+                .header("Accept", "text/html")
+                .GET()
+                .build(),
+            HttpResponse.BodyHandlers.ofString());
+    assertThat(ordinary.statusCode()).isEqualTo(302);
+    assertThat(extension.statusCode()).isEqualTo(ordinary.statusCode());
+    assertThat(extension.headers().firstValue("Location"))
+        .isEqualTo(ordinary.headers().firstValue("Location"));
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM oauth2_authorization", Long.class))
+        .isZero();
+    String omittedResponse =
+        java.util.Arrays.stream(common.split("&"))
+            .filter(parameter -> !parameter.startsWith("response_type="))
+            .collect(java.util.stream.Collectors.joining("&"));
+    for (String query :
+        List.of(omittedResponse, common.replace("response_type=code", "response_type="))) {
+      var rejected =
+          http.send(
+              HttpRequest.newBuilder(URI.create(base() + "/oauth2/authorize?" + query))
+                  .GET()
+                  .build(),
+              HttpResponse.BodyHandlers.ofString());
+      assertThat(rejected.statusCode()).isEqualTo(400);
+      assertThat(rejected.headers().firstValue("Location")).isEmpty();
+    }
+    for (String body :
+        List.of(
+            "grant_type=authorization_code&grant_type=refresh_token&client_id=native-http&code=unused&code_verifier="
+                + VERIFIER,
+            "grant_type=authorization_code&client_id=native-http&client_id=native-http&code=unused&code_verifier="
+                + VERIFIER)) {
+      var rejected =
+          http.send(
+              HttpRequest.newBuilder(URI.create(base() + "/oauth2/token"))
+                  .header("Content-Type", "application/x-www-form-urlencoded")
+                  .POST(HttpRequest.BodyPublishers.ofString(body))
+                  .build(),
+              HttpResponse.BodyHandlers.ofString());
+      assertThat(rejected.statusCode()).as(rejected.body()).isEqualTo(400);
+      assertThat(rejected.body()).contains("invalid_request");
+      assertThat(rejected.body()).doesNotContain("access_token", "refresh_token");
+    }
+    for (var malformed :
+        Map.of(
+                "client_id=native-http",
+                "invalid_request",
+                "grant_type=&client_id=native-http",
+                "invalid_request",
+                "grant_type=authorization_code&client_id=native-http",
+                "invalid_request",
+                "grant_type=authorization_code&client_id=native-http&code=unused",
+                "invalid_grant",
+                "grant_type=authorization_code&code=unused&code_verifier=" + VERIFIER,
+                "invalid_request",
+                "grant_type=unsupported-audit-grant&client_id=native-http",
+                "unsupported_grant_type")
+            .entrySet()) {
+      var rejected =
+          http.send(
+              HttpRequest.newBuilder(URI.create(base() + "/oauth2/token"))
+                  .header("Content-Type", "application/x-www-form-urlencoded")
+                  .POST(HttpRequest.BodyPublishers.ofString(malformed.getKey()))
+                  .build(),
+              HttpResponse.BodyHandlers.ofString());
+      assertThat(rejected.statusCode()).as(rejected.body()).isEqualTo(400);
+      assertThat(rejected.headers().firstValue("Location")).isEmpty();
+      assertThat(json.readTree(rejected.body()).path("error").asString())
+          .isEqualTo(malformed.getValue());
+      assertThat(rejected.body()).doesNotContain("access_token", "refresh_token");
+    }
   }
 
   @Test

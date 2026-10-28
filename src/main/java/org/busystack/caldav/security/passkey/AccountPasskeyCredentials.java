@@ -48,6 +48,8 @@ public class AccountPasskeyCredentials implements UserCredentialRepository {
         && (!old.getUserEntityUserId().equals(record.getUserEntityUserId())
             || !Arrays.equals(old.getPublicKey().getBytes(), record.getPublicKey().getBytes())
             || !old.getCreated().equals(record.getCreated())
+            || old.isBackupEligible() != record.isBackupEligible()
+            || old.isUvInitialized() && !record.isUvInitialized()
             || old.getSignatureCount() > record.getSignatureCount()))
       throw new BadCredentialsException("Credential state changed");
     delegate.save(record);

@@ -123,12 +123,15 @@ public class SecurityConfiguration {
     if (introspector != null)
       http.oauth2ResourceServer(
           oauth ->
-              oauth.opaqueToken(
-                  opaque ->
-                      opaque.authenticationManager(
-                          new org.springframework.security.authentication.ProviderManager(
-                              new org.springframework.security.oauth2.server.resource.authentication
-                                  .OpaqueTokenAuthenticationProvider(introspector)))));
+              oauth
+                  .authenticationEntryPoint(new DavBearerAuthenticationEntryPoint())
+                  .opaqueToken(
+                      opaque ->
+                          opaque.authenticationManager(
+                              new org.springframework.security.authentication.ProviderManager(
+                                  new org.springframework.security.oauth2.server.resource
+                                      .authentication.OpaqueTokenAuthenticationProvider(
+                                      introspector)))));
     return http.build();
   }
 

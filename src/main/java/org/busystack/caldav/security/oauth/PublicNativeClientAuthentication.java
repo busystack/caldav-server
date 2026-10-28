@@ -27,12 +27,46 @@ final class PublicNativeClientAuthentication {
   static final class Converter implements AuthenticationConverter {
     @Override
     public Authentication convert(HttpServletRequest request) {
-      if (!"POST".equals(request.getMethod())
-          || request.getHeader("Authorization") != null
+      if (!"POST".equals(request.getMethod())) return null;
+      boolean token = "/oauth2/token".equals(request.getServletPath());
+      if (token) {
+        // Validate the selected profile before a framework PKCE matcher can decline a malformed
+        // request and let it reach the browser entry point. Unknown extension parameters remain
+        // untouched; only the defined single-valued token parameters are checked here.
+        for (String parameter :
+            java.util.List.of(
+                "grant_type",
+                "client_id",
+                "client_secret",
+                "code",
+                "redirect_uri",
+                "code_verifier",
+                "refresh_token",
+                "scope")) {
+          String[] values = request.getParameterValues(parameter);
+          if (values != null && values.length != 1)
+            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_REQUEST);
+        }
+        String grant = request.getParameter("grant_type");
+        if (grant == null || grant.isBlank())
+          throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_REQUEST);
+        if (!"authorization_code".equals(grant) && !"refresh_token".equals(grant))
+          throw new OAuth2AuthenticationException(OAuth2ErrorCodes.UNSUPPORTED_GRANT_TYPE);
+      }
+      if (request.getHeader("Authorization") != null
           || request.getParameter("client_secret") != null) return null;
-      boolean refresh =
-          "/oauth2/token".equals(request.getServletPath())
-              && "refresh_token".equals(request.getParameter("grant_type"));
+      if (token && "authorization_code".equals(request.getParameter("grant_type"))) {
+        for (String required : java.util.List.of("client_id", "code")) {
+          String value = request.getParameter(required);
+          if (value == null || value.isBlank())
+            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_REQUEST);
+        }
+        if (request.getParameter("code_verifier") == null)
+          throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_GRANT);
+        // The configured Spring public-client provider still performs the single PKCE check.
+        return null;
+      }
+      boolean refresh = token && "refresh_token".equals(request.getParameter("grant_type"));
       boolean revoke = "/oauth2/revoke".equals(request.getServletPath());
       if (!refresh && !revoke) return null;
       String[] ids = request.getParameterValues("client_id");
