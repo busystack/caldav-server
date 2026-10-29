@@ -29,6 +29,11 @@ final class PublicNativeClientAuthentication {
     public Authentication convert(HttpServletRequest request) {
       if (!"POST".equals(request.getMethod())) return null;
       boolean token = "/oauth2/token".equals(request.getServletPath());
+      boolean revoke = "/oauth2/revoke".equals(request.getServletPath());
+      if (!token && !revoke) return null;
+      String[] secrets = request.getParameterValues("client_secret");
+      if (secrets != null && secrets.length != 1)
+        throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_REQUEST);
       if (token) {
         // Validate the selected profile before a framework PKCE matcher can decline a malformed
         // request and let it reach the browser entry point. Unknown extension parameters remain
@@ -37,7 +42,6 @@ final class PublicNativeClientAuthentication {
             java.util.List.of(
                 "grant_type",
                 "client_id",
-                "client_secret",
                 "code",
                 "redirect_uri",
                 "code_verifier",
@@ -53,8 +57,12 @@ final class PublicNativeClientAuthentication {
         if (!"authorization_code".equals(grant) && !"refresh_token".equals(grant))
           throw new OAuth2AuthenticationException(OAuth2ErrorCodes.UNSUPPORTED_GRANT_TYPE);
       }
-      if (request.getHeader("Authorization") != null
-          || request.getParameter("client_secret") != null) return null;
+      if (request.getHeader("Authorization") != null) return null;
+      // RFC 6749 section 3.2 treats an empty optional value as omitted. Actual secrets,
+      // including whitespace, remain unsupported by this public-client profile.
+      String secret = request.getParameter("client_secret");
+      if (secret != null && !secret.isEmpty())
+        throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_CLIENT);
       if (token && "authorization_code".equals(request.getParameter("grant_type"))) {
         for (String required : java.util.List.of("client_id", "code")) {
           String value = request.getParameter(required);
@@ -67,7 +75,6 @@ final class PublicNativeClientAuthentication {
         return null;
       }
       boolean refresh = token && "refresh_token".equals(request.getParameter("grant_type"));
-      boolean revoke = "/oauth2/revoke".equals(request.getServletPath());
       if (!refresh && !revoke) return null;
       String[] ids = request.getParameterValues("client_id");
       String[] grants = request.getParameterValues("grant_type");

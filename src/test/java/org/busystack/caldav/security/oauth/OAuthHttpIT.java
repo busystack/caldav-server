@@ -143,6 +143,176 @@ class OAuthHttpIT {
   }
 
   @Test
+  void emptyOptionalSecretRefreshesAndRejectsInvalidGrantsWithoutBrowserRedirects()
+      throws Exception {
+    var softly = new org.assertj.core.api.SoftAssertions();
+    for (String suffix :
+        List.of(
+            "",
+            "&client_secret=",
+            "&client_secret=&unrecognized-extension=one&unrecognized-extension=two")) {
+      var issuedResponse = exchange(seedCode());
+      assertThat(issuedResponse.statusCode()).isEqualTo(200);
+      JsonNode issued = json.readTree(issuedResponse.body());
+      String oldAccess = issued.path("access_token").asString();
+      String oldRefresh = issued.path("refresh_token").asString();
+      var refreshed =
+          post(
+              "/oauth2/token",
+              form(
+                      Map.of(
+                          "grant_type",
+                          "refresh_token",
+                          "client_id",
+                          "native-http",
+                          "refresh_token",
+                          oldRefresh))
+                  + suffix);
+      softly.assertThat(refreshed.statusCode()).as("valid refresh %s", suffix).isEqualTo(200);
+      softly.assertThat(refreshed.headers().firstValue("Location")).isEmpty();
+      softly
+          .assertThat(refreshed.headers().firstValue("Content-Type").orElse(""))
+          .startsWith("application/json");
+      if (refreshed.statusCode() == 200) {
+        JsonNode successor = json.readTree(refreshed.body());
+        softly.assertThat(successor.path("token_type").asString()).isEqualTo("Bearer");
+        softly.assertThat(successor.path("refresh_token").asString().equals(oldRefresh)).isFalse();
+        softly.assertThat(successor.path("refresh_token").asString()).isNotBlank();
+        softly.assertThat(successor.path("access_token").asString()).isNotBlank();
+        softly.assertThat(dav(oldAccess).statusCode()).isEqualTo(401);
+        softly
+            .assertThat(dav(successor.path("access_token").asString()).statusCode())
+            .isEqualTo(200);
+        softly
+            .assertThat(refreshed.headers().firstValue("Cache-Control").orElse(""))
+            .contains("no-store");
+        softly.assertThat(refreshed.headers().firstValue("Pragma")).hasValue("no-cache");
+      }
+      var invalid =
+          post(
+              "/oauth2/token",
+              form(
+                      Map.of(
+                          "grant_type",
+                          "refresh_token",
+                          "client_id",
+                          "native-http",
+                          "refresh_token",
+                          "independent-invalid-control"))
+                  + suffix);
+      softly.assertThat(invalid.statusCode()).as("invalid refresh %s", suffix).isEqualTo(400);
+      softly.assertThat(invalid.headers().firstValue("Location")).isEmpty();
+      softly
+          .assertThat(invalid.headers().firstValue("Content-Type").orElse(""))
+          .startsWith("application/json");
+      if (invalid.statusCode() == 400)
+        softly
+            .assertThat(json.readTree(invalid.body()).path("error").asString())
+            .isEqualTo("invalid_grant");
+    }
+    softly.assertAll();
+  }
+
+  @Test
+  void nonemptyAndDuplicateSecretsReturnOAuthErrorsWithoutConsumingRefreshGrants()
+      throws Exception {
+    for (var control :
+        Map.ofEntries(
+                Map.entry("&client_secret=unsupported-secret", "invalid_client"),
+                Map.entry("&client_secret=%20", "invalid_client"),
+                Map.entry("&client_secret=&client_secret=", "invalid_request"),
+                Map.entry("&client_secret=&client_secret=unsupported-secret", "invalid_request"),
+                Map.entry("&client_secret=unsupported-secret&client_secret=", "invalid_request"),
+                Map.entry("&client_secret=one&client_secret=two", "invalid_request"),
+                Map.entry("&client_secret=&client_id=native-http", "invalid_request"),
+                Map.entry("&client_secret=&grant_type=refresh_token", "invalid_request"),
+                Map.entry("&client_secret=&refresh_token=duplicate-control", "invalid_request"),
+                Map.entry("&client_secret=&scope=dav&scope=dav", "invalid_request"))
+            .entrySet()) {
+      var issuedResponse = exchange(seedCode());
+      assertThat(issuedResponse.statusCode()).isEqualTo(200);
+      JsonNode issued = json.readTree(issuedResponse.body());
+      String token = issued.path("refresh_token").asString();
+      for (String candidate : List.of(token, "independent-invalid-control")) {
+        var rejected =
+            post(
+                "/oauth2/token",
+                form(
+                        Map.of(
+                            "grant_type",
+                            "refresh_token",
+                            "client_id",
+                            "native-http",
+                            "refresh_token",
+                            candidate))
+                    + control.getKey());
+        assertThat(rejected.statusCode())
+            .as("refresh control %s", control.getKey())
+            .isEqualTo(control.getValue().equals("invalid_client") ? 401 : 400);
+        assertThat(rejected.headers().firstValue("Location")).isEmpty();
+        assertThat(rejected.headers().firstValue("Content-Type").orElseThrow())
+            .startsWith("application/json");
+        assertThat(json.readTree(rejected.body()).path("error").asString())
+            .isEqualTo(control.getValue());
+      }
+      assertThat(dav(issued.path("access_token").asString()).statusCode()).isEqualTo(200);
+      var refreshed = refresh(token);
+      assertThat(refreshed.statusCode()).isEqualTo(200);
+      assertThat(dav(json.readTree(refreshed.body()).path("access_token").asString()).statusCode())
+          .isEqualTo(200);
+    }
+  }
+
+  @Test
+  void emptyOptionalSecretRevokesWithoutAdmittingNonemptyOrDuplicateSecrets() throws Exception {
+    for (String suffix : List.of("", "&client_secret=")) {
+      var issued = json.readTree(exchange(seedCode()).body());
+      var revoked =
+          post(
+              "/oauth2/revoke",
+              form(
+                      Map.of(
+                          "client_id",
+                          "native-http",
+                          "token",
+                          issued.path("refresh_token").asString()))
+                  + suffix);
+      assertThat(revoked.statusCode()).as("revoke %s", suffix).isEqualTo(200);
+      assertThat(revoked.headers().firstValue("Location")).isEmpty();
+      assertThat(dav(issued.path("access_token").asString()).statusCode()).isEqualTo(401);
+    }
+    for (var control :
+        Map.of(
+                "&client_secret=unsupported-secret", "invalid_client",
+                "&client_secret=%20", "invalid_client",
+                "&client_secret=&client_secret=", "invalid_request",
+                "&client_secret=&client_secret=unsupported-secret", "invalid_request")
+            .entrySet()) {
+      var issued = json.readTree(exchange(seedCode()).body());
+      var rejected =
+          post(
+              "/oauth2/revoke",
+              form(
+                      Map.of(
+                          "client_id",
+                          "native-http",
+                          "token",
+                          issued.path("refresh_token").asString()))
+                  + control.getKey());
+      assertThat(rejected.statusCode())
+          .as("revoke control %s", control.getKey())
+          .isEqualTo(control.getValue().equals("invalid_client") ? 401 : 400);
+      assertThat(rejected.headers().firstValue("Location")).isEmpty();
+      assertThat(rejected.headers().firstValue("Content-Type").orElseThrow())
+          .startsWith("application/json");
+      assertThat(json.readTree(rejected.body()).path("error").asString())
+          .isEqualTo(control.getValue());
+      assertThat(dav(issued.path("access_token").asString()).statusCode()).isEqualTo(200);
+      assertThat(refresh(issued.path("refresh_token").asString()).statusCode()).isEqualTo(200);
+    }
+  }
+
+  @Test
   void rootBearerChallengeAndAuthorizationRequestBoundariesMatchTheSelectedProfile()
       throws Exception {
     var invalid =
@@ -1041,7 +1211,10 @@ class OAuthHttpIT {
   }
 
   private HttpResponse<String> post(String path, Map<String, String> parameters) throws Exception {
-    String form = form(parameters);
+    return post(path, form(parameters));
+  }
+
+  private HttpResponse<String> post(String path, String form) throws Exception {
     return http.send(
         HttpRequest.newBuilder(URI.create(base() + path))
             .timeout(Duration.ofSeconds(15))
