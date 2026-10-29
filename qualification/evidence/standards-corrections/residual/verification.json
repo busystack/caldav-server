@@ -1,0 +1,153 @@
+{
+  "submissionType": "Developer residual correction and verification for independent re-verification",
+  "baselineRevision": "1328727f80257deeb9537a1d6f923850c09a14d7",
+  "verifiedCodeRevision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3",
+  "fixCommits": {
+    "calendar": "3038a6c9fdb110612972b49e84c9c22143d5db91",
+    "authentication": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3",
+    "verifiedCodeRevision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+  },
+  "independentInputHashes": {
+    "independent-verification-report.txt": "955c109e572f92fe8571ba091a0914370c5c2cb959f2c7ff773646c7d7dc27ee",
+    "independent-conformance-matrix.csv": "15b46de97b059e3d441d589142baa5e7cbc9b9f63d570aad44eb51f99dd2e52f",
+    "review-of-75-partial-rows.csv": "0ff0b3b65cf51505df70460e2fc03897e6c1efa53355fc432e9091804a69f6ef",
+    "SHA256SUMS": "80d48e36bbb8e82b252462eac1bc4fd576097003efc8805297751f77942a2c1b"
+  },
+  "independentAssessmentAtBaseline": "Sixteen original groups closed; CAL-01 partially resolved with IV-CAL-01 lexical counterexamples; separate residual IV-AUTH-01 empty-secret failure. No demonstrated new takeover/content disclosure/synchronization omission/authoritative-byte rewriting.",
+  "findings": {
+    "IV-CAL-01": {
+      "standard": "RFC4791§5.3.2.1; RFC5545§§3.3.6,3.3.10,3.4; ASCII case under RFC5234§2.3",
+      "baseline": "Original four residual malformed representations PUT201/GET200 exact bytes before any production edit.",
+      "rootCause": "Typed recurrence discarded explicit zero ordinals; library duration parser admitted mixed alternatives; historical initial-token helper matched a substring.",
+      "correction": "Shared original-value guards run before typed factories for RECUR and duration/PERIOD contexts; adapter requires exact ASCII initial VCALENDAR structure with supported leading BOM/case variants. Raw stored bytes, query limits and third-party sources are unchanged.",
+      "fixCommit": "3038a6c9fdb110612972b49e84c9c22143d5db91",
+      "matrixRows": [
+        "D32",
+        "CAL-R019",
+        "CAL-R024",
+        "CAL-R053",
+        "CAL-R070",
+        "CAL-R082"
+      ],
+      "regressions": [
+        "CalendarAdmissionSyntaxTest:64 invocations",
+        "CalendarAuditAtomicityIT:original9 plus7 residual create/If-Match replacement controls",
+        "DavHttpIT:65 tests including namespace-qualified valid-calendar-data, SQL resource/history/revision counts, ETag/raw GET/token stability and legal neighbors",
+        "Original independent adjacent HTTP script and9 original conditional HTTP replacements"
+      ],
+      "result": "Reported residual obligations corrected and freshly verified; broader per-property grammar rows retain their existing verification limits.",
+      "existingData": "No deletion, rewriting or hiding of previously accepted invalid resources. Authorized GET/ETag plus corrective conditional PUT or DELETE remains the remediation path.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarParsingInput.java",
+          "method": "reader",
+          "line": 61,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/CalendarParsingInput.java",
+          "method": "asciiEqualsIgnoreCase",
+          "line": 98,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/RecurrenceRuleSyntax.java",
+          "method": "validate",
+          "line": 14,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/DurationSyntax.java",
+          "method": "validate",
+          "line": 15,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/DurationSyntax.java",
+          "method": "validatePeriodDurations",
+          "line": 20,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/parser/StrictContentHandler.java",
+          "method": "propertyValue",
+          "line": 76,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        },
+        {
+          "path": "src/main/java/org/busystack/caldav/calendar/query/FloatingTimezone.java",
+          "method": "parse",
+          "line": 29,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        }
+      ]
+    },
+    "IV-AUTH-01": {
+      "standard": "RFC6749§§3.2,5.2; Verified erratum5708 does not change empty-as-omitted",
+      "baseline": "Fresh real password/signed-passkey/consent/S256 journey: emptysecret302; same still-valid refresh with secret omitted200.",
+      "rootCause": "Presence-only optional-secret check caused all configured client authentication converters to decline, reaching browser login handling.",
+      "correction": "Only an exactly empty optional secret follows omitted behavior; defined-parameter cardinality is checked first. Nonempty/whitespace and duplicates reject with OAuth JSON. Existing header/PKCE/provider/client/grant/rotation checks remain; same converter is constrained to token/revocation endpoints.",
+      "fixCommit": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3",
+      "matrixRows": [
+        "AUTH-R005",
+        "AUTH-R016"
+      ],
+      "regressions": [
+        "OAuthHttpIT:20 realHTTP tests including3 new refresh/revocation matrix methods",
+        "RefreshFamilyStoreIT9, DAVCredentialIT3, SecurityBoundaryIT6, PasskeyHttpIT8",
+        "Original independent signed HTTP journey and exact invalid-refresh wire controls"
+      ],
+      "result": "Valid omitted/empty refreshes200 with normal rotation; invalid omitted/empty400 invalid_grant; nonempty401 invalid_client; duplicates400 invalid_request; no rejected case redirects to login or consumes valid grants.",
+      "implementationReferences": [
+        {
+          "path": "src/main/java/org/busystack/caldav/security/oauth/PublicNativeClientAuthentication.java",
+          "method": "convert",
+          "line": 29,
+          "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+        }
+      ]
+    }
+  },
+  "sourceEvidence": {
+    "src/main/java/org/busystack/caldav/calendar/CalendarParsingInput.java": {
+      "sha256": "c29e0c4f7df0965b5dd898c97ad7adda0f95d1f276a43ba378a3eda50a1ff46c",
+      "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+    },
+    "src/main/java/org/busystack/caldav/calendar/RecurrenceRuleSyntax.java": {
+      "sha256": "2ae49740b41bd770a1922704773d87ca938ccbdc018db6ae995a938b11a79401",
+      "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+    },
+    "src/main/java/org/busystack/caldav/calendar/DurationSyntax.java": {
+      "sha256": "7be0947620ae8deb85c21d108e0dd82a80ea965267ca4b2ffd2297aaf32d3cfe",
+      "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+    },
+    "src/main/java/org/busystack/caldav/calendar/parser/StrictContentHandler.java": {
+      "sha256": "9bb1dac7ec0301f49d55dcad26d9794be38cdbe700745b8a4eaf4352fa2cd055",
+      "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+    },
+    "src/main/java/org/busystack/caldav/calendar/query/FloatingTimezone.java": {
+      "sha256": "a77c1ca1906232312a5cfe18b1b2fff9ff7f7a792a613a142c3d488bd8d7ed13",
+      "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+    },
+    "src/main/java/org/busystack/caldav/security/oauth/PublicNativeClientAuthentication.java": {
+      "sha256": "1189ebf3cdb58874c8b659c5bed801f35fb55d5c668994411696fc09e2d4bff9",
+      "revision": "11d06b4bb7a8ae5eac774a391a85959ea0832ab3"
+    }
+  },
+  "localVerification": "local-verification.json",
+  "artifacts": {
+    "localJar": "/home/albert/busystack/caldav-server/target/caldav-server-0.0.1-SNAPSHOT.jar",
+    "localJarSha256": "317fa67bf5199f04d9b95ed8d4c59ee61ed3a75449c924a731cfdd6336e0df06",
+    "mainTree": "4ed67d4cbb5aa7488d30944a92011e1b5979701f",
+    "testTree": "40dd2db1be5a01ba07d40c12902490bdcab77b56"
+  },
+  "ciReceipt": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence/remote-ci.json (written after final push; the commit cannot contain its own later CI receipt)",
+  "limits": [
+    "No new exhaustive RFC5545/property-grammar claim or reclassification of all309 rows.",
+    "Existing approved Depth/Digest profile decisions and nonblocking recommendations remain.",
+    "Operator deployment, physical authenticators and prior specifically documented interpretation gaps retain their prior scope.",
+    "Local tmpfs executions do not establish physical-disk durability."
+  ],
+  "evidenceDirectory": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence",
+  "evidenceArchive": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence.zip"
+}

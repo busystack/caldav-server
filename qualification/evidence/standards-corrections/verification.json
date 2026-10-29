@@ -1,6 +1,6 @@
 {
   "submissionType": "developer correction and verification submission for independent re-verification",
-  "status": "All17 finding groups corrected and locally verified; developer submission for independent re-verification. Exact pushed-commit CI receipt is recorded after push in the persistent developer evidence directory.",
+  "status": "Earlier17-group developer evidence is preserved at its named revisions. Independent re-verification and fresh IV-CAL-01/IV-AUTH-01 developer corrections are recorded in residual/verification.json; broader verification limits remain.",
   "branch": "release/v0.0.1",
   "auditedBaseline": "923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0",
   "originalInputs": {
@@ -2216,5 +2216,15 @@
     "packaged/osv-runtime-advisories.json": "f4db7bc73fefd9c08088f1db50dcea10cba7b0060498b29554e759eab7f385b4",
     "packaged/osv-runtime.log": "8690f05e9b26e6fb9b23341cf0194a2fe33f7b18233cabf5dc5da707e9e87427",
     "packaged/security-gate-unit.log": "15a442c5b55a145bc5f52e427e39317b9884d635d7481676ea06b5b603a791c5"
+  },
+  "residualCorrectionSubmission": "residual/verification.json",
+  "independentReverificationAt1328727": {
+    "closedOriginalGroups": 16,
+    "partiallyResolvedOriginalGroup": "CAL-01",
+    "residualFindings": [
+      "IV-CAL-01",
+      "IV-AUTH-01"
+    ],
+    "reportSha256": "955c109e572f92fe8571ba091a0914370c5c2cb959f2c7ff773646c7d7dc27ee"
   }
 }

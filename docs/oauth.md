@@ -149,3 +149,5 @@ physical-authenticator or third-party native OAuth-client qualification. The
 python-caldav and Thunderbird CalDAV client profiles use DAV credentials. See the
 maintained conformance and operational reports for the final artifact, browser,
 proxy, restore and upstream-provider results.
+
+The IV-AUTH-01 [follow-up evidence](standards-corrections.md#independent-re-verification-follow-up) verifies RFC 6749 §3.2 empty-as-omitted behavior at the public token/revocation converter. Exactly empty optional `client_secret` follows omission after duplicate checks; nonempty/whitespace secrets remain unsupported. Valid refreshes retain normal rotation, invalid grants and client/parameter errors remain OAuth JSON 400/401 responses, and rejected requests do not redirect to browser login or consume valid refresh grants.

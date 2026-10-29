@@ -4,17 +4,32 @@ This is the developer's correction and verification submission for independent r
 
 The independent audit examined `release/v0.0.1` at `923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0` and reported 17 finding groups: one High, eleven Medium and five Low. It did not demonstrate account takeover, protected-calendar-content disclosure or permanent alteration of stored authoritative bytes. The fresh developer baseline reproduced all 17 groups, including 96 recorded DAV/calendar requests and separate signed WebAuthn and metadata probes. The [baseline summary](../qualification/evidence/standards-corrections/baseline/summary.json) records the original report, CSV and archive hashes and the fixture adaptations. The three independent input files and their recorded outcomes remain unchanged outside the repository.
 
-## Verification status
+## Independent re-verification follow-up
 
-The current corrected source revision, fix commits, complete commands/counts, artifact identities, independent outcomes and the final CI receipt location are recorded in the verification manifest linked below. Pending or failed checks are not passes. Historical qualification results do not qualify this source.
+Independent verification of `1328727` closed sixteen original groups and identified residual **IV-CAL-01** and **IV-AUTH-01**. Both were reproduced on a fresh isolated server before production edits. This follow-up corrects those reported obligations; it is a developer submission for independent review, not independent approval or an exhaustive calendar grammar claim.
+
+| Finding | Correction and fix commit | Fresh evidence |
+| --- | --- | --- |
+| IV-CAL-01 | Original BYDAY ordinal and duration grammar checks run before factory normalization; exact ASCII calendar boundary retains permitted BOM/case behavior. `3038a6c` | 64 new unit invocations; seven create/conditional-replacement atomicity controls at storage and actual DAV HTTP layers; original four malformed requests now 403/404; all nine original conditional replacements remain 403 with unchanged bytes/ETags/tokens. |
+| IV-AUTH-01 | Exactly empty optional public-client secrets follow omission; nonempty/whitespace and duplicate defined parameters remain errors. `11d06b4` | 20 OAuth HTTP tests; real signed password/passkey/consent/PKCE journey now refreshes with both omitted and empty secret; invalid controls return OAuth JSON 400/401 without browser redirects. |
+
+At `11d06b4bb7a8ae5eac774a391a85959ea0832ab3`, **359 unit tests and 164 selected integration tests passed with zero failures/errors/skips; integrations also had zero aborts. SpotBugs reported zero findings/errors.** The selected classes cover calendar/DAV storage, namespace/property boundaries, synchronization, OAuth/refresh families, DAV credentials, security boundaries and signed passkeys. Local integration fixtures use the auditor's unchanged supported PostgreSQL tmpfs adapter; this proves transactional/HTTP behavior rather than physical-disk durability. CI qualifies the final submitted commit through the normal project fixtures and packaged workflows, with its receipt recorded after push.
+
+[Follow-up verification manifest](../qualification/evidence/standards-corrections/residual/verification.json) and [local commands/counts](../qualification/evidence/standards-corrections/residual/local-verification.json) retain source/artifact identities, input hashes, original baseline requests and fresh corrected outcomes. Two preliminary unit runs are explicitly preserved: 352 tests/one optional-property fixture error, then 359 tests/three overly specific exception-class assertions. The positive control was corrected to the configured supported property profile, and nested invalid-data assertions now require the actual precise exception kind. No production validation, test assertion requirement, dependency or third-party implementation was weakened to make them pass.
+
+The 309-row derived matrix keeps every earlier field and appends follow-up assessments to only the eight independently affected rows. Earlier 217/75/etc developer labels remain historical; they are not an independent endorsement. Wider property/grammar, operator and physical-device limitations remain. Previously accepted invalid objects remain retrievable for authorized conditional repair or deletion; there is no migration or source-byte rewriting.
+
+## Earlier verification status
+
+The earlier source revisions, fix commits, commands/counts, artifact identities and outcomes remain recorded below. They qualify their named versions; the current residual follow-up is above. Pending or failed checks are not passes.
 
 * [Derived matrix dispositions](../qualification/evidence/standards-corrections/matrix-dispositions.csv) retain every original row, result and evidence alongside its developer disposition.
 * [Fresh baseline evidence](../qualification/evidence/standards-corrections/baseline/) contains the original-counterexample results before correction.
 * [Developer verification manifest](../qualification/evidence/standards-corrections/verification.json) identifies actual executed checks and remaining limitations.
 
-The independent matrix contains 309 assessments: 156 conformant, 29 nonconformant, 55 partially conformant, 56 unverified and 13 not applicable. Overlapping rows are not separate defects, and verification gaps are not automatically failures. The derived matrix preserves these identifiers and classifications rather than overwriting the independent CSV. Developer dispositions are 217 conformant, 75 partial, 15 not applicable, one intentional historical authentication deviation and one documented leap-second SHOULD exception. Those broader row assessments remain distinct from the 17 corrected finding groups.
+The independent matrix contains 309 assessments: 156 conformant, 29 nonconformant, 55 partially conformant, 56 unverified and 13 not applicable. Overlapping rows are not separate defects, and verification gaps are not automatically failures. The derived matrix preserves these identifiers and classifications rather than overwriting the independent CSV. The earlier developer dispositions were 217 conformant, 75 partial, 15 not applicable, one intentional historical authentication deviation and one documented leap-second SHOULD exception. Those broader row assessments remain distinct from the 17 corrected finding groups.
 
-## Executed verification and handoff
+## Earlier submission verification and handoff
 
 Production source and tests were qualified at `58f279ad83abcd0011a1dd84589b9dc6c70f8d05`. The final handoff commit adds qualification fixtures, documentation and evidence; its production/test/POM tree identities are pinned in the manifest. Local executable JAR SHA-256 is `d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da`, byte-identical inside image `sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c`. No image was published.
 
@@ -28,11 +43,11 @@ The first full run stopped at 295 unit tests with one error in an existing illeg
 
 Safe [packaged logs and reports](../qualification/evidence/standards-corrections/packaged/) and [full-suite counts](../qualification/evidence/standards-corrections/full-suite.json) are versioned. Full logs, reports, executable artifact and adapted independent probes are retained in `/home/albert/busystack/caldav-server-audit/developer-correction-evidence/` and its ZIP. Credentials/private keys are excluded from that submission archive. The original independent inputs remain unchanged. The exact final remote SHA and completed CI job/step receipt are recorded after push as `remote-ci.json` in that persistent directory; CI cannot be self-recorded inside the commit it checks. The final handoff links the exact run.
 
-## Finding resolutions
+## Original counterexample corrections
 
 <!-- FINDING_RESOLUTIONS_BEGIN -->
 
-All 17 reported groups have a correction and freshly verified counterexample/regression result. Exact file/method/line references, standards sections, baseline records, fix commits, executed checks and remaining limits are in each finding entry of the [verification manifest](../qualification/evidence/standards-corrections/verification.json). This resolves the reported defects for developer submission; it does not turn every broader matrix row into a conformance claim.
+The first submission corrected each original counterexample and regression case. Independent re-verification then closed sixteen groups and specified the residual CAL-01 input classes addressed above. This table retains the earlier corrections and named-version evidence. Exact file/method/line references, standards sections, baseline records and fix commits remain in the [earlier verification manifest](../qualification/evidence/standards-corrections/verification.json).
 
 | ID / applicable normative sections | Original counterexample and root cause | Application correction | Regression evidence / fix commit / independent outcome |
 | --- | --- | --- | --- |

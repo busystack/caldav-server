@@ -1,0 +1,43 @@
+password-login status=302
+registration-options status=200
+registration status=200
+registration-db=f|0|t|2026-10-29 00:38:46.110483
+correct-options status=200
+correct-assertion status=200 response={"authenticated":true,"redirectUrl":"/"} db=f|1|t|2026-10-29 00:38:47.210388
+wrong-options status=200
+wrong-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+absent-options status=200
+absent-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+wrong-origin-options status=200
+wrong-origin-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+wrong-challenge-options status=200
+wrong-challenge-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+invalid-signature-options status=200
+invalid-signature-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+wrong-type-options status=200
+wrong-type-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+wrong-rpidhash-options status=200
+wrong-rpidhash-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+no-up-options status=200
+no-up-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+no-uv-options status=200
+no-uv-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+cross-origin-options status=200
+cross-origin-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+untrusted-top-origin-options status=200
+untrusted-top-origin-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+impossible-backup-flags-options status=200
+impossible-backup-flags-assertion status=401 response= db=f|1|t|2026-10-29 00:38:47.210388
+identified options status=200
+identified-bs=true status=200 db=t|14|t|2026-10-29 00:38:58.922996
+identified backup transition status=200
+identified options status=200
+identified-bs=false status=200 db=f|15|t|2026-10-29 00:38:59.721119
+identified backup transition status=200
+client-registration status=302
+authorization status=302
+consent status=200
+consent approval status=302
+token-exchange status=200 cache=Optional[no-cache, no-store, max-age=0, must-revalidate]
+refresh-empty-client-secret status=200 error=
+refresh-omitted-client-secret status=200 error=

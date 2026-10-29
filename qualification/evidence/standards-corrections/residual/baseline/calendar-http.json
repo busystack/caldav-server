@@ -1,0 +1,533 @@
+[
+  {
+    "label": "create-independent-calendar-grammar",
+    "method": "MKCALENDAR",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/",
+    "request_body": "<C:mkcalendar xmlns:C=\"urn:ietf:params:xml:ns:caldav\" xmlns:D=\"DAV:\"><D:set><D:prop><C:supported-calendar-component-set><C:comp name=\"VEVENT\"/></C:supported-calendar-component-set></D:prop></D:set></C:mkcalendar>",
+    "request_headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "a3804ff7-45c0-4365-8c8a-5b25caeb76c9",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:11 GMT"
+    },
+    "body": ""
+  },
+  {
+    "label": "invalid-leading-token-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-leading-token.ics",
+    "request_body": "XBEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-leading-token\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "4d0fcf3f-759b-4c39-b649-6d1f5dc4a19e",
+      "ETag": "\"583c9f1c74015c247a2fc9f1984d3a39cbdc3204787b2835f872123ab1843f85\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-leading-token.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:12 GMT"
+    },
+    "body": "",
+    "expected_status": 403,
+    "pass_expected": false
+  },
+  {
+    "label": "invalid-leading-token-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-leading-token.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "dba6de22-23b8-47fb-9373-9460679203da",
+      "ETag": "\"583c9f1c74015c247a2fc9f1984d3a39cbdc3204787b2835f872123ab1843f85\"",
+      "Date": "Thu, 29 Oct 2026 06:47:12 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:12 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "191"
+    },
+    "body": "XBEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-leading-token\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 404,
+    "byte_equal": true
+  },
+  {
+    "label": "invalid-zero-byday-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-zero-byday.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-zero-byday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=0MO\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "058bb0ce-17cd-498a-9619-f412a990a64d",
+      "ETag": "\"c3a7ab821e1c7c0719bc1bb0d7e32c0e15febd998c45401ada941a696539c588\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-zero-byday.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:12 GMT"
+    },
+    "body": "",
+    "expected_status": 403,
+    "pass_expected": false
+  },
+  {
+    "label": "invalid-zero-byday-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-zero-byday.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "8c577db2-30d0-4989-a1a0-b98dfc6f341e",
+      "ETag": "\"c3a7ab821e1c7c0719bc1bb0d7e32c0e15febd998c45401ada941a696539c588\"",
+      "Date": "Thu, 29 Oct 2026 06:47:12 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:12 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "217"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-zero-byday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=0MO\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 404,
+    "byte_equal": true
+  },
+  {
+    "label": "invalid-plus-zero-byday-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-plus-zero-byday.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-plus-zero-byday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=+0MO\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "07a01e8c-0a87-422c-a181-c4b5a675aa16",
+      "ETag": "\"0f4a606c46c60df0dba43a4e92949eef68619475e3564056991d2f3dfde965b7\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-plus-zero-byday.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:12 GMT"
+    },
+    "body": "",
+    "expected_status": 403,
+    "pass_expected": false
+  },
+  {
+    "label": "invalid-plus-zero-byday-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-plus-zero-byday.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "16f1f3c8-d848-43df-8dfb-4bafe080de23",
+      "ETag": "\"0f4a606c46c60df0dba43a4e92949eef68619475e3564056991d2f3dfde965b7\"",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:12 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "223"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-plus-zero-byday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=+0MO\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 404,
+    "byte_equal": true
+  },
+  {
+    "label": "invalid-weeks-days-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-weeks-days.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-weeks-days\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nDURATION:P1W2D\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "bd4c8a2b-e6d6-4120-82ec-152ee09f0f82",
+      "ETag": "\"9e34c041065211f332c37e5d8d8483f6575a0051dd0c528eb5869c6ac2e51d1f\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-weeks-days.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT"
+    },
+    "body": "",
+    "expected_status": 403,
+    "pass_expected": false
+  },
+  {
+    "label": "invalid-weeks-days-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/invalid-weeks-days.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "11eeaf19-d4a4-4753-b9c0-b60a7819f1d3",
+      "ETag": "\"9e34c041065211f332c37e5d8d8483f6575a0051dd0c528eb5869c6ac2e51d1f\"",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "203"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:invalid-weeks-days\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nDURATION:P1W2D\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 404,
+    "byte_equal": true
+  },
+  {
+    "label": "valid-first-weekday-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-first-weekday.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-first-weekday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=1MO;COUNT=2\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "5fb375c6-896a-4987-9979-e0a25ded0c47",
+      "ETag": "\"eb7906a03820b5d2142ff12532e90c39bebd2afb0d5e6eacf7bc5e9bc128baf7\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-first-weekday.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT"
+    },
+    "body": "",
+    "expected_status": 201,
+    "pass_expected": true
+  },
+  {
+    "label": "valid-first-weekday-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-first-weekday.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "0693f2e1-d4e7-410a-8a25-86d21fb44970",
+      "ETag": "\"eb7906a03820b5d2142ff12532e90c39bebd2afb0d5e6eacf7bc5e9bc128baf7\"",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "226"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-first-weekday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=1MO;COUNT=2\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 200,
+    "byte_equal": true
+  },
+  {
+    "label": "valid-last-weekday-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-last-weekday.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-last-weekday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=-1MO;COUNT=2\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "89b57c97-9a24-4a1c-9cc2-f7fc0ecbb949",
+      "ETag": "\"9cdeab5b081e249dd2a8c4cb5512a3578043902224d298ab472ee3816911b573\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-last-weekday.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT"
+    },
+    "body": "",
+    "expected_status": 201,
+    "pass_expected": true
+  },
+  {
+    "label": "valid-last-weekday-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-last-weekday.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "a0be6289-302a-4d1b-bbfc-c5b905f93b26",
+      "ETag": "\"9cdeab5b081e249dd2a8c4cb5512a3578043902224d298ab472ee3816911b573\"",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "226"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-last-weekday\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nRRULE:FREQ=MONTHLY;BYDAY=-1MO;COUNT=2\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 200,
+    "byte_equal": true
+  },
+  {
+    "label": "valid-one-week-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-one-week.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-one-week\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nDURATION:P1W\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "33b194ed-943a-42c5-bcae-a8701d00c181",
+      "ETag": "\"c00d39f8e4300f803de0753388b18acfd7d97c105a28911cfc71befbc038d496\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-one-week.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:13 GMT"
+    },
+    "body": "",
+    "expected_status": 201,
+    "pass_expected": true
+  },
+  {
+    "label": "valid-one-week-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-one-week.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "ce915f9e-1b6d-4f31-9ac9-28690dfaf5aa",
+      "ETag": "\"c00d39f8e4300f803de0753388b18acfd7d97c105a28911cfc71befbc038d496\"",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:13 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "197"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-one-week\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nDURATION:P1W\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 200,
+    "byte_equal": true
+  },
+  {
+    "label": "valid-nine-days-put",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-nine-days.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-nine-days\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nDURATION:P9D\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "c2f1bb54-fc90-4b18-9ba3-003090c1e467",
+      "ETag": "\"a9a696e3fb8854e17a5a6a44dcbe61d2aed1b5b984430f8ae73e9552712ce209\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-nine-days.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT"
+    },
+    "body": "",
+    "expected_status": 201,
+    "pass_expected": true
+  },
+  {
+    "label": "valid-nine-days-get",
+    "method": "GET",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-calendar-grammar/valid-nine-days.ics",
+    "request_body": "",
+    "request_headers": {},
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "b786afea-6edc-4259-95c4-36de1edbb1eb",
+      "ETag": "\"a9a696e3fb8854e17a5a6a44dcbe61d2aed1b5b984430f8ae73e9552712ce209\"",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT",
+      "Last-Modified": "Thu, 29 Oct 2026 06:47:14 GMT",
+      "Cache-Control": "private, no-cache",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "198"
+    },
+    "body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Verification//EN\r\nBEGIN:VEVENT\r\nUID:valid-nine-days\r\nDTSTAMP:20261028T000000Z\r\nDTSTART:20261101T120000Z\r\nDURATION:P9D\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_status": 200,
+    "byte_equal": true
+  },
+  {
+    "label": "create-independent-freebusy-validity",
+    "method": "MKCALENDAR",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-freebusy-validity/",
+    "request_body": "<C:mkcalendar xmlns:C=\"urn:ietf:params:xml:ns:caldav\" xmlns:D=\"DAV:\"><D:set><D:prop><C:supported-calendar-component-set><C:comp name=\"VEVENT\"/></C:supported-calendar-component-set></D:prop></D:set></C:mkcalendar>",
+    "request_headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "23ddbc51-5c73-49d1-97f7-80b83b87fe20",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-freebusy-validity/",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT"
+    },
+    "body": ""
+  },
+  {
+    "label": "freebusy-empty",
+    "method": "REPORT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-freebusy-validity/",
+    "request_body": "<C:free-busy-query xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><C:time-range start=\"20261027T090000Z\" end=\"20261027T130000Z\"/></C:free-busy-query>",
+    "request_headers": {
+      "Content-Type": "application/xml",
+      "Depth": "1"
+    },
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "28612f36-dbd5-400e-afd4-b2716b9f09be",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "235",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT"
+    },
+    "body": "BEGIN:VCALENDAR\r\nPRODID:-//BusyStack//CalDAV Server//EN\r\nVERSION:2.0\r\nBEGIN:VFREEBUSY\r\nDTSTAMP:20261029T064714Z\r\nDTSTART:20261027T090000Z\r\nDTEND:20261027T130000Z\r\nUID:1c7097ff-bc42-47a1-989c-8f0973726f9e\r\nEND:VFREEBUSY\r\nEND:VCALENDAR\r\n"
+  },
+  {
+    "label": "freebusy-seed",
+    "method": "PUT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-freebusy-validity/busy.ics",
+    "request_body": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Independent Standards Audit//EN\r\nBEGIN:VEVENT\r\nUID:independent-busy\r\nDTSTAMP:20261027T000000Z\r\nDTSTART:20261027T100000Z\r\nDTEND:20261027T110000Z\r\nSUMMARY:original\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 201,
+    "headers": {
+      "X-Request-ID": "acf6d606-223f-415d-b312-5d267465b209",
+      "ETag": "\"38e59494de4c935769903aed8b90e4b342fcbdb1731ce4a5c17d6c66bb20b116\"",
+      "Location": "https://localhost/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-freebusy-validity/busy.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Length": "0",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT"
+    },
+    "body": ""
+  },
+  {
+    "label": "freebusy-nonempty",
+    "method": "REPORT",
+    "path": "/dav/calendars/a5d87152-3aa7-462c-8baa-744b0c86ad67/independent-freebusy-validity/",
+    "request_body": "<C:free-busy-query xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><C:time-range start=\"20261027T090000Z\" end=\"20261027T130000Z\"/></C:free-busy-query>",
+    "request_headers": {
+      "Content-Type": "application/xml",
+      "Depth": "1"
+    },
+    "status": 200,
+    "headers": {
+      "X-Request-ID": "7e5e7891-b603-4aea-853b-4cacf0c4e523",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "text/calendar;charset=utf-8",
+      "Content-Length": "291",
+      "Date": "Thu, 29 Oct 2026 06:47:14 GMT"
+    },
+    "body": "BEGIN:VCALENDAR\r\nPRODID:-//BusyStack//CalDAV Server//EN\r\nVERSION:2.0\r\nBEGIN:VFREEBUSY\r\nDTSTAMP:20261029T064714Z\r\nDTSTART:20261027T090000Z\r\nDTEND:20261027T130000Z\r\nUID:d6a87e77-a30d-4f89-b71c-1fbfe3e327bf\r\nFREEBUSY;FBTYPE=BUSY:20261027T100000Z/20261027T110000Z\r\nEND:VFREEBUSY\r\nEND:VCALENDAR\r\n"
+  }
+]
