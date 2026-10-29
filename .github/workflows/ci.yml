@@ -44,7 +44,7 @@ jobs:
         run: |
           docker build --build-arg SOURCE_REVISION="$GITHUB_SHA" --tag busystack-caldav:ci .
           docker image inspect --format '{{.Id}}' busystack-caldav:ci | tee target/application-image-id.txt
-          host_jar_sha=$(sha256sum target/caldav-server-0.0.1-SNAPSHOT.jar)
+          host_jar_sha=$(sha256sum target/caldav-server-0.0.1.jar)
           image_jar_sha=$(docker run --rm --entrypoint sha256sum busystack-caldav:ci /opt/busystack/application.jar)
           test "${host_jar_sha%% *}" = "${image_jar_sha%% *}"
           printf '%s\n' "${host_jar_sha%% *}" > target/application-jar-sha256.txt

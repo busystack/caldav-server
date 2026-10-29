@@ -17,11 +17,13 @@ class JarLicenseContractTest(unittest.TestCase):
         self.directory=tempfile.TemporaryDirectory(prefix='busystack-license-jar-test-')
         self.addCleanup(self.directory.cleanup)
 
-    def jar(self, project_license, dependency_license='Broadcom Foundation License'):
+    def jar(self, project_license, dependency_license='Broadcom Foundation License', project_version=inspection.RELEASE_VERSION, manifest_version=inspection.RELEASE_VERSION, maven_version=inspection.RELEASE_VERSION):
         path=Path(self.directory.name)/'application.jar'
         session=[{'group':'org.springframework.session','name':module,'version':'4.1.1','licenses':[{'license':{'name':dependency_license}}]} for module in ('spring-session-core','spring-session-jdbc')]
-        bom={'metadata':{'component':{'licenses':[{'license':project_license}]}},'components':session}
+        bom={'metadata':{'component':{'version':project_version,'licenses':[{'license':project_license}]}},'components':session}
         with zipfile.ZipFile(path,'w') as jar:
+            jar.writestr('META-INF/MANIFEST.MF','Manifest-Version: 1.0\r\nImplementation-Version: '+manifest_version+'\r\n\r\n')
+            jar.writestr('META-INF/maven/org.busystack/caldav-server/pom.properties','artifactId=caldav-server\ngroupId=org.busystack\nversion='+maven_version+'\n')
             for name in inspection.DOCUMENTS:jar.writestr('META-INF/'+name,(ROOT/name).read_bytes())
             for name in ('ical4j-parser-BSD-3-Clause.txt','spring-derived-schemas.txt'):
                 jar.writestr('META-INF/licenses/'+name,(ROOT/'src/main/resources/META-INF/licenses'/name).read_bytes())
@@ -55,3 +57,15 @@ class JarLicenseContractTest(unittest.TestCase):
     def test_original_dependency_metadata_cannot_be_overwritten_by_project_license(self):
         with self.assertRaisesRegex(AssertionError,'Original upstream POM'):
             inspection.inspect_jar(self.jar({'id':'Apache-2.0'},'Apache-2.0'))
+
+    def test_snapshot_manifest_is_rejected(self):
+        with self.assertRaisesRegex(AssertionError,'JAR implementation version'):
+            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},manifest_version='0.0.1-SNAPSHOT'))
+
+    def test_project_sbom_version_must_match_release(self):
+        with self.assertRaisesRegex(AssertionError,'Project SBOM version'):
+            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},project_version='0.0.1-SNAPSHOT'))
+
+    def test_maven_version_must_match_release(self):
+        with self.assertRaisesRegex(AssertionError,'JAR Maven version'):
+            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},maven_version='0.0.1-SNAPSHOT'))

@@ -27,7 +27,7 @@ services:
 
   application:
     build: .
-    image: busystack-caldav:local
+    image: busystack-caldav:0.0.1
     restart: unless-stopped
     depends_on:
       database:

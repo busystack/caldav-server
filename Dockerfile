@@ -14,7 +14,7 @@ FROM java AS runtime
 ARG SOURCE_REVISION
 LABEL org.opencontainers.image.title="BusyStack CalDAV Server" \
       org.opencontainers.image.description="Independent calendar and task server" \
-      org.opencontainers.image.version="0.0.1-SNAPSHOT" \
+      org.opencontainers.image.version="0.0.1" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.source="https://github.com/busystack/caldav-server" \
       org.opencontainers.image.revision="${SOURCE_REVISION}"

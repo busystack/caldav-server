@@ -155,7 +155,7 @@ def checks(environment):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", default="busystack-caldav:local")
+    parser.add_argument("--image", default="busystack-caldav:0.0.1")
     args = parser.parse_args()
     if not args.image or any(character.isspace() for character in args.image):
         parser.error("--image must be a single Docker image reference")

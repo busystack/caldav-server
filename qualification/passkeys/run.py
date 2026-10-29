@@ -66,7 +66,7 @@ def certificates(directory, environment):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--application-image", default="busystack-caldav:local")
+    parser.add_argument("--application-image", default="busystack-caldav:0.0.1")
     parser.add_argument("--browser-image", default="busystack-passkey-browser:qualification")
     parser.add_argument("--context-path", choices=("", "/team"), default="")
     parser.add_argument("--proxy", action="store_true", help="Use pinned Nginx HTTPS termination and the /team prefix")
