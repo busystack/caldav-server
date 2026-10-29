@@ -1,0 +1,234 @@
+{
+  "status": "failed required release CI qualification; do not claim whole CI passed",
+  "runId": 40969177733,
+  "runUrl": "https://github.com/busystack/caldav-server/actions/runs/40969177733",
+  "sourceRevision": "c298c063ff9334707d84eded3ebf130ce5598af4",
+  "jobConclusions": {
+    "application": "failure",
+    "dependency-audit": "success"
+  },
+  "artifacts": [
+    {
+      "artifactName": "application-evidence",
+      "path": "/tmp/busystack-release-prep/ci-attempt1-application.zip",
+      "sha256": "54f18a1c1c74470c4635d5f80e8f17469b43e96456c3514fdd4c3cc0aa5d9f3b",
+      "bytes": 37393596,
+      "entries": 141,
+      "zipCrc": "passed",
+      "githubArtifactId": 12939723333,
+      "workflowRunId": 40969177733,
+      "metadataDigest": "sha256:54f18a1c1c74470c4635d5f80e8f17469b43e96456c3514fdd4c3cc0aa5d9f3b",
+      "createdAt": "2026-10-29T23:10:01Z",
+      "expiresAt": "2026-11-12T23:09:58Z"
+    },
+    {
+      "artifactName": "dependency-audit",
+      "path": "/tmp/busystack-release-prep/ci-dependency.zip",
+      "sha256": "1d2afd8ba7a10b94c0b0c1281e18de8d7730fc080629e4eb5917d978ad2fab89",
+      "bytes": 2448,
+      "entries": 2,
+      "zipCrc": "passed",
+      "githubArtifactId": 12939456558,
+      "workflowRunId": 40969177733,
+      "metadataDigest": "sha256:1d2afd8ba7a10b94c0b0c1281e18de8d7730fc080629e4eb5917d978ad2fab89",
+      "createdAt": "2026-10-29T22:53:53Z",
+      "expiresAt": "2026-11-12T22:53:52Z"
+    }
+  ],
+  "xmlTestTotals": {
+    "integration": {
+      "tests": 215,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unit": {
+      "tests": 359,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "investigation-oauth": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "investigation-protocol": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "xmlClassCounts": {
+    "integration": 20,
+    "unit": 36,
+    "investigation-oauth": 2,
+    "investigation-protocol": 1
+  },
+  "spotBugs": {
+    "findings": 0,
+    "errors": 0,
+    "evidence": "actual application CI job log"
+  },
+  "ancillaryExecuted": {
+    "distribution": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": "executed unittest result within its CI command group"
+    },
+    "securityGate": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": "executed unittest result within its CI command group"
+    },
+    "browserFixtures": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": "executed unittest result within its CI command group"
+    }
+  },
+  "artifactIdentities": {
+    "releaseVersion": "0.0.1",
+    "jarSha256": "0e1dc621d66ae233d7fe1f303936f33c5c522622a5f82f0335464bec2570982b",
+    "retainedJarMatchesHostAndImage": true,
+    "imageId": "sha256:f0acbb3dc02f6075736f4f10c1a1baaed6ced1d28a453b1f2df37c6ac6c51e48",
+    "imageSourceRevision": "c298c063ff9334707d84eded3ebf130ce5598af4",
+    "projectSbomSha256": "620458d2237b93f0c130429c46e374a8db843f4f0063d7f530d3371716bd25c2",
+    "license": "Apache-2.0"
+  },
+  "gates": {
+    "distribution": "passed",
+    "containerOs": {
+      "status": "passed",
+      "packageCount": 115,
+      "severityCounts": {
+        "LOW": 12,
+        "MEDIUM": 44
+      },
+      "blockingFindings": 0,
+      "suppressions": [],
+      "recordedAt": "2026-10-29T23:01:57.096864+00:00",
+      "database": {
+        "DownloadedAt": "2026-10-29T23:02:04.69060693Z",
+        "NextUpdate": "2026-10-30T19:18:50.969126577Z",
+        "UpdatedAt": "2026-10-29T19:18:50.96912695Z",
+        "Version": 2
+      },
+      "rawReportSha256": "baf2d72ced9c85c2135b6f136c0ef740aa690ae417f9a59e8d04427c384f9149"
+    },
+    "osv": {
+      "runtime": {
+        "status": "no-advisories-returned",
+        "packageCount": 112,
+        "affectedPackageCount": 0,
+        "checkedAt": "2026-10-29T22:53:51.627680+00:00",
+        "sbomSha256": "620458d2237b93f0c130429c46e374a8db843f4f0063d7f530d3371716bd25c2"
+      },
+      "positiveControl": {
+        "status": "expected vulnerable control detected",
+        "affectedPackageCount": 1,
+        "advisory": "GHSA-jfh8-c2jp-5v3q",
+        "checkedAt": "2026-10-29T22:53:51.229931+00:00"
+      }
+    },
+    "additionalNvd": {
+      "status": "unexecuted",
+      "reason": "Additional NVD audit unexecuted: no NVD_API_KEY configured. The required OSV check ran above.",
+      "scope": "Optional additional audit; the required OSV gate is verified separately"
+    }
+  },
+  "successfulPackagedProfiles": {
+    "browser": {
+      "status": "passed",
+      "evidence": "browser-qualification.txt",
+      "syncConfiguration": {
+        "configurationInput": "setting absent; Compose/application default",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": true
+      }
+    },
+    "strict-browser": {
+      "status": "passed",
+      "evidence": "strict-browser-qualification.txt",
+      "syncConfiguration": {
+        "configurationInput": "explicit false strict override",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 400,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": false
+      }
+    },
+    "proxy": {
+      "status": "passed",
+      "evidence": "proxy-qualification.txt",
+      "syncConfiguration": {
+        "configurationInput": "setting absent; Compose/application default",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": true
+      }
+    }
+  },
+  "successfulOperations": "same-version recovery and V9 invalidation then startup upgrade to V13; both actual PASS markers present",
+  "integrationClients": [
+    {
+      "client": "python-caldav",
+      "version": "3.6.0",
+      "status": "passed",
+      "mode": "independent Python CalDAV library"
+    },
+    {
+      "client": "Thunderbird",
+      "version": "157.0.1",
+      "status": "passed",
+      "mode": "isolated headless native desktop CalDAV provider"
+    }
+  ],
+  "failedStep": {
+    "name": "Verify cross-site organization login and local passkey MFA",
+    "observation": "page.goto: net::ERR_NETWORK_CHANGED at https://app.busystack.test:39025/team/login",
+    "location": "/qualification/passkeys.mjs:33:14",
+    "scope": "Initial navigation to application login in the OIDC browser profile, before its authentication steps. No underlying application or infrastructure cause is established by the retained error.",
+    "profileOutcome": "failed; preparatory TLS/proxy assertions do not establish browser authentication success"
+  },
+  "skippedSteps": [
+    "Verify HTTPS local account recovery after restoring an older database",
+    "Verify HTTPS federated recovery against the same real upstream provider"
+  ],
+  "unexecutedResults": [
+    "https-restore packaged local recovery/client profile",
+    "oidc-restore packaged federated recovery profile"
+  ],
+  "packagedClientScope": "Python/native Thunderbird integration reports passed; the later packaged independent-client restoration profile was skipped and is not credited.",
+  "evidence": {
+    "ci-attempt1-application.log": "3a2c4df2aa43e7ecd7b6a6f0a0fe13579d09c7f619fbde251dc97f86286cb049",
+    "ci-dependency.log": "b45314d29a21106ade0428574e0d5195bb47e1aa0f2b885a73016b13b8dd1d61",
+    "ci-attempt1-jobs.json": "44b1509de8424f8709ceec70ef1ae8c752913a0ad64ee1d09e4c704244f4ab40",
+    "ci-attempt1-artifacts.json": "3e2046fa862da1fe5cf802510f350e82700c50ec2d0a4e9dc5c8b7833da261d3"
+  },
+  "limits": [
+    "The recorded browser network error is the observed failure, not proof of a root cause.",
+    "A future new-source CI rerun must remain separate; no gates, prerequisites or assertions were weakened for this summary.",
+    "No builds, Docker, network calls or repository modifications were performed by this read-only summarizer."
+  ]
+}

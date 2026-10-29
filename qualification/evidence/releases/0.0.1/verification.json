@@ -90,5 +90,14 @@
     "No public production endpoint, DNS, CA/ACMErenewal, operator firewall or off-site backup deployment supplied. Local private-CA tests do not qualify those.",
     "No additional client platforms/zones or performance/capacity qualification."
   ],
-  "publicationBoundary": "No merge to main, tag, GitHub release or container publication. Owner must accept the documented defaultThunderbird timezone limitation or defer publication, then separately authorize exact source/artifacts and publication destinations."
+  "publicationBoundary": "No merge to main, tag, GitHub release or container publication. Owner must accept the documented defaultThunderbird timezone limitation or defer publication, then separately authorize exact source/artifacts and publication destinations.",
+  "firstPreparationCi": {
+    "sourceRevision": "c298c063ff9334707d84eded3ebf130ce5598af4",
+    "runId": 40969177733,
+    "runUrl": "https://github.com/busystack/caldav-server/actions/runs/40969177733",
+    "result": "failed at initial cross-site Chromium page navigation: net::ERR_NETWORK_CHANGED; two subsequent restore profiles skipped. Earlier successful steps remain separately verified.",
+    "evidence": "ci-attempt1-summary.json",
+    "evidenceSha256": "262099bbb50976eb58592b7cf91287fb98b2abd3ea90e941f2044fe804fa7dd0",
+    "retry": "Connected GitHub integration returned403 for rerun permission; no securitysetting changed. This retained-evidence commit/push triggers a new full CI run with identical application/test/POM/container inputs and unchanged assertions. Exact final-source receipt is recorded after that run."
+  }
 }
