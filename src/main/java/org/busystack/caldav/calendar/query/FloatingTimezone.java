@@ -47,12 +47,20 @@ public final class FloatingTimezone {
       validate(zone);
       var timezone = new net.fortuna.ical4j.model.TimeZone(zone);
       return new FloatingTimezone(registry.getZoneId(timezone.getID()), registry);
+    } catch (org.busystack.caldav.calendar.CalendarValidationException invalid) {
+      throw invalidTimezone();
     } catch (java.io.IOException | net.fortuna.ical4j.data.ParserException ex) {
       Throwable nested = ex;
       for (int index = 0; index < 8 && nested != null; index++, nested = nested.getCause())
         if (nested instanceof QueryException query) throw query;
+        else if (nested instanceof org.busystack.caldav.calendar.CalendarValidationException)
+          throw invalidTimezone();
       throw QueryException.invalid("Malformed calendar timezone");
     }
+  }
+
+  private static QueryException invalidTimezone() {
+    return new QueryException(QueryException.Kind.INVALID_DATA, "Calendar timezone is invalid");
   }
 
   private static void validate(VTimeZone component) {

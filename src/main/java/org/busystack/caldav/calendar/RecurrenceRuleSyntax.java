@@ -2,9 +2,13 @@ package org.busystack.caldav.calendar;
 
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /** Checks RECUR rule-part structure before the library's typed model replaces duplicate keys. */
 public final class RecurrenceRuleSyntax {
+  private static final Pattern WEEKDAY =
+      Pattern.compile("([+-]?[0-9]{1,2})?(?:SU|MO|TU|WE|TH|FR|SA)", Pattern.CASE_INSENSITIVE);
+
   private RecurrenceRuleSyntax() {}
 
   public static void validate(String value) {
@@ -23,6 +27,16 @@ public final class RecurrenceRuleSyntax {
         if (!number.chars().allMatch(c -> c >= '0' && c <= '9')
             || number.chars().allMatch(c -> c == '0')) invalid();
       }
+      if (key.equals("BYDAY"))
+        for (String day : item.substring(equals + 1).split(",", -1)) {
+          var weekday = WEEKDAY.matcher(day);
+          if (!weekday.matches()) invalid();
+          String ordinal = weekday.group(1);
+          if (ordinal != null) {
+            int offset = Integer.parseInt(ordinal);
+            if (offset == 0 || Math.abs(offset) > 53) invalid();
+          }
+        }
     }
     if (!parts.contains("FREQ") || parts.contains("COUNT") && parts.contains("UNTIL")) invalid();
   }

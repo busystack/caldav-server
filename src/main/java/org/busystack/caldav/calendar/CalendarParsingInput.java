@@ -65,6 +65,14 @@ public final class CalendarParsingInput {
       while ((character = input.read()) != -1) unfolded.append((char) character);
     }
     String value = unfolded.toString();
+    // The parser's historical BOM helper accepts any token containing BEGIN. Check the
+    // actual boundary here and remove only a permitted leading BOM from the derived reader.
+    if (value.startsWith("\uFEFF")) value = value.substring(1);
+    int firstNewline = value.indexOf('\n');
+    int firstEnd = firstNewline < 0 ? value.length() : firstNewline;
+    if (firstEnd > 0 && value.charAt(firstEnd - 1) == '\r') firstEnd--;
+    if (!asciiEqualsIgnoreCase(value.substring(0, firstEnd), "BEGIN:VCALENDAR"))
+      throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_DATA);
     StringBuilder normalized = new StringBuilder(value.length());
     int from = 0;
     while (from < value.length()) {
@@ -76,8 +84,8 @@ public final class CalendarParsingInput {
       String line = value.substring(from, contentEnd);
       int colon = line.indexOf(':');
       if (colon > 0
-          && (line.substring(0, colon).equalsIgnoreCase("BEGIN")
-              || line.substring(0, colon).equalsIgnoreCase("END"))
+          && (asciiEqualsIgnoreCase(line.substring(0, colon), "BEGIN")
+              || asciiEqualsIgnoreCase(line.substring(0, colon), "END"))
           && identifier(line.substring(colon + 1))) {
         normalized.append(line.toUpperCase(Locale.ROOT));
       } else normalized.append(line);
@@ -85,6 +93,18 @@ public final class CalendarParsingInput {
       from = end;
     }
     return new StringReader(normalized.toString());
+  }
+
+  private static boolean asciiEqualsIgnoreCase(String value, String expected) {
+    if (value.length() != expected.length()) return false;
+    for (int index = 0; index < value.length(); index++) {
+      char actual = value.charAt(index), required = expected.charAt(index);
+      if (actual > 0x7f || required > 0x7f) return false;
+      if (actual >= 'a' && actual <= 'z') actual -= 'a' - 'A';
+      if (required >= 'a' && required <= 'z') required -= 'a' - 'A';
+      if (actual != required) return false;
+    }
+    return true;
   }
 
   private static boolean identifier(String value) {

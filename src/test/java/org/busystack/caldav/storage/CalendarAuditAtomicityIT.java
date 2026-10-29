@@ -137,6 +137,106 @@ class CalendarAuditAtomicityIT {
   }
 
   @Test
+  void residualLexicalFailuresPreserveConditionalWritesRevisionsHistoryAndSynchronization()
+      throws Exception {
+    for (String name :
+        List.of(
+            "invalid-leading-token",
+            "invalid-unicode-leading-token",
+            "invalid-unicode-bom-leading-token",
+            "invalid-zero-byday",
+            "invalid-plus-zero-byday",
+            "invalid-minus-zero-byday",
+            "invalid-weeks-days")) {
+      String originalName =
+          name.equals("invalid-minus-zero-byday")
+              ? "invalid-zero-byday"
+              : name.contains("unicode") ? "invalid-leading-token" : name;
+      byte[] invalid;
+      try (var input =
+          CalendarAuditAtomicityIT.class.getResourceAsStream(
+              "/calendar/independent-verification/" + originalName + ".ics")) {
+        if (input == null) throw new IllegalStateException("Missing independent residual fixture");
+        invalid = input.readAllBytes();
+      }
+      if (name.equals("invalid-minus-zero-byday"))
+        invalid =
+            new String(invalid, StandardCharsets.UTF_8)
+                .replace("BYDAY=0MO", "BYDAY=-0MO")
+                .getBytes(StandardCharsets.UTF_8);
+      if (name.contains("unicode"))
+        invalid =
+            new String(invalid, StandardCharsets.UTF_8)
+                .replace(
+                    "XBEGIN:VCALENDAR",
+                    (name.contains("-bom-") ? "\uFEFF" : "") + "beg\u0131n:vcalendar")
+                .getBytes(StandardCharsets.UTF_8);
+      final byte[] rejected = invalid;
+      String uid =
+          new String(rejected, StandardCharsets.UTF_8)
+              .lines()
+              .filter(line -> line.startsWith("UID:"))
+              .findFirst()
+              .orElseThrow()
+              .substring(4);
+      UUID calendar = store.createCollection(owner, name, "VEVENT");
+      String emptyToken = store.currentSyncToken(owner, calendar);
+      long emptyRevision = revision(calendar);
+      assertThatThrownBy(
+              () ->
+                  store.put(
+                      owner, calendar, "residual.ics", uid, rejected, WriteCondition.create()))
+          .as(name + " creation")
+          .isInstanceOfSatisfying(
+              CalendarValidationException.class,
+              error ->
+                  assertThat(error.reason())
+                      .isEqualTo(CalendarValidationException.Reason.INVALID_DATA));
+      assertThat(store.get(owner, calendar, "residual.ics")).isNull();
+      assertThat(count("calendar_resources", calendar)).isZero();
+      assertThat(count("calendar_resource_versions", calendar)).isZero();
+      assertThat(count("collection_changes", calendar)).isZero();
+      assertThat(revision(calendar)).isEqualTo(emptyRevision);
+      assertThat(store.currentSyncToken(owner, calendar)).isEqualTo(emptyToken);
+
+      byte[] previous = valid("VEVENT", uid);
+      var old = store.put(owner, calendar, "residual.ics", uid, previous, WriteCondition.create());
+      String token = store.currentSyncToken(owner, calendar);
+      long collectionRevision = revision(calendar),
+          versions = count("calendar_resource_versions", calendar),
+          changes = count("collection_changes", calendar);
+      assertThatThrownBy(
+              () ->
+                  store.put(
+                      owner,
+                      calendar,
+                      "residual.ics",
+                      uid,
+                      rejected,
+                      WriteCondition.match(old.etag())))
+          .as(name + " conditional replacement")
+          .isInstanceOfSatisfying(
+              CalendarValidationException.class,
+              error ->
+                  assertThat(error.reason())
+                      .isEqualTo(CalendarValidationException.Reason.INVALID_DATA));
+      var after = store.get(owner, calendar, "residual.ics");
+      assertThat(after.content()).isEqualTo(previous);
+      assertThat(after.etag()).isEqualTo(old.etag());
+      assertThat(after.revision()).isEqualTo(old.revision());
+      assertThat(revision(calendar)).isEqualTo(collectionRevision);
+      assertThat(count("calendar_resource_versions", calendar)).isEqualTo(versions);
+      assertThat(count("collection_changes", calendar)).isEqualTo(changes);
+      assertThat(store.currentSyncToken(owner, calendar)).isEqualTo(token);
+      assertThat(store.sync(owner, calendar, token, 100).changes()).isEmpty();
+    }
+  }
+
+  private long revision(UUID calendar) {
+    return jdbc.queryForObject("SELECT revision FROM collections WHERE id=?", Long.class, calendar);
+  }
+
+  @Test
   void previouslyAcceptedInvalidDataRemainsRetrievableAndRepairableWithoutSilentMigration()
       throws Exception {
     byte[] invalid = fixture("invalid-event-no-start.ics");

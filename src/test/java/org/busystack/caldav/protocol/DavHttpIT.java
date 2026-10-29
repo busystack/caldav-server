@@ -1069,6 +1069,134 @@ class DavHttpIT {
   }
 
   @Test
+  void residualCalendarGrammarFailuresRejectCreationAndConditionalReplacementAtomically()
+      throws Exception {
+    for (String name :
+        List.of(
+            "invalid-leading-token",
+            "invalid-unicode-leading-token",
+            "invalid-unicode-bom-leading-token",
+            "invalid-zero-byday",
+            "invalid-plus-zero-byday",
+            "invalid-minus-zero-byday",
+            "invalid-weeks-days")) {
+      String source =
+          name.equals("invalid-minus-zero-byday")
+              ? "invalid-zero-byday"
+              : name.contains("unicode") ? "invalid-leading-token" : name;
+      String invalid = independentAdmissionFixture(source);
+      if (name.equals("invalid-minus-zero-byday"))
+        invalid = invalid.replace("BYDAY=0MO", "BYDAY=-0MO");
+      if (name.contains("unicode"))
+        invalid =
+            invalid.replace(
+                "XBEGIN:VCALENDAR",
+                (name.contains("-bom-") ? "\uFEFF" : "") + "beg\u0131n:vcalendar");
+      String uid =
+          invalid
+              .lines()
+              .filter(line -> line.startsWith("UID:"))
+              .findFirst()
+              .orElseThrow()
+              .substring(4);
+      String calendar = create(name, "VEVENT"), resource = calendar + "resource.ics";
+      UUID collection = datedCollection(name);
+      var empty = admissionHistoryState(collection);
+      String emptyToken = currentCollectionToken(calendar);
+      var creation =
+          send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-None-Match", "*");
+      assertThat(creation.statusCode()).as(name + " creation").isEqualTo(403);
+      assertThat(DavXml.child(xml(creation), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      assertThat(send("GET", resource, "").statusCode()).isEqualTo(404);
+      assertThat(admissionHistoryState(collection)).isEqualTo(empty);
+      assertThat(empty.get("resources")).isEqualTo(0L);
+      assertThat(empty.get("versions")).isEqualTo(0L);
+      assertThat(empty.get("changes")).isEqualTo(0L);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(emptyToken);
+
+      String previous = event(uid, "Preserved conditional-write control");
+      assertThat(send("PUT", resource, previous, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      var before =
+          http.send(
+              request(resource, aliceAuth).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+      assertThat(before.statusCode()).isEqualTo(200);
+      assertThat(before.body()).isEqualTo(previous.getBytes(StandardCharsets.UTF_8));
+      String etag = before.headers().firstValue("ETag").orElseThrow();
+      var state = admissionHistoryState(collection);
+      String token = currentCollectionToken(calendar);
+      var replacement =
+          send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-Match", etag);
+      assertThat(replacement.statusCode()).as(name + " conditional replacement").isEqualTo(403);
+      assertThat(DavXml.child(xml(replacement), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      var after =
+          http.send(
+              request(resource, aliceAuth).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+      assertThat(after.statusCode()).isEqualTo(200);
+      assertThat(after.body()).isEqualTo(before.body());
+      assertThat(after.headers().firstValue("ETag")).contains(etag);
+      assertThat(admissionHistoryState(collection)).isEqualTo(state);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+      var incremental = send("REPORT", calendar, sync(token, 100), "Depth", "0");
+      assertThat(incremental.statusCode()).isEqualTo(207);
+      assertThat(xml(incremental).getElementsByTagNameNS(DavXml.DAV, "response").getLength())
+          .isZero();
+    }
+  }
+
+  @Test
+  void residualCalendarLegalNeighborsAndInitialCaseBomVariantsKeepExactGetBytes() throws Exception {
+    String calendar = create("lexical-legal-neighbors", "VEVENT");
+    for (String name :
+        List.of("valid-first-weekday", "valid-last-weekday", "valid-one-week", "valid-nine-days")) {
+      String resource = calendar + name + ".ics", body = independentAdmissionFixture(name);
+      assertThat(send("PUT", resource, body, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      var get =
+          http.send(
+              request(resource, aliceAuth).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+      assertThat(get.statusCode()).isEqualTo(200);
+      assertThat(get.body()).isEqualTo(body.getBytes(StandardCharsets.UTF_8));
+    }
+    int ordinal = 0;
+    for (String boundary :
+        List.of(
+            "BEGIN:VCALENDAR",
+            "begin:vcalendar",
+            "bEgIn:vCaLeNdAr",
+            "\uFEFFBEGIN:VCALENDAR",
+            "\uFEFFbEgIn:vCaLeNdAr")) {
+      String resource = calendar + "boundary-" + ordinal + ".ics";
+      String body =
+          event("boundary-" + ordinal++, "CaseSensitive TEXT and BOM control")
+              .replaceFirst("BEGIN:VCALENDAR", boundary);
+      assertThat(send("PUT", resource, body, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      var get =
+          http.send(
+              request(resource, aliceAuth).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+      assertThat(get.statusCode()).isEqualTo(200);
+      assertThat(get.body()).isEqualTo(body.getBytes(StandardCharsets.UTF_8));
+    }
+  }
+
+  private static String independentAdmissionFixture(String name) throws Exception {
+    try (var input =
+        DavHttpIT.class.getResourceAsStream(
+            "/calendar/independent-verification/" + name + ".ics")) {
+      if (input == null) throw new IllegalStateException("Missing independent admission fixture");
+      return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    }
+  }
+
+  private java.util.Map<String, Object> admissionHistoryState(UUID collection) {
+    return jdbc.queryForMap(
+        "SELECT c.revision, (SELECT count(*) FROM calendar_resources r WHERE r.collection_id=c.id) AS resources,"
+            + " (SELECT coalesce(max(r.revision),0) FROM calendar_resources r WHERE r.collection_id=c.id) AS resource_revision,"
+            + " (SELECT count(*) FROM calendar_resource_versions v WHERE v.collection_id=c.id) AS versions,"
+            + " (SELECT count(*) FROM collection_changes h WHERE h.collection_id=c.id) AS changes"
+            + " FROM collections c WHERE c.id=?",
+        collection);
+  }
+
+  @Test
   void syncStateTokensWorkInTaggedAndUntaggedDavIfWithNegationAndCollectionScoping()
       throws Exception {
     String calendar = create("sync-state", "VEVENT"), other = create("sync-state-other", "VEVENT");

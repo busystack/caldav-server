@@ -74,8 +74,19 @@ public final class StrictContentHandler extends DefaultContentHandler
 
   @Override
   public void propertyValue(String value) {
-    if (Property.RRULE.equals(currentProperty))
+    String declared = currentParameters.getOrDefault(Parameter.VALUE, "").toUpperCase(Locale.ROOT);
+    if (Property.RRULE.equals(currentProperty)
+        || Property.EXRULE.equals(currentProperty)
+        || declared.equals("RECUR"))
       org.busystack.caldav.calendar.RecurrenceRuleSyntax.validate(value);
+    if (Set.of(Property.DURATION, "REFRESH-INTERVAL").contains(currentProperty)
+        || Property.TRIGGER.equals(currentProperty) && !declared.equals("DATE-TIME"))
+      org.busystack.caldav.calendar.DurationSyntax.validate(value);
+    else if (declared.equals("DURATION"))
+      for (String duration : value.split(",", -1))
+        org.busystack.caldav.calendar.DurationSyntax.validate(duration);
+    if (declared.equals("PERIOD") || Property.FREEBUSY.equals(currentProperty))
+      org.busystack.caldav.calendar.DurationSyntax.validatePeriodDurations(value);
     if (DATE_PROPERTIES.contains(currentProperty)) validateDateShape(value);
     if ((!Property.RELATED_TO.equals(currentProperty)
             || !"URI".equalsIgnoreCase(currentParameters.get(Parameter.VALUE)))
@@ -92,7 +103,6 @@ public final class StrictContentHandler extends DefaultContentHandler
                 Property.RELATED_TO)
             .contains(currentProperty))
       org.busystack.caldav.calendar.CalendarTextValues.scalar(value);
-    String declared = currentParameters.getOrDefault(Parameter.VALUE, "").toUpperCase(Locale.ROOT);
     // A declared primitive type is meaningful even on an otherwise opaque extension property.
     switch (declared) {
       case "BOOLEAN" -> {
