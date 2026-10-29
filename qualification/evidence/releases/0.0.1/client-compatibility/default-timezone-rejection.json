@@ -1,0 +1,25 @@
+{
+  "status": "confirmed correct rejection of original invalid client timezone data",
+  "url": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/8548e877-bf17-4bef-855d-aeb97530876e.ics",
+  "originalBytes": 2262,
+  "originalSha256": "a94e4bf75c6fe3d1a91025714554513fb5b3d91f875320aedd52e309f336b9d0",
+  "originalFixture": "client-event-diagnostic/original-gui-event-0.ics",
+  "getBefore": {
+    "status": 404,
+    "contentType": "application/xml;charset=utf-8",
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"/>"
+  },
+  "conditionalPut": {
+    "status": 403,
+    "contentType": "application/xml;charset=utf-8",
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"><C:valid-calendar-data xmlns:C=\"urn:ietf:params:xml:ns:caldav\"/></D:error>"
+  },
+  "getAfter": {
+    "status": 404,
+    "contentType": "application/xml;charset=utf-8",
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"/>"
+  },
+  "normativeBasis": "RFC5545§§3.3.10,3.6.5 STANDARD/DAYLIGHT UNTIL requires UTC; six local UNTIL values violate it. Verified erratum4414 retains the observance-specific MUST. RFC4791§5.3.2.1 requires valid-calendar-data.",
+  "source": "CalendarConstraints.rule, observance UNTIL check; byte-identical Java source to a919 baseline",
+  "limitations": "Captured America/Vancouver[2026b] GUI representation only; other zones/client versions not inferred. Original payload unchanged, no timezone normalization or weakened validation."
+}

@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "processes": [
+    {
+      "service": "database",
+      "container": "busystack-release-e505d5ca7c-database-1",
+      "id": "d8c52bb607f4c73446e7b2fa7290f6e2eacb463e75f79178b8aca8dbe81bcb55",
+      "startedAt": "2026-10-29T22:37:36.30489551Z",
+      "status": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "application",
+      "container": "busystack-release-e505d5ca7c-application-1",
+      "id": "506cc3b3c70e4e05fb15da53d9dea7f48a5e5b8a8b2632a86a15df78bbcf7021",
+      "startedAt": "2026-10-29T22:37:36.052498883Z",
+      "status": "running",
+      "health": "healthy"
+    }
+  ],
+  "proof": "Both database and application process start times follow authoritative before-snapshot; named volumes retained; raw GET/ETag after equals before."
+}

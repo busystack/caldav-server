@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "deployment": "Documented hostname-root HTTPS proxy",
+  "canonicalOrigin": "https://localhost:55049",
+  "caldavDiscovery": "308 to displayed DAV address",
+  "authorizationMetadata": "200 matching canonical issuer",
+  "actuator": "404 on HTTPS public route",
+  "tls": "TLS1.2/1.3 negotiated, oldprotocol/staticRSA/DHE offers rejected; trustedmatchingname works; wronghostname/untrustedCA rejected; see actual log",
+  "certificateTrust": "Private disposable client trust only; no hostwide trust or verification bypass"
+}

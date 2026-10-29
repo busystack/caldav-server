@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "client": "python-caldav",
+  "version": "3.6.0",
+  "operation": "Independent client principal/home/calendar discovery using browser-issued credential",
+  "calendars": [
+    {
+      "name": "Release Events",
+      "url": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+    },
+    {
+      "name": "Release Tasks",
+      "url": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+    }
+  ],
+  "tls": "Normal private-CA and hostname validation",
+  "mutations": "None in this diagnostic; actual GUI CRUD and persistence reported separately"
+}

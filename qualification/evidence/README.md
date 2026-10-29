@@ -1,5 +1,7 @@
 # Qualification evidence
 
+For BusyStack CalDAV Server **0.0.1 release preparation**, start with the [release verification record](releases/0.0.1/verification.json) and [release notes](../../docs/releases/0.0.1.md). They identify the prepared source, artifacts, installation/browser/client exercise, CI outcome and remaining manual checks. Entries below retain their historical scope for the explicitly named source revisions and artifacts; their earlier successes do not qualify a later release build.
+
 The later [independent-audit correction submission](../../docs/standards-corrections.md) is maintained separately under [standards-corrections/](standards-corrections/). Its original-audit input hashes, fresh failing baseline, new project tests, independent probe outcomes and matrix dispositions are distinct from the historical qualification below. Existing evidence files are not rewritten to turn earlier failures into passes.
 
 ## Historical runtime source `47b3543` — CI qualification passed

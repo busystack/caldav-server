@@ -84,6 +84,7 @@ jobs:
             target/surefire-reports/
             target/failsafe-reports/
             target/classes/META-INF/sbom/application.cdx.json
+            target/caldav-server-0.0.1.jar
             target/*.cdx.json
             target/*-qualification.txt
             target/application-image-id.txt

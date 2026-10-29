@@ -1,0 +1,94 @@
+{
+  "submissionType": "Developer release preparation and verification; no certification or universal client compatibility claim",
+  "releaseVersion": "0.0.1",
+  "branch": "release/v0.0.1",
+  "requestedBaseline": "a919d6324f2e1eea75de63b76b89cb065e7530cf",
+  "installationCandidateRevision": "8b023f34a770579ac48b68c08f56417bbd427f46",
+  "finalPreparationCommit": "The post-push receipt records the exact final commit; a commit cannot contain its own later CI result.",
+  "finalCiReceipt": "/home/albert/busystack/caldav-server-release-0.0.1/remote-ci.json",
+  "finalArtifactManifest": "/home/albert/busystack/caldav-server-release-0.0.1/artifacts.json",
+  "recordedAt": "2026-10-29T22:44:56.891720+00:00",
+  "implementationScope": {
+    "unchangedAuditedTrees": {
+      "src/main": "4ed67d4cbb5aa7488d30944a92011e1b5979701f",
+      "src/test": "40dd2db1be5a01ba07d40c12902490bdcab77b56"
+    },
+    "changes": "Only 0.0.1 metadata/default local image tag, artifact version assertions/CI JAR retention, release/user documentation and verification evidence. No Java production/test source, dependencies/base pins or migrations changed.",
+    "schema": "V1–V13; no new migration",
+    "approvedCompatibility": "Depth1 sync-level1 default accommodation and explicitstrict override; HTTPS named DAV Basic/Bearer profile retained."
+  },
+  "candidateArtifacts": {
+    "jar": "caldav-server-0.0.1.jar",
+    "jarSha256": "0e1dc621d66ae233d7fe1f303936f33c5c522622a5f82f0335464bec2570982b",
+    "sbomSha256": "620458d2237b93f0c130429c46e374a8db843f4f0063d7f530d3371716bd25c2",
+    "imageId": "sha256:511f07a7bf2cffb14f6a9be49cb886403a4dfa059d31de332ab6e0d4865f0193",
+    "imageSourceRevision": "8b023f34a770579ac48b68c08f56417bbd427f46",
+    "origin": "JAR extracted from actual Docker/Maven package; final CI independently builds host/container and compares bytes. Final locally exported image is rebuilt with the exact final source label."
+  },
+  "installation": {
+    "result": "Clean documented installation, bootstrap, actual browser first-use prefix, independent client discovery and scoped UTC GUI lifecycle verified; auxiliary/earlier failed attempts are retained separately.",
+    "arrangement": "Unmodified two-service Compose deployment in a uniquely named project/new PostgreSQL volume; private secret files; unused loopback ports; separate pinned non-root Nginx TLS terminator; private CA scoped to disposable clients, normal certificate/hostname validation.",
+    "checks": [
+      "Fresh V1–V13 migration and private offline administrator bootstrap",
+      "Browser administration/user provisioning, collection creation and named DAV credential; see explicit partial/failed original browser assessment",
+      "Actual root HTTPS protocols/identity/discovery/canonical metadata and denied public health route",
+      "Python-caldav3.6.0 discovery using browser-issued credential",
+      "Thunderbird157.0.1 actual headed wizard/password prompt/normalpasswordmanager/subscription",
+      "Actual Settings Calendar/manualEtcUTC; original default timezone failure retained",
+      "Real event/task editors create/edit/complete100, ReloadRemoteCalendars; independent server reads",
+      "Orderly PostgreSQL and application process restart; authoritative GET bytes/ETags/contenttypes identical",
+      "Same private Thunderbird profile restart with saved credential; subsequent GUI Delete plus confirmations, independentGET404 for both UTC items",
+      "Earlier accepted default-case task preserved, not mistaken for failed UTC deletion"
+    ],
+    "browserAssessment": "browser-installation-assessment.json",
+    "nativeGuiResult": "client-gui-results.json",
+    "nativeGuiAttemptHistory": "client-gui-summary.json",
+    "authoritativeRestartEvidence": [
+      "gui-get-before.json",
+      "gui-get-after.json",
+      "gui-restart-process-proof.json"
+    ],
+    "exactNativeSuccessStatuses": {
+      "PUT201": 2,
+      "PUT204": 2,
+      "DELETE204": 2,
+      "REPORT207": 17
+    },
+    "timezoneControlEncoding": "The captured manual-radio value \"false\" encodes useSystem=false; it is not a checked-state boolean. Screenshot19 shows Set timezone manually selected, and the read-only effective timezone is Etc/UTC."
+  },
+  "knownClientLimitation": {
+    "client": "Thunderbird157.0.1",
+    "profile": "Default Use system timezone → America/Vancouver[2026b]",
+    "result": "Captured original GUI-generated event contains six non-UTC observance UNTIL values; exact replay correctly403 CALDAV:valid-calendar-data, GET404 before/after. Undated task accepted.",
+    "standard": "RFC5545§§3.3.10,3.6.5; verifiederratum4414 retains STANDARD/DAYLIGHTUTCUNTIL requirement; RFC4791§5.3.2.1",
+    "evidence": [
+      "client-compatibility/original-gui-event.ics",
+      "client-compatibility/default-timezone-rejection.json",
+      "client-compatibility/standards-analysis.json"
+    ],
+    "qualifiedAlternative": "Explicit actual client Settings→Calendar→Settimezone manually→Etc/UTC GUI profile passed. This is a conscious client configuration, not server payload rewriting.",
+    "limits": "Other zones/versions not inferred. Earlier controlled provider-onlyUTC/date-only/floating tests do not qualify ordinary defaultGUIzone data."
+  },
+  "localChecks": "metadata-checks.json (11distribution,12browserfixture unit checks,0fail/errors/skips; plus actual distribution.json and HTTPS/client reports)",
+  "freshFinalCi": "Required after final preparation push; actual reports/jobs/artifact IDs/counts and all packaged restore/client/security results belong to the post-push receipt, not an inferred pass.",
+  "screenshots": {
+    "directory": "/home/albert/busystack/caldav-server-screenshots",
+    "count": 48,
+    "manifest": "screenshots.json",
+    "captures": "Actual rendered Chromium pages and owned headed Thunderbird windows. DAV secret masked before screenshot; native credential prompt captured empty. Earlier attempts kept in separate subdirectories."
+  },
+  "failedExecutionsAndLimits": [
+    "Initial fixture setup encountered sandbox loopback denial and temporary readonly-file reentry; fixed only its uninitialized private fixture.",
+    "Proxy validation initially failed on test public-certificate readability and readonly default temp paths; both failed logs preserved, later configuration/HTTPS passed.",
+    "Original browser script failed the extra protected-settings reauthentication step after passed install/session assertions; runtime route control and scope above, no full original-script pass.",
+    "Native attempts1–3 were new harness modal/password-saving/context mistakes;4 captured actual invalid default-clienttimezone rejection after task success;5–6 were settings-navigation fixture errors;7 scopedUTC GUI passed. Full attempt history retained.",
+    "First inline replay helper hit Python exception-target lifetime before PUT; corrected standalone exact-byte replay passed; no rejected case rewritten to look successful."
+  ],
+  "manualChecksNotPerformed": [
+    "No person manually clicked the complete installation/client workflow; interactions used real rendered/headedUI automation and visual screenshot review.",
+    "No physical passkey/authenticator or platform credential-provider UI qualification. Virtual user-verified CTAP2 used for browser setup.",
+    "No public production endpoint, DNS, CA/ACMErenewal, operator firewall or off-site backup deployment supplied. Local private-CA tests do not qualify those.",
+    "No additional client platforms/zones or performance/capacity qualification."
+  ],
+  "publicationBoundary": "No merge to main, tag, GitHub release or container publication. Owner must accept the documented defaultThunderbird timezone limitation or defer publication, then separately authorize exact source/artifacts and publication destinations."
+}

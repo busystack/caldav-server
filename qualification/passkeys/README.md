@@ -5,10 +5,10 @@ The fixture exercises the packaged Java application, real PostgreSQL, server-ren
 On a Linux Docker host with Compose 2.24.4 or newer, Python 3 and OpenSSL:
 
 ```sh
-docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:local .
+docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:0.0.1 .
 docker build --tag busystack-passkey-browser:qualification qualification/passkeys
-python3 qualification/passkeys/run.py --application-image busystack-caldav:local --groups
-python3 qualification/passkeys/run.py --application-image busystack-caldav:local --proxy --groups
+python3 qualification/passkeys/run.py --application-image busystack-caldav:0.0.1 --groups
+python3 qualification/passkeys/run.py --application-image busystack-caldav:0.0.1 --proxy --groups
 ```
 
 The default profile uses direct embedded TLS at the hostname root. `--context-path /team` tests embedded TLS under a servlet prefix. `--proxy` uses the pinned non-root Nginx fixture with TLS termination, preserved `/team` paths, host-root CalDAV discovery and RFC 8414 metadata mapping, private management routes and bounded declared/chunked bodies. The ordinary production Compose deployment still consists of the application and PostgreSQL.
@@ -19,7 +19,7 @@ For the optional upstream profile:
 
 ```sh
 docker build --tag busystack-keycloak-browser:26.8.1 qualification/keycloak
-python3 qualification/passkeys/run.py --application-image busystack-caldav:local --oidc
+python3 qualification/passkeys/run.py --application-image busystack-caldav:0.0.1 --oidc
 ```
 
 This profile additionally starts a disposable real Keycloak instance and uses distinct reserved browser sites, `app.busystack.test` and `idp.identity.test`, with private-CA certificates. A fresh nonadministrator account is provisioned from an exact subject allowlist, despite its upstream `realm-admin` role. Actual organization password authentication and the cross-site callback must preserve the application's Secure, HttpOnly, Lax session cookie. Organization login alone cannot mutate collections; a local passkey completes MFA. The user cannot discover the separate local administrator's collection or enter administration. A local-password attempt with the upstream password must fail. This account then exercises DAV credential/OAuth browser workflows and persistence. Explicit identity linking and provider logout/deprovisioning have separate integration tests. Restored-provider login belongs to the restore profile below.
@@ -37,8 +37,8 @@ The browser integration uses [Playwright CDP sessions](https://playwright.dev/do
 `--groups` requires actual CSRF-protected account provisioning, group creation/rename/membership updates/deletion and owner READ/WRITE/revoke forms. The actor retains one authoritative collection; administrator membership management is distinct from owner-controlled data grants.
 
 ```sh
-python3 qualification/passkeys/run.py --application-image busystack-caldav:local --proxy --groups --restore --clients --client-python .client-venv/bin/python
-python3 qualification/passkeys/run.py --application-image busystack-caldav:local --oidc --groups --restore
+python3 qualification/passkeys/run.py --application-image busystack-caldav:0.0.1 --proxy --groups --restore --clients --client-python .client-venv/bin/python
+python3 qualification/passkeys/run.py --application-image busystack-caldav:0.0.1 --oidc --groups --restore
 ```
 
 `--restore` creates an actual VTODO through HTTPS using a browser-issued DAV credential, authorizes an actual native OAuth grant, records a sync token, and saves a database dump while those credentials are demonstrably valid. It then revokes access through the browser and restores the older dump into a separate empty owned project. Every restored account is initially disabled; epochs change and factors/sessions/credentials/grants are cleared. The operator reviews known fixture permissions and recovers only the selected owner and a synthetic READ recipient. The owner completes fresh local or real cross-site upstream authentication and passkey enrollment, then issues fresh DAV and OAuth access. The second principal completes actual local password/passkey enrollment and DAV issuance. HTTPS assertions cover byte-exact task/ownership, old Basic/Bearer/refresh rejection, invalid old sync state, fresh initial sync, restored READ GET permission, PUT denial, and owner removal of that share followed by recipient denial. A separate WRITE grant remains preserved in PostgreSQL while its account stays disabled. The same provider remains running during the federated restore; exact issuer/subject recovery does not create a local password fallback.

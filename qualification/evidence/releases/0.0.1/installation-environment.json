@@ -1,0 +1,9 @@
+{
+  "project": "busystack-release-e505d5ca7c",
+  "base": "https://localhost:55049",
+  "applicationPort": 58573,
+  "httpsPort": 55049,
+  "proxyContainer": "busystack-release-e505d5ca7c-proxy",
+  "image": "busystack-caldav:0.0.1",
+  "arrangement": "Unmodified two-service compose.yaml, fresh named project/database volume, isolated unused loopback ports, separate pinned Nginx host-network TLS terminator following docs root configuration; private CA trusted only in disposable clients; no insecure-local or certificate bypass."
+}

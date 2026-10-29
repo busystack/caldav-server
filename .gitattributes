@@ -18,3 +18,6 @@ licenses/EPL-2.0.txt -text -whitespace
 licenses/LGPL-2.1.txt -text
 licenses/logback-LICENSE.txt -text -whitespace
 licenses/asm-9.7.1-copyright-and-license.txt -text
+
+# Retain original release-verification client wire bytes.
+qualification/evidence/releases/**/*.ics -text whitespace=cr-at-eol

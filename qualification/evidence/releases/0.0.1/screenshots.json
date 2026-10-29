@@ -1,0 +1,294 @@
+{
+  "capture": "Real Chromium/Thunderbird UI screenshots; no image generation/reconstruction; secret masked before browsercapture or nativepasswordpromptcapturedempty",
+  "manualScope": "Automated real browser/headeddesktopcontrols and model visual review; no human manualclick/devicequalification claim",
+  "files": [
+    {
+      "file": "19-thunderbird-calendar-timezone-utc.png",
+      "source": "/tmp/busystack-release-prep/client-gui/19-thunderbird-calendar-timezone-utc.png",
+      "sha256": "0be6fff3eb49972c7b565bdb31bd93aac92bf8769c0ebd9b7e8ce255c6bb8a75",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "20-thunderbird-network-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui/20-thunderbird-network-calendar.png",
+      "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "21-thunderbird-server-address.png",
+      "source": "/tmp/busystack-release-prep/client-gui/21-thunderbird-server-address.png",
+      "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "22-thunderbird-credential-prompt.png",
+      "source": "/tmp/busystack-release-prep/client-gui/22-thunderbird-credential-prompt.png",
+      "sha256": "1fa7c948565da21655ef0e67d03912d8eb4a24624140a1be5ea04c89794a7cc3",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "23-thunderbird-discovered-calendars.png",
+      "source": "/tmp/busystack-release-prep/client-gui/23-thunderbird-discovered-calendars.png",
+      "sha256": "eccd6813a343d05dc7589f1e833959f7784ce4cf45569af4b72fc29819123548",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "24-thunderbird-connected-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui/24-thunderbird-connected-calendar.png",
+      "sha256": "efded4a826c42e574a2ff3f06cd97baf7e99f7dca39058e54be1ec2ea18e9f8e",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "25-thunderbird-event-editor.png",
+      "source": "/tmp/busystack-release-prep/client-gui/25-thunderbird-event-editor.png",
+      "sha256": "1df83b12cdb6ff280e3457f0807e36e3dbab5f534aef69ee0a4f874d9b2128a8",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "26-thunderbird-task-editor.png",
+      "source": "/tmp/busystack-release-prep/client-gui/26-thunderbird-task-editor.png",
+      "sha256": "bc98dba63d7f6b89f6f12654e840f4e8280ad178805841824051bfb0af3b8c2a",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "27-thunderbird-event-edited.png",
+      "source": "/tmp/busystack-release-prep/client-gui/27-thunderbird-event-edited.png",
+      "sha256": "60e4f91f679342057e73cde1ff496dc2b7b04a8bc53adc1cc469492cdfe5d41b",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "28-thunderbird-task-completed.png",
+      "source": "/tmp/busystack-release-prep/client-gui/28-thunderbird-task-completed.png",
+      "sha256": "b56c08665f92e875f077f4aa4333731470cd842ce667bee755a3102c13c2a306",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "29-thunderbird-before-server-restart.png",
+      "source": "/tmp/busystack-release-prep/client-gui/29-thunderbird-before-server-restart.png",
+      "sha256": "abcc1b6c54cd82589be13bba437b408e097eb2bf9da08507ee7f4ad49056ee6d",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "30-thunderbird-after-server-and-client-restart.png",
+      "source": "/tmp/busystack-release-prep/client-gui/30-thunderbird-after-server-and-client-restart.png",
+      "sha256": "58f9ab032acfe730f46e727af5351bc7f0aacaec7c0b27fe68838569b5198690",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "31-thunderbird-delete-event.png",
+      "source": "/tmp/busystack-release-prep/client-gui/31-thunderbird-delete-event.png",
+      "sha256": "1eef34348e65eb6bb7816c4017ffb1f5cc8b6f140378bb6146a7cd7a549b53ca",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "32-thunderbird-confirm-delete-event.png",
+      "source": "/tmp/busystack-release-prep/client-gui/32-thunderbird-confirm-delete-event.png",
+      "sha256": "3bd955d44eb6131147c6946e9e910e2e8845af78ba7644d22032f77daf68dbd0",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "33-thunderbird-delete-task.png",
+      "source": "/tmp/busystack-release-prep/client-gui/33-thunderbird-delete-task.png",
+      "sha256": "9d015f4f81a46599e6bc76559045adcf78f1a14d52fa70e20bb1708e6d6896a1",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "34-thunderbird-confirm-delete-task.png",
+      "source": "/tmp/busystack-release-prep/client-gui/34-thunderbird-confirm-delete-task.png",
+      "sha256": "9d3c17889f074e9e1b138fb3591dd2eab0e0d0e123c41d89dd84b32541f34b6c",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry"
+    },
+    {
+      "file": "35-thunderbird-after-deletions.png",
+      "source": "/tmp/busystack-release-prep/client-gui/35-thunderbird-after-deletions.png",
+      "sha256": "03e31719b1eca3b877a32ab3de968da4bb1d539316d5e42ce83653e58d347515",
+      "scope": "Passing explicit Etc/UTC headed Thunderbird157.0.1 GUI profile; real rendered window; credentialprompt captured before secret entry; both new UTC test resources deleted; the earlier accepted default-case task remains deliberately preserved"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt1/20-thunderbird-network-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt1/20-thunderbird-network-calendar.png",
+      "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt1/21-thunderbird-server-address.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt1/21-thunderbird-server-address.png",
+      "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt2/20-thunderbird-network-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt2/20-thunderbird-network-calendar.png",
+      "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt2/21-thunderbird-server-address.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt2/21-thunderbird-server-address.png",
+      "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt2/22-thunderbird-credential-prompt.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt2/22-thunderbird-credential-prompt.png",
+      "sha256": "1fa7c948565da21655ef0e67d03912d8eb4a24624140a1be5ea04c89794a7cc3",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt2/23-thunderbird-discovered-calendars.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt2/23-thunderbird-discovered-calendars.png",
+      "sha256": "eccd6813a343d05dc7589f1e833959f7784ce4cf45569af4b72fc29819123548",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt3/20-thunderbird-network-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt3/20-thunderbird-network-calendar.png",
+      "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt3/21-thunderbird-server-address.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt3/21-thunderbird-server-address.png",
+      "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt3/22-thunderbird-credential-prompt.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt3/22-thunderbird-credential-prompt.png",
+      "sha256": "1fa7c948565da21655ef0e67d03912d8eb4a24624140a1be5ea04c89794a7cc3",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt3/23-thunderbird-discovered-calendars.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt3/23-thunderbird-discovered-calendars.png",
+      "sha256": "eccd6813a343d05dc7589f1e833959f7784ce4cf45569af4b72fc29819123548",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt3/24-thunderbird-connected-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt3/24-thunderbird-connected-calendar.png",
+      "sha256": "c8d9542c990ecb37453e7f15e6eb6b78eb2114b8c401bd75c0c76900e1ba49e2",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt3/99-thunderbird-failure.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt3/99-thunderbird-failure.png",
+      "sha256": "1c04562325fdd4b73e3a0dcd99aed659b350309c44ee9e18c5a0bfe9f5a84a43",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/20-thunderbird-network-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/20-thunderbird-network-calendar.png",
+      "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/21-thunderbird-server-address.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/21-thunderbird-server-address.png",
+      "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/22-thunderbird-credential-prompt.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/22-thunderbird-credential-prompt.png",
+      "sha256": "1fa7c948565da21655ef0e67d03912d8eb4a24624140a1be5ea04c89794a7cc3",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/23-thunderbird-discovered-calendars.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/23-thunderbird-discovered-calendars.png",
+      "sha256": "eccd6813a343d05dc7589f1e833959f7784ce4cf45569af4b72fc29819123548",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/24-thunderbird-connected-calendar.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/24-thunderbird-connected-calendar.png",
+      "sha256": "92d617e2930608db389e38daf4e578eee6d487cc8e2d4ad0ebc35e07e3e80ba8",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/25-thunderbird-event-editor.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/25-thunderbird-event-editor.png",
+      "sha256": "abb04f8cc51668432e515542ad13dbaebfcf0d3744afe307cf67c626bde4785f",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/26-thunderbird-task-editor.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/26-thunderbird-task-editor.png",
+      "sha256": "c341a3fefce13cfc6da0d3aa5e99900258014fe2b93c8f0520ef578750de982f",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt4/99-thunderbird-failure.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt4/99-thunderbird-failure.png",
+      "sha256": "d4cb65ccecd24f6a355a2c099311fa1c2fd5c9f0ffcd18815e3269dfb9cd41fa",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt5/99-thunderbird-failure.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt5/99-thunderbird-failure.png",
+      "sha256": "58273e87a9da678a4c3222f436acbb37b2404a01b32c761d353fde17f9439a0a",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-gui-attempt6/99-thunderbird-failure.png",
+      "source": "/tmp/busystack-release-prep/client-gui-attempt6/99-thunderbird-failure.png",
+      "sha256": "f741b36023c9d0205cac13fb9fa237cf4708ffa92a2511d753c222d0b616ecfe",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "earlier-attempts/client-event-diagnostic/25-thunderbird-event-editor.png",
+      "source": "/tmp/busystack-release-prep/client-event-diagnostic/25-thunderbird-event-editor.png",
+      "sha256": "abb04f8cc51668432e515542ad13dbaebfcf0d3744afe307cf67c626bde4785f",
+      "scope": "Preserved earlier attempt/counterexample; not a passing complete GUI run"
+    },
+    {
+      "file": "01-browser-sign-in.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "393a82dde850b3c0f8573ca523fecf759eb264ab974770175470d036945c7b41",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "02-administrator-passkey-enrolled.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "c55c63477b3788c9702475d7e1064717e3569df077fe33f38bed807e6557fa37",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "03-administration-user-provisioned.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "6334167a2500145facf524d318fe0028cf174f62cd977f81c620dd3314e2a220",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "04-user-client-setup.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "ec37a0c080bd3662a86582dc3d7a41cba8c95ebd354f3885817a729fe4ba9866",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "05-issued-dav-credential-secret-masked.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "3547258495138a3ef9d7c8e835ee6dccd9d79393fb05bff48db685c864881e4c",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "06-user-events-tasks-and-client-connection.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "fcac611543a27bd231f2627d814b694c997aa7b9634524cb954313d7004c360a",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "12-browser-persistent-account-after-restart.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "fcac611543a27bd231f2627d814b694c997aa7b9634524cb954313d7004c360a",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    },
+    {
+      "file": "13-existing-passkey-mfa-login-route.png",
+      "source": "Actual Chromium installation/route-control capture",
+      "sha256": "85a60b80925ae39517bf6316a4bc0e880c444d059255d4fe110256723c5f5fe9",
+      "scope": "Rendered browser UI; first script failed extra reauth followup after passed install/session assertions; see release record. Secret shown in issuedcredentialpage masked before capture."
+    }
+  ]
+}

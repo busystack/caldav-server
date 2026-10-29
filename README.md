@@ -1,8 +1,10 @@
-# BusyStack CalDAV Server
+# BusyStack CalDAV Server 0.0.1
 
 Independent, self-hosted Java server for calendars and tasks, with PostgreSQL persistence and built-in accounts. Local deployment works without another identity service; an existing Keycloak installation can provide optional OIDC login.
 
-The [standards correction submission](docs/standards-corrections.md) tracks the 17 findings from the independent audit of `923ecacc`, their preserved counterexamples and developer verification. Historical source `47b3543` passed 169 unit and 174 PostgreSQL/HTTPS integration tests plus packaged profiles; those earlier runs do not qualify later changes. The maintained [qualification record](qualification/evidence/README.md) identifies exact artifacts, commands and configurations. The [standards matrix](docs/conformance.md) connects capabilities and limits to implementation and regression coverage.
+See the [0.0.1 release notes](docs/releases/0.0.1.md) for the supported profile and limitations, and the [release verification record](qualification/evidence/releases/0.0.1/verification.json) for exact source/artifact identities, installation results and CI evidence. Release preparation starts from the audited correction baseline `a919d632`; it does not publish a tag, GitHub release or container image. Build from this checkout using the instructions below.
+
+The [standards correction submission](docs/standards-corrections.md) preserves the 17 original audit finding groups, subsequent residual corrections and their counterexamples. The [standards matrix](docs/conformance.md) connects capabilities and remaining verification limits to implementation and regression coverage. These records are not certification or a claim of universal client compatibility.
 
 ## Capabilities
 
@@ -24,19 +26,23 @@ python3 -m venv .client-venv
 .client-venv/bin/pip install -r qualification/clients/requirements.txt -r qualification/clients/desktop-requirements.txt
 bash qualification/clients/install-thunderbird.sh .client-tools
 BUSYSTACK_CLIENT_PYTHON="$PWD/.client-venv/bin/python" \
-BUSYSTACK_THUNDERBIRD_BINARY="$PWD/.client-tools/thunderbird/thunderbird" ./mvnw verify
-docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:local .
+BUSYSTACK_THUNDERBIRD_BINARY="$PWD/.client-tools/thunderbird/thunderbird" ./mvnw -B -ntp clean verify
+docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:0.0.1 .
 ```
 
 Java 25, Docker and the declared integration prerequisites are required; unavailable required fixtures fail visibly. CI also checks formatting/static analysis, runtime advisories with a vulnerable positive control, SBOM generation, packaged deployment and browser/restore profiles.
 
-Follow [operations](docs/operations.md) for the application-plus-PostgreSQL Compose deployment, HTTPS root/subpath proxy configuration, offline administrator bootstrap, secret files, upgrades and safe recovery. Restoring older state disables accounts and removes restored client/factor/session access before verified individual recovery. [Workload records](docs/performance.md) distinguish measured datasets and artifacts, including request latency, heap/container memory and database behavior; no capacity or high-availability guarantee is inferred.
+The executable artifact is `target/caldav-server-0.0.1.jar`; the command above builds a local `busystack-caldav:0.0.1` image. Their licenses, notices and runtime SBOM are included by the existing packaging. Follow [operations](docs/operations.md) for the application-plus-PostgreSQL Compose deployment, HTTPS root/subpath proxy configuration, offline administrator bootstrap, first user, client connection, updates and safe recovery. Restoring older state disables accounts and removes restored client/factor/session access before verified individual recovery. [Workload records](docs/performance.md) retain earlier measurements; release preparation does not establish a capacity or high-availability guarantee.
 
 ## Connect clients and manage access
 
 Sign in through the account interface, enroll a passkey, complete MFA, create event/task collections and issue a named DAV credential. Use the displayed server address and username with that credential as the client's password. Capable registered clients can use browser OAuth instead; the account password is not the default DAV credential.
 
-Python-caldav 3.6.0 and Thunderbird 157.0.1's actual native desktop provider passed calendar/task CRUD, recurrence/alarm/extension round trips, task completion and synchronization, including four-resource cross-client edits. The default accepts their narrowly constrained `Depth: 1` sync reports only with XML sync-level 1; standard missing/Depth 0 headers remain supported. This is a documented RFC 6578 deviation. Set `BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=false` for strict mode. Independent qualification runs omit the setting and record actual effective behavior. Desktop qualification used an isolated headless native provider, without a manual graphical account-wizard claim. Physical authenticators and additional client platforms remain unexecuted.
+The audited baseline qualified python-caldav 3.6.0 and Thunderbird 157.0.1's native desktop provider for calendar/task CRUD, recurrence/alarm/extension round trips, task completion and synchronization, including four-resource cross-client edits. The release record identifies their fresh results for the final artifact and distinguishes browser automation, native provider tests and manual checks that could not be performed. The default accepts narrowly constrained `Depth: 1` sync reports only with XML sync-level 1; standard missing/Depth 0 headers remain supported. This is a documented RFC 6578 deviation. Set `BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE=false` for strict mode. Physical authenticators and additional client platforms remain separately unverified.
+
+**Observed Thunderbird timezone limitation:** the release exercise found that Thunderbird 157.0.1's ordinary graphical event creation with the system-selected `America/Vancouver` timezone (2026b data) emits invalid local `UNTIL` values in its embedded timezone observances. BusyStack correctly rejects that event with `403 CALDAV:valid-calendar-data`; it is not saved on the server. An undated task was accepted. Earlier controlled UTC/date-only/floating provider tests do not qualify this default desktop timezone profile.
+
+A separate Thunderbird 157.0.1 graphical profile passed event/task creation, editing, task completion, synchronization and deletion after choosing **Settings → Calendar → Set timezone manually → Etc/UTC**. Database/application restart preserved authoritative bytes/ETags, and the same private client profile restarted using its saved DAV credential. These were automated interactions with real GUI controls. Use this bounded UTC profile and follow the [client setup and limitation](docs/operations.md#client-access-and-sync-compatibility); other zones/client versions remain unverified. Publication requires the owner's decision on the documented default-timezone limitation.
 
 See [client qualification](qualification/clients/README.md), [account security](docs/account-security.md), [passkeys/MFA](docs/passkeys-and-mfa.md), [OAuth registration](docs/oauth.md), [optional Keycloak](docs/keycloak.md), [sharing groups](docs/groups.md), [security verification](docs/security-verification.md), and [architecture decisions](docs/adr/0001-protocol-engine.md). Security self-assessment is not external certification.
 
