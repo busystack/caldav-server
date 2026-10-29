@@ -149,5 +149,7 @@
     "Local tmpfs executions do not establish physical-disk durability."
   ],
   "evidenceDirectory": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence",
-  "evidenceArchive": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence.zip"
+  "evidenceArchive": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence.zip",
+  "packagingQualification": "packaging-qualification.json",
+  "packagingNote": "The initial source-qualified CI e6e42bb passed full suites but failed the current-feed OS gate. A compatible official Temurin image refresh fixes libbrotli1 while keeping Java25.0.4.1+1; final exact-commit qualification is recorded separately after push. No Maven/source/dependency validation policy is changed."
 }

@@ -49,7 +49,7 @@ def configure(root, directory, base, execute, environment):
         "--volume", f"{directory / 'ca.pem'}:/input/ca.pem:ro",
         "--volume", f"{directory / 'server-password'}:/input/store-password:ro",
         "--volume", f"{public_trust}:/output", "--entrypoint", "keytool",
-        "eclipse-temurin:25-jdk@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641",
+        "eclipse-temurin:25-jdk@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857",
         "-importcert", "-noprompt", "-alias", "fixture-ca", "-file", "/input/ca.pem",
         "-keystore", "/output/trust.p12", "-storetype", "PKCS12", "-storepass:file", "/input/store-password"
     ], environment)

@@ -1,0 +1,963 @@
+{
+  "runId": 40838593411,
+  "runUrl": "https://github.com/busystack/caldav-server/actions/runs/40838593411",
+  "sourceRevision": "e6e42bbfa2f488cbc4b6c3fe0d83dfafdb13db25",
+  "assessment": "Failed required CI qualification: application code/unit/integration/investigation and license steps passed; strict OS advisory gate failed; later packaged steps were skipped. Do not describe this run as passed.",
+  "inputs": {
+    "applicationArtifact": {
+      "path": "/tmp/busystack-residual/ci-attempt1-application.zip",
+      "artifactId": 12882161974,
+      "sha256": "afcebc9a3bcecefdfc9719cb7f47241971d0e9af2b879fc59b1aa7b007195a7f",
+      "bytes": 539931,
+      "entries": 135,
+      "zipCrcVerified": true
+    },
+    "applicationLog": {
+      "path": "/tmp/busystack-residual/ci-attempt1-application.log",
+      "sha256": "34c504ce33a6b4b26a2981a4b778aa5c5b63478f37fa03e2d870248a78e199e1"
+    },
+    "jobMetadata": {
+      "path": "/tmp/busystack-residual/ci-attempt1-jobs.json",
+      "source": "Authenticated GitHub workflow_run_jobs GET, run40838593411"
+    }
+  },
+  "xmlTestTotals": {
+    "integration": {
+      "tests": 215,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unit": {
+      "tests": 359,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "investigation-oauth": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "investigation-protocol": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "xmlClasses": {
+    "integration": [
+      {
+        "tests": 65,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.DavHttpIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.protocol.DavHttpIT.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.IndependentClientIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.protocol.IndependentClientIT.xml"
+      },
+      {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.DavPropertyBoundsIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.protocol.DavPropertyBoundsIT.xml"
+      },
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.SecurityBoundaryIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.SecurityBoundaryIT.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.DavCredentialIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.DavCredentialIT.xml"
+      },
+      {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oauth.OAuthHttpIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.oauth.OAuthHttpIT.xml"
+      },
+      {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oauth.RefreshFamilyStoreIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.oauth.RefreshFamilyStoreIT.xml"
+      },
+      {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oidc.ExternalIdentityIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.oidc.ExternalIdentityIT.xml"
+      },
+      {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oidc.KeycloakOidcIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.oidc.KeycloakOidcIT.xml"
+      },
+      {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oidc.OidcBoundaryIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.oidc.OidcBoundaryIT.xml"
+      },
+      {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.passkey.PasskeyHttpIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.passkey.PasskeyHttpIT.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.passkey.PasskeyPersistenceIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.passkey.PasskeyPersistenceIT.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.passkey.PasskeyRestartIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.passkey.PasskeyRestartIT.xml"
+      },
+      {
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.session.AccountSecurityWorkflowsIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.security.session.AccountSecurityWorkflowsIT.xml"
+      },
+      {
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.sharing.GroupServiceIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.sharing.GroupServiceIT.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.storage.CalendarAuditAtomicityIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.storage.CalendarAuditAtomicityIT.xml"
+      },
+      {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.storage.CalendarStoreIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.storage.CalendarStoreIT.xml"
+      },
+      {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.storage.SyncPagingIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.storage.SyncPagingIT.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.testing.ContainerIsolationIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.testing.ContainerIsolationIT.xml"
+      },
+      {
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.storage.DavStoreIT",
+        "source": "target/failsafe-reports/TEST-org.busystack.caldav.storage.DavStoreIT.xml"
+      }
+    ],
+    "unit": [
+      {
+        "tests": 64,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarAdmissionSyntaxTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarAdmissionSyntaxTest.xml"
+      },
+      {
+        "tests": 121,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarAuditCorrectionsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarAuditCorrectionsTest.xml"
+      },
+      {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarCandidateBudgetTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarCandidateBudgetTest.xml"
+      },
+      {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarContentTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarContentTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarDuplicateRecurrenceTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarDuplicateRecurrenceTest.xml"
+      },
+      {
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarEdgeSemanticsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarEdgeSemanticsTest.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarErrataTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarErrataTest.xml"
+      },
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarExpansionSemanticsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarExpansionSemanticsTest.xml"
+      },
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarParameterSemanticsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarParameterSemanticsTest.xml"
+      },
+      {
+        "tests": 26,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarSemanticsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarSemanticsTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarFreeBusySourcesTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarFreeBusySourcesTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarTextProfileTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTextProfileTest.xml"
+      },
+      {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarTimezoneCoverageTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTimezoneCoverageTest.xml"
+      },
+      {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarTimezoneRdateTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTimezoneRdateTest.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.CalendarTimezoneRequirementTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTimezoneRequirementTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.ThunderbirdCalendarFixturesTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.ThunderbirdCalendarFixturesTest.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.config.DavCompatibilityPropertiesTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.config.DavCompatibilityPropertiesTest.xml"
+      },
+      {
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.calendar.query.CalendarDataProjectionTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.calendar.query.CalendarDataProjectionTest.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.config.DeploymentPropertiesTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.config.DeploymentPropertiesTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.DavPathsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.protocol.DavPathsTest.xml"
+      },
+      {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.DavXmlConstructionTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.protocol.DavXmlConstructionTest.xml"
+      },
+      {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.DavXmlTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.protocol.DavXmlTest.xml"
+      },
+      {
+        "tests": 22,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.HttpDateValuesTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.protocol.HttpDateValuesTest.xml"
+      },
+      {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.protocol.HttpConditionsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.protocol.HttpConditionsTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.DavBearerAuthenticationEntryPointTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.DavBearerAuthenticationEntryPointTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.RecentAuthenticationTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.RecentAuthenticationTest.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.DavSecretVerifierTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.DavSecretVerifierTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.DavOriginFilterTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.DavOriginFilterTest.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oidc.LinkingAuthorizationRequestResolverTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.oidc.LinkingAuthorizationRequestResolverTest.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.oidc.OidcPropertiesTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.oidc.OidcPropertiesTest.xml"
+      },
+      {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.passkey.PasskeyCeremonyGuardTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.passkey.PasskeyCeremonyGuardTest.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.security.password.PasswordPolicyTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.security.password.PasswordPolicyTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.storage.DavNamespaceTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.storage.DavNamespaceTest.xml"
+      },
+      {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.storage.WriteConditionTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.storage.WriteConditionTest.xml"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.testing.TestTlsTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.testing.TestTlsTest.xml"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.xml.XmlCharactersTest",
+        "source": "target/surefire-reports/TEST-org.busystack.caldav.xml.XmlCharactersTest.xml"
+      }
+    ],
+    "investigation-oauth": [
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.investigation.CustomizedRefreshRiskTest",
+        "source": "investigation/oauth/target/surefire-reports/TEST-org.busystack.caldav.investigation.CustomizedRefreshRiskTest.xml"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.investigation.NativeOAuthRiskTest",
+        "source": "investigation/oauth/target/surefire-reports/TEST-org.busystack.caldav.investigation.NativeOAuthRiskTest.xml"
+      }
+    ],
+    "investigation-protocol": [
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "class": "org.busystack.caldav.investigation.BedeworkHttpTest",
+        "source": "investigation/protocol/target/surefire-reports/TEST-org.busystack.caldav.investigation.BedeworkHttpTest.xml"
+      }
+    ]
+  },
+  "spotBugs": {
+    "findings": 0,
+    "errors": 0,
+    "source": "Actual application job log check-goal lines"
+  },
+  "ancillary": {
+    "distributionUnitTests": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source": "Actual application job log Ran8/OK and successful license-inspection step"
+    },
+    "browserFixtureUnitTests": "skipped after OS-gate failure; not included as a passed suite",
+    "dependencyJob": {
+      "id": 123329194223,
+      "status": "completed",
+      "conclusion": "success",
+      "scopeNote": "Actual GitHub job outcome only. Optional NVD execution is not inferred from step success without its own log."
+    }
+  },
+  "artifactIdentities": {
+    "jarSha256": "317fa67bf5199f04d9b95ed8d4c59ee61ed3a75449c924a731cfdd6336e0df06",
+    "hostContainerJarIdentical": true,
+    "imageId": "sha256:1e9a3479fcf961927d53ea66a4f9666e0d7cfe4f46ba41a9db29486affab1ed2",
+    "sourceLabel": "e6e42bbfa2f488cbc4b6c3fe0d83dfafdb13db25",
+    "projectLicense": [
+      {
+        "license": {
+          "id": "Apache-2.0"
+        }
+      }
+    ],
+    "licenseInspectionStatus": "passed",
+    "runtimeMavenComponents": 112,
+    "sourceArchiveSha256": "4eea0a9af87e35f4449f2527667f7bbd23ecc31e8cb6f544552325aae30a64ff"
+  },
+  "osGate": {
+    "status": "advisories-returned",
+    "exitCode": 1,
+    "blockingFindings": 1,
+    "severities": {
+      "LOW": 12,
+      "MEDIUM": 45,
+      "HIGH": 1
+    },
+    "os": {
+      "Family": "ubuntu",
+      "Name": "26.04"
+    },
+    "packageCount": 115,
+    "blocking": [
+      {
+        "FixedVersion": "1.2.0-3ubuntu0.1",
+        "InstalledVersion": "1.2.0-3build1",
+        "PkgName": "libbrotli1",
+        "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-111497",
+        "Severity": "HIGH",
+        "Status": "fixed",
+        "Title": "brotli: Out-of-Bounds Write in Google Brotli Decoder",
+        "VulnerabilityID": "CVE-2026-111497",
+        "disposition": "blocking; update or individually justified resolution required"
+      }
+    ],
+    "fixInterpretation": "Feed Status=fixed means a fixed package is available, not that this image is repaired. Installed1.2.0-3build1 remained vulnerable.",
+    "officialFixReference": "https://ubuntu.com/security/notices/USN-8956-1",
+    "scanner": {
+      "archiveSha256": "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0",
+      "name": "Trivy",
+      "version": "0.76.1"
+    },
+    "database": {
+      "DownloadedAt": "2026-10-29T08:04:40.516214491Z",
+      "NextUpdate": "2026-10-30T07:17:11.934066735Z",
+      "UpdatedAt": "2026-10-29T07:17:11.934066875Z",
+      "Version": 2
+    },
+    "databaseSha256": "64aa2fee0759f2f4112dd5f93ae13d00071c8494d11ee34bff2cc2d76fd10da2",
+    "rawReportSha256": "0f08f079d5f9c272b428de947ed2bd37882353daa36a5cdb9ae1a0ee68550d33",
+    "suppressions": [],
+    "gate": "HIGH, CRITICAL or UNKNOWN fail, including unfixed findings; all other severities remain reported"
+  },
+  "successfulStepsBeforeFailure": [
+    {
+      "name": "Set up job",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Install the exact pinned Temurin JDK",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Install pinned independent CalDAV client test dependencies",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Require Docker and run unit and integration suites",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Build deployable container",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Inspect actual source, JAR and container license delivery",
+      "conclusion": "success",
+      "number": 7
+    }
+  ],
+  "failedSteps": [
+    {
+      "name": "Scan final container OS packages with a pinned scanner and current database",
+      "conclusion": "failure",
+      "number": 8
+    }
+  ],
+  "skippedPackagedSteps": [
+    {
+      "name": "Verify packaged startup, restart, and database recovery",
+      "conclusion": "skipped",
+      "number": 9
+    },
+    {
+      "name": "Verify qualification refresh and private snapshot bookkeeping",
+      "conclusion": "skipped",
+      "number": 10
+    },
+    {
+      "name": "Build isolated browser qualification image",
+      "conclusion": "skipped",
+      "number": 11
+    },
+    {
+      "name": "Verify browser WebAuthn and MFA over trusted test TLS",
+      "conclusion": "skipped",
+      "number": 12
+    },
+    {
+      "name": "Verify explicit strict synchronization override over real HTTPS",
+      "conclusion": "skipped",
+      "number": 13
+    },
+    {
+      "name": "Verify HTTPS reverse proxy with preserved servlet path",
+      "conclusion": "skipped",
+      "number": 14
+    },
+    {
+      "name": "Build disposable real Keycloak browser fixture",
+      "conclusion": "skipped",
+      "number": 15
+    },
+    {
+      "name": "Verify cross-site organization login and local passkey MFA",
+      "conclusion": "skipped",
+      "number": 16
+    },
+    {
+      "name": "Verify HTTPS local account recovery after restoring an older database",
+      "conclusion": "skipped",
+      "number": 17
+    },
+    {
+      "name": "Verify HTTPS federated recovery against the same real upstream provider",
+      "conclusion": "skipped",
+      "number": 18
+    }
+  ],
+  "allApplicationSteps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-29T07:55:56Z",
+      "completed_at": "2026-10-29T07:55:56Z"
+    },
+    {
+      "name": "Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-29T07:55:56Z",
+      "completed_at": "2026-10-29T07:55:58Z"
+    },
+    {
+      "name": "Install the exact pinned Temurin JDK",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-29T07:55:58Z",
+      "completed_at": "2026-10-29T07:56:08Z"
+    },
+    {
+      "name": "Install pinned independent CalDAV client test dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-29T07:56:08Z",
+      "completed_at": "2026-10-29T07:56:26Z"
+    },
+    {
+      "name": "Require Docker and run unit and integration suites",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-29T07:56:26Z",
+      "completed_at": "2026-10-29T08:03:31Z"
+    },
+    {
+      "name": "Build deployable container",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-29T08:03:31Z",
+      "completed_at": "2026-10-29T08:04:32Z"
+    },
+    {
+      "name": "Inspect actual source, JAR and container license delivery",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-29T08:04:32Z",
+      "completed_at": "2026-10-29T08:04:33Z"
+    },
+    {
+      "name": "Scan final container OS packages with a pinned scanner and current database",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 8,
+      "started_at": "2026-10-29T08:04:33Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify packaged startup, restart, and database recovery",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify qualification refresh and private snapshot bookkeeping",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 10,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Build isolated browser qualification image",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 11,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify browser WebAuthn and MFA over trusted test TLS",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 12,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify explicit strict synchronization override over real HTTPS",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 13,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify HTTPS reverse proxy with preserved servlet path",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 14,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Build disposable real Keycloak browser fixture",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 15,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify cross-site organization login and local passkey MFA",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 16,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify HTTPS local account recovery after restoring an older database",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 17,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Verify HTTPS federated recovery against the same real upstream provider",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 18,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:45Z"
+    },
+    {
+      "name": "Retain qualification evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19,
+      "started_at": "2026-10-29T08:04:45Z",
+      "completed_at": "2026-10-29T08:04:46Z"
+    },
+    {
+      "name": "Post Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 38,
+      "started_at": "2026-10-29T08:04:46Z",
+      "completed_at": "2026-10-29T08:04:47Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 39,
+      "started_at": "2026-10-29T08:04:47Z",
+      "completed_at": "2026-10-29T08:04:47Z"
+    }
+  ],
+  "integrationClientReports": [
+    {
+      "source": "target/qualification/python-caldav.json",
+      "client": "python-caldav",
+      "icalendar": "7.3.0",
+      "operations": [
+        "principal and home discovery",
+        "calendar and VTODO collection creation",
+        "Unicode event CRUD",
+        "unknown-property round trip",
+        "event time-range query",
+        "server recurrence expansion",
+        "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+        "EXDATE exclusion in server expansion",
+        "undated task CRUD and completion",
+        "initial and incremental synchronization",
+        "resource and collection deletion"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting omitted; application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "syncFallbackDisabled": true,
+      "version": "3.6.0"
+    },
+    {
+      "source": "target/qualification/thunderbird.json",
+      "client": "Thunderbird",
+      "crossClient": {
+        "excludedOccurrences": 1,
+        "icalendar": "7.3.0",
+        "nativeDetachedExceptions": 1,
+        "nativeRecurrenceInstances": 3,
+        "python-caldav": "3.6.0",
+        "sameResources": 4
+      },
+      "driver": "3.7.1",
+      "mode": "isolated headless native desktop CalDAV provider",
+      "operations": [
+        "server discovery by native provider",
+        "recurring event CRUD",
+        "Unicode and unknown-property round trip",
+        "alarm preservation without execution",
+        "undated VTODO CRUD and completion",
+        "same-object Thunderbird to Python to Thunderbird to Python edits",
+        "cross-client recurrence, alarm, extension and completion timestamp preservation",
+        "same-resource detached exception identity/time/title edits in both clients",
+        "EXDATE exclusion verified by native occurrence expansion",
+        "all-day DATE and exclusive end preservation across both clients",
+        "floating DATE-TIME preservation across both clients",
+        "native refresh and deletion synchronization"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting omitted; application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "version": "157.0.1"
+    }
+  ],
+  "integrationClientScope": "Python/native Thunderbird reports are from the completed integration-suite step. Packaged client/restore browser profiles did not run and are not credited.",
+  "packagedQualificationFilesPresent": [],
+  "limitations": [
+    "This evidence preserves the failed first residual submission and must not be relabeled passed by a later base-image update.",
+    "No new source, Docker, Maven, database or application job was executed by this analysis.",
+    "No demonstrated calendar/authentication assertion failure is inferred from the OS vulnerability gate.",
+    "Full final corrected-artifact packaged qualification remains required on a subsequent exact-SHA CI run."
+  ]
+}

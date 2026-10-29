@@ -6,7 +6,7 @@ set -euo pipefail
 : "${RUNNER_TEMP:?RUNNER_TEMP must be set by the GitHub runner}"
 : "${GITHUB_ENV:?GITHUB_ENV must be set by the GitHub runner}"
 : "${GITHUB_PATH:?GITHUB_PATH must be set by the GitHub runner}"
-jdk_image='eclipse-temurin:25-jdk@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641'
+jdk_image='eclipse-temurin:25-jdk@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857'
 jdk_directory=$(mktemp -d "${RUNNER_TEMP}/busystack-jdk.XXXXXXXX")
 jdk_container=''
 cleanup() {

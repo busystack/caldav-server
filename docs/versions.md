@@ -1,6 +1,6 @@
 # Dependency and distribution baseline
 
-Historical baseline verified on 2026-10-27 and retained through qualified source `47b3543`. Fresh evidence for the independent standards corrections is maintained in the [correction submission](standards-corrections.md). The clean 169-unit/174-integration suite, packaged root/proxy/Keycloak/default/strict profiles, independent clients, upgrades and restoration passed in the [actual CI record](../qualification/evidence/correction-ci-final.json); local artifact/measurement records are distinguished in the [qualification index](../qualification/evidence/README.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately. No dependency or base-image pin changed during this correction pass.
+Historical baseline verified on 2026-10-27 and retained through qualified source `47b3543`. Fresh evidence for the independent standards corrections is maintained in the [correction submission](standards-corrections.md). The clean 169-unit/174-integration suite, packaged root/proxy/Keycloak/default/strict profiles, independent clients, upgrades and restoration passed in the [actual CI record](../qualification/evidence/correction-ci-final.json); local artifact/measurement records are distinguished in the [qualification index](../qualification/evidence/README.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately. No Maven dependency pin changed during these corrections. The residual follow-up refreshes the official Temurin image digest as described below.
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |
@@ -38,12 +38,14 @@ The Dockerfiles and Compose file use immutable registry digests, with descriptiv
 | Image | Digest |
 | --- | --- |
 | `maven:3.9.12-eclipse-temurin-25` | `sha256:4f82a03a7d6679281952d628131299b1be88d7030a49c6a2b7d2ba2642e44e3e` |
-| `eclipse-temurin:25-jdk` | `sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641` |
+| `eclipse-temurin:25-jdk` | `sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857` |
 | `mcr.microsoft.com/playwright:v1.61.1-noble` | `sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48` |
 | `nginx:1.30.6-alpine` | `sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951` |
 | `quay.io/keycloak/keycloak:26.8.1` | `sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b` |
 | `testcontainers/ryuk:0.14.0` | `sha256:7c1a8a9a47c780ed0f983770a662f80deb115d95cce3e2daa3d12115b8cd28f0` |
 | `postgres:18.6` | `sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6` |
+
+Residual qualification on 2026-10-29 found HIGH [CVE-2026-111497](https://ubuntu.com/security/notices/USN-8956-1) in the previous official Temurin image (`libbrotli1` 1.2.0-3build1). The refreshed official digest above supplies Ubuntu’s fixed 1.2.0-3ubuntu0.1 package while retaining **Temurin 25.0.4.1+1** and the identical Java executable SHA-256 `7380ce48ed5013735d2c8414db54adb8f981e7933ff594bd36f3baccddaafba3`. The application, CI JDK installer and optional Keycloak fixture use the same refreshed pin. No advisory suppression or third-party patch is applied; the failed scan and subsequent qualification are retained separately.
 
 The Maven image itself contains Temurin 25.0.2+10. The application Docker build overlays the pinned 25.0.4.1+1 JDK into the builder, so compilation and the deployed runtime use the same selected patch. Initial workspace investigation used the Maven image's existing 25.0.2+10 toolchain; test evidence must state the toolchain actually used.
 
