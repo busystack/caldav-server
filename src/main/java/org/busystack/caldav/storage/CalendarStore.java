@@ -73,10 +73,24 @@ public class CalendarStore {
 
   private final JdbcTemplate jdbc;
   private final SyncContinuationStore continuations;
+  private final org.busystack.caldav.calendar.CalendarAdmission admission;
 
   public CalendarStore(JdbcTemplate jdbc, SyncContinuationStore continuations) {
+    this(
+        jdbc,
+        continuations,
+        new org.busystack.caldav.calendar.CalendarAdmission(
+            new org.busystack.caldav.config.DavCompatibilityProperties(true, true)));
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public CalendarStore(
+      JdbcTemplate jdbc,
+      SyncContinuationStore continuations,
+      org.busystack.caldav.calendar.CalendarAdmission admission) {
     this.jdbc = jdbc;
     this.continuations = continuations;
+    this.admission = admission;
   }
 
   @Transactional
@@ -217,6 +231,19 @@ public class CalendarStore {
       String uid,
       byte[] content,
       WriteCondition condition) {
+    return putAdmitted(actor, collectionId, name, uid, content, condition).resource();
+  }
+
+  public record WriteResult(Resource resource, boolean transformed) {}
+
+  @Transactional
+  public WriteResult putAdmitted(
+      UUID actor,
+      UUID collectionId,
+      String name,
+      String uid,
+      byte[] content,
+      WriteCondition condition) {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     checkName(name);
     if (content == null || content.length == 0)
@@ -226,9 +253,12 @@ public class CalendarStore {
     Collection c = lock(collectionId);
     authorize(actor, c, true);
     DavNamespace.resourceBindings(jdbc, collectionId, name);
-    var parsed = org.busystack.caldav.calendar.CalendarContent.parse(content, c.component());
-    if (!parsed.uid().equals(uid))
+    var accepted = admission.admit(content, c.component());
+    var parsed = accepted.parsed();
+    if (uid != null && !parsed.uid().equals(uid))
       throw new IllegalArgumentException("UID index does not match the resource");
+    uid = parsed.uid();
+    content = accepted.content();
     Resource old = resource(collectionId, name);
     condition.check(
         old == null ? null : old.etag(), old != null, old == null ? null : old.modifiedAt());
@@ -252,7 +282,13 @@ public class CalendarStore {
       throw new StoreException(StoreException.Kind.UID_CONFLICT);
     }
     changed(collectionId, next, name, false);
-    return new Resource(name, uid, content, etag, next, modifiedAt);
+    if (accepted.transformed())
+      org.slf4j.LoggerFactory.getLogger(CalendarStore.class)
+          .info(
+              "calendar_input_repaired repair=local_observance_until rules={}",
+              accepted.repairedRules());
+    return new WriteResult(
+        new Resource(name, uid, content, etag, next, modifiedAt), accepted.transformed());
   }
 
   @Transactional

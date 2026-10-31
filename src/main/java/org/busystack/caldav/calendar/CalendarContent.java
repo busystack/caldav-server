@@ -10,7 +10,7 @@ import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.Property;
 import org.busystack.caldav.calendar.query.BoundedTimeZoneRegistry;
 
-/** Model validation and indexing input only. The original octets remain authoritative. */
+/** Strict model validation/indexing; admission supplies the authoritative representation octets. */
 public final class CalendarContent {
   public record Parsed(
       String uid,

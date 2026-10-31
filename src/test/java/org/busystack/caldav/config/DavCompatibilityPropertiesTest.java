@@ -12,6 +12,14 @@ class DavCompatibilityPropertiesTest {
   @Test
   void omittedConfigurationEnablesNarrowDepthOneAccommodation() {
     assertThat(bind(Map.of()).allowSyncDepthOne()).isTrue();
+    assertThat(bind(Map.of()).repairLocalObservanceUntil()).isTrue();
+  }
+
+  @Test
+  void observanceRepairCanBeDisabledIndependently() {
+    var configured = bind(Map.of("busystack.dav.repair-local-observance-until", "false"));
+    assertThat(configured.repairLocalObservanceUntil()).isFalse();
+    assertThat(configured.allowSyncDepthOne()).isTrue();
   }
 
   @Test

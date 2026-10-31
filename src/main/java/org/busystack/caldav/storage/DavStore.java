@@ -49,7 +49,7 @@ public class DavStore {
     }
   }
 
-  public record PutResult(CalendarStore.Resource resource, boolean created) {}
+  public record PutResult(CalendarStore.Resource resource, boolean created, boolean transformed) {}
 
   private static final int MAX_ROWS = 10000;
   private static final QName DISPLAY_NAME = new QName("DAV:", "displayname");
@@ -163,10 +163,8 @@ public class DavStore {
     lockCollections(collection);
     requireWrite(actor, collection);
     var current = calendars.get(actor, collection, name);
-    var parsed =
-        CalendarContent.parse(content, calendars.collection(actor, collection).component());
-    return new PutResult(
-        calendars.put(actor, collection, name, parsed.uid(), content, condition), current == null);
+    var written = calendars.putAdmitted(actor, collection, name, null, content, condition);
+    return new PutResult(written.resource(), current == null, written.transformed());
   }
 
   public String permission(UUID actor, UUID collection) {

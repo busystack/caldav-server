@@ -3484,4 +3484,178 @@ class DavHttpIT {
             + text
             + "</C:text-match></C:prop-filter></C:comp-filter>");
   }
+
+  private static String capturedObservanceFixture(String zone) throws Exception {
+    try (var input =
+        DavHttpIT.class.getResourceAsStream(
+            "/calendar/observance-until/thunderbird159-" + zone + ".ics")) {
+      return new String(
+          java.util.Objects.requireNonNull(input).readAllBytes(), StandardCharsets.UTF_8);
+    }
+  }
+
+  @Test
+  void repairedPutOmitsValidatorsButAllReadPathsUseCorrectedAuthoritativeBytes() throws Exception {
+    for (String zone : List.of("vancouver", "berlin")) {
+      String calendar = create("observance-http-" + zone, "VEVENT"), path = calendar + "client.ics";
+      String input = capturedObservanceFixture(zone);
+      String before = currentCollectionToken(calendar);
+      var put = send("PUT", path, input, "Content-Type", "text/calendar", "If-None-Match", "*");
+      assertThat(put.statusCode()).isEqualTo(201);
+      assertThat(put.headers().firstValue("ETag")).isEmpty();
+      assertThat(put.headers().firstValue("Last-Modified")).isEmpty();
+      var get = send("GET", path, "");
+      String stored = get.body(), etag = get.headers().firstValue("ETag").orElseThrow();
+      assertThat(stored).isNotEqualTo(input);
+      assertThat(etag).startsWith("\"").doesNotStartWith("W/");
+      org.busystack.caldav.calendar.CalendarContent.parse(
+          stored.getBytes(StandardCharsets.UTF_8), "VEVENT");
+      assertThat(
+              text(
+                  send("PROPFIND", path, propRequest("<D:getetag/>"), "Depth", "0"),
+                  DavXml.DAV,
+                  "getetag"))
+          .isEqualTo(etag);
+      String multiget =
+          "<C:calendar-multiget xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:prop><C:calendar-data/><D:getetag/></D:prop><D:href>https://calendar.example/team/dav"
+              + path
+              + "</D:href></C:calendar-multiget>";
+      var multi = send("REPORT", calendar, multiget);
+      assertThat(multi.statusCode()).isEqualTo(207);
+      assertThat(text(multi, DavXml.CAL, "calendar-data")).isEqualTo(stored);
+      var sync =
+          send(
+              "REPORT",
+              calendar,
+              sync(before, 10)
+                  .replace(
+                      "<D:getetag/>",
+                      "<D:getetag/><C:calendar-data xmlns:C='urn:ietf:params:xml:ns:caldav'/>"),
+              "Depth",
+              "0");
+      assertThat(sync.statusCode()).isEqualTo(207);
+      assertThat(text(sync, DavXml.CAL, "calendar-data")).isEqualTo(stored);
+      // These instants follow the captured rules: Vancouver's last 2026 onset leaves UTC-07;
+      // Berlin's winter 2026 offset is UTC+01. No host future-DST assumption is involved.
+      String start = zone.equals("vancouver") ? "20261109T170000Z" : "20261109T090000Z";
+      String end = zone.equals("vancouver") ? "20261109T180000Z" : "20261109T100000Z";
+      String filter =
+          "<C:comp-filter name='VEVENT'><C:time-range start='"
+              + start
+              + "' end='"
+              + end
+              + "'/></C:comp-filter>";
+      var query =
+          send(
+              "REPORT",
+              calendar,
+              query(filter)
+                  .replace(
+                      "<C:calendar-data/>",
+                      "<C:calendar-data><C:expand start='20261109T000000Z' end='20261110T000000Z'/></C:calendar-data>"),
+              "Depth",
+              "1");
+      assertThat(query.statusCode()).isEqualTo(207);
+      assertThat(principalReportHrefs(query))
+          .containsExactly("https://calendar.example/team/dav" + path);
+      assertThat(text(query, DavXml.CAL, "calendar-data"))
+          .contains("DTSTART:" + start, "DTEND:" + end);
+      var busy =
+          send(
+              "REPORT",
+              calendar,
+              "<C:free-busy-query xmlns:C='urn:ietf:params:xml:ns:caldav'><C:time-range start='20261109T000000Z' end='20261110T000000Z'/></C:free-busy-query>",
+              "Depth",
+              "1");
+      assertThat(busy.statusCode()).isEqualTo(200);
+      assertThat(busy.body()).contains(start + "/" + end);
+      // Transformation is relative to this request, including repeated original submissions.
+      var repeated = send("PUT", path, input, "If-Match", etag);
+      assertThat(repeated.statusCode()).isEqualTo(204);
+      assertThat(repeated.headers().firstValue("ETag")).isEmpty();
+      assertThat(repeated.headers().firstValue("Last-Modified")).isEmpty();
+      assertThat(send("GET", path, "").body()).isEqualTo(stored);
+      assertThat(send("GET", path, "").headers().firstValue("ETag")).contains(etag);
+      var valid = send("PUT", path, stored, "If-Match", etag);
+      assertThat(valid.statusCode()).isEqualTo(204);
+      assertThat(valid.headers().firstValue("ETag")).contains(etag);
+      String edited =
+          stored
+              .replace("T100000\r\nDTEND", "T120000\r\nDTEND")
+              .replace("T110000\r\nTRANSP", "T130000\r\nTRANSP");
+      assertThat(send("PUT", path, edited, "If-Match", etag).statusCode()).isEqualTo(204);
+      assertThat(send("GET", path, "").body()).isEqualTo(edited);
+    }
+  }
+
+  @Test
+  void repairFailuresConflictsAndConcurrentWritesPreserveAtomicHistoryAndSync() throws Exception {
+    String calendar = create("observance-atomic", "VEVENT"), path = calendar + "one.ics";
+    String original = capturedObservanceFixture("vancouver");
+    var accepted = send("PUT", path, original);
+    assertThat(accepted.statusCode()).isEqualTo(201);
+    var stored = send("GET", path, "");
+    String etag = stored.headers().firstValue("ETag").orElseThrow();
+    UUID collection =
+        jdbc.queryForObject(
+            "SELECT collection_id FROM dav_bindings WHERE home_id=? AND path=?",
+            UUID.class,
+            alice,
+            "observance-atomic");
+    var state = admissionHistoryState(collection);
+    String token = currentCollectionToken(calendar);
+    for (String invalid :
+        List.of(
+            original.replace(
+                "TZOFFSETFROM:-080000", "TZOFFSETFROM:-080000\r\nTZOFFSETFROM:-070000"),
+            original.replace("UNTIL=19610924T020000", "UNTIL=19610931T020000"),
+            original.replace("BYDAY=-1SU", "BYDAY=0SU"),
+            original.replace("FREQ=YEARLY", "FREQ=YEARLY;COUNT=1"),
+            original.replace("FREQ=YEARLY", "FREQ=YEARLY;FREQ=YEARLY"),
+            original.replaceFirst("BEGIN:VCALENDAR", "XBEGIN:VCALENDAR"),
+            original.replace("DTEND;TZID=America/Vancouver:20261109T110000", "DURATION:P1W2D"))) {
+      for (String target : List.of(path, calendar + "rejected.ics")) {
+        var rejected = send("PUT", target, invalid, "If-Match", target.equals(path) ? etag : "*");
+        assertThat(rejected.statusCode()).isEqualTo(403);
+        assertThat(
+                xml(rejected).getElementsByTagNameNS(DavXml.CAL, "valid-calendar-data").getLength())
+            .isEqualTo(1);
+        assertThat(admissionHistoryState(collection)).isEqualTo(state);
+        assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+        assertThat(send("GET", path, "").body()).isEqualTo(stored.body());
+        assertThat(send("GET", path, "").headers().firstValue("ETag")).contains(etag);
+        assertThat(send("GET", calendar + "rejected.ics", "").statusCode()).isEqualTo(404);
+      }
+    }
+    assertThat(send("PUT", path, original, "If-Match", "\"stale\"").statusCode()).isEqualTo(412);
+    assertThat(send("PUT", path, original, "If-None-Match", "*").statusCode()).isEqualTo(412);
+    assertThat(send("PUT", calendar + "duplicate.ics", original, "If-None-Match", "*").statusCode())
+        .isEqualTo(403);
+    assertThat(admissionHistoryState(collection)).isEqualTo(state);
+    assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+    try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      var first =
+          workers.submit(
+              () ->
+                  send(
+                      "PUT",
+                      path,
+                      original.replace("SUMMARY:TB159", "SUMMARY:First TB159"),
+                      "If-Match",
+                      etag));
+      var second =
+          workers.submit(
+              () ->
+                  send(
+                      "PUT",
+                      path,
+                      original.replace("SUMMARY:TB159", "SUMMARY:Second TB159"),
+                      "If-Match",
+                      etag));
+      assertThat(List.of(first.get().statusCode(), second.get().statusCode()))
+          .containsExactlyInAnyOrder(204, 412);
+    }
+    assertThat(((Number) admissionHistoryState(collection).get("revision")).longValue())
+        .isEqualTo(((Number) state.get("revision")).longValue() + 1);
+  }
 }

@@ -41,6 +41,7 @@ services:
       BUSYSTACK_ISSUER: ${BUSYSTACK_ISSUER:?Set the externally visible HTTPS OAuth issuer}
       BUSYSTACK_ALLOW_INSECURE_LOCAL: ${BUSYSTACK_ALLOW_INSECURE_LOCAL:-false}
       BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE: ${BUSYSTACK_DAV_ALLOW_SYNC_DEPTH_ONE:-true}
+      BUSYSTACK_DAV_REPAIR_LOCAL_OBSERVANCE_UNTIL: ${BUSYSTACK_DAV_REPAIR_LOCAL_OBSERVANCE_UNTIL:-true}
     secrets:
       - source: database_password
         target: spring.datasource.password

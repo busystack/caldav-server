@@ -391,10 +391,12 @@ final class DavController {
     } catch (IllegalArgumentException ex) {
       throw new DavException(403, c("valid-calendar-data"));
     }
-    return ResponseEntity.status(result.created() ? 201 : 204)
-        .eTag(result.resource().etag())
-        .header("Location", paths.href(parts, false))
-        .body(new byte[0]);
+    var response =
+        ResponseEntity.status(result.created() ? 201 : 204)
+            .header("Location", paths.href(parts, false));
+    // RFC 9110 §9.3.4: validators describe the stored representation, not transformed PUT bytes.
+    if (!result.transformed()) response.eTag(result.resource().etag());
+    return response.body(new byte[0]);
   }
 
   private ResponseEntity<byte[]> delete(
