@@ -6,6 +6,7 @@ certificate validation remains enabled. This qualifies the desktop client's nati
 provider, not a person manually completing its graphical account wizard.
 """
 
+import base64
 import importlib.metadata
 import json
 import os
@@ -345,6 +346,16 @@ def main():
                         except subprocess.TimeoutExpired:
                             process.kill()
                             process.wait(timeout=15)
+                        # Keep startup failures reviewable after TemporaryDirectory cleanup.
+                        # Never retain the disposable DAV secret or its Basic authorization value.
+                        artifacts = Path("target/qualification")
+                        artifacts.mkdir(parents=True, exist_ok=True)
+                        diagnostic = (profile / "browser.log").read_text(errors="replace")[-262144:]
+                        diagnostic = diagnostic.replace(password, "[REDACTED]")
+                        authorization = base64.b64encode(
+                            (os.environ["BUSYSTACK_CLIENT_USER"] + ":" + password).encode()).decode()
+                        diagnostic = diagnostic.replace(authorization, "[REDACTED]")
+                        (artifacts / "thunderbird-process.log").write_text(diagnostic)
         events.delete()
         tasks.delete()
 

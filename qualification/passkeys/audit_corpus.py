@@ -13,6 +13,16 @@ class Corpus:
         "valid-rfc9074-alarm.ics", "valid-rfc9253-relationship.ics",
         "valid-text-list.ics", "valid-unknown-x-properties.ics",
     )
+    # Independently derived from the unchanged captured uploads by UTC = local - TZOFFSETFROM.
+    # These are fixed expected digests, not a second runtime repair used to prepare requests.
+    OBSERVANCE_UPLOADS = {
+        "vancouver": (
+            "3f9aa2efae75716aa40272fe96534fb9cb87af3068c8b8cac3fc6d9741d3387d",
+            "46aa8ea5c501d7c7243f58fd63a3dbc7eab78c5bca4cab189a9eb592ed99ec18"),
+        "berlin": (
+            "6b884299d3e11a8c7856895b10743f92862b0ec0f273fe9e46cea2287ced237d",
+            "e063263ef823cb2ab181a9773078f2dc9a6254fe63f5611567e6acb775ad4c60"),
+    }
 
     def __init__(self, checkpoint):
         self.checkpoint = checkpoint
@@ -46,6 +56,19 @@ class Corpus:
             status, headers, raw = self.call(encoded, path)
             assert status == 200 and raw == content, name
             self.resources[path] = {"content": content, "etag": headers["ETag"], "component": component}
+        for zone, (original_digest, corrected_digest) in self.OBSERVANCE_UPLOADS.items():
+            name = "thunderbird159-" + zone + ".ics"
+            original = (self.fixture.parent / "observance-until" / name).read_bytes()
+            assert hashlib.sha256(original).hexdigest() == original_digest
+            path = self.collections["VEVENT"]["path"] + name
+            status, headers, _ = self.call(encoded, path, "PUT", original,
+                **{"Content-Type": "text/calendar", "If-None-Match": "*"})
+            assert status == 201
+            assert not {key.lower() for key in headers} & {"etag", "last-modified"}
+            status, headers, corrected = self.call(encoded, path)
+            assert status == 200 and hashlib.sha256(corrected).hexdigest() == corrected_digest
+            assert headers["ETag"] == '"' + corrected_digest + '"'
+            self.resources[path] = {"content": corrected, "etag": headers["ETag"], "component": "VEVENT"}
         # The invalid originals are rejection controls, never silently introduced into this dump.
         for fixture in sorted(self.fixture.glob("invalid-*.ics")):
             content = fixture.read_bytes()
@@ -86,7 +109,8 @@ class Corpus:
         self.verify_owner(encoded)
         self.database_snapshot = self.database_state(environment)
         print("HTTPS_AUDIT_CORPUS_CREATED=" + json.dumps({
-            "acceptedOriginals": len(self.resources), "rejectedOriginals": 9,
+            "acceptedOriginals": len(self.VALID), "rejectedOriginals": 9,
+            "repairedObservanceUploads": len(self.OBSERVANCE_UPLOADS),
             "contentSha256": {Path(path).name: hashlib.sha256(value["content"]).hexdigest()
                 for path, value in self.resources.items()},
             "historyAndPropertySnapshots": True, "deletedResourceHistory": True,
@@ -148,6 +172,18 @@ class Corpus:
         assert status == 207
         expanded = XML.fromstring(data).findtext(".//{urn:ietf:params:xml:ns:caldav}calendar-data")
         assert "DTSTART:20400401T100000Z" in expanded and "DTEND:20400401T110000Z" in expanded
+        for zone, start, end in (("vancouver", "170000", "180000"), ("berlin", "090000", "100000")):
+            repaired = self.collections["VEVENT"]["path"] + "thunderbird159-" + zone + ".ics"
+            root.find("{DAV:}href").text = self.checkpoint.base + repaired
+            expansion = root.find(".//{urn:ietf:params:xml:ns:caldav}expand")
+            expansion.set("start", "20261109T000000Z")
+            expansion.set("end", "20261110T000000Z")
+            status, _, data = self.call(encoded, path, "REPORT", XML.tostring(root),
+                **{"Content-Type": "application/xml"})
+            assert status == 207
+            expanded = XML.fromstring(data).findtext(".//{urn:ietf:params:xml:ns:caldav}calendar-data")
+            assert "DTSTART:20261109T" + start + "Z" in expanded
+            assert "DTEND:20261109T" + end + "Z" in expanded
         status, _, body = self.call(encoded, self.property_path, "PROPFIND",
             b'<D:propfind xmlns:D="DAV:" xmlns:A="urn:busystack:audit-restore"><D:prop><A:proof/></D:prop></D:propfind>',
             **{"Content-Type": "application/xml", "Depth": "0"})

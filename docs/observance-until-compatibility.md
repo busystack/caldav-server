@@ -36,6 +36,10 @@ validator, so another invalid component/property still rejects the whole request
 Event/task rules, text and opaque extension values are never repaired. Collection timezone
 properties and report timezone inputs retain their existing strict validation.
 
+Existing database rows are untouched. Legacy invalid objects remain available for authorized GET,
+conditional replacement and deletion; a new authorized PUT can apply this repair. Semantic reports
+still fail explicitly on invalid legacy members instead of silently omitting them.
+
 Repaired bytes are the single authoritative stored representation used by GET, ETags, metadata,
 history, queries, expansion, free/busy, multiget and synchronization. Valid requests retain their
 original bytes. There is no read-time repair, bulk rewrite, schema change or third-party patch.
@@ -56,3 +60,49 @@ offset, independently of host timezone data. Focused HTTPS tests additionally ch
 omission, corrected retrieval/reports/history, rejected-write atomicity, UID conflicts, stale
 preconditions, concurrent replacements and the explicit disabled configuration. Client and final
 artifact qualification results are recorded separately; a unit test is not a graphical client pass.
+
+## Developer client qualification — 2026-10-31
+
+The [finished client-stage record](../qualification/evidence/releases/0.0.1/timezone-repair/client-verification.json)
+identifies implementation commit `2eb4b0d560f12e6e1dd61b5effadaf87bafb8f51`, tested JAR
+`e418bfd2d528ab70e18f97ece8724e25d3b6956ce71c8af21662292dd331892e`, original/GET hashes,
+actual requests, screenshots and retained failed automation attempts. This is developer verification
+for independent review, not auditor approval or certification.
+
+| Client | Configuration | Fresh real-editor result |
+| --- | --- | --- |
+| Official unmodified Thunderbird 159.0 | System-selected America/Vancouver | Passed |
+| Official unmodified Thunderbird 159.0 | Explicit America/Vancouver | Passed |
+| Official unmodified Thunderbird 159.0 | Explicit Europe/Berlin | Passed |
+| GNOME Calendar 50.0-1 / EDS 3.56.2-8 | America/Vancouver, retained isolated desktop profile | Passed |
+
+All three Thunderbird profiles completed creation, synchronization, corrected retrieval,
+conditional time editing/reopening, a finite daily series with an edited occurrence, client restart,
+undated task completion and deletion. Their later uploads retained the server's UTC observance
+boundaries, were stored unchanged, and used the corrected strong ETag. Each case made exactly six
+successful logical PUTs to two stable resource URLs, with no 409/412 conflict loop or duplicate
+creation. The Vancouver system-profile workflow resumed the same account/profile/resource after
+automation failures; these failures and their successful continuations remain separate evidence.
+
+GNOME completed timed creation, synchronization, native-selector time editing, reopening after
+separate client/server restarts, a three-occurrence daily series, and All Events deletion with actual
+DELETE 204 / independent GET 404. Its local times and server expansion agree with its submitted
+timezone, including the actual dates' offsets. EDS account provisioning used supported APIs;
+event creation/editing used the real editor. The exact-certificate source trust and temporary
+keyboard-only desktop portal permission were removed/closed after verification. Personal sources,
+system trust and persistent desktop-input settings were not changed.
+
+The initial local full verification ran 383 unit tests successfully; 217 of 218 integration tests
+passed. The existing headless Thunderbird 157.0.1 provider test timed out before Marionette became
+ready, without reaching a CalDAV assertion. Its original log/result is retained. A fresh isolated
+retry passed the unchanged test, including four same-resource cross-client round trips. The harness
+now retains bounded, credential-redacted startup diagnostics; no timeout/assertion/prerequisite was
+relaxed. The first startup failure's cause was not established. Final clean CI, packaged HTTPS and
+restoration receipts are retained separately with exact source/artifact identities; this client-stage
+record does not turn that initial failed full run into a pass.
+
+These were automated real-client UI operations, not manual human use. Other client versions,
+platforms, timezones and physical authenticators remain outside these fresh GUI claims. The
+earlier 157.0.1 strict-rejection and explicit-UTC results remain historical evidence. The packaged
+restore corpus now includes both unchanged captured uploads and fixed expected corrected hashes,
+then checks corrected bytes/ETags, immutable history and expanded UTC times after real restoration.
