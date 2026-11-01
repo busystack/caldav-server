@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-28T00:41:50.713060+00:00",
+  "applicationImage": "sha256:50ee8e4787b39dfbc0b2549f4f0d614eb6888996024155ecc02a1fac9876d219",
+  "memoryLimitBytes": 1073741824,
+  "groups": 500,
+  "collections": 25,
+  "initialGrants": 12500,
+  "population": "Owned isolated SQL fixture; assertions are actual CSRF-protected browser forms",
+  "databaseBefore": "12924607",
+  "remainingGrantsBeforeCleanup": 12474,
+  "browser": {
+    "firstGroup": "4eb83628-c0c5-4c6f-89df-9884afe4e703",
+    "groupName": "Capacity group 0",
+    "initialGrants": 12500,
+    "browserPassed": true,
+    "firstPageRows": 50,
+    "lastPage": 249,
+    "lastPageRows": 50,
+    "removedGroup": "e7f22fdd-0f6f-4716-b31a-7819fa8bacdd"
+  },
+  "elapsedSeconds": 2.55,
+  "containerSamples": [
+    {
+      "elapsedSeconds": 1.74,
+      "memoryUsage": "266.8MiB / 1GiB",
+      "cpuPercent": "166.83%"
+    }
+  ],
+  "observerErrors": [],
+  "databaseAfter": "12990143"
+}

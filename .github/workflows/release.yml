@@ -1,0 +1,118 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact release version
+        type: choice
+        options: ['0.0.1']
+        required: true
+      verification_run:
+        description: Exact successful main verification run ID
+        type: string
+        required: true
+      source_sha:
+        description: Exact qualified main commit (40 hex characters)
+        type: string
+        required: true
+      phase:
+        description: Stage and qualify first; publish consumes the successful staging run
+        type: choice
+        options: [stage, publish]
+        required: true
+      immutability_confirmed:
+        description: Admin checked immutable-releases enabled via gh API immediately before publish
+        type: boolean
+        default: false
+        required: true
+      stage_run:
+        description: Successful staging run ID (required for publish)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  promote:
+    if: github.repository == 'busystack/caldav-server' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      actions: read
+      packages: write
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - name: Validate dispatch and release tooling
+        env:
+          RELEASE_SHA: ${{ inputs.source_sha }}
+          RELEASE_RUN: ${{ inputs.verification_run }}
+          RELEASE_STAGE_RUN: ${{ inputs.stage_run }}
+        run: |
+          test "$RELEASE_SHA" = "$GITHUB_SHA"
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_RUN" =~ ^[0-9]+$ ]]
+          [[ -z "$RELEASE_STAGE_RUN" || "$RELEASE_STAGE_RUN" =~ ^[0-9]+$ ]]
+          python3 -m unittest discover -s qualification/release -p 'test_*.py'
+      - name: Install isolated official release-attestation CLI
+        run: bash scripts/install-release-gh.sh
+      - name: Install selected JDK for downloaded JAR qualification
+        run: bash scripts/install-ci-jdk.sh
+      - name: Build browser fixture (application is promoted without rebuilding)
+        run: docker build --tag busystack-passkey-browser:qualification qualification/passkeys
+      - name: Authenticate repository-associated GHCR publication with ephemeral workflow token
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Validate verification, promote and qualify exact artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_RUN: ${{ inputs.verification_run }}
+          RELEASE_SHA: ${{ inputs.source_sha }}
+          RELEASE_PHASE: ${{ inputs.phase }}
+          IMMUTABILITY_CONFIRMED: ${{ inputs.immutability_confirmed }}
+          RELEASE_STAGE_RUN: ${{ inputs.stage_run }}
+        run: |
+          arguments=(--version "$RELEASE_VERSION" --verification-run "$RELEASE_RUN" --source-sha "$RELEASE_SHA" --phase "$RELEASE_PHASE" --work "$RUNNER_TEMP/release-work")
+          if [[ -n "$RELEASE_STAGE_RUN" ]]; then arguments+=(--stage-run "$RELEASE_STAGE_RUN"); fi
+          if [[ "$IMMUTABILITY_CONFIRMED" == true ]]; then arguments+=(--immutability-confirmed); fi
+          python3 scripts/publish-release.py "${arguments[@]}"
+      - name: Retain successful staging assets
+        if: success() && inputs.phase == 'stage'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: release-stage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-work/assets/
+            ${{ runner.temp }}/release-work/stage.json
+            ${{ runner.temp }}/release-work/installation.json
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+      - name: Retain operation journal and qualification results on every attempt
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: release-operations-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-work/release-attestation.json
+            ${{ runner.temp }}/release-work/operations.jsonl
+            ${{ runner.temp }}/release-work/*installation.json
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io

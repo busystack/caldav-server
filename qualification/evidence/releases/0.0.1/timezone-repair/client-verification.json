@@ -1,0 +1,163 @@
+{
+  "stage": "Completed developer client/targeted verification; final CI and packaged qualification receipts are retained separately at the evidence location below.",
+  "recordedAt": "2026-10-31T11:30:33.506963+00:00",
+  "baselineCommit": "b00644adae5be64d427dece2286a5600ddf40295",
+  "branch": "release/v0.0.1",
+  "implementationCommit": "2eb4b0d560f12e6e1dd61b5effadaf87bafb8f51",
+  "artifact": {
+    "source": "2eb4b0d560f12e6e1dd61b5effadaf87bafb8f51",
+    "jarSha256": "e418bfd2d528ab70e18f97ece8724e25d3b6956ce71c8af21662292dd331892e",
+    "imageId": "sha256:aa3c139750e7cb5c8ac388edf29738a1d71f6bf8608ab1b44135b61817fd50a6",
+    "imageRevision": "2eb4b0d560f12e6e1dd61b5effadaf87bafb8f51",
+    "previousImageId": "sha256:f20abd9ba59ed5eea401de5cef5d6001351ad16a65042fa4197749a5a595d7a5",
+    "previousJarSha256": "0e1dc621d66ae233d7fe1f303936f33c5c522622a5f82f0335464bec2570982b"
+  },
+  "clients": [
+    {
+      "client": "Thunderbird",
+      "version": "159.0",
+      "case": "system-vancouver",
+      "timezone": "America/Vancouver",
+      "result": "passed",
+      "originalLocalUntilCount": 6,
+      "originalUploadSha256": "3d529575780b50e3e699688a95b18ad36544d77b2f38e23ef590ce3850e31364",
+      "correctedGetSha256": "0eb3db733e1896cab8c60bac5c5dfe91fdee73343f7237bda55e8c870e4559d2",
+      "onlyRequiredUntilChanges": true,
+      "putValidatorsOmitted": true,
+      "subsequentUploadRetainsCorrectedUtcRules": true,
+      "subsequentValidUploadByteIdenticalToGet": true,
+      "conditionalEditUsesCorrectedStrongEtag": true,
+      "successfulPuts": 6,
+      "expectedSuccessfulPuts": 6,
+      "resourceUrls": 2,
+      "conflictResponses": 0,
+      "finiteSeriesInstances": 3,
+      "editedOccurrenceRestartPersistence": true,
+      "taskCompletionAndDeletion": true,
+      "evidenceDirectories": [
+        "thunderbird/system-vancouver/evidence-attempt3",
+        "thunderbird/system-vancouver/evidence-after-bounded2"
+      ]
+    },
+    {
+      "client": "Thunderbird",
+      "version": "159.0",
+      "case": "explicit-vancouver",
+      "timezone": "America/Vancouver",
+      "result": "passed",
+      "originalLocalUntilCount": 6,
+      "originalUploadSha256": "043f6c7b4150e8b16e79601e79c0c19ad5ce6375d258b83a39acfae391e8b253",
+      "correctedGetSha256": "569e34d4cdc9ad499257062d11cb9f60daa0d3d8f4626a215dccbdd9af22c6c7",
+      "onlyRequiredUntilChanges": true,
+      "putValidatorsOmitted": true,
+      "subsequentUploadRetainsCorrectedUtcRules": true,
+      "subsequentValidUploadByteIdenticalToGet": true,
+      "conditionalEditUsesCorrectedStrongEtag": true,
+      "successfulPuts": 6,
+      "expectedSuccessfulPuts": 6,
+      "resourceUrls": 2,
+      "conflictResponses": 0,
+      "finiteSeriesInstances": 3,
+      "editedOccurrenceRestartPersistence": true,
+      "taskCompletionAndDeletion": true,
+      "evidenceDirectories": [
+        "thunderbird/explicit-vancouver/evidence",
+        "thunderbird/explicit-vancouver/evidence"
+      ]
+    },
+    {
+      "client": "Thunderbird",
+      "version": "159.0",
+      "case": "explicit-berlin",
+      "timezone": "Europe/Berlin",
+      "result": "passed",
+      "originalLocalUntilCount": 7,
+      "originalUploadSha256": "447300e3bde485c5886ace0fc085a1a27a18f2cdeeb3dd958c1519662c852e84",
+      "correctedGetSha256": "5d0e35558b6c26e0af107bd26ec62258c3ab00224b7e46f773f8d967d8a686c1",
+      "onlyRequiredUntilChanges": true,
+      "putValidatorsOmitted": true,
+      "subsequentUploadRetainsCorrectedUtcRules": true,
+      "subsequentValidUploadByteIdenticalToGet": true,
+      "conditionalEditUsesCorrectedStrongEtag": true,
+      "successfulPuts": 6,
+      "expectedSuccessfulPuts": 6,
+      "resourceUrls": 2,
+      "conflictResponses": 0,
+      "finiteSeriesInstances": 3,
+      "editedOccurrenceRestartPersistence": true,
+      "taskCompletionAndDeletion": true,
+      "evidenceDirectories": [
+        "thunderbird/explicit-berlin/evidence",
+        "thunderbird/explicit-berlin/evidence"
+      ]
+    },
+    {
+      "client": "GNOME Calendar",
+      "version": "50.0-1",
+      "EDS": "3.56.2-8",
+      "timezone": "America/Vancouver",
+      "result": "passed",
+      "creationEditingReopening": true,
+      "clientServerRestarts": true,
+      "finiteSeriesInstances": 3,
+      "wholeSeriesDeleted": true,
+      "actualDeleteStatus": 204,
+      "finalGetStatus": 404,
+      "evidence": "results/gnome-workflow-state.json"
+    }
+  ],
+  "runtimeClientProvenance": "results/current-client-provenance.json; results/gnome-runtime-packages.txt",
+  "regressions": {
+    "newRepairUnitCases": 23,
+    "compatibilityPropertyCases": 4,
+    "newHttpsCases": 3,
+    "source": "Implementation commit above; full initial run includes the final unit/HTTPS assertions."
+  },
+  "localFullRun": {
+    "command": "./mvnw -B -ntp clean verify",
+    "result": "failed",
+    "unit": {
+      "tests": 383,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "integration": {
+      "tests": 218,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failure": "IndependentClientIT: official Thunderbird 157.0.1 did not open its Marionette port before the existing startup deadline. No CalDAV assertion reached. Initial temporary browser log was removed by the existing harness; cause is not established.",
+    "evidence": "results/clean-verify.log; results/full-attempt1/"
+  },
+  "isolatedRetry": {
+    "command": "./mvnw -B -ntp failsafe:integration-test failsafe:verify -Dit.test=IndependentClientIT",
+    "result": "passed",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "clientVersion": "157.0.1",
+    "crossClientSameResources": 4,
+    "change": "Retained a bounded credential-redacted startup log. No deadline, sandbox, assertion or prerequisite was relaxed.",
+    "evidence": "results/independent-client-isolated-required.log; target/qualification/thunderbird-process.log"
+  },
+  "externalEvidence": "/home/albert/busystack/caldav-server-timezone-verification-20261030/alternative-client-followup/observance-repair-2eb4b0d-20261031",
+  "screenshots": "/home/albert/busystack/caldav-server-screenshots/observance-repair-20261031/",
+  "safeguards": [
+    "Original Vancouver/Berlin uploads and prior audit/release evidence unchanged.",
+    "All three Thunderbird cases made exactly six successful logical PUTs, used two stable resource URLs, retained corrected UTC rules on subsequent valid uploads, and completed both deletions without 409/412.",
+    "GNOME creation/editing used its real editor and native time selector. Finite recurrence and All Events deletion used normal GUI keyboard navigation. No backend event insertion.",
+    "Source-specific EDS trust followed CA/hostname/validity/server-authentication-purpose/fingerprint verification and UNKNOWN_CA-only confirmation; removed after the workflow.",
+    "Desktop keyboard portal was keyboard-only, persist_mode=0, without screen or clipboard access, guarded by the active test PID, and closed after use.",
+    "Database/credential/profile checkpoints were retained through automation obstacles. Earlier failed attempts remain in evidence and are not client/server incompatibility findings."
+  ],
+  "limitations": [
+    "Real GUI controls were automated; these are not manual-human or physical-authenticator tests.",
+    "Earlier setup/automation failures are retained and are not classified as client incompatibility or a BusyStack defect.",
+    "Thunderbird 157.0.1 normal regional-timezone GUI workflows were not rerun; its native-provider regression passed separately.",
+    "Other versions/platforms, manual-human use and physical authenticators are not qualified by these tests."
+  ],
+  "publication": "No tag, main merge, release or image publication authorized/performed."
+}

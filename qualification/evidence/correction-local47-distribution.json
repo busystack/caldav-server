@@ -1,0 +1,632 @@
+{
+  "image": {
+    "id": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+    "jarSha256": "4e97297d42102584da1ec78ac038362d2ed75eaf9874456ae4d4ec098c41aa6a",
+    "jdkLegalDirectory": "/opt/java/openjdk/legal",
+    "labels": {
+      "org.opencontainers.image.created": "2026-10-06T21:25:30.040262+00:00",
+      "org.opencontainers.image.description": "Independent calendar and task server",
+      "org.opencontainers.image.licenses": "Apache-2.0",
+      "org.opencontainers.image.revision": "47b3543674644d075ece97045088fc1e309e7d1e",
+      "org.opencontainers.image.source": "https://github.com/busystack/caldav-server",
+      "org.opencontainers.image.title": "BusyStack CalDAV Server",
+      "org.opencontainers.image.version": "0.0.1-SNAPSHOT"
+    },
+    "osLicenseDirectory": "/usr/share/doc"
+  },
+  "jarSha256": "4e97297d42102584da1ec78ac038362d2ed75eaf9874456ae4d4ec098c41aa6a",
+  "nestedArtifacts": [
+    {
+      "artifact": "HdrHistogram-2.2.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "ba550515c77c9e6f8b6a400381eacd3c47569297f8f27884801a95dff5309483"
+      }
+    },
+    {
+      "artifact": "HikariCP-7.0.2.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "accessors-smart-2.6.0.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "asm-9.7.1.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "attoparser-2.0.7.RELEASE.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE.txt": "02ab16ab9bbb0d360481ffb8158745fafddd43a38cd74cf469acae7bd287f4bd"
+      }
+    },
+    {
+      "artifact": "checker-qual-3.55.1.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "e90eaa08dea089df10f2bf7f9dba63a5f6237c01562c4741e2e86773e78582d5"
+      }
+    },
+    {
+      "artifact": "classmate-1.7.3.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "7d8d549eb31995fe67822c860acc7ac3dd958a03a5a71aef4069033e7df72d94",
+        "META-INF/NOTICE": "1a8c67aaade274bc7bf06a7044571ab280d59fe3686941b6499b2176a072ea6d"
+      }
+    },
+    {
+      "artifact": "commons-codec-1.21.0.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+        "META-INF/NOTICE.txt": "d82503df1b65173afe535a2f753d27c25377f7f6e9d0b19b4665af617df14750"
+      }
+    },
+    {
+      "artifact": "commons-lang3-3.20.0.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+        "META-INF/NOTICE.txt": "64bc8696af3f6c770521412b85d3a733fa44b2ef5b0f4bd739e0c4d02eca492a"
+      }
+    },
+    {
+      "artifact": "commons-logging-1.3.6.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+        "META-INF/NOTICE.txt": "d649e220dd0497197a266b7d7304a009d06bcefce3141fa6ff4f2ceddb438237"
+      }
+    },
+    {
+      "artifact": "content-type-2.3.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "flyway-core-12.4.0.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "6707b7b3ba3220ab64a81a5ab869ffecc3a6a023e9488ea08b897471b069c078",
+        "org/flywaydb/core/extensibility/LicenseGuard.class": "d9b3046e245a9e6cdb74decc14afbb83544e5f4014de75635292c7f693f5cdd4"
+      }
+    },
+    {
+      "artifact": "flyway-database-postgresql-12.4.0.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "hibernate-validator-9.1.5.Final.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      }
+    },
+    {
+      "artifact": "ical4j-4.4.0.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "jackson-annotations-2.21.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "612b14bc77c944ce229cbba0d14919162cfea8ed802cbf06a8e865e032d03201"
+      }
+    },
+    {
+      "artifact": "jackson-core-3.1.7.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "a8eb9ab6d21e719ba217c6367621a7ab5baa3d38df896ef258a9754a6b97527d"
+      }
+    },
+    {
+      "artifact": "jackson-databind-3.1.7.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "d3fa47349b4ba4a3763bf635b930f8877073aa3915a3f3e45fe4b1842fc60302"
+      }
+    },
+    {
+      "artifact": "jackson-dataformat-cbor-3.1.7.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "3b7ec3d73de1ac4eee9af17fd70239e8c226209713b7bc761821e5384acf0a9d",
+        "META-INF/NOTICE": "5828ffe74ea0ee4bf896654026f05fed1ead1d22acd577cc1eec9be0bc0de1ed"
+      }
+    },
+    {
+      "artifact": "jakarta.annotation-api-3.0.0.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.md": "6e1f002892b81cbe0647019b150c8a056efc1add565671a4f8af629b6cd2cc7b",
+        "META-INF/NOTICE.md": "20bf986a153cc3095639379c99ef0a5a3bf99ac4895429920d380414a3eecf08"
+      }
+    },
+    {
+      "artifact": "jakarta.validation-api-3.1.1.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "jboss-logging-3.6.3.Final.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "jcip-annotations-1.0-1.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "json-smart-2.6.0.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "jspecify-1.0.1.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "jul-to-slf4j-2.0.20.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "4e7f90c86ab51278228bce153122f1d8df30149d13ce9ef524c8444a84c32dcc"
+      }
+    },
+    {
+      "artifact": "lang-tag-1.7.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "log4j-api-2.25.5.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "0b23e26a6260c82e2608899128a81a0c82e81f15d708779d0639227f6a2f801f"
+      }
+    },
+    {
+      "artifact": "log4j-to-slf4j-2.25.5.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "0ccd7e8250b33edc64612733af1b614c40eec22505446b6faec1c7a40cbeda95"
+      }
+    },
+    {
+      "artifact": "logback-classic-1.5.38.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "logback-core-1.5.38.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "micrometer-commons-1.17.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+        "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+      }
+    },
+    {
+      "artifact": "micrometer-core-1.17.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+        "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+      }
+    },
+    {
+      "artifact": "micrometer-jakarta9-1.17.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+        "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+      }
+    },
+    {
+      "artifact": "micrometer-observation-1.17.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+        "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+      }
+    },
+    {
+      "artifact": "nimbus-jose-jwt-10.9.1.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "oauth2-oidc-sdk-11.38.2.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "postgresql-42.7.14.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "08bb580d3cb8f9a4a05f008466a294fdb019e0e177d03a035d46f1eb94077de5",
+        "META-INF/licenses/com.ongres.scram/scram-client-3.2/META-INF/LICENSE": "7c89807167a03a92d2fbfc936aff4f87d8ce31434637381c89e38282c8c99198",
+        "META-INF/licenses/com.ongres.scram/scram-common-3.2/META-INF/LICENSE": "7c89807167a03a92d2fbfc936aff4f87d8ce31434637381c89e38282c8c99198",
+        "META-INF/licenses/com.ongres.stringprep/saslprep-2.2/META-INF/LICENSE": "5c49fc155ebccd206277e0d1f424aadbf365f0a9ccfb54d400d728a375d523f9",
+        "META-INF/licenses/com.ongres.stringprep/stringprep-2.2/META-INF/LICENSE": "5c49fc155ebccd206277e0d1f424aadbf365f0a9ccfb54d400d728a375d523f9"
+      }
+    },
+    {
+      "artifact": "slf4j-api-2.0.20.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "6632f550c207be8d7d6b5e87f5d7b905bee218d18392d531df457bf60bec1447"
+      }
+    },
+    {
+      "artifact": "snakeyaml-2.6.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "spring-aop-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-beans-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-boot-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-actuator-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-actuator-autoconfigure-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-autoconfigure-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-flyway-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-health-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-http-converter-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-jackson-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-jarmode-tools-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-jdbc-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-micrometer-metrics-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-micrometer-observation-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-persistence-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-security-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-security-oauth2-authorization-server-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-security-oauth2-client-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-security-oauth2-resource-server-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-servlet-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-session-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-session-jdbc-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-sql-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-thymeleaf-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-tomcat-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-transaction-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-validation-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-web-server-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-boot-webmvc-4.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+        "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+      }
+    },
+    {
+      "artifact": "spring-context-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-core-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-expression-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-jdbc-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-security-config-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-core-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-crypto-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-oauth2-authorization-server-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-oauth2-client-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-oauth2-core-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-oauth2-jose-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-oauth2-resource-server-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-web-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-security-webauthn-7.1.2.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+      }
+    },
+    {
+      "artifact": "spring-session-core-4.1.1.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe"
+      }
+    },
+    {
+      "artifact": "spring-session-jdbc-4.1.1.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe"
+      }
+    },
+    {
+      "artifact": "spring-tx-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-web-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "spring-webmvc-7.0.10.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+        "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+      }
+    },
+    {
+      "artifact": "threeten-extra-1.8.0.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "ff3c303a06b9007bf90c7c2c2acac3afdd2af2b504fad21e8b27c9605e1fbcd4"
+      }
+    },
+    {
+      "artifact": "thymeleaf-3.1.5.RELEASE.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    },
+    {
+      "artifact": "thymeleaf-spring6-3.1.5.RELEASE.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE.txt": "c940b6d5fba859e2773fb9568f6b3c328a396684b65dae023fb3f38ee5b0f3b3"
+      }
+    },
+    {
+      "artifact": "tomcat-embed-core-11.0.27.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "8c39166d578175fb936229613e48de47d9e494b8c7c2fda6da717a1be29c8724",
+        "META-INF/NOTICE": "234d3234bb332895157270092fa2a11e80aa0b3d70d59e13de0eed4c2adb1790"
+      }
+    },
+    {
+      "artifact": "tomcat-embed-el-11.0.27.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "0317acaa42a5e48bec061cf009cb5c8b4b8ff845f3c6ba548f67c5c22c29fc96"
+      }
+    },
+    {
+      "artifact": "tomcat-embed-websocket-11.0.27.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "0317acaa42a5e48bec061cf009cb5c8b4b8ff845f3c6ba548f67c5c22c29fc96"
+      }
+    },
+    {
+      "artifact": "unbescape-1.1.6.RELEASE.jar",
+      "deliveredLicenseAndNoticeFiles": {
+        "META-INF/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE.txt": "df671a4abf4562cff42b0aacd7cf95461d7cee9df15e984eb838531031063d41"
+      }
+    },
+    {
+      "artifact": "webauthn4j-core-0.31.10.RELEASE.jar",
+      "deliveredLicenseAndNoticeFiles": {}
+    }
+  ],
+  "projectLicense": [
+    {
+      "license": {
+        "id": "Apache-2.0"
+      }
+    }
+  ],
+  "recordedAt": "2026-10-28T00:35:41.508893+00:00",
+  "runtimeComponents": 112,
+  "sourceArchiveSha256": "4cdf2a3befe0548d726903cea3de600a7cb57e1d6476cfc894d70aa97a6d8eb1",
+  "sourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+  "status": "passed"
+}

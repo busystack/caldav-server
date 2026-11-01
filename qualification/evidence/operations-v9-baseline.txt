@@ -1,0 +1,4 @@
+OPERATIONS_APPLICATION_IMAGE=sha256:461ca83649a45d8ca37ba1570584f567c0bbc95279b14a6662edfc9ce6987e89
+OPERATIONS_SCHEMA_VERSIONS=1,2,3,4,5,6,7,8,9
+PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).
+Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.

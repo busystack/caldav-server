@@ -1,0 +1,42 @@
+{
+  "baseline": "a919d6324f2e1eea75de63b76b89cb065e7530cf",
+  "releaseVersion": "0.0.1",
+  "releaseDefaultImage": "busystack-caldav:0.0.1",
+  "changedFiles": {
+    "pom.xml": "d75e404b46ce2cbf20a97c6b53d10dc6b181d39cd5e0f073acd693726404612e",
+    "Dockerfile": "23f03a1f531a1b52e32963465ebd131d8a6969f45951294bb93a3c8e54e22394",
+    "compose.yaml": "a71407ec7e0e91712add8c3853768fb15dc1b910f239db191a283890232dd695",
+    ".github/workflows/ci.yml": "9dcc82e82ab46b06623d859b648a76d480c5da32946ef34e192036703cadec2a",
+    "scripts/verify-distribution.py": "3b3907557e9de2c9de4ae8f0cda7e608ea0af703db846df3df449989fd3a133e",
+    "scripts/verify-operations.py": "e11980d407afa582181cb689aa82e487493c48e0b791b28388d1e96357d6bf7c",
+    "qualification/passkeys/run.py": "cccb541381e9c9334317602c642c1954e72e17ae97f2139a3b95a381699adf14",
+    "qualification/distribution/test_jar_licenses.py": "02d39aad0ec8ef0dd53b0d770b02a149173c549c25ff2ed9570b4654ec18bf33"
+  },
+  "verification": [
+    {
+      "command": "python3 -m unittest discover -s qualification/distribution -p 'test_*.py'",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    {
+      "command": "python3 -m unittest discover -s qualification/passkeys -p 'test_*.py'",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "observation": "Host Python3.14 ResourceWarning from cleanup of mocked HTTPError507; suite succeeded."
+    },
+    {
+      "command": "ast.parse scripts/verify-distribution.py, scripts/verify-operations.py, qualification/passkeys/run.py; XML root POM version assertion",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "scope": "No heavy build/container run or commit/push by metadata agent. No Java production source/dependencies/pins/migrations/historical evidence changed. Existing investigation SNAPSHOT project versions are test-only and unchanged.",
+  "ciArtifactRetention": "Existing application-evidence upload now also retains executable target/caldav-server-0.0.1.jar alongside its checksum and SBOM; no release/container publication."
+}

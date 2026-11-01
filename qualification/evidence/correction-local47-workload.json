@@ -1,0 +1,1126 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-28T00:45:50.358788+00:00",
+  "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+  "applicationMemoryLimitBytes": 1073741824,
+  "applicationNanoCpuLimit": 0,
+  "jvmHeap": {
+    "containerMemoryLimitBytes": 1073741824,
+    "applicationJvmCommand": [
+      "java",
+      "-XX:MaxRAMPercentage=70.0",
+      "-Djava.io.tmpdir=/tmp",
+      "-jar",
+      "/opt/busystack/application.jar"
+    ],
+    "configuredMaxRAMPercentage": "70.0",
+    "source": "actual owned-container jcmd PID1 VM.flags",
+    "maxHeapBytes": 752877568,
+    "vmFlags": "1:\n-XX:-AOTInvokeDynamicLinking -XX:-AOTRecordTraining -XX:-AOTReplayTraining -XX:CICompilerCount=3 -XX:InitialHeapSize=16777216 -XX:-IntelJccErratumMitigation -XX:MaxHeapSize=752877568 -XX:MaxNewSize=250937344 -XX:MaxRAM=1073741824 -XX:MaxRAMPercentage=70.000000 -XX:MinHeapDeltaBytes=196608 -XX:MinHeapSize=8388608 -XX:NewSize=5570560 -XX:NonNMethodCodeHeapSize=5836800 -XX:NonProfiledCodeHeapSize=122912768 -XX:ProfiledCodeHeapSize=122912768 -XX:ReservedCodeCacheSize=251662336 -XX:+SegmentedCodeCache -XX:SoftMaxHeapSize=752877568 -XX:-THPStackMitigation -XX:+UseCompressedOops -XX:+UseSerialGC -XX:X86ICacheSync=1"
+  },
+  "host": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "kernel": "7.0.0-38-generic",
+    "logicalCpus": 4,
+    "loadAverage": [
+      7.6259765625,
+      6.01904296875,
+      6.91162109375
+    ],
+    "affinityCpuCount": 4,
+    "cpuModel": "AMD A6-3400M APU with Radeon(tm) HD Graphics",
+    "memoryBytes": 11449860096
+  },
+  "postgresVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "dockerVersion": "29.9.2",
+  "databaseBefore": {
+    "databaseBytes": 13096639,
+    "resourceTableBytes": 49152,
+    "commits": 3367,
+    "rollbacks": 3,
+    "blocksRead": 560,
+    "blocksHit": 496624,
+    "rowsReturned": 340153,
+    "rowsFetched": 173492,
+    "rowsInserted": 17024,
+    "rowsUpdated": 557,
+    "rowsDeleted": 13727,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "containerSamples": [
+    {
+      "elapsedSeconds": 1.11,
+      "cpuPercent": "0.09%",
+      "memoryUsage": "295MiB / 1GiB",
+      "memoryPercent": "28.81%",
+      "networkIo": "2.79MB / 3.73MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 3.12,
+      "cpuPercent": "123.87%",
+      "memoryUsage": "306.2MiB / 1GiB",
+      "memoryPercent": "29.90%",
+      "networkIo": "2.83MB / 3.77MB",
+      "blockIo": "143kB / 0B",
+      "pids": "42"
+    },
+    {
+      "elapsedSeconds": 6.24,
+      "cpuPercent": "114.06%",
+      "memoryUsage": "313.3MiB / 1GiB",
+      "memoryPercent": "30.60%",
+      "networkIo": "2.98MB / 3.92MB",
+      "blockIo": "143kB / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 9.34,
+      "cpuPercent": "51.66%",
+      "memoryUsage": "314.7MiB / 1GiB",
+      "memoryPercent": "30.73%",
+      "networkIo": "3.18MB / 4.12MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 12.48,
+      "cpuPercent": "70.94%",
+      "memoryUsage": "314.4MiB / 1GiB",
+      "memoryPercent": "30.70%",
+      "networkIo": "3.33MB / 4.27MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 15.57,
+      "cpuPercent": "28.78%",
+      "memoryUsage": "314.8MiB / 1GiB",
+      "memoryPercent": "30.74%",
+      "networkIo": "3.5MB / 4.43MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 18.68,
+      "cpuPercent": "75.86%",
+      "memoryUsage": "315.7MiB / 1GiB",
+      "memoryPercent": "30.83%",
+      "networkIo": "3.72MB / 4.65MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 21.76,
+      "cpuPercent": "45.36%",
+      "memoryUsage": "316MiB / 1GiB",
+      "memoryPercent": "30.86%",
+      "networkIo": "3.98MB / 4.9MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 24.86,
+      "cpuPercent": "115.78%",
+      "memoryUsage": "317MiB / 1GiB",
+      "memoryPercent": "30.96%",
+      "networkIo": "4.33MB / 5.24MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 27.96,
+      "cpuPercent": "81.54%",
+      "memoryUsage": "318MiB / 1GiB",
+      "memoryPercent": "31.05%",
+      "networkIo": "4.65MB / 5.56MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 31.16,
+      "cpuPercent": "54.54%",
+      "memoryUsage": "322MiB / 1GiB",
+      "memoryPercent": "31.45%",
+      "networkIo": "5.64MB / 6.41MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 34.27,
+      "cpuPercent": "182.59%",
+      "memoryUsage": "332.3MiB / 1GiB",
+      "memoryPercent": "32.45%",
+      "networkIo": "6.79MB / 7.31MB",
+      "blockIo": "143kB / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 37.41,
+      "cpuPercent": "128.37%",
+      "memoryUsage": "345.8MiB / 1GiB",
+      "memoryPercent": "33.77%",
+      "networkIo": "7.53MB / 8.62MB",
+      "blockIo": "143kB / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 40.53,
+      "cpuPercent": "184.60%",
+      "memoryUsage": "352MiB / 1GiB",
+      "memoryPercent": "34.38%",
+      "networkIo": "8.8MB / 10.1MB",
+      "blockIo": "143kB / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 43.61,
+      "cpuPercent": "36.38%",
+      "memoryUsage": "352.7MiB / 1GiB",
+      "memoryPercent": "34.44%",
+      "networkIo": "9.69MB / 10.9MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 46.76,
+      "cpuPercent": "48.95%",
+      "memoryUsage": "352.9MiB / 1GiB",
+      "memoryPercent": "34.46%",
+      "networkIo": "10.7MB / 12.3MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 50.0,
+      "cpuPercent": "215.73%",
+      "memoryUsage": "359.9MiB / 1GiB",
+      "memoryPercent": "35.14%",
+      "networkIo": "11.3MB / 13.2MB",
+      "blockIo": "143kB / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 53.1,
+      "cpuPercent": "29.02%",
+      "memoryUsage": "359.1MiB / 1GiB",
+      "memoryPercent": "35.07%",
+      "networkIo": "12.2MB / 14.1MB",
+      "blockIo": "143kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 56.2,
+      "cpuPercent": "101.19%",
+      "memoryUsage": "363.7MiB / 1GiB",
+      "memoryPercent": "35.52%",
+      "networkIo": "12.4MB / 14.3MB",
+      "blockIo": "143kB / 0B",
+      "pids": "39"
+    },
+    {
+      "elapsedSeconds": 59.28,
+      "cpuPercent": "0.12%",
+      "memoryUsage": "363.9MiB / 1GiB",
+      "memoryPercent": "35.53%",
+      "networkIo": "12.4MB / 14.4MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 62.38,
+      "cpuPercent": "0.08%",
+      "memoryUsage": "363.9MiB / 1GiB",
+      "memoryPercent": "35.54%",
+      "networkIo": "12.4MB / 14.4MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 65.47,
+      "cpuPercent": "0.22%",
+      "memoryUsage": "363.9MiB / 1GiB",
+      "memoryPercent": "35.54%",
+      "networkIo": "12.4MB / 14.4MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 68.58,
+      "cpuPercent": "119.12%",
+      "memoryUsage": "364.8MiB / 1GiB",
+      "memoryPercent": "35.62%",
+      "networkIo": "12.7MB / 14.6MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 71.69,
+      "cpuPercent": "43.33%",
+      "memoryUsage": "364.5MiB / 1GiB",
+      "memoryPercent": "35.60%",
+      "networkIo": "12.8MB / 14.7MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 74.8,
+      "cpuPercent": "0.16%",
+      "memoryUsage": "364.8MiB / 1GiB",
+      "memoryPercent": "35.62%",
+      "networkIo": "12.8MB / 14.7MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 77.9,
+      "cpuPercent": "0.32%",
+      "memoryUsage": "364.5MiB / 1GiB",
+      "memoryPercent": "35.60%",
+      "networkIo": "12.8MB / 14.7MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 80.99,
+      "cpuPercent": "71.69%",
+      "memoryUsage": "365.5MiB / 1GiB",
+      "memoryPercent": "35.69%",
+      "networkIo": "13.8MB / 15.3MB",
+      "blockIo": "143kB / 0B",
+      "pids": "38"
+    },
+    {
+      "elapsedSeconds": 132.18,
+      "cpuPercent": "184.55%",
+      "memoryUsage": "238.2MiB / 1GiB",
+      "memoryPercent": "23.26%",
+      "networkIo": "177kB / 57.9kB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 135.34,
+      "cpuPercent": "157.70%",
+      "memoryUsage": "238.8MiB / 1GiB",
+      "memoryPercent": "23.32%",
+      "networkIo": "1.02MB / 624kB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 138.49,
+      "cpuPercent": "122.63%",
+      "memoryUsage": "240.4MiB / 1GiB",
+      "memoryPercent": "23.47%",
+      "networkIo": "1.9MB / 1.72MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 141.72,
+      "cpuPercent": "96.67%",
+      "memoryUsage": "241.5MiB / 1GiB",
+      "memoryPercent": "23.58%",
+      "networkIo": "3.05MB / 3.34MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 144.83,
+      "cpuPercent": "94.23%",
+      "memoryUsage": "241.9MiB / 1GiB",
+      "memoryPercent": "23.62%",
+      "networkIo": "4.04MB / 4.44MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 147.94,
+      "cpuPercent": "82.02%",
+      "memoryUsage": "241.9MiB / 1GiB",
+      "memoryPercent": "23.62%",
+      "networkIo": "5.47MB / 5.55MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 151.06,
+      "cpuPercent": "68.22%",
+      "memoryUsage": "242MiB / 1GiB",
+      "memoryPercent": "23.63%",
+      "networkIo": "6.49MB / 7.17MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 154.29,
+      "cpuPercent": "12.36%",
+      "memoryUsage": "242.2MiB / 1GiB",
+      "memoryPercent": "23.65%",
+      "networkIo": "7.62MB / 8.27MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 157.43,
+      "cpuPercent": "57.44%",
+      "memoryUsage": "242.3MiB / 1GiB",
+      "memoryPercent": "23.66%",
+      "networkIo": "8.95MB / 9.9MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 160.57,
+      "cpuPercent": "62.65%",
+      "memoryUsage": "243.2MiB / 1GiB",
+      "memoryPercent": "23.75%",
+      "networkIo": "10.4MB / 11MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 163.7,
+      "cpuPercent": "65.49%",
+      "memoryUsage": "243.1MiB / 1GiB",
+      "memoryPercent": "23.74%",
+      "networkIo": "11.4MB / 12.6MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 166.82,
+      "cpuPercent": "81.38%",
+      "memoryUsage": "245.3MiB / 1GiB",
+      "memoryPercent": "23.95%",
+      "networkIo": "12.8MB / 13.7MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 169.97,
+      "cpuPercent": "66.97%",
+      "memoryUsage": "245.5MiB / 1GiB",
+      "memoryPercent": "23.98%",
+      "networkIo": "14.2MB / 15.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 173.1,
+      "cpuPercent": "35.97%",
+      "memoryUsage": "245.7MiB / 1GiB",
+      "memoryPercent": "23.99%",
+      "networkIo": "15.5MB / 17MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 176.34,
+      "cpuPercent": "81.84%",
+      "memoryUsage": "245.4MiB / 1GiB",
+      "memoryPercent": "23.97%",
+      "networkIo": "16.6MB / 18.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 179.54,
+      "cpuPercent": "86.54%",
+      "memoryUsage": "245.4MiB / 1GiB",
+      "memoryPercent": "23.96%",
+      "networkIo": "17.8MB / 19.7MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 182.75,
+      "cpuPercent": "52.48%",
+      "memoryUsage": "246.6MiB / 1GiB",
+      "memoryPercent": "24.08%",
+      "networkIo": "19.2MB / 20.9MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 185.86,
+      "cpuPercent": "43.19%",
+      "memoryUsage": "246.5MiB / 1GiB",
+      "memoryPercent": "24.07%",
+      "networkIo": "20.7MB / 22.5MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 189.02,
+      "cpuPercent": "52.76%",
+      "memoryUsage": "246.1MiB / 1GiB",
+      "memoryPercent": "24.04%",
+      "networkIo": "22.2MB / 24.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 192.15,
+      "cpuPercent": "45.92%",
+      "memoryUsage": "247.1MiB / 1GiB",
+      "memoryPercent": "24.13%",
+      "networkIo": "23.7MB / 25.8MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 195.3,
+      "cpuPercent": "48.15%",
+      "memoryUsage": "247.3MiB / 1GiB",
+      "memoryPercent": "24.15%",
+      "networkIo": "25.2MB / 27.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 198.4,
+      "cpuPercent": "46.24%",
+      "memoryUsage": "247.1MiB / 1GiB",
+      "memoryPercent": "24.13%",
+      "networkIo": "26.7MB / 29.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 201.51,
+      "cpuPercent": "58.26%",
+      "memoryUsage": "246.9MiB / 1GiB",
+      "memoryPercent": "24.11%",
+      "networkIo": "28.2MB / 31.2MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 204.62,
+      "cpuPercent": "31.16%",
+      "memoryUsage": "246.6MiB / 1GiB",
+      "memoryPercent": "24.08%",
+      "networkIo": "29.7MB / 32.9MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 207.75,
+      "cpuPercent": "35.28%",
+      "memoryUsage": "247MiB / 1GiB",
+      "memoryPercent": "24.12%",
+      "networkIo": "31.1MB / 34.5MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 210.86,
+      "cpuPercent": "47.66%",
+      "memoryUsage": "247.1MiB / 1GiB",
+      "memoryPercent": "24.14%",
+      "networkIo": "32.7MB / 36.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 213.99,
+      "cpuPercent": "33.73%",
+      "memoryUsage": "247.1MiB / 1GiB",
+      "memoryPercent": "24.13%",
+      "networkIo": "34.1MB / 37.8MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 217.1,
+      "cpuPercent": "36.79%",
+      "memoryUsage": "247.9MiB / 1GiB",
+      "memoryPercent": "24.21%",
+      "networkIo": "35.7MB / 39.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 220.27,
+      "cpuPercent": "41.63%",
+      "memoryUsage": "247.5MiB / 1GiB",
+      "memoryPercent": "24.17%",
+      "networkIo": "37.3MB / 41.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 223.39,
+      "cpuPercent": "49.60%",
+      "memoryUsage": "248.3MiB / 1GiB",
+      "memoryPercent": "24.24%",
+      "networkIo": "39MB / 43.3MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 226.52,
+      "cpuPercent": "51.30%",
+      "memoryUsage": "248MiB / 1GiB",
+      "memoryPercent": "24.22%",
+      "networkIo": "40.2MB / 44.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 229.81,
+      "cpuPercent": "71.20%",
+      "memoryUsage": "247.6MiB / 1GiB",
+      "memoryPercent": "24.18%",
+      "networkIo": "41.5MB / 46MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 232.9,
+      "cpuPercent": "37.31%",
+      "memoryUsage": "248.4MiB / 1GiB",
+      "memoryPercent": "24.26%",
+      "networkIo": "43.2MB / 47.6MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 236.01,
+      "cpuPercent": "33.50%",
+      "memoryUsage": "248.3MiB / 1GiB",
+      "memoryPercent": "24.25%",
+      "networkIo": "44.9MB / 49.8MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 239.34,
+      "cpuPercent": "35.94%",
+      "memoryUsage": "248.4MiB / 1GiB",
+      "memoryPercent": "24.26%",
+      "networkIo": "46.4MB / 51.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 242.47,
+      "cpuPercent": "43.05%",
+      "memoryUsage": "249MiB / 1GiB",
+      "memoryPercent": "24.32%",
+      "networkIo": "48MB / 53.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 245.59,
+      "cpuPercent": "31.35%",
+      "memoryUsage": "249MiB / 1GiB",
+      "memoryPercent": "24.32%",
+      "networkIo": "49.8MB / 55.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 248.75,
+      "cpuPercent": "66.68%",
+      "memoryUsage": "249MiB / 1GiB",
+      "memoryPercent": "24.31%",
+      "networkIo": "50.6MB / 56.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 251.86,
+      "cpuPercent": "40.03%",
+      "memoryUsage": "249.4MiB / 1GiB",
+      "memoryPercent": "24.35%",
+      "networkIo": "50.7MB / 56.3MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 255.01,
+      "cpuPercent": "83.77%",
+      "memoryUsage": "249.9MiB / 1GiB",
+      "memoryPercent": "24.40%",
+      "networkIo": "50.9MB / 56.7MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 258.12,
+      "cpuPercent": "76.29%",
+      "memoryUsage": "249.8MiB / 1GiB",
+      "memoryPercent": "24.40%",
+      "networkIo": "51.1MB / 57.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 261.26,
+      "cpuPercent": "84.86%",
+      "memoryUsage": "250.4MiB / 1GiB",
+      "memoryPercent": "24.46%",
+      "networkIo": "51.4MB / 57.5MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 264.4,
+      "cpuPercent": "69.69%",
+      "memoryUsage": "250.5MiB / 1GiB",
+      "memoryPercent": "24.46%",
+      "networkIo": "51.5MB / 57.9MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 267.52,
+      "cpuPercent": "71.87%",
+      "memoryUsage": "250.3MiB / 1GiB",
+      "memoryPercent": "24.44%",
+      "networkIo": "51.8MB / 58.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 270.64,
+      "cpuPercent": "72.45%",
+      "memoryUsage": "250.7MiB / 1GiB",
+      "memoryPercent": "24.48%",
+      "networkIo": "52MB / 58.8MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 273.73,
+      "cpuPercent": "78.09%",
+      "memoryUsage": "251.4MiB / 1GiB",
+      "memoryPercent": "24.55%",
+      "networkIo": "52.2MB / 59.3MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 276.83,
+      "cpuPercent": "101.35%",
+      "memoryUsage": "251.1MiB / 1GiB",
+      "memoryPercent": "24.52%",
+      "networkIo": "52.5MB / 59.7MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 280.3,
+      "cpuPercent": "49.65%",
+      "memoryUsage": "251.5MiB / 1GiB",
+      "memoryPercent": "24.56%",
+      "networkIo": "52.7MB / 60.1MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 283.46,
+      "cpuPercent": "107.02%",
+      "memoryUsage": "254.5MiB / 1GiB",
+      "memoryPercent": "24.86%",
+      "networkIo": "53.7MB / 60.2MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 286.7,
+      "cpuPercent": "124.48%",
+      "memoryUsage": "259MiB / 1GiB",
+      "memoryPercent": "25.29%",
+      "networkIo": "55.2MB / 60.2MB",
+      "blockIo": "131kB / 0B",
+      "pids": "41"
+    },
+    {
+      "elapsedSeconds": 289.91,
+      "cpuPercent": "77.84%",
+      "memoryUsage": "255.5MiB / 1GiB",
+      "memoryPercent": "24.95%",
+      "networkIo": "57.1MB / 60.2MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 293.06,
+      "cpuPercent": "125.68%",
+      "memoryUsage": "260.7MiB / 1GiB",
+      "memoryPercent": "25.46%",
+      "networkIo": "58.9MB / 60.2MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 296.2,
+      "cpuPercent": "225.91%",
+      "memoryUsage": "266.2MiB / 1GiB",
+      "memoryPercent": "26.00%",
+      "networkIo": "62.3MB / 60.3MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 299.3,
+      "cpuPercent": "118.07%",
+      "memoryUsage": "265.8MiB / 1GiB",
+      "memoryPercent": "25.95%",
+      "networkIo": "67.2MB / 60.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 302.4,
+      "cpuPercent": "103.85%",
+      "memoryUsage": "266.1MiB / 1GiB",
+      "memoryPercent": "25.99%",
+      "networkIo": "72.6MB / 60.5MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 305.55,
+      "cpuPercent": "92.28%",
+      "memoryUsage": "266.6MiB / 1GiB",
+      "memoryPercent": "26.03%",
+      "networkIo": "78.5MB / 60.6MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 308.65,
+      "cpuPercent": "74.32%",
+      "memoryUsage": "266.6MiB / 1GiB",
+      "memoryPercent": "26.03%",
+      "networkIo": "84.4MB / 60.7MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 311.75,
+      "cpuPercent": "84.52%",
+      "memoryUsage": "266.4MiB / 1GiB",
+      "memoryPercent": "26.02%",
+      "networkIo": "90.6MB / 60.8MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 314.83,
+      "cpuPercent": "132.22%",
+      "memoryUsage": "271.1MiB / 1GiB",
+      "memoryPercent": "26.47%",
+      "networkIo": "97MB / 60.9MB",
+      "blockIo": "131kB / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 317.94,
+      "cpuPercent": "108.56%",
+      "memoryUsage": "266.6MiB / 1GiB",
+      "memoryPercent": "26.03%",
+      "networkIo": "103MB / 61.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 321.04,
+      "cpuPercent": "101.94%",
+      "memoryUsage": "267.1MiB / 1GiB",
+      "memoryPercent": "26.08%",
+      "networkIo": "105MB / 63.3MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 324.14,
+      "cpuPercent": "94.62%",
+      "memoryUsage": "268MiB / 1GiB",
+      "memoryPercent": "26.17%",
+      "networkIo": "108MB / 65.9MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 327.22,
+      "cpuPercent": "51.93%",
+      "memoryUsage": "268.7MiB / 1GiB",
+      "memoryPercent": "26.24%",
+      "networkIo": "110MB / 68.4MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 330.32,
+      "cpuPercent": "48.41%",
+      "memoryUsage": "268.5MiB / 1GiB",
+      "memoryPercent": "26.22%",
+      "networkIo": "113MB / 70.7MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 333.41,
+      "cpuPercent": "68.62%",
+      "memoryUsage": "269.1MiB / 1GiB",
+      "memoryPercent": "26.28%",
+      "networkIo": "115MB / 73.3MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 336.57,
+      "cpuPercent": "149.23%",
+      "memoryUsage": "270.8MiB / 1GiB",
+      "memoryPercent": "26.44%",
+      "networkIo": "124MB / 76MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 339.18,
+      "cpuPercent": "102.14%",
+      "memoryUsage": "275.2MiB / 1GiB",
+      "memoryPercent": "26.87%",
+      "networkIo": "124MB / 76MB",
+      "blockIo": "131kB / 0B",
+      "pids": "34"
+    }
+  ],
+  "interpretation": "One warmed application and one sequential independent client on a shared host. Docker samples include observer overhead; PostgreSQL cumulative statistics update asynchronously. Calendar/task data is synthetic. No capacity, scalability or high-availability claim.",
+  "workload": {
+    "calendarQueryRepresentation": "stored resources; expand=False",
+    "client": "python-caldav",
+    "dataset": {
+      "acceptedResourceBytes": 366905,
+      "collections": 2,
+      "nonRecurringEvents": 200,
+      "recurringResources": 20,
+      "tasks": 50,
+      "undatedTasks": 25,
+      "weeklyInstancesPerRecurringResource": 12
+    },
+    "icalendar": "7.3.0",
+    "interpretation": "One bounded single-client workload; no scalability, high-availability or production sizing claim.",
+    "latencyScope": "End-to-end independent client calls, including serialization, TLS/network, server/database and response parsing",
+    "operations": {
+      "eventCreate": {
+        "count": 200,
+        "maxMs": 620.69,
+        "meanMs": 100.07,
+        "medianMs": 84.44,
+        "p95Ms": 186.77
+      },
+      "eventDelete": {
+        "count": 5,
+        "maxMs": 43.05,
+        "meanMs": 36.05,
+        "medianMs": 37.17,
+        "p95Ms": 43.05
+      },
+      "eventGet": {
+        "count": 20,
+        "maxMs": 32.53,
+        "meanMs": 23.57,
+        "medianMs": 22.03,
+        "p95Ms": 31.89
+      },
+      "eventUpdate": {
+        "count": 10,
+        "maxMs": 50.29,
+        "meanMs": 43.62,
+        "medianMs": 43.2,
+        "p95Ms": 50.29
+      },
+      "incrementalSync": {
+        "count": 1,
+        "maxMs": 114.16,
+        "meanMs": 114.16,
+        "medianMs": 114.16,
+        "p95Ms": 114.16
+      },
+      "initialSync": {
+        "count": 1,
+        "maxMs": 1319.16,
+        "meanMs": 1319.16,
+        "medianMs": 1319.16,
+        "p95Ms": 1319.16
+      },
+      "monthCalendarQuery": {
+        "count": 10,
+        "maxMs": 2732.13,
+        "meanMs": 2055.95,
+        "medianMs": 1917.74,
+        "p95Ms": 2732.13
+      },
+      "recurringEventCreate": {
+        "count": 20,
+        "maxMs": 68.28,
+        "meanMs": 51.43,
+        "medianMs": 52.62,
+        "p95Ms": 64.63
+      },
+      "taskCreate": {
+        "count": 50,
+        "maxMs": 485.51,
+        "meanMs": 56.31,
+        "medianMs": 43.61,
+        "p95Ms": 65.37
+      }
+    },
+    "platform": "Linux x86_64",
+    "python": "3.14.4",
+    "status": "passed",
+    "syncConfiguration": {
+      "allowSyncDepthOne": true,
+      "configurationInput": "setting absent; Compose/application default",
+      "depthOneWithOtherSyncLevelStatus": 400,
+      "observedDepthStatus": {
+        "0": 207,
+        "1": 207,
+        "missing": 207
+      },
+      "verifiedBy": "actual authenticated REPORTs to this collection"
+    },
+    "syncFallbackDisabled": true,
+    "transport": "HTTPS with isolated test-CA validation",
+    "version": "3.6.0"
+  },
+  "packagedIndependentClients": {
+    "python_caldav.py": {
+      "client": "python-caldav",
+      "icalendar": "7.3.0",
+      "operations": [
+        "principal and home discovery",
+        "calendar and VTODO collection creation",
+        "Unicode event CRUD",
+        "unknown-property round trip",
+        "event time-range query",
+        "server recurrence expansion",
+        "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+        "EXDATE exclusion in server expansion",
+        "undated task CRUD and completion",
+        "initial and incremental synchronization",
+        "resource and collection deletion"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting absent; Compose/application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "syncFallbackDisabled": true,
+      "version": "3.6.0"
+    },
+    "thunderbird.py": {
+      "client": "Thunderbird",
+      "crossClient": {
+        "excludedOccurrences": 1,
+        "icalendar": "7.3.0",
+        "nativeDetachedExceptions": 1,
+        "nativeRecurrenceInstances": 3,
+        "python-caldav": "3.6.0",
+        "sameResources": 4
+      },
+      "driver": "3.7.1",
+      "mode": "isolated headless native desktop CalDAV provider",
+      "operations": [
+        "server discovery by native provider",
+        "recurring event CRUD",
+        "Unicode and unknown-property round trip",
+        "alarm preservation without execution",
+        "undated VTODO CRUD and completion",
+        "same-object Thunderbird to Python to Thunderbird to Python edits",
+        "cross-client recurrence, alarm, extension and completion timestamp preservation",
+        "same-resource detached exception identity/time/title edits in both clients",
+        "EXDATE exclusion verified by native occurrence expansion",
+        "all-day DATE and exclusive end preservation across both clients",
+        "floating DATE-TIME preservation across both clients",
+        "native refresh and deletion synchronization"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting absent; Compose/application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "version": "157.0.1"
+    }
+  },
+  "capacity": {
+    "changedResources": 4,
+    "configurationInput": "setting absent; Compose/application default",
+    "continuationReplayVerified": true,
+    "elapsedSeconds": 258.47,
+    "incrementalPages": 1,
+    "initialContentPages": 104,
+    "initialMetadataPages": 104,
+    "largestResponseBytes": 1025238,
+    "pageLimit": 97,
+    "populationMethod": "owned disposable SQL fixture; independently generated valid iCalendar bytes, not a measurement of HTTP bulk create throughput",
+    "propertyStress": {
+      "acceptedPropertiesPerResource": 17,
+      "combinedSelectedPropertyLimitStatus": 507,
+      "concurrentReaders": 3,
+      "growthLimitVerified": true,
+      "healthyAfterLimit": true,
+      "largestPropertyNameResponseBytes": 1384,
+      "largestSmallPropertyResponseBytes": 446,
+      "resources": 12,
+      "valueBytes": 60000
+    },
+    "requests": 462,
+    "responseBytes": 58995075,
+    "restartContinuationVerified": true,
+    "seededCalendarBodyBytes": 46158025,
+    "seededResources": 10037,
+    "selectiveQueryMs": 36830.94,
+    "status": "passed",
+    "syncFallbackDisabled": true,
+    "observationGap": "Docker samples pause during the explicitly controlled JVM restart, then resume after authenticated readiness"
+  },
+  "databaseAfter": {
+    "databaseBytes": 33248959,
+    "resourceTableBytes": 6717440,
+    "commits": 9066,
+    "rollbacks": 8,
+    "blocksRead": 568,
+    "blocksHit": 1552662,
+    "rowsReturned": 9045037,
+    "rowsFetched": 2150748,
+    "rowsInserted": 51051,
+    "rowsUpdated": 1647,
+    "rowsDeleted": 14656,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "finishedAt": "2026-10-28T00:51:32.073230+00:00",
+  "elapsedSeconds": 339.18,
+  "observerErrors": []
+}

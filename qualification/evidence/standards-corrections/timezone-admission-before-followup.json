@@ -1,0 +1,33 @@
+[
+  {
+    "method": "MKCALENDAR",
+    "path": "/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/",
+    "request_body": "",
+    "status": 201,
+    "body": ""
+  },
+  {
+    "method": "PROPPATCH",
+    "path": "/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/",
+    "request_body": "<D:propertyupdate xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><D:set><D:prop><C:calendar-timezone>BEGIN:VCALENDAR&#13;\nVERSION:2.0&#13;\nPRODID:-//Independent admission control//EN&#13;\nBEGIN:VTIMEZONE&#13;\nTZID:AuditRules&#13;\nBEGIN:STANDARD&#13;\nDTSTART:20200101T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0200&#13;\nTZOFFSETTO:+0100&#13;\nEND:STANDARD&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20200601T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=1;UNTIL=20290531T230000Z&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20300301T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nEND:VTIMEZONE&#13;\nEND:VCALENDAR&#13;\n</C:calendar-timezone></D:prop></D:set></D:propertyupdate>",
+    "status": 207,
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://localhost/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/</D:href><D:propstat><D:prop><C:calendar-timezone xmlns:C=\"urn:ietf:params:xml:ns:caldav\"/></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+    "label": "valid"
+  },
+  {
+    "method": "PROPPATCH",
+    "path": "/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/",
+    "request_body": "<D:propertyupdate xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><D:set><D:prop><C:calendar-timezone>BEGIN:VCALENDAR&#13;\nVERSION:2.0&#13;\nPRODID:-//Independent admission control//EN&#13;\nBEGIN:VTIMEZONE&#13;\nTZID:AuditRules&#13;\nBEGIN:STANDARD&#13;\nDTSTART:20200101T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0200&#13;\nTZOFFSETTO:+0100&#13;\nEND:STANDARD&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20200601T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=1;UNTIL=20290531T230000&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20300301T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nEND:VTIMEZONE&#13;\nEND:VCALENDAR&#13;\n</C:calendar-timezone></D:prop></D:set></D:propertyupdate>",
+    "status": 207,
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://localhost/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/</D:href><D:propstat><D:prop><C:calendar-timezone xmlns:C=\"urn:ietf:params:xml:ns:caldav\"/></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+    "label": "floating-until"
+  },
+  {
+    "method": "PROPPATCH",
+    "path": "/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/",
+    "request_body": "<D:propertyupdate xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><D:set><D:prop><C:calendar-timezone>BEGIN:VCALENDAR&#13;\nVERSION:2.0&#13;\nPRODID:-//Independent admission control//EN&#13;\nBEGIN:VTIMEZONE&#13;\nTZID:AuditRules&#13;\nBEGIN:STANDARD&#13;\nDTSTART:20200101T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0200&#13;\nTZOFFSETTO:+0100&#13;\nEND:STANDARD&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20200601T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=1;UNTIL=20290531&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nBEGIN:DAYLIGHT&#13;\nDTSTART:20300301T000000&#13;\nRRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=1&#13;\nTZOFFSETFROM:+0100&#13;\nTZOFFSETTO:+0200&#13;\nEND:DAYLIGHT&#13;\nEND:VTIMEZONE&#13;\nEND:VCALENDAR&#13;\n</C:calendar-timezone></D:prop></D:set></D:propertyupdate>",
+    "status": 207,
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://localhost/dav/calendars/68148d0d-fc88-4ad9-a349-e8d47af0e9ef/audit-timezone-admission/</D:href><D:propstat><D:prop><C:calendar-timezone xmlns:C=\"urn:ietf:params:xml:ns:caldav\"/></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+    "label": "date-until"
+  }
+]

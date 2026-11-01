@@ -1,0 +1,312 @@
+{
+  "status": "passed within explicit Etc/UTC GUI profile; default system-timezone failure separately retained",
+  "version": "157.0.1",
+  "driver": "3.7.1",
+  "guiMode": "isolated headed GUI",
+  "actualCommand": "/tmp/busystack-client-venv/bin/python /tmp/busystack-release-prep/client-setup.py --headed --configure-utc --label 'Release GUI UTC'",
+  "actualExitCode": 0,
+  "timezone": {
+    "method": "Actual Settings > Calendar controls, using owned browser.contentDocument because Preferences browsing context is top-level and omitted from Marionette content handles",
+    "observedUi": {
+      "ui": true,
+      "document": "about:preferences#calendar",
+      "manual": "false",
+      "timezone": "Etc/UTC",
+      "label": "Etc/UTC"
+    },
+    "configuredReadOnlyAssertion": {
+      "useSystem": false,
+      "local": "Etc/UTC",
+      "effective": "Etc/UTC"
+    },
+    "scope": "Explicit UTC client profile; default America/Vancouver invalid-wire rejection retained separately, not silently normalized"
+  },
+  "guiMutations": [
+    "Actual calendar wizard: On the Network; dashboard username/server URL; real masked password prompt; discovered names and Subscribe",
+    "Explicit UTC timezone profile selected; method and GUI limits separately recorded",
+    "Created event through actual editor title/location and Save and Close controls",
+    "Created task through actual editor title/location and Save and Close controls",
+    "Edited event in actual editor, then Save and Close",
+    "Edited task and completed task via status control in actual editor, then Save and Close",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Same private client profile restarted; provider read assertions confirm both unchanged remote resources after actual server restart",
+    "Deleted event through actual editor Delete button and confirmation dialog",
+    "Deleted task through actual editor Delete button and confirmation dialog",
+    "Requested synchronization with the actual Reload Remote Calendars command"
+  ],
+  "resourceMutations": [
+    {
+      "method": "DELETE",
+      "status": 204,
+      "count": 2
+    },
+    {
+      "method": "PUT",
+      "status": 201,
+      "count": 2
+    },
+    {
+      "method": "PUT",
+      "status": 204,
+      "count": 2
+    }
+  ],
+  "nativeReportResponses": 17,
+  "otherNativeStatuses": [
+    {
+      "method": "GET",
+      "status": 200,
+      "count": 1
+    },
+    {
+      "method": "GET",
+      "status": 401,
+      "count": 2
+    },
+    {
+      "method": "HEAD",
+      "status": 200,
+      "count": 1
+    },
+    {
+      "method": "HEAD",
+      "status": 401,
+      "count": 2
+    },
+    {
+      "method": "OPTIONS",
+      "status": 200,
+      "count": 4
+    },
+    {
+      "method": "OPTIONS",
+      "status": 401,
+      "count": 4
+    },
+    {
+      "method": "PROPFIND",
+      "status": 207,
+      "count": 9
+    },
+    {
+      "method": "PROPFIND",
+      "status": 401,
+      "count": 11
+    },
+    {
+      "method": "PUT",
+      "status": 401,
+      "count": 1
+    },
+    {
+      "method": "PUT",
+      "status": 409,
+      "count": 1
+    },
+    {
+      "method": "REPORT",
+      "status": 207,
+      "count": 17
+    }
+  ],
+  "otherStatusExplanation": "401 are actual Basic authentication challenges; PUT409 targets /dav/ during generic provider discovery, not a calendar-object save. All six actual positive resource writes/deletes succeeded.",
+  "independentEvidence": {
+    "reportReads": "Python/icalendar data in GUI report is normalized XML REPORT text; not authoritative-octet proof.",
+    "authoritativeGets": "results/gui-get-before.json equals results/gui-get-after.json resources byte-for-byte, ETag and content type after actual root app restart; raw Base64 included.",
+    "deletions": "results/gui-final-deletion-get.json proves both new UTC resource hrefs404, retained original earlier task200."
+  },
+  "screenshots": {
+    "count": 17,
+    "directory": "/tmp/busystack-release-prep/client-gui",
+    "files": [
+      {
+        "file": "20-thunderbird-network-calendar.png",
+        "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+        "context": "chrome://calendar/content/calendar-creation.xhtml"
+      },
+      {
+        "file": "21-thunderbird-server-address.png",
+        "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+        "context": "chrome://calendar/content/calendar-creation.xhtml"
+      },
+      {
+        "file": "22-thunderbird-credential-prompt.png",
+        "sha256": "1fa7c948565da21655ef0e67d03912d8eb4a24624140a1be5ea04c89794a7cc3",
+        "context": "chrome://global/content/commonDialog.xhtml",
+        "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+      },
+      {
+        "file": "23-thunderbird-discovered-calendars.png",
+        "sha256": "eccd6813a343d05dc7589f1e833959f7784ce4cf45569af4b72fc29819123548",
+        "context": "chrome://calendar/content/calendar-creation.xhtml"
+      },
+      {
+        "file": "24-thunderbird-connected-calendar.png",
+        "sha256": "efded4a826c42e574a2ff3f06cd97baf7e99f7dca39058e54be1ec2ea18e9f8e",
+        "context": "chrome://messenger/content/messenger.xhtml"
+      },
+      {
+        "file": "19-thunderbird-calendar-timezone-utc.png",
+        "sha256": "0be6fff3eb49972c7b565bdb31bd93aac92bf8769c0ebd9b7e8ce255c6bb8a75",
+        "context": "chrome://messenger/content/messenger.xhtml"
+      },
+      {
+        "file": "25-thunderbird-event-editor.png",
+        "sha256": "1df83b12cdb6ff280e3457f0807e36e3dbab5f534aef69ee0a4f874d9b2128a8",
+        "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+      },
+      {
+        "file": "26-thunderbird-task-editor.png",
+        "sha256": "bc98dba63d7f6b89f6f12654e840f4e8280ad178805841824051bfb0af3b8c2a",
+        "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+      },
+      {
+        "file": "27-thunderbird-event-edited.png",
+        "sha256": "60e4f91f679342057e73cde1ff496dc2b7b04a8bc53adc1cc469492cdfe5d41b",
+        "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+      },
+      {
+        "file": "28-thunderbird-task-completed.png",
+        "sha256": "b56c08665f92e875f077f4aa4333731470cd842ce667bee755a3102c13c2a306",
+        "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+      },
+      {
+        "file": "29-thunderbird-before-server-restart.png",
+        "sha256": "abcc1b6c54cd82589be13bba437b408e097eb2bf9da08507ee7f4ad49056ee6d",
+        "context": "chrome://messenger/content/messenger.xhtml"
+      },
+      {
+        "file": "30-thunderbird-after-server-and-client-restart.png",
+        "sha256": "58f9ab032acfe730f46e727af5351bc7f0aacaec7c0b27fe68838569b5198690",
+        "context": "chrome://messenger/content/messenger.xhtml"
+      },
+      {
+        "file": "31-thunderbird-delete-event.png",
+        "sha256": "1eef34348e65eb6bb7816c4017ffb1f5cc8b6f140378bb6146a7cd7a549b53ca",
+        "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+      },
+      {
+        "file": "32-thunderbird-confirm-delete-event.png",
+        "sha256": "3bd955d44eb6131147c6946e9e910e2e8845af78ba7644d22032f77daf68dbd0",
+        "context": "chrome://global/content/commonDialog.xhtml",
+        "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+      },
+      {
+        "file": "33-thunderbird-delete-task.png",
+        "sha256": "9d015f4f81a46599e6bc76559045adcf78f1a14d52fa70e20bb1708e6d6896a1",
+        "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+      },
+      {
+        "file": "34-thunderbird-confirm-delete-task.png",
+        "sha256": "9d3c17889f074e9e1b138fb3591dd2eab0e0d0e123c41d89dd84b32541f34b6c",
+        "context": "chrome://global/content/commonDialog.xhtml",
+        "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+      },
+      {
+        "file": "35-thunderbird-after-deletions.png",
+        "sha256": "03e31719b1eca3b877a32ab3de968da4bb1d539316d5e42ce83653e58d347515",
+        "context": "chrome://messenger/content/messenger.xhtml"
+      }
+    ],
+    "visualInspection": [
+      "21 serverURL",
+      "22 actual empty masked-password prompt/remember checked",
+      "23 discovery names",
+      "24 connected UI",
+      "19 actual Settings manual Etc/UTC",
+      "28 COMPLETED100 editor",
+      "30 event+completed task visible after server/client restart",
+      "35 new objects gone; original prior task still visible"
+    ]
+  },
+  "attempts1Through6": [
+    {
+      "attempt": 1,
+      "status": "failed",
+      "error": "RuntimeError: Timed out: actual DAV password prompt",
+      "disposition": "GUI network fields rendered; fixture incorrectly enumerated password modal through guarded WebDriver commands, timed out before credential entry; no server resource mutation.",
+      "report": "/tmp/busystack-release-prep/client-gui-attempt1/thunderbird-gui-results.json",
+      "log": "/tmp/busystack-release-prep/client-gui-attempt1.log",
+      "source": "/tmp/busystack-release-prep/client-setup-attempt1.py"
+    },
+    {
+      "attempt": 2,
+      "status": "failed",
+      "error": "RuntimeError: Timed out: Thunderbird main window",
+      "disposition": "Actual password prompt/discovery passed; stopped own client when Marionette recommended signon.rememberSignons=false disabled saving despite checked UI; corrected only ordinary explicit user profile preference.",
+      "report": "/tmp/busystack-release-prep/client-gui-attempt2/thunderbird-gui-results.json",
+      "log": "/tmp/busystack-release-prep/client-gui-attempt2.log",
+      "source": "/tmp/busystack-release-prep/client-setup-attempt2.py"
+    },
+    {
+      "attempt": 3,
+      "status": "failed",
+      "error": "RuntimeError: Timed out: editable title",
+      "disposition": "Actual connection/subscription passed; event editor opened; fixture stayed in chrome context after iframe switch and could not locate content title; no server object save.",
+      "report": "/tmp/busystack-release-prep/client-gui-attempt3/thunderbird-gui-results.json",
+      "log": "/tmp/busystack-release-prep/client-gui-attempt3.log",
+      "source": "/tmp/busystack-release-prep/client-setup-attempt3.py"
+    },
+    {
+      "attempt": 4,
+      "status": "failed",
+      "error": "RuntimeError: Timed out: both GUI creations persisted",
+      "disposition": "Actual GUI event and task Save used. Default America/Vancouver event PUT403; task PUT201. Independent both-creations wait failed. Original fresh actual event request captured separately, contains six non-UTC observance UNTILs contrary to RFC5545\u00a73.3.10. No server validation relaxation.",
+      "report": "/tmp/busystack-release-prep/client-gui-attempt4/thunderbird-gui-results.json",
+      "log": "/tmp/busystack-release-prep/client-gui-attempt4.log",
+      "source": "/tmp/busystack-release-prep/client-setup-attempt4.py"
+    },
+    {
+      "attempt": 5,
+      "status": "failed",
+      "error": "RuntimeError: Timed out: actual Thunderbird settings tab",
+      "disposition": "Fixture Settings route assumed content handles; pinned Thunderbird reports none. Actual General Settings rendered; no Calendar category before subscription; no resource mutation.",
+      "report": "/tmp/busystack-release-prep/client-gui-attempt5/thunderbird-gui-results.json",
+      "log": "/tmp/busystack-release-prep/client-gui-attempt5.log",
+      "source": "/tmp/busystack-release-prep/client-setup-attempt5.py"
+    },
+    {
+      "attempt": 6,
+      "status": "failed",
+      "error": "NoSuchFrameException: Unable to locate frame for element: [object XULFrameElement]\nstacktrace:\n\tRemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:8:8\n\tWebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:169:5\n\tNoSuchFrameError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:619:5\n\tswitchToFrame@chrome://remote/content/marionette/actors/MarionetteCommandsChild.sys.mjs:719:15\n\treceiveMessage@chrome://remote/content/marionette/actors/MarionetteCommandsChild.sys.mjs:283:31\n",
+      "disposition": "Fixture attempted switchToFrame for Settings whose browsing context has parent=null, not a child of main. NoSuchFrameError; no resource mutation.",
+      "report": "/tmp/busystack-release-prep/client-gui-attempt6/thunderbird-gui-results.json",
+      "log": "/tmp/busystack-release-prep/client-gui-attempt6.log",
+      "source": "/tmp/busystack-release-prep/client-setup-attempt6.py"
+    }
+  ],
+  "originalDefaultFailure": {
+    "input": "/tmp/busystack-release-prep/client-event-diagnostic/original-gui-event-0.ics",
+    "bytes": 2262,
+    "sha256": "a94e4bf75c6fe3d1a91025714554513fb5b3d91f875320aedd52e309f336b9d0",
+    "nativeResult": "PUT403",
+    "scope": "Actual unmodified GUI upload clone; root owns exact HTTP replay/precondition/normative report. No source data normalized or server checks weakened."
+  },
+  "scopeAndLimits": [
+    "Automated real headed GUI controls, not a person manually using the application. No physical passkey/phone device qualification.",
+    "Explicit Etc/UTC Calendar settings were selected through real GUI; no profile-configuration fallback used in final run.",
+    "The harness also pins marionette port, normal password saving, window editor mode and a local timezone preference for its private automation profile; no client-UI-settings persistence claim is made.",
+    "No provider mutation/registration bypass in positive GUI claim. Provider methods only read/refresh; independent Python only reads.",
+    "The optional default native America/Vancouver invalid-wire incompatibility remains a real demonstrated client limitation, not fixed or hidden by scoped UTC success.",
+    "All private profiles, credential JSON, NSS keys and runtime secrets must be excluded from public/retained distributable evidence."
+  ],
+  "cleanup": {
+    "guiProcessExit": 0,
+    "profileLockAbsent": true,
+    "allOwnedToolSessionsCompleted": true,
+    "applicationRepositoryEditsByThisAgent": false
+  },
+  "filesSha256": {
+    "client-setup-attempt7.py": "498dfcf28d12ed7e199599ccc5bb2ad60191a3845da180d1c91ffcf5282f1881",
+    "gui-get-snapshot.py": "1526ac055d0c36a2a6d1e8ee2ba2fbd4c4e49e6d7fa7a4db83f41134c4c4e870",
+    "gui-event-diagnostic.py": "57fd95d20593c131406ae4108348457ab81e6664085250a47a0920181b6ad506",
+    "verify-gui-deletions.py": "80bf91bc8b28401deccf9ad458990a9b049b463eef9ef0920440fd7de97b9e83",
+    "client-event-diagnostic/original-gui-event-0.ics": "a94e4bf75c6fe3d1a91025714554513fb5b3d91f875320aedd52e309f336b9d0",
+    "client-gui/thunderbird-gui-results.json": "17f42f6e70bfb4f8d2f7a5b15c202cf7eb317460e3a10e61dd7358dcf541b483",
+    "results/gui-get-before.json": "48ac965aa2806dace0ef3876ae085e7a469fbb2bbb663c13dc59a45a00859f1e",
+    "results/gui-get-after.json": "cf95386a31c941b34e871e9a5db5df89a847cccad80b0f5ba9e8eb244cff634c",
+    "results/gui-final-deletion-get.json": "1c713eba44469fb8fdae2c67c7f4d3148c6cf1858e4c22f1ace3ba4c79896899"
+  }
+}

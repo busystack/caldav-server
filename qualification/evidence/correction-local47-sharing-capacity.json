@@ -1,0 +1,52 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-28T00:45:27.472812+00:00",
+  "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+  "memoryLimitBytes": 1073741824,
+  "groups": 500,
+  "collections": 25,
+  "initialGrants": 12500,
+  "population": "Owned isolated SQL fixture; assertions are actual CSRF-protected browser forms",
+  "databaseBefore": "12900031",
+  "remainingGrantsBeforeCleanup": 12474,
+  "browser": {
+    "firstGroup": "2298bc6c-10a9-4773-96e5-84de3336a4ee",
+    "groupName": "Capacity group 0",
+    "initialGrants": 12500,
+    "browserPassed": true,
+    "firstPageRows": 50,
+    "lastPage": 249,
+    "lastPageRows": 50,
+    "removedGroup": "e27240df-f4d2-40ba-ab12-3abf359d4a61"
+  },
+  "elapsedSeconds": 16.17,
+  "containerSamples": [
+    {
+      "elapsedSeconds": 2.06,
+      "memoryUsage": "275.4MiB / 1GiB",
+      "cpuPercent": "115.33%"
+    },
+    {
+      "elapsedSeconds": 5.22,
+      "memoryUsage": "288.5MiB / 1GiB",
+      "cpuPercent": "144.92%"
+    },
+    {
+      "elapsedSeconds": 8.34,
+      "memoryUsage": "288.9MiB / 1GiB",
+      "cpuPercent": "86.80%"
+    },
+    {
+      "elapsedSeconds": 11.52,
+      "memoryUsage": "292.4MiB / 1GiB",
+      "cpuPercent": "83.65%"
+    },
+    {
+      "elapsedSeconds": 14.65,
+      "memoryUsage": "292.2MiB / 1GiB",
+      "cpuPercent": "7.26%"
+    }
+  ],
+  "observerErrors": [],
+  "databaseAfter": "12965567"
+}

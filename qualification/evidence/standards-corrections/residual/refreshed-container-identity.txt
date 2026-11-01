@@ -1,0 +1,6 @@
+317fa67bf5199f04d9b95ed8d4c59ee61ed3a75449c924a731cfdd6336e0df06  /opt/busystack/application.jar
+7380ce48ed5013735d2c8414db54adb8f981e7933ff594bd36f3baccddaafba3  /opt/java/openjdk/bin/java
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
+libbrotli1:amd64	1.2.0-3ubuntu0.1

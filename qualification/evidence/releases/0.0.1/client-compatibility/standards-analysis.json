@@ -1,0 +1,91 @@
+{
+  "type": "Independent read-only developer analysis of exact GUI-generated PUT",
+  "wire": {
+    "path": "/tmp/busystack-release-prep/client-event-diagnostic/original-gui-event-0.ics",
+    "bytes": 2262,
+    "sha256": "a94e4bf75c6fe3d1a91025714554513fb5b3d91f875320aedd52e309f336b9d0",
+    "unchangedOriginalCounterexample": true
+  },
+  "observedViolations": [
+    {
+      "component": "STANDARD",
+      "line": 40,
+      "originalLine": "RRULE:FREQ=YEARLY;BYMONTH=9;BYDAY=-1SU;UNTIL=19610924T020000"
+    },
+    {
+      "component": "DAYLIGHT",
+      "line": 47,
+      "originalLine": "RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=-1SU;UNTIL=19860427T020000"
+    },
+    {
+      "component": "DAYLIGHT",
+      "line": 54,
+      "originalLine": "RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU;UNTIL=20060402T020000"
+    },
+    {
+      "component": "STANDARD",
+      "line": 61,
+      "originalLine": "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU;UNTIL=20061029T020000"
+    },
+    {
+      "component": "DAYLIGHT",
+      "line": 68,
+      "originalLine": "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU;UNTIL=20260308T020000"
+    },
+    {
+      "component": "STANDARD",
+      "line": 75,
+      "originalLine": "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU;UNTIL=20251102T020000"
+    }
+  ],
+  "standards": [
+    {
+      "standard": "RFC5545",
+      "section": "3.3.10",
+      "url": "https://www.rfc-editor.org/rfc/rfc5545.html#section-3.3.10",
+      "requirement": "STANDARD and DAYLIGHT recurrence UNTIL values are required to be in UTC, distinguished by the Z suffix.",
+      "normativeLevel": "MUST",
+      "erratum": {
+        "id": 4414,
+        "recordedStatus": "Verified",
+        "effect": "Removes a separate contradictory general sentence but leaves the observance-specific UTC requirement unchanged.",
+        "url": "https://www.rfc-editor.org/errata/eid4414"
+      }
+    },
+    {
+      "standard": "RFC5545",
+      "section": "3.6.5",
+      "url": "https://www.rfc-editor.org/rfc/rfc5545.html#section-3.6.5",
+      "requirement": "An observance RRULE UNTIL specifies its last valid onset and must be specified in UTC. This separately confirms the observance-specific rule.",
+      "normativeLevel": "MUST"
+    },
+    {
+      "standard": "RFC4791",
+      "section": "5.3.2.1",
+      "url": "https://www.rfc-editor.org/rfc/rfc4791.html#section-5.3.2.1",
+      "requirement": "Submitted calendar object data must be valid iCalendar; CALDAV:valid-calendar-data identifies failure.",
+      "normativeLevel": "MUST"
+    }
+  ],
+  "implementation": {
+    "path": "src/main/java/org/busystack/caldav/calendar/CalendarConstraints.java",
+    "method": "rule",
+    "lines": "87-90",
+    "sameBytesAsAuditedBaselineA919d632": true,
+    "sha256": "21445e5f2a37c3b895e838bb37eacdc4544e24a14f8986ed71a3ce38bb432c0b",
+    "behavior": "Checks UTC form of observance UNTIL before accepting the calendar; local UNTIL is invalid data."
+  },
+  "assessment": "Exact client-generated resource violates the observance UNTIL requirement. Rejection is justified; does not establish a BusyStack implementation defect. Root actual HTTP replay and QName evidence are recorded separately.",
+  "actions": "Preserve rejected bytes/requests and all failed attempts. Test an actual user-selectable UTC timezone through the native client UI; document the observed regional-timezone client limitation. Do not normalize wire bytes or relax server validation.",
+  "verificationLimits": [
+    "Static source/normative analysis only by this agent; no builds, Docker, application mutation, reconstructed fixture or HTTP replay.",
+    "No claim that all regional-zone data or all resources from this client are invalid.",
+    "Archived errata record is retained; official inline-errata page was consulted separately."
+  ],
+  "officialErrataVerification": {
+    "informationalRendering": "https://www.rfc-editor.org/rfc/inline-errata/rfc5545.html",
+    "observed": "Official rendering lists EID4414 among Verified errata. Rendering is explicitly informational; normative interpretation comes from the published RFC and the archived verified-erratum record.",
+    "directErratumEndpoint": "https://www.rfc-editor.org/errata/eid4414",
+    "directFetchLimitation": "Tool redirected to errata.rfc-editor.org, which was inaccessible via this browsing tool; do not claim direct fetch succeeded."
+  }
+}

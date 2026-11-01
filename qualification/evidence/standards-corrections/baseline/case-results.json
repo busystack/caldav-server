@@ -1,0 +1,24 @@
+[
+  {
+    "label": "valid-lowercase-delimiters",
+    "method": "PUT",
+    "path": "/dav/calendars/8eb08940-c2ff-4060-8954-e77084c9aa20/audit-events/valid-lowercase-delimiters.ics",
+    "request_body": "begin:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//IndependentAudit//EN\r\nbegin:VEVENT\r\nUID:valid-lowercase-delimiters\r\nDTSTAMP:20261027T000000Z\r\nDTSTART:20261027T120000Z\r\nend:VEVENT\r\nend:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 403,
+    "headers": {
+      "X-Request-ID": "83e65130-eef0-4d93-902e-af3b770ca3e7",
+      "Date": "Wed, 28 Oct 2026 03:54:00 GMT",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Content-Type": "application/xml;charset=utf-8",
+      "Content-Length": "152"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><D:error xmlns:D=\"DAV:\"><C:valid-calendar-data xmlns:C=\"urn:ietf:params:xml:ns:caldav\"/></D:error>"
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "calendarOriginalRequests": 21,
+  "invalidOriginalPuts": 4,
+  "invalidOriginalGets": 4,
+  "invalidResult": "403 valid-calendar-data and404, no accepted malformed resource",
+  "validOriginalPuts": 4,
+  "validOriginalGets": 4,
+  "validResult": "201/200 exactbytes",
+  "originalNineConditionalReplacements": "9pass;403valid-calendar-data,bytes/etag/syncunchanged",
+  "authRealSignedJourney": "valid refresh empty200, omitted200; PKCE/consent and signed passkey negatives retained",
+  "invalidRefreshWire": {
+    "omitted": {
+      "status": 400,
+      "error": "invalid_grant"
+    },
+    "empty": {
+      "status": 400,
+      "error": "invalid_grant"
+    },
+    "nonempty": {
+      "status": 401,
+      "error": "invalid_client"
+    },
+    "duplicate-nonempty": {
+      "status": 400,
+      "error": "invalid_request"
+    }
+  },
+  "tls": "Normal CA and hostname verification, no bypass",
+  "storage": "Fresh isolated pinned PostgreSQL tmpfs; credentials generated privately and excluded"
+}

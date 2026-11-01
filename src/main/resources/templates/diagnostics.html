@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Server diagnostics · BusyStack</title><link rel="stylesheet" th:href="@{/assets/account.css}"></head><body><main>
+<h1>Server diagnostics</h1><p><a th:href="@{/admin}">Administration</a> · <a th:href="@{/}">Account</a></p>
+<h2>Deployment</h2><dl><dt>Public base URL</dt><dd th:text="${baseUrl}"></dd><dt>OAuth issuer</dt><dd th:text="${issuer}"></dd><dt>Java</dt><dd th:text="${javaVersion}"></dd><dt>PostgreSQL</dt><dd th:text="${databaseVersion}"></dd><dt>Applied database migration</dt><dd th:text="${migration}"></dd></dl>
+<h2>Durable state</h2><dl><dt>Enabled accounts</dt><dd th:text="${enabledAccounts}"></dd><dt>Collections</dt><dd th:text="${collections}"></dd><dt>Calendar resources</dt><dd th:text="${resources}"></dd></dl>
+<h2>HTTP since this application started</h2><dl><dt>Completed requests</dt><dd th:text="${requests}"></dd><dt>Server errors</dt><dd th:text="${serverErrors}"></dd><dt>Mean duration, milliseconds</dt><dd th:text="${meanMillis}"></dd><dt>Recent maximum duration, milliseconds</dt><dd th:text="${maxMillis}"></dd></dl>
+<p>Request logs contain server-generated correlation identifiers, endpoint categories, methods, status codes and duration. Use the response’s X-Request-ID when investigating a failed request. These aggregate counters reset on restart.</p>
+</main></body></html>

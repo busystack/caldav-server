@@ -1,0 +1,86 @@
+[
+  {
+    "command": [
+      "python3",
+      "qualification/passkeys/run.py",
+      "--application-image",
+      "busystack-caldav:standards-58f279a",
+      "--groups"
+    ],
+    "exitCode": 0,
+    "log": "browser-default.log",
+    "status": "passed"
+  },
+  {
+    "command": [
+      "python3",
+      "qualification/passkeys/run.py",
+      "--application-image",
+      "busystack-caldav:standards-58f279a",
+      "--groups",
+      "--strict-sync-depth"
+    ],
+    "exitCode": 0,
+    "log": "browser-strict.log",
+    "status": "passed"
+  },
+  {
+    "command": [
+      "python3",
+      "qualification/passkeys/run.py",
+      "--application-image",
+      "busystack-caldav:standards-58f279a",
+      "--proxy",
+      "--groups"
+    ],
+    "exitCode": 0,
+    "log": "browser-proxy.log",
+    "status": "passed"
+  },
+  {
+    "command": [
+      "python3",
+      "qualification/passkeys/run.py",
+      "--application-image",
+      "busystack-caldav:standards-58f279a",
+      "--oidc",
+      "--groups"
+    ],
+    "exitCode": 0,
+    "log": "browser-oidc.log",
+    "status": "passed"
+  },
+  {
+    "command": [
+      "python3",
+      "qualification/passkeys/run.py",
+      "--application-image",
+      "busystack-caldav:standards-58f279a",
+      "--proxy",
+      "--groups",
+      "--restore",
+      "--clients",
+      "--client-python",
+      "/tmp/busystack-client-venv/bin/python",
+      "--thunderbird-binary",
+      "/tmp/busystack-thunderbird-official/thunderbird/thunderbird"
+    ],
+    "exitCode": 0,
+    "log": "browser-local-restore.log",
+    "status": "passed"
+  },
+  {
+    "command": [
+      "python3",
+      "qualification/passkeys/run.py",
+      "--application-image",
+      "busystack-caldav:standards-58f279a",
+      "--oidc",
+      "--groups",
+      "--restore"
+    ],
+    "exitCode": 0,
+    "log": "browser-oidc-restore.log",
+    "status": "passed"
+  }
+]

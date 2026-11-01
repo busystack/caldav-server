@@ -1,0 +1,415 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-28T00:41:54.612590+00:00",
+  "applicationImage": "sha256:50ee8e4787b39dfbc0b2549f4f0d614eb6888996024155ecc02a1fac9876d219",
+  "applicationMemoryLimitBytes": 1073741824,
+  "applicationNanoCpuLimit": 0,
+  "jvmHeap": {
+    "containerMemoryLimitBytes": 1073741824,
+    "applicationJvmCommand": [
+      "java",
+      "-XX:MaxRAMPercentage=70.0",
+      "-Djava.io.tmpdir=/tmp",
+      "-jar",
+      "/opt/busystack/application.jar"
+    ],
+    "configuredMaxRAMPercentage": "70.0",
+    "source": "actual owned-container jcmd PID1 VM.flags",
+    "maxHeapBytes": 752877568,
+    "vmFlags": "1:\n-XX:-AOTInvokeDynamicLinking -XX:-AOTRecordTraining -XX:-AOTReplayTraining -XX:CICompilerCount=3 -XX:InitialHeapSize=16777216 -XX:-IntelJccErratumMitigation -XX:MaxHeapSize=752877568 -XX:MaxNewSize=250937344 -XX:MaxRAM=1073741824 -XX:MaxRAMPercentage=70.000000 -XX:MinHeapDeltaBytes=196608 -XX:MinHeapSize=8388608 -XX:NewSize=5570560 -XX:NonNMethodCodeHeapSize=5836800 -XX:NonProfiledCodeHeapSize=122912768 -XX:ProfiledCodeHeapSize=122912768 -XX:ReservedCodeCacheSize=251662336 -XX:+SegmentedCodeCache -XX:SoftMaxHeapSize=752877568 -XX:+UseCompressedOops -XX:+UseSerialGC -XX:X86ICacheSync=3"
+  },
+  "host": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "kernel": "6.17.0-1022-azure",
+    "logicalCpus": 4,
+    "loadAverage": [
+      3.03955078125,
+      2.28173828125,
+      1.37939453125
+    ],
+    "affinityCpuCount": 4,
+    "cpuModel": "AMD EPYC 7763 64-Core Processor",
+    "memoryBytes": 16766406656
+  },
+  "postgresVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "dockerVersion": "28.0.4",
+  "databaseBefore": {
+    "databaseBytes": 13121215,
+    "resourceTableBytes": 49152,
+    "commits": 3214,
+    "rollbacks": 3,
+    "blocksRead": 559,
+    "blocksHit": 494605,
+    "rowsReturned": 335552,
+    "rowsFetched": 172252,
+    "rowsInserted": 16995,
+    "rowsUpdated": 543,
+    "rowsDeleted": 13705,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "containerSamples": [
+    {
+      "elapsedSeconds": 1.52,
+      "cpuPercent": "0.04%",
+      "memoryUsage": "269.9MiB / 1GiB",
+      "memoryPercent": "26.35%",
+      "networkIo": "2.76MB / 3.7MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 3.53,
+      "cpuPercent": "188.79%",
+      "memoryUsage": "287.1MiB / 1GiB",
+      "memoryPercent": "28.04%",
+      "networkIo": "3.37MB / 4.3MB",
+      "blockIo": "0B / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 7.05,
+      "cpuPercent": "168.46%",
+      "memoryUsage": "318.2MiB / 1GiB",
+      "memoryPercent": "31.07%",
+      "networkIo": "6.73MB / 7.82MB",
+      "blockIo": "0B / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 10.57,
+      "cpuPercent": "159.68%",
+      "memoryUsage": "333.2MiB / 1GiB",
+      "memoryPercent": "32.54%",
+      "networkIo": "12MB / 13.4MB",
+      "blockIo": "0B / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 14.1,
+      "cpuPercent": "97.60%",
+      "memoryUsage": "336.1MiB / 1GiB",
+      "memoryPercent": "32.82%",
+      "networkIo": "12.7MB / 14.5MB",
+      "blockIo": "0B / 0B",
+      "pids": "39"
+    },
+    {
+      "elapsedSeconds": 25.62,
+      "cpuPercent": "110.63%",
+      "memoryUsage": "237.5MiB / 1GiB",
+      "memoryPercent": "23.20%",
+      "networkIo": "5.95MB / 6.08MB",
+      "blockIo": "0B / 0B",
+      "pids": "36"
+    },
+    {
+      "elapsedSeconds": 29.14,
+      "cpuPercent": "89.22%",
+      "memoryUsage": "240.9MiB / 1GiB",
+      "memoryPercent": "23.53%",
+      "networkIo": "15.8MB / 17.5MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 32.67,
+      "cpuPercent": "66.79%",
+      "memoryUsage": "243.2MiB / 1GiB",
+      "memoryPercent": "23.75%",
+      "networkIo": "27.1MB / 30.1MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 36.19,
+      "cpuPercent": "45.44%",
+      "memoryUsage": "249.6MiB / 1GiB",
+      "memoryPercent": "24.37%",
+      "networkIo": "38.4MB / 42.6MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 39.71,
+      "cpuPercent": "43.53%",
+      "memoryUsage": "244MiB / 1GiB",
+      "memoryPercent": "23.83%",
+      "networkIo": "50.2MB / 55.7MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 43.23,
+      "cpuPercent": "109.95%",
+      "memoryUsage": "250.2MiB / 1GiB",
+      "memoryPercent": "24.44%",
+      "networkIo": "52MB / 59.1MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 46.76,
+      "cpuPercent": "220.44%",
+      "memoryUsage": "280.8MiB / 1GiB",
+      "memoryPercent": "27.42%",
+      "networkIo": "65.9MB / 60.3MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 50.28,
+      "cpuPercent": "149.87%",
+      "memoryUsage": "275.4MiB / 1GiB",
+      "memoryPercent": "26.89%",
+      "networkIo": "103MB / 61.5MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 53.8,
+      "cpuPercent": "59.63%",
+      "memoryUsage": "279.2MiB / 1GiB",
+      "memoryPercent": "27.27%",
+      "networkIo": "124MB / 76MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 55.81,
+      "cpuPercent": "0.04%",
+      "memoryUsage": "279.2MiB / 1GiB",
+      "memoryPercent": "27.27%",
+      "networkIo": "124MB / 76MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    }
+  ],
+  "interpretation": "One warmed application and one sequential independent client on a shared host. Docker samples include observer overhead; PostgreSQL cumulative statistics update asynchronously. Calendar/task data is synthetic. No capacity, scalability or high-availability claim.",
+  "workload": {
+    "calendarQueryRepresentation": "stored resources; expand=False",
+    "client": "python-caldav",
+    "dataset": {
+      "acceptedResourceBytes": 366905,
+      "collections": 2,
+      "nonRecurringEvents": 200,
+      "recurringResources": 20,
+      "tasks": 50,
+      "undatedTasks": 25,
+      "weeklyInstancesPerRecurringResource": 12
+    },
+    "icalendar": "7.3.0",
+    "interpretation": "One bounded single-client workload; no scalability, high-availability or production sizing claim.",
+    "latencyScope": "End-to-end independent client calls, including serialization, TLS/network, server/database and response parsing",
+    "operations": {
+      "eventCreate": {
+        "count": 200,
+        "maxMs": 28.03,
+        "meanMs": 11.63,
+        "medianMs": 10.66,
+        "p95Ms": 17.67
+      },
+      "eventDelete": {
+        "count": 5,
+        "maxMs": 6.9,
+        "meanMs": 5.57,
+        "medianMs": 5.25,
+        "p95Ms": 6.9
+      },
+      "eventGet": {
+        "count": 20,
+        "maxMs": 5.8,
+        "meanMs": 4.92,
+        "medianMs": 4.92,
+        "p95Ms": 5.72
+      },
+      "eventUpdate": {
+        "count": 10,
+        "maxMs": 9.72,
+        "meanMs": 7.52,
+        "medianMs": 7.2,
+        "p95Ms": 9.72
+      },
+      "incrementalSync": {
+        "count": 1,
+        "maxMs": 24.29,
+        "meanMs": 24.29,
+        "medianMs": 24.29,
+        "p95Ms": 24.29
+      },
+      "initialSync": {
+        "count": 1,
+        "maxMs": 223.12,
+        "meanMs": 223.12,
+        "medianMs": 223.12,
+        "p95Ms": 223.12
+      },
+      "monthCalendarQuery": {
+        "count": 10,
+        "maxMs": 601.09,
+        "meanMs": 442.26,
+        "medianMs": 415.22,
+        "p95Ms": 601.09
+      },
+      "recurringEventCreate": {
+        "count": 20,
+        "maxMs": 19.82,
+        "meanMs": 9.96,
+        "medianMs": 8.81,
+        "p95Ms": 12.26
+      },
+      "taskCreate": {
+        "count": 50,
+        "maxMs": 21.69,
+        "meanMs": 9.41,
+        "medianMs": 8.61,
+        "p95Ms": 17.08
+      }
+    },
+    "platform": "Linux x86_64",
+    "python": "3.12.3",
+    "status": "passed",
+    "syncConfiguration": {
+      "allowSyncDepthOne": true,
+      "configurationInput": "setting absent; Compose/application default",
+      "depthOneWithOtherSyncLevelStatus": 400,
+      "observedDepthStatus": {
+        "0": 207,
+        "1": 207,
+        "missing": 207
+      },
+      "verifiedBy": "actual authenticated REPORTs to this collection"
+    },
+    "syncFallbackDisabled": true,
+    "transport": "HTTPS with isolated test-CA validation",
+    "version": "3.6.0"
+  },
+  "packagedIndependentClients": {
+    "python_caldav.py": {
+      "client": "python-caldav",
+      "icalendar": "7.3.0",
+      "operations": [
+        "principal and home discovery",
+        "calendar and VTODO collection creation",
+        "Unicode event CRUD",
+        "unknown-property round trip",
+        "event time-range query",
+        "server recurrence expansion",
+        "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+        "EXDATE exclusion in server expansion",
+        "undated task CRUD and completion",
+        "initial and incremental synchronization",
+        "resource and collection deletion"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting absent; Compose/application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "syncFallbackDisabled": true,
+      "version": "3.6.0"
+    },
+    "thunderbird.py": {
+      "client": "Thunderbird",
+      "crossClient": {
+        "excludedOccurrences": 1,
+        "icalendar": "7.3.0",
+        "nativeDetachedExceptions": 1,
+        "nativeRecurrenceInstances": 3,
+        "python-caldav": "3.6.0",
+        "sameResources": 4
+      },
+      "driver": "3.7.1",
+      "mode": "isolated headless native desktop CalDAV provider",
+      "operations": [
+        "server discovery by native provider",
+        "recurring event CRUD",
+        "Unicode and unknown-property round trip",
+        "alarm preservation without execution",
+        "undated VTODO CRUD and completion",
+        "same-object Thunderbird to Python to Thunderbird to Python edits",
+        "cross-client recurrence, alarm, extension and completion timestamp preservation",
+        "same-resource detached exception identity/time/title edits in both clients",
+        "EXDATE exclusion verified by native occurrence expansion",
+        "all-day DATE and exclusive end preservation across both clients",
+        "floating DATE-TIME preservation across both clients",
+        "native refresh and deletion synchronization"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting absent; Compose/application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "version": "157.0.1"
+    }
+  },
+  "capacity": {
+    "changedResources": 4,
+    "configurationInput": "setting absent; Compose/application default",
+    "continuationReplayVerified": true,
+    "elapsedSeconds": 37.28,
+    "incrementalPages": 1,
+    "initialContentPages": 104,
+    "initialMetadataPages": 104,
+    "largestResponseBytes": 1025238,
+    "pageLimit": 97,
+    "populationMethod": "owned disposable SQL fixture; independently generated valid iCalendar bytes, not a measurement of HTTP bulk create throughput",
+    "propertyStress": {
+      "acceptedPropertiesPerResource": 17,
+      "combinedSelectedPropertyLimitStatus": 507,
+      "concurrentReaders": 3,
+      "growthLimitVerified": true,
+      "healthyAfterLimit": true,
+      "largestPropertyNameResponseBytes": 1384,
+      "largestSmallPropertyResponseBytes": 446,
+      "resources": 12,
+      "valueBytes": 60000
+    },
+    "requests": 462,
+    "responseBytes": 58995075,
+    "restartContinuationVerified": true,
+    "seededCalendarBodyBytes": 46158025,
+    "seededResources": 10037,
+    "selectiveQueryMs": 5961.62,
+    "status": "passed",
+    "syncFallbackDisabled": true,
+    "observationGap": "Docker samples pause during the explicitly controlled JVM restart, then resume after authenticated readiness"
+  },
+  "databaseAfter": {
+    "databaseBytes": 36402879,
+    "resourceTableBytes": 7675904,
+    "commits": 8422,
+    "rollbacks": 7,
+    "blocksRead": 567,
+    "blocksHit": 1600790,
+    "rowsReturned": 8382276,
+    "rowsFetched": 1742614,
+    "rowsInserted": 50968,
+    "rowsUpdated": 1576,
+    "rowsDeleted": 14656,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "finishedAt": "2026-10-28T00:42:50.956402+00:00",
+  "elapsedSeconds": 55.81,
+  "observerErrors": []
+}

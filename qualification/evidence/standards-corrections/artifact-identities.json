@@ -1,0 +1,10 @@
+{
+  "imageReference": "busystack-caldav:standards-58f279a",
+  "imageId": "sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c",
+  "sourceRevision": "58f279ad83abcd0011a1dd84589b9dc6c70f8d05",
+  "hostJarSha256": "d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da",
+  "containerJarSha256": "d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da",
+  "identity": "byte-identical JAR",
+  "runtimeSourceTree": "aa53f2166d2a1d2075f0da06d6d9b745fd3e6f48",
+  "pomSha256": "14befda6e75a7e0645f8ccd98608665e33dab202b90c3483b7827c847267458d"
+}

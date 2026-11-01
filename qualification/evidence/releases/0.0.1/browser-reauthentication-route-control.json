@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "purpose": "Runtime control for the extra failed local browser reauthentication step",
+  "account": "releaseuser",
+  "observedSettingsRedirect": "https://localhost:55049/login?factor=required",
+  "http": [
+    {
+      "path": "/login",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/login",
+      "status": 302,
+      "method": "POST"
+    },
+    {
+      "path": "/security/passkeys",
+      "status": 302,
+      "method": "GET"
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "method": "GET"
+    }
+  ],
+  "requiredButton": "Verify passkey on /login",
+  "missingButton": "Verify passkey to complete MFA is a settings-page button and unavailable before MFA",
+  "interpretation": "The original helper navigated to protected settings before its existing passkey factor was refreshed. This runtime control establishes that route redirects to login and the helper selector is unsuitable. It does not recreate the discarded original virtual authenticator or claim the original failed script passed.",
+  "remainingCheck": "Fresh final CI retains its original virtual authenticator and exercises the proper /login persistent-passkey path. Local first script remains a failed run with passed first-use and session/collection/credential restart assertions before the extra step."
+}

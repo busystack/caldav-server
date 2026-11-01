@@ -1,0 +1,1818 @@
+{
+  "schemaVersion": 1,
+  "scope": "INTERMEDIATE correction qualification for d2e1344; not release completion or a whole-CI pass",
+  "recordedAtUtc": "2026-10-28T00:10:40.736792+00:00",
+  "sourceRevision": "d2e13441899ace16a76116f172c93fc86c448fa3",
+  "branch": "release/v0.0.1",
+  "overallStatus": "failed deployment-capacity qualification after successful suites and several packaged profiles; correction and final requalification required",
+  "ci": {
+    "repository": "busystack/caldav-server",
+    "runId": 40604299813,
+    "url": "https://github.com/busystack/caldav-server/actions/runs/40604299813",
+    "applicationJobId": 122539843243,
+    "applicationJobConclusion": "failure",
+    "dependencyAuditJobId": 122539842897,
+    "dependencyAuditJobConclusion": "success",
+    "metadataSource": "GitHub Actions API job/artifact metadata fetched through the GitHub connector on record date. Step success establishes only that step, not the entire run.",
+    "jobs": [
+      {
+        "id": 122539842897,
+        "name": "dependency-audit",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 40604299813,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Install the exact pinned Temurin JDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Generate runtime inventory and verify advisory gate failure behavior",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Verify known-vulnerable package is detected",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Check runtime dependencies against current OSV advisories",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Additional NVD audit when feed credential is configured",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Retain dependency audit",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Post Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          }
+        ]
+      },
+      {
+        "id": 122539843243,
+        "name": "application",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_id": 40604299813,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Install the exact pinned Temurin JDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Install pinned independent CalDAV client test dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Require Docker and run unit and integration suites",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Build deployable container",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Inspect actual source, JAR and container license delivery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Scan final container OS packages with a pinned scanner and current database",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Verify packaged startup, restart, and database recovery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Verify qualification refresh and private snapshot bookkeeping",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Build isolated browser qualification image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Verify browser WebAuthn and MFA over trusted test TLS",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Verify explicit strict synchronization override over real HTTPS",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Verify HTTPS reverse proxy with preserved servlet path",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Build disposable real Keycloak browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Verify cross-site organization login and local passkey MFA",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Verify HTTPS local account recovery after restoring an older database",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 17
+          },
+          {
+            "name": "Verify HTTPS federated recovery against the same real upstream provider",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 18
+          },
+          {
+            "name": "Retain qualification evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Post Run actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 38
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 39
+          }
+        ]
+      }
+    ],
+    "applicationCommandBlocksFromActualJobLog": [
+      {
+        "startedAt": "2026-10-27T23:45:42.0563507Z",
+        "commands": [
+          "bash scripts/install-ci-jdk.sh"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:45:50.7737223Z",
+        "commands": [
+          "python3 -m venv .client-venv",
+          ".client-venv/bin/python -m pip install --disable-pip-version-check --no-cache-dir -r qualification/clients/requirements.txt -r qualification/clients/desktop-requirements.txt",
+          "bash qualification/clients/install-thunderbird.sh .client-tools"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:46:06.0353479Z",
+        "commands": [
+          "docker info > /dev/null",
+          "./mvnw --batch-mode --no-transfer-progress verify",
+          "./mvnw --batch-mode --no-transfer-progress -f investigation/protocol/pom.xml -s investigation/protocol/settings.xml test",
+          "./mvnw --batch-mode --no-transfer-progress -f investigation/oauth/pom.xml test"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:51:02.9360643Z",
+        "commands": [
+          "docker build --build-arg SOURCE_REVISION=\"$GITHUB_SHA\" --tag busystack-caldav:ci .",
+          "docker image inspect --format '{{.Id}}' busystack-caldav:ci | tee target/application-image-id.txt",
+          "host_jar_sha=$(sha256sum target/caldav-server-0.0.1-SNAPSHOT.jar)",
+          "image_jar_sha=$(docker run --rm --entrypoint sha256sum busystack-caldav:ci /opt/busystack/application.jar)",
+          "test \"${host_jar_sha%% *}\" = \"${image_jar_sha%% *}\"",
+          "printf '%s\\n' \"${host_jar_sha%% *}\" > target/application-jar-sha256.txt"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:52:15.4070235Z",
+        "commands": [
+          "python3 -m unittest discover -s qualification/distribution -p 'test_*.py'",
+          "python3 scripts/verify-distribution.py --image busystack-caldav:ci"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:52:16.8537053Z",
+        "commands": [
+          "python3 scripts/check-container-advisories.py --image busystack-caldav:ci"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:52:29.6525580Z",
+        "commands": [
+          "python3 scripts/verify-operations.py --image busystack-caldav:ci | tee target/operations-qualification.txt"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:55:41.2662962Z",
+        "commands": [
+          "python3 -m unittest discover -s qualification/passkeys -p 'test_*.py'"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:55:41.3622466Z",
+        "commands": [
+          "docker build --tag busystack-passkey-browser:qualification qualification/passkeys"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:56:16.2178277Z",
+        "commands": [
+          "python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --groups | tee target/browser-qualification.txt"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:56:48.1244113Z",
+        "commands": [
+          "python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --groups --strict-sync-depth | tee target/strict-browser-qualification.txt"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:57:20.9063351Z",
+        "commands": [
+          "python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups | tee target/proxy-qualification.txt"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:57:54.2359524Z",
+        "commands": [
+          "docker build --tag busystack-keycloak-browser:26.8.1 qualification/keycloak"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:57:56.0334580Z",
+        "commands": [
+          "python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc --groups | tee target/oidc-browser-qualification.txt"
+        ]
+      },
+      {
+        "startedAt": "2026-10-27T23:58:54.0026148Z",
+        "commands": [
+          "python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups --restore --workload | tee target/https-restore-qualification.txt"
+        ]
+      }
+    ]
+  },
+  "downloadedArtifact": {
+    "id": 12780328645,
+    "name": "application-evidence",
+    "archive": {
+      "path": "/tmp/busystack-correction-ci-attempt1.zip",
+      "bytes": 465930,
+      "sha256": "8c7e7bad03a7265895e512f42d54741f67fa798b87f36c83235b224e53b7d20c"
+    },
+    "githubDigest": "sha256:8c7e7bad03a7265895e512f42d54741f67fa798b87f36c83235b224e53b7d20c",
+    "createdAtUtc": "2026-10-28T00:00:03Z",
+    "expiresAtUtc": "2026-11-11T00:00:02Z",
+    "workflowHeadSha": "d2e13441899ace16a76116f172c93fc86c448fa3",
+    "verification": "The downloaded archive SHA-256 and byte length agree with GitHub artifact metadata. Individual report entry hashes below refer to its uncompressed bytes."
+  },
+  "artifactIdentity": {
+    "imageId": "sha256:7536f21a47a0fe541d00aaf71db0e669b94ee49d22db0162aed14077f551bc7f",
+    "jarSha256": "5ae79d31089a46789e04824301649df7150cb148adaee6ffbe590d7183371180",
+    "sourceArchiveSha256": "27bb8b97cc13bfc2a311790e800e635277445e648d767cd36d9d790fe02e1963",
+    "sourceRevision": "d2e13441899ace16a76116f172c93fc86c448fa3",
+    "projectLicense": [
+      {
+        "license": {
+          "id": "Apache-2.0"
+        }
+      }
+    ],
+    "distributionStatus": "passed",
+    "distributionReport": {
+      "artifactEntry": "target/qualification/distribution.json",
+      "bytes": 25961,
+      "sha256": "b5436066d0d79f93390c23f35a60dfba206b0e81e54881b187eb12e8a0944df5"
+    },
+    "hostAndContainerJarMatch": true,
+    "imageLicenseLabel": "Apache-2.0",
+    "jdkLegalDirectory": "/opt/java/openjdk/legal",
+    "osLicenseDirectory": "/usr/share/doc",
+    "runtimeComponents": 112,
+    "qualificationLimit": "These identities belong to this intermediate source. A later capacity correction requires rebuilt artifacts and updated qualification."
+  },
+  "ciJavaSuites": {
+    "status": "passed",
+    "unit": {
+      "reports": 31,
+      "totals": {
+        "tests": 161,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "classes": [
+        {
+          "name": "org.busystack.caldav.calendar.CalendarContentTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.135,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarContentTest.xml",
+            "bytes": 38392,
+            "sha256": "b13ef1a50c668a806fef6ab2911e49328533a464d8a6f208686de4e86a148b5f"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarDuplicateRecurrenceTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.016,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarDuplicateRecurrenceTest.xml",
+            "bytes": 38021,
+            "sha256": "2cb789c6a350c1689864ff8357299a4b6610c924757134d6b2dfec7a8b30beb0"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarEdgeSemanticsTest",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.114,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarEdgeSemanticsTest.xml",
+            "bytes": 39772,
+            "sha256": "d4b495dd718bbc208d6309bd9aa91fdf8c553fe3d1929a8093e11e7c8db522e0"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarErrataTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.232,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarErrataTest.xml",
+            "bytes": 38141,
+            "sha256": "fdc123079394db1ece9e56f7d0e35440d30b673773aceeec36b23906e04d7569"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarFreeBusySourcesTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.022,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarFreeBusySourcesTest.xml",
+            "bytes": 37984,
+            "sha256": "8775bf59997e88ef5bb6f6bb233e55b0e1cbadb2c0158b2bbdea19bb8a86f1eb"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarParameterSemanticsTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.013,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarParameterSemanticsTest.xml",
+            "bytes": 38650,
+            "sha256": "bd221a370f53321bb028b4b88ddd8189bc596f67d61f0033a97a470380649b86"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarExpansionSemanticsTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.2,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarExpansionSemanticsTest.xml",
+            "bytes": 38712,
+            "sha256": "2b5a3df99a1ad974bcca34e2cc4a8d1ba6807d2d104558863026d8988c74d4d5"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarSemanticsTest",
+          "tests": 26,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.146,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarSemanticsTest.xml",
+            "bytes": 41802,
+            "sha256": "5cf97d714b8c19bde457ff4d68c101c29b2e5190f7df44eafc227f55e97f954a"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTextProfileTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.006,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTextProfileTest.xml",
+            "bytes": 38007,
+            "sha256": "996c36e168f20af5eadb5c2f9128a6c9caca38720aa6131ecade805acbe4c28b"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTimezoneCoverageTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.23,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTimezoneCoverageTest.xml",
+            "bytes": 39018,
+            "sha256": "98a08a4b4c5dcfeb9da47cc968b3e8f8d8b6cd92a46d3a907d5e9c34e23e382e"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTimezoneRdateTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.027,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTimezoneRdateTest.xml",
+            "bytes": 39061,
+            "sha256": "589d152ba86b2f74e3d362dd5afd8ad2d51ae77b061423014bd57d3f495452fe"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.CalendarTimezoneRequirementTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.01,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.CalendarTimezoneRequirementTest.xml",
+            "bytes": 38197,
+            "sha256": "344f0d104af43753dbb47f97dddff3c3566a279582f9f45b539bff71525a513f"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.ThunderbirdCalendarFixturesTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.014,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.ThunderbirdCalendarFixturesTest.xml",
+            "bytes": 38008,
+            "sha256": "08d8db28937f98c460a860b590b2f65a3e053b173865285daf505a9a817867e8"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.calendar.query.CalendarDataProjectionTest",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.096,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.calendar.query.CalendarDataProjectionTest.xml",
+            "bytes": 39390,
+            "sha256": "9b699329a84210deabadb0d7a53d6d7f9dd185298db7daf20ed9f7ddf3528438"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.config.DavCompatibilityPropertiesTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.107,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.config.DavCompatibilityPropertiesTest.xml",
+            "bytes": 38117,
+            "sha256": "45087e4a4488ecc8537338f6eeb2fa8e62a67968c78f54aec4b4acb58a3b5040"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.config.DeploymentPropertiesTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.003,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.config.DeploymentPropertiesTest.xml",
+            "bytes": 38075,
+            "sha256": "f4fb96d9d949fc89a452f4dc72307dea4b07810b83f6715ca59fe4996dd6c21d"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavPathsTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.004,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.protocol.DavPathsTest.xml",
+            "bytes": 37949,
+            "sha256": "a97182722d1142939e483ae150d12ab179ccbe4ffdddc57788e47454d590629c"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavXmlConstructionTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.102,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.protocol.DavXmlConstructionTest.xml",
+            "bytes": 38320,
+            "sha256": "dd427acc171f613de57d533d9e1b96f16d0cbd49d21d41b9bff8ab8efcdec2f2"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavXmlTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.156,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.protocol.DavXmlTest.xml",
+            "bytes": 38080,
+            "sha256": "74d1db72e99d2a1d34ddddcc87da104998a7b2a4db8038c55c547c8d4b5f3776"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.HttpConditionsTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.014,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.protocol.HttpConditionsTest.xml",
+            "bytes": 38441,
+            "sha256": "ccd181899ceb556ea66ec34aedad99ff2440e2a22fdecdbc28f41689149924e1"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.HttpDateValuesTest",
+          "tests": 22,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.092,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.protocol.HttpDateValuesTest.xml",
+            "bytes": 40954,
+            "sha256": "9abffe27dcfabed366972f4656a7b9725d159bdfcbe2a64d14f3266885440d42"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.DavOriginFilterTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.01,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.DavOriginFilterTest.xml",
+            "bytes": 37983,
+            "sha256": "e84cecb7f2161fe27fb9801ca11358116165cbcb66c24c1feb28fb180c81ab6b"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.DavSecretVerifierTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.005,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.DavSecretVerifierTest.xml",
+            "bytes": 37849,
+            "sha256": "602393362153937015f6abfed753b3a19646c9481ca19cb62c37363c97ff46bd"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.RecentAuthenticationTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.005,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.RecentAuthenticationTest.xml",
+            "bytes": 37945,
+            "sha256": "c3ed5080069a067e0a6a6bc347d1a4bf241625ac3ee7bde3b9acd068738bd508"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.LinkingAuthorizationRequestResolverTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.032,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.oidc.LinkingAuthorizationRequestResolverTest.xml",
+            "bytes": 38237,
+            "sha256": "a282d4602611428ab3dd8384103f7c83f77b266b62daabd094672b3cca83bfd6"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.OidcPropertiesTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.002,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.oidc.OidcPropertiesTest.xml",
+            "bytes": 37842,
+            "sha256": "7589bbf517e0bfc07535eda20c887a5e4defc45e2c4db47fcf13a316cb42d109"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.passkey.PasskeyCeremonyGuardTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.828,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.passkey.PasskeyCeremonyGuardTest.xml",
+            "bytes": 39185,
+            "sha256": "a7aec6ce3366804c5cb2522327026422d21940bbbecc29e2024d09881ea16ce3"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.password.PasswordPolicyTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.007,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.security.password.PasswordPolicyTest.xml",
+            "bytes": 37836,
+            "sha256": "e21d3ad9c26e09498c4864a773324ed97be4612b9bc0f5618eafe13cd3f7366e"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.storage.DavNamespaceTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.007,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.storage.DavNamespaceTest.xml",
+            "bytes": 37979,
+            "sha256": "9266829a5faf4778cfe8d384bcef01605e2cd1494829080ed527058fc8ada4b7"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.storage.WriteConditionTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.018,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.storage.WriteConditionTest.xml",
+            "bytes": 38279,
+            "sha256": "e334872b72dd85ddaff4325de82d04a370663ad5bcae9ff98afc1934e1600d89"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.xml.XmlCharactersTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.004,
+          "report": {
+            "artifactEntry": "target/surefire-reports/TEST-org.busystack.caldav.xml.XmlCharactersTest.xml",
+            "bytes": 37960,
+            "sha256": "b88303f24433d8759fc800e787a859a2c7808d9613d2a9d144ad4bd8cdea22ec"
+          }
+        }
+      ]
+    },
+    "integration": {
+      "reports": 16,
+      "totals": {
+        "tests": 173,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "classes": [
+        {
+          "name": "org.busystack.caldav.protocol.DavHttpIT",
+          "tests": 45,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 39.271,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.protocol.DavHttpIT.xml",
+            "bytes": 165689,
+            "sha256": "a2ea5c36d8f0df89568fec9b7648d43d39c4d1bf5deb74f4daadd787632dec48"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.DavPropertyBoundsIT",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 7.561,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.protocol.DavPropertyBoundsIT.xml",
+            "bytes": 59732,
+            "sha256": "1358eecb9f37e787eddb2b4486aa7df9c270aa811cd53a9ccca5408900736204"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.protocol.IndependentClientIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 7.04,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.protocol.IndependentClientIT.xml",
+            "bytes": 77846,
+            "sha256": "d65d21d93b7cd0b44f8eb1aa2ca8d85f2d50126963f24ce8117949de6da10ecf"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.DavCredentialIT",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.926,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.DavCredentialIT.xml",
+            "bytes": 47335,
+            "sha256": "a0f13ad70662fd83cb73a73f038fb10392ec4944002a95f070e4b7980ae0b2cf"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.SecurityBoundaryIT",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.686,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.SecurityBoundaryIT.xml",
+            "bytes": 55639,
+            "sha256": "696bcaf00d593966dfb0b208044a14d76896e56cdc81952ff8946766d4738e00"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.oauth.OAuthHttpIT",
+          "tests": 16,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 11.518,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.oauth.OAuthHttpIT.xml",
+            "bytes": 64423,
+            "sha256": "8fdf2bf7ad9b561b2ad93fd06f82ce1630da35a066cc1e3f6727f4af1942ed50"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.oauth.RefreshFamilyStoreIT",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 4.231,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.oauth.RefreshFamilyStoreIT.xml",
+            "bytes": 48726,
+            "sha256": "2b32de4e7e7fd9e16c674a08336c2b453cf4ec9adfeaf4941db6e47be8d2afc2"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.ExternalIdentityIT",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.48,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.oidc.ExternalIdentityIT.xml",
+            "bytes": 47561,
+            "sha256": "cbf7939365d5d85afc48394bf48e527438080f7eefdd2c3af2bcafd331a67949"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.oidc.KeycloakOidcIT",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 49.375,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.oidc.KeycloakOidcIT.xml",
+            "bytes": 60114,
+            "sha256": "3244cee03f5a4a354eb00e416c4ef99e2718def574b2be9847322e32f4af8080"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.passkey.PasskeyPersistenceIT",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.539,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.passkey.PasskeyPersistenceIT.xml",
+            "bytes": 47825,
+            "sha256": "1251d34a45ca05a61040fc2fa3b603b716d35dc39eb8943217510fbc2759e0f5"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.security.session.AccountSecurityWorkflowsIT",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 15.208,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.security.session.AccountSecurityWorkflowsIT.xml",
+            "bytes": 58900,
+            "sha256": "63f4c83ffab98c80faa05696476107e9d22754dfdb5e1e7f51626529a6612629"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.sharing.GroupServiceIT",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 14.69,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.sharing.GroupServiceIT.xml",
+            "bytes": 49397,
+            "sha256": "65f50f2947a3375253fd51b91d75ef12e7eed9f4bf2e374393b5f651da97fc6b"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.storage.CalendarStoreIT",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 20.284,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.storage.CalendarStoreIT.xml",
+            "bytes": 58412,
+            "sha256": "b989305caecb4d4725150e50e0468b57106de8dde00279997d27e3c3ef6e5a87"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.storage.DavStoreIT",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 15.667,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.storage.DavStoreIT.xml",
+            "bytes": 49881,
+            "sha256": "d946cfe2943736f60ccb5f87bbdb27ef50e6d80ca92431b7c960efa859fd2a3f"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.storage.SyncPagingIT",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 13.38,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.storage.SyncPagingIT.xml",
+            "bytes": 54418,
+            "sha256": "f89e8cb8fea64a28421df2ec51f84549b60c9bde7d41cf257d49d87e923ee195"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.testing.ContainerIsolationIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.338,
+          "report": {
+            "artifactEntry": "target/failsafe-reports/TEST-org.busystack.caldav.testing.ContainerIsolationIT.xml",
+            "bytes": 39957,
+            "sha256": "ca58044f325ba832f908f00649c45eace931a7ebe0d0620d4b57f870de9f9c17"
+          }
+        }
+      ]
+    },
+    "protocolInvestigation": {
+      "reports": 1,
+      "totals": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "classes": [
+        {
+          "name": "org.busystack.caldav.investigation.BedeworkHttpTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.916,
+          "report": {
+            "artifactEntry": "investigation/protocol/target/surefire-reports/TEST-org.busystack.caldav.investigation.BedeworkHttpTest.xml",
+            "bytes": 29772,
+            "sha256": "af892e8acb0094ac7ab1fbfd85a924217e44931d6aa51eda66412f208157d600"
+          }
+        }
+      ]
+    },
+    "oauthInvestigation": {
+      "reports": 2,
+      "totals": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "classes": [
+        {
+          "name": "org.busystack.caldav.investigation.CustomizedRefreshRiskTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.633,
+          "report": {
+            "artifactEntry": "investigation/oauth/target/surefire-reports/TEST-org.busystack.caldav.investigation.CustomizedRefreshRiskTest.xml",
+            "bytes": 22867,
+            "sha256": "8c145fa6380debad4ceb2d0cf997132c3cd74147502b5c0281b1e0fcbadd5976"
+          }
+        },
+        {
+          "name": "org.busystack.caldav.investigation.NativeOAuthRiskTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.651,
+          "report": {
+            "artifactEntry": "investigation/oauth/target/surefire-reports/TEST-org.busystack.caldav.investigation.NativeOAuthRiskTest.xml",
+            "bytes": 22566,
+            "sha256": "0655a44f19ad0eedcad924a324b99f945bdf42518df862b8a31c5d32ff07a339"
+          }
+        }
+      ]
+    },
+    "aggregateMethod": "Sum tests/failures/errors/skipped attributes of each TEST-*.xml in its exact ZIP subtree. Investigation reports are separate from application totals."
+  },
+  "localFullVerification": {
+    "status": "passed intermediate suite, not overall packaged qualification",
+    "log": {
+      "path": "/tmp/busystack-correction-final-verify2.log",
+      "bytes": 358983,
+      "sha256": "85167901a465a6f1e2c1c8ef95a4c77eeab277729f90097f6c3abda57ba3e1be"
+    },
+    "finishedAtUtc": "2026-10-28T00:08:06Z",
+    "command": "./mvnw -B -ntp clean verify",
+    "commandProvenance": "Parent execution record; the Maven log preserves plugin lifecycle, test summaries and final BUILD SUCCESS.",
+    "sourceRevision": "d2e13441899ace16a76116f172c93fc86c448fa3",
+    "unit": {
+      "tests": 161,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "integration": {
+      "tests": 173,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "spotbugs": {
+      "bugInstances": 0,
+      "errors": 0,
+      "result": "No errors/warnings found"
+    },
+    "jarSha256": "5ae79d31089a46789e04824301649df7150cb148adaee6ffbe590d7183371180",
+    "matchesCiJar": true
+  },
+  "packagedOperations": {
+    "status": "passed",
+    "report": {
+      "artifactEntry": "target/operations-qualification.txt",
+      "bytes": 1743,
+      "sha256": "c010f8211e08f995abaa907d834b534e6716fdfd50bc7dabf6dcaf9c11994b0a"
+    },
+    "profiles": [
+      "same-version schema V13",
+      "restore V9 then startup upgrade to V13"
+    ],
+    "unsupportedHistoryRejected": [
+      "future",
+      "failed",
+      "gap",
+      "duplicate",
+      "missing-v1"
+    ],
+    "passLines": [
+      "PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).",
+      "PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch)."
+    ],
+    "scopeLimit": [
+      "Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.",
+      "Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients."
+    ]
+  },
+  "browserProfiles": [
+    {
+      "report": {
+        "artifactEntry": "target/browser-qualification.txt",
+        "bytes": 1341,
+        "sha256": "588fd618cfd76cd646a7d84adfbf1484718af8a673be039c984ecd58f0b0588a"
+      },
+      "status": "passed",
+      "profile": "embedded-tls",
+      "syncConfiguration": {
+        "configurationInput": "setting absent; Compose/application default",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": true
+      },
+      "executedPassMarkers": [
+        "PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED",
+        "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED",
+        "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED",
+        "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED",
+        "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED",
+        "PERSISTED_BROWSER_SESSION_AFTER_RESTART_PASSED",
+        "PERSISTED_PASSKEY_AFTER_RESTART_PASSED",
+        "DISABLED_SESSION_AND_PASSKEY_PASSED"
+      ],
+      "authenticationEnvironment": {
+        "Playwright": "1.61.1",
+        "Chromium": "149.0.7827.55",
+        "authenticator": "Chromium virtual CTAP2; not a physical security key or manual account-wizard test"
+      },
+      "restore": "unexecuted in this profile"
+    },
+    {
+      "report": {
+        "artifactEntry": "target/strict-browser-qualification.txt",
+        "bytes": 1316,
+        "sha256": "ce3d8e47b7078785f211154221bf84cfad112c39f1bd16a95b26445fe7b9eb54"
+      },
+      "status": "passed",
+      "profile": "embedded-tls",
+      "syncConfiguration": {
+        "configurationInput": "explicit false strict override",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 400,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": false
+      },
+      "executedPassMarkers": [
+        "PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED",
+        "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED",
+        "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED",
+        "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED",
+        "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED",
+        "PERSISTED_BROWSER_SESSION_AFTER_RESTART_PASSED",
+        "PERSISTED_PASSKEY_AFTER_RESTART_PASSED",
+        "DISABLED_SESSION_AND_PASSKEY_PASSED"
+      ],
+      "authenticationEnvironment": {
+        "Playwright": "1.61.1",
+        "Chromium": "149.0.7827.55",
+        "authenticator": "Chromium virtual CTAP2; not a physical security key or manual account-wizard test"
+      },
+      "restore": "unexecuted in this profile"
+    },
+    {
+      "report": {
+        "artifactEntry": "target/proxy-qualification.txt",
+        "bytes": 1408,
+        "sha256": "6deb7761a631f4ae610a6234a76717a49d7c396eefe37300b09e2adac035b7a6"
+      },
+      "status": "passed",
+      "profile": "proxy-team",
+      "syncConfiguration": {
+        "configurationInput": "setting absent; Compose/application default",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": true
+      },
+      "executedPassMarkers": [
+        "PROXY_TEAM_DISCOVERY_METADATA_PRIVACY_METHODS_AND_BODY_LIMITS_PASSED",
+        "PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED",
+        "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED",
+        "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED",
+        "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED",
+        "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED",
+        "PERSISTED_BROWSER_SESSION_AFTER_RESTART_PASSED",
+        "PERSISTED_PASSKEY_AFTER_RESTART_PASSED",
+        "DISABLED_SESSION_AND_PASSKEY_PASSED"
+      ],
+      "authenticationEnvironment": {
+        "Playwright": "1.61.1",
+        "Chromium": "149.0.7827.55",
+        "authenticator": "Chromium virtual CTAP2; not a physical security key or manual account-wizard test"
+      },
+      "restore": "unexecuted in this profile"
+    },
+    {
+      "report": {
+        "artifactEntry": "target/oidc-browser-qualification.txt",
+        "bytes": 1560,
+        "sha256": "058a46185ae68930baf98b79f22c731aa48300601bcb8a0dee1a145fab4e796c"
+      },
+      "status": "passed",
+      "profile": "proxy-cross-site-oidc",
+      "syncConfiguration": {
+        "configurationInput": "setting absent; Compose/application default",
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "allowSyncDepthOne": true
+      },
+      "executedPassMarkers": [
+        "PROXY_TEAM_DISCOVERY_METADATA_PRIVACY_METHODS_AND_BODY_LIMITS_PASSED",
+        "PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED",
+        "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED",
+        "CROSS_SITE_ORGANIZATION_PLUS_PASSKEY_AND_NONADMIN_PROVISIONING_PASSED",
+        "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED",
+        "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED",
+        "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED",
+        "PERSISTED_BROWSER_SESSION_AFTER_RESTART_PASSED",
+        "PERSISTED_PASSKEY_AFTER_RESTART_PASSED",
+        "DISABLED_SESSION_AND_PASSKEY_PASSED"
+      ],
+      "authenticationEnvironment": {
+        "Playwright": "1.61.1",
+        "Chromium": "149.0.7827.55",
+        "authenticator": "Chromium virtual CTAP2; not a physical security key or manual account-wizard test"
+      },
+      "restore": "unexecuted in this profile"
+    }
+  ],
+  "packagedSharingCapacity": {
+    "status": "passed",
+    "report": {
+      "artifactEntry": "target/qualification/sharing-capacity.json",
+      "bytes": 964,
+      "sha256": "727e55c941608fdedd34fa6b76985ac384af9687aff743b096d713ed916bca31"
+    },
+    "imageId": "sha256:7536f21a47a0fe541d00aaf71db0e669b94ee49d22db0162aed14077f551bc7f",
+    "groups": 500,
+    "collections": 25,
+    "initialGrants": 12500,
+    "memoryLimitBytes": 1073741824,
+    "elapsedSeconds": 1.78,
+    "browser": {
+      "firstGroup": "26809b9a-1c53-4ac7-9fe3-d74f19c8ec95",
+      "groupName": "Capacity group 0",
+      "initialGrants": 12500,
+      "browserPassed": true,
+      "firstPageRows": 50,
+      "lastPage": 249,
+      "lastPageRows": 50,
+      "removedGroup": "e79c23e2-103e-47a6-aeb4-eb682c5732d2"
+    },
+    "containerSamples": [
+      {
+        "elapsedSeconds": 1.68,
+        "memoryUsage": "283.8MiB / 1GiB",
+        "cpuPercent": "155.93%"
+      }
+    ],
+    "scope": "Actual CSRF-protected browser listing, last page, revocation, member update and group deletion over the owned 12,500-grant fixture; unrelated to whether the subsequent restore profile completed."
+  },
+  "workloadBeforeFailure": {
+    "status": "failed",
+    "report": {
+      "artifactEntry": "target/qualification/workload.json",
+      "bytes": 10083,
+      "sha256": "b657396d5cea1a83cbf3db719024ccf6491afab1a0436c14956ebfc80801ccb6"
+    },
+    "smallWorkloadStatus": "passed",
+    "smallWorkloadDataset": {
+      "acceptedResourceBytes": 366905,
+      "collections": 2,
+      "nonRecurringEvents": 200,
+      "recurringResources": 20,
+      "tasks": 50,
+      "undatedTasks": 25,
+      "weeklyInstancesPerRecurringResource": 12
+    },
+    "smallWorkloadOperations": {
+      "eventCreate": {
+        "count": 200,
+        "maxMs": 19.04,
+        "meanMs": 7.77,
+        "medianMs": 7.09,
+        "p95Ms": 12.23
+      },
+      "eventDelete": {
+        "count": 5,
+        "maxMs": 6.45,
+        "meanMs": 6.09,
+        "medianMs": 5.94,
+        "p95Ms": 6.45
+      },
+      "eventGet": {
+        "count": 20,
+        "maxMs": 6.33,
+        "meanMs": 4.42,
+        "medianMs": 4.28,
+        "p95Ms": 5.48
+      },
+      "eventUpdate": {
+        "count": 10,
+        "maxMs": 8.5,
+        "meanMs": 6.6,
+        "medianMs": 6.61,
+        "p95Ms": 8.5
+      },
+      "incrementalSync": {
+        "count": 1,
+        "maxMs": 17.59,
+        "meanMs": 17.59,
+        "medianMs": 17.59,
+        "p95Ms": 17.59
+      },
+      "initialSync": {
+        "count": 1,
+        "maxMs": 130.22,
+        "meanMs": 130.22,
+        "medianMs": 130.22,
+        "p95Ms": 130.22
+      },
+      "monthCalendarQuery": {
+        "count": 10,
+        "maxMs": 372.3,
+        "meanMs": 248.37,
+        "medianMs": 228.38,
+        "p95Ms": 372.3
+      },
+      "recurringEventCreate": {
+        "count": 20,
+        "maxMs": 16.6,
+        "meanMs": 8.52,
+        "medianMs": 8.74,
+        "p95Ms": 10.01
+      },
+      "taskCreate": {
+        "count": 50,
+        "maxMs": 29.71,
+        "meanMs": 7.65,
+        "medianMs": 6.45,
+        "p95Ms": 11.66
+      }
+    },
+    "durationSeconds": 34.15,
+    "host": {
+      "system": "Linux",
+      "architecture": "x86_64",
+      "kernel": "6.17.0-1022-azure",
+      "logicalCpus": 4,
+      "loadAverage": [
+        2.3076171875,
+        1.66357421875,
+        0.96826171875
+      ],
+      "affinityCpuCount": 4,
+      "cpuModel": "AMD EPYC 9V45 96-Core Processor",
+      "memoryBytes": 16766414848
+    },
+    "jvmHeap": {
+      "containerMemoryLimitBytes": 1073741824,
+      "applicationJvmCommand": [
+        "java",
+        "-XX:MaxRAMPercentage=70.0",
+        "-Djava.io.tmpdir=/tmp",
+        "-jar",
+        "/opt/busystack/application.jar"
+      ],
+      "configuredMaxRAMPercentage": "70.0",
+      "source": "actual owned-container jcmd PID1 VM.flags",
+      "maxHeapBytes": 752877568,
+      "vmFlags": "1:\n-XX:-AOTInvokeDynamicLinking -XX:-AOTRecordTraining -XX:-AOTReplayTraining -XX:CICompilerCount=3 -XX:InitialHeapSize=16777216 -XX:-IntelJccErratumMitigation -XX:MaxHeapSize=752877568 -XX:MaxNewSize=250937344 -XX:MaxRAM=1073741824 -XX:MaxRAMPercentage=70.000000 -XX:MinHeapDeltaBytes=196608 -XX:MinHeapSize=8388608 -XX:NewSize=5570560 -XX:NonNMethodCodeHeapSize=5836800 -XX:NonProfiledCodeHeapSize=122912768 -XX:ProfiledCodeHeapSize=122912768 -XX:ReservedCodeCacheSize=251662336 -XX:+SegmentedCodeCache -XX:SoftMaxHeapSize=752877568 -XX:+UseCompressedOops -XX:+UseSerialGC -XX:X86ICacheSync=3"
+    },
+    "postgresVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+    "containerSamples": [
+      {
+        "elapsedSeconds": 1.51,
+        "cpuPercent": "0.05%",
+        "memoryUsage": "286.4MiB / 1GiB",
+        "memoryPercent": "27.97%",
+        "networkIo": "2.76MB / 3.7MB",
+        "blockIo": "0B / 0B",
+        "pids": "36"
+      },
+      {
+        "elapsedSeconds": 3.52,
+        "cpuPercent": "148.19%",
+        "memoryUsage": "294.3MiB / 1GiB",
+        "memoryPercent": "28.74%",
+        "networkIo": "3.85MB / 4.76MB",
+        "blockIo": "0B / 0B",
+        "pids": "36"
+      },
+      {
+        "elapsedSeconds": 7.04,
+        "cpuPercent": "120.56%",
+        "memoryUsage": "304.4MiB / 1GiB",
+        "memoryPercent": "29.72%",
+        "networkIo": "11.3MB / 13.1MB",
+        "blockIo": "0B / 0B",
+        "pids": "36"
+      },
+      {
+        "elapsedSeconds": 10.56,
+        "cpuPercent": "89.01%",
+        "memoryUsage": "310.7MiB / 1GiB",
+        "memoryPercent": "30.34%",
+        "networkIo": "12.8MB / 14.7MB",
+        "blockIo": "0B / 0B",
+        "pids": "39"
+      },
+      {
+        "elapsedSeconds": 18.08,
+        "cpuPercent": "121.91%",
+        "memoryUsage": "242.8MiB / 1GiB",
+        "memoryPercent": "23.71%",
+        "networkIo": "6.47MB / 7.15MB",
+        "blockIo": "0B / 0B",
+        "pids": "36"
+      },
+      {
+        "elapsedSeconds": 21.6,
+        "cpuPercent": "73.09%",
+        "memoryUsage": "248.3MiB / 1GiB",
+        "memoryPercent": "24.25%",
+        "networkIo": "25.1MB / 27.9MB",
+        "blockIo": "0B / 0B",
+        "pids": "34"
+      },
+      {
+        "elapsedSeconds": 25.12,
+        "cpuPercent": "63.22%",
+        "memoryUsage": "242.7MiB / 1GiB",
+        "memoryPercent": "23.70%",
+        "networkIo": "46.7MB / 51.9MB",
+        "blockIo": "0B / 0B",
+        "pids": "34"
+      },
+      {
+        "elapsedSeconds": 28.63,
+        "cpuPercent": "144.14%",
+        "memoryUsage": "248.1MiB / 1GiB",
+        "memoryPercent": "24.23%",
+        "networkIo": "53.5MB / 60.1MB",
+        "blockIo": "0B / 0B",
+        "pids": "35"
+      },
+      {
+        "elapsedSeconds": 32.15,
+        "cpuPercent": "131.17%",
+        "memoryUsage": "267.5MiB / 1GiB",
+        "memoryPercent": "26.12%",
+        "networkIo": "103MB / 61.1MB",
+        "blockIo": "0B / 0B",
+        "pids": "35"
+      },
+      {
+        "elapsedSeconds": 34.15,
+        "cpuPercent": "0.57%",
+        "memoryUsage": "267.4MiB / 1GiB",
+        "memoryPercent": "26.12%",
+        "networkIo": "103MB / 61.1MB",
+        "blockIo": "0B / 0B",
+        "pids": "34"
+      }
+    ],
+    "scope": "The small sequential independent-client workload and packaged client checks completed. The report remains failed because the mandatory larger capacity function did not complete. It contains no completed capacity result."
+  },
+  "failedLocalHttpsRestoreWorkloadProfile": {
+    "status": "failed",
+    "report": {
+      "artifactEntry": "target/https-restore-qualification.txt",
+      "bytes": 1619,
+      "sha256": "77c34816a72700996b63e8e3eaf168fbaf26ac28f5caf2c750bd00ad135c494c"
+    },
+    "command": "python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups --restore --workload | tee target/https-restore-qualification.txt",
+    "reachedMarkers": [
+      "BROWSER_APPLICATION_IMAGE=sha256:7536f21a47a0fe541d00aaf71db0e669b94ee49d22db0162aed14077f551bc7f",
+      "BROWSER_FIXTURE_IMAGE=sha256:b3ee1f5788d7b42e63c769ef711a41400a378dd9f92841d362d4b9c749d8c245",
+      "BROWSER_PROFILE=proxy-team",
+      "BROWSER_GROUP_WORKFLOW=required",
+      "HTTPS_RESTORE_WORKFLOW=required",
+      "DAV_SYNC_DEPTH_INPUT=setting absent; Compose/application default",
+      "PROXY_TEAM_DISCOVERY_METADATA_PRIVACY_METHODS_AND_BODY_LIMITS_PASSED",
+      "PLAYWRIGHT_VERSION=1.61.1",
+      "CHROMIUM_VERSION=149.0.7827.55",
+      "PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED",
+      "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED",
+      "BROWSER_CONSENT_WITHOUT_CSRF_REJECTED",
+      "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED",
+      "DAV_SYNC_CONFIGURATION={\"configurationInput\":\"setting absent; Compose/application default\",\"observedDepthStatus\":{\"0\":207,\"1\":207,\"missing\":207},\"depthOneWithOtherSyncLevelStatus\":400,\"allowSyncDepthOne\":true}",
+      "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED",
+      "BROWSER_CONSENT_WITHOUT_CSRF_REJECTED",
+      "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED",
+      "BROWSER_CONSENT_WITHOUT_CSRF_REJECTED",
+      "READY_CAPACITY_SHARING",
+      "BROWSER_12500_GRANTS_PAGINATION_REVOCATION_MEMBERSHIP_AND_GROUP_DELETE_PASSED",
+      "READY_CAPACITY_SHARING_CLEANUP",
+      "PACKAGED_SHARING_CAPACITY_BROWSER_MANAGEMENT_PASSED artifact=/home/runner/work/caldav-server/caldav-server/target/qualification/sharing-capacity.json",
+      "READY_RESTORE_BACKUP",
+      "HTTPS_INHERITED_XML_LANGUAGE_MIXED_CONTENT_MKCALENDAR_PROPPATCH_COPY_MOVE_PASSED",
+      "FINAL_PACKAGED_PYTHON_AND_THUNDERBIRD_CLIENTS_PASSED",
+      "WORKLOAD_OBSERVATION elapsedSeconds=34.15 memory=267.4MiB / 1GiB cpu=0.57%"
+    ],
+    "failureStage": "pre-backup independent capacity traversal, before the HTTPS backup/restoration workflow completed",
+    "exception": "AssertionError",
+    "source": "qualification/clients/capacity.py",
+    "line": 113,
+    "assertion": "assert status==207;assert len(XML.fromstring(body).findall(D+'response'))==1",
+    "failedSubexpression": "status==207 (traceback caret points to first assertion)",
+    "actualHttpStatus": null,
+    "actualResponseBody": null,
+    "diagnosticLimit": "The retained assertion traceback reports neither the actual HTTP status nor its response body. Do not infer 507, 503 or another status from this run.",
+    "capacityProgressBeforeFailure": {
+      "basis": "Control-flow inference from the exact d2e1344 capacity.py source and the traceback reaching line 113; not a separately emitted completed capacity report.",
+      "initialResources": 10037,
+      "initialBodyBytes": "greater than 32 MiB assertion reached and passed",
+      "contentAndMetadataContinuation": "both completed before selective query",
+      "concurrentChanges": "updates twice to one href, deletion, delete/recreate, and insertion across name boundaries asserted in later delta",
+      "retryAndRestart": "continuation replay and restart checks precede the failed query",
+      "query": "one-day calendar-query requesting getetag; non-207 response at line 113",
+      "notReached": "subsequent many-property constrained response/concurrent HTTP stress section and final capacity completion report",
+      "sourceSha256": "c6688cbe54f3e60fcd9421e105688ad96d34b6cb4a214785c0250f12aac98274"
+    },
+    "tracebackExcerpt": [
+      "2026-10-28T00:00:02.0255473Z   File \"/home/runner/work/caldav-server/caldav-server/qualification/passkeys/run.py\", line 246, in main",
+      "2026-10-28T00:00:02.0255949Z     checkpoint.backup(environment)",
+      "2026-10-28T00:00:02.0256412Z   File \"/home/runner/work/caldav-server/caldav-server/qualification/passkeys/recovery.py\", line 77, in backup",
+      "2026-10-28T00:00:02.0257077Z     workload_measurement.observe(self, environment, self.workload['python'], self.workload['output'])",
+      "2026-10-28T00:00:02.0257768Z   File \"/home/runner/work/caldav-server/caldav-server/qualification/passkeys/workload_measurement.py\", line 146, in observe",
+      "2026-10-28T00:00:02.0258411Z     metadata['capacity'] = capacity(checkpoint, environment, python, variables, restarting)",
+      "2026-10-28T00:00:02.0259237Z                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+      "2026-10-28T00:00:02.0259774Z   File \"/home/runner/work/caldav-server/caldav-server/qualification/passkeys/workload_measurement.py\", line 226, in capacity",
+      "2026-10-28T00:00:02.0260385Z     raise RuntimeError('Required independent capacity traversal failed: '+error)",
+      "2026-10-28T00:00:02.0260927Z RuntimeError: Required independent capacity traversal failed: Traceback (most recent call last):",
+      "2026-10-28T00:00:02.0261546Z   File \"/home/runner/work/caldav-server/caldav-server/qualification/clients/capacity.py\", line 154, in <module>",
+      "2026-10-28T00:00:02.0261994Z     if __name__=='__main__':main()",
+      "2026-10-28T00:00:02.0262204Z                             ^^^^^^",
+      "2026-10-28T00:00:02.0262610Z   File \"/home/runner/work/caldav-server/caldav-server/qualification/clients/capacity.py\", line 113, in main",
+      "2026-10-28T00:00:02.0263142Z     assert status==207;assert len(XML.fromstring(body).findall(D+'response'))==1",
+      "2026-10-28T00:00:02.0263468Z            ^^^^^^^^^^^",
+      "2026-10-28T00:00:02.0263651Z AssertionError",
+      "2026-10-28T00:00:02.0263758Z ",
+      "2026-10-28T00:00:02.0411443Z ##[error]Process completed with exit code 1.",
+      "2026-10-28T00:00:02.0469107Z ##[group]Run actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4",
+      "2026-10-28T00:00:02.0469342Z with:",
+      "2026-10-28T00:00:02.0469470Z   name: application-evidence",
+      "2026-10-28T00:00:02.0469608Z   retention-days: 14",
+      "2026-10-28T00:00:02.0470274Z   path: target/surefire-reports/",
+      "target/failsafe-reports/",
+      "target/classes/META-INF/sbom/application.cdx.json",
+      "target/*.cdx.json",
+      "target/*-qualification.txt",
+      "target/application-image-id.txt",
+      "target/application-jar-sha256.txt"
+    ],
+    "affectedAcceptanceCriteria": [
+      "selective calendar-query over the accepted >10,000-resource, >32 MiB collection",
+      "completed final packaged capacity workload",
+      "completed local HTTPS restoration profile",
+      "subsequent federated HTTPS restoration profile skipped because the prior required step failed"
+    ]
+  },
+  "containerOperatingSystemAdvisories": {
+    "status": "passed",
+    "report": {
+      "artifactEntry": "target/container-os-advisories.json",
+      "bytes": 30876,
+      "sha256": "a906f1c39604647ef2cffc5c89e83dfb824763fe6225bec56404be8921ae097a"
+    },
+    "rawReport": {
+      "artifactEntry": "target/container-os-advisories-raw.json",
+      "bytes": 801470,
+      "sha256": "0d5d7278a95749577fb826576577a77474780c93f2820b5276ff3c7786b98171"
+    },
+    "coverage": "final-container OS packages; separate from Maven/JAR advisories",
+    "scanner": {
+      "archiveSha256": "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0",
+      "name": "Trivy",
+      "version": "0.76.1"
+    },
+    "database": {
+      "DownloadedAt": "2026-10-27T23:52:22.912498604Z",
+      "NextUpdate": "2026-10-28T19:17:44.708952538Z",
+      "UpdatedAt": "2026-10-27T19:17:44.708952708Z",
+      "Version": 2
+    },
+    "databaseSha256": "244d77b4ad3894e67dcee68a8b972a40f44111a5017ae6c87c7d41ef322cc037",
+    "os": {
+      "Family": "ubuntu",
+      "Name": "26.04"
+    },
+    "packageCount": 115,
+    "findings": 58,
+    "findingsBySeverity": {
+      "LOW": 12,
+      "MEDIUM": 46
+    },
+    "blockingFindings": 0,
+    "gate": "HIGH, CRITICAL or UNKNOWN fail, including unfixed findings; all other severities remain reported",
+    "suppressions": [],
+    "interpretation": "A passed gate is not zero vulnerabilities: all below-gate findings remain in the retained report. This scan is distinct from the separate Java runtime dependency-audit job."
+  },
+  "completionBoundary": [
+    "Do not describe the application CI job, whole workflow, large capacity workload or HTTPS restoration profile as passed.",
+    "The local clean verify and CI application tests passed independently, but test totals alone do not establish the user acceptance criteria.",
+    "The same-version and V9-upgrade operational restore checks passed in their narrower operations profile; this does not replace the failed later HTTPS workload/restore profile.",
+    "The federated HTTPS restoration step was skipped in this CI attempt. Browser OIDC authentication itself passed in the preceding separate profile.",
+    "Manual graphical account setup and physical authenticators were not qualified by these headless/virtual-authenticator profiles.",
+    "A future final record must identify the corrected source, rebuilt JAR/image and completed required qualification; this intermediate evidence remains unchanged."
+  ],
+  "independentClientReports": {
+    "python-caldav.json": {
+      "report": {
+        "artifactEntry": "target/qualification/python-caldav.json",
+        "bytes": 826,
+        "sha256": "14735568c19d9a8b104cd4fb6c679958d71c796fcf35701ffe9e48b555dee2cd"
+      },
+      "client": "python-caldav",
+      "icalendar": "7.3.0",
+      "operations": [
+        "principal and home discovery",
+        "calendar and VTODO collection creation",
+        "Unicode event CRUD",
+        "unknown-property round trip",
+        "event time-range query",
+        "server recurrence expansion",
+        "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+        "EXDATE exclusion in server expansion",
+        "undated task CRUD and completion",
+        "initial and incremental synchronization",
+        "resource and collection deletion"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting omitted; application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "syncFallbackDisabled": true,
+      "version": "3.6.0",
+      "evidenceScope": "Standalone client report generated by the automated integration harness; packaged-client proof is recorded separately from workload.json below."
+    },
+    "thunderbird.json": {
+      "report": {
+        "artifactEntry": "target/qualification/thunderbird.json",
+        "bytes": 1257,
+        "sha256": "6f2cb5ddb6880c84d184a086a18bf839bdaef0286457ce907e01123a7657b551"
+      },
+      "client": "Thunderbird",
+      "crossClient": {
+        "excludedOccurrences": 1,
+        "icalendar": "7.3.0",
+        "nativeDetachedExceptions": 1,
+        "nativeRecurrenceInstances": 3,
+        "python-caldav": "3.6.0",
+        "sameResources": 4
+      },
+      "driver": "3.7.1",
+      "mode": "isolated headless native desktop CalDAV provider",
+      "operations": [
+        "server discovery by native provider",
+        "recurring event CRUD",
+        "Unicode and unknown-property round trip",
+        "alarm preservation without execution",
+        "undated VTODO CRUD and completion",
+        "same-object Thunderbird to Python to Thunderbird to Python edits",
+        "cross-client recurrence, alarm, extension and completion timestamp preservation",
+        "same-resource detached exception identity/time/title edits in both clients",
+        "EXDATE exclusion verified by native occurrence expansion",
+        "all-day DATE and exclusive end preservation across both clients",
+        "floating DATE-TIME preservation across both clients",
+        "native refresh and deletion synchronization"
+      ],
+      "status": "passed",
+      "syncConfiguration": {
+        "allowSyncDepthOne": true,
+        "configurationInput": "setting omitted; application default",
+        "depthOneWithOtherSyncLevelStatus": 400,
+        "observedDepthStatus": {
+          "0": 207,
+          "1": 207,
+          "missing": 207
+        },
+        "verifiedBy": "actual authenticated REPORTs to this collection"
+      },
+      "version": "157.0.1",
+      "evidenceScope": "Standalone client report generated by the automated integration harness; packaged-client proof is recorded separately from workload.json below."
+    }
+  },
+  "packagedIndependentClients": {
+    "status": "passed before the later capacity failure",
+    "report": {
+      "artifactEntry": "target/qualification/workload.json",
+      "bytes": 10083,
+      "sha256": "b657396d5cea1a83cbf3db719024ccf6491afab1a0436c14956ebfc80801ccb6"
+    },
+    "reportField": "packagedIndependentClients",
+    "source": "The packaged workload observer stores independent client subprocess results in workload.json and emits FINAL_PACKAGED_PYTHON_AND_THUNDERBIRD_CLIENTS_PASSED before the capacity call.",
+    "clients": {
+      "python_caldav.py": {
+        "client": "python-caldav",
+        "icalendar": "7.3.0",
+        "operations": [
+          "principal and home discovery",
+          "calendar and VTODO collection creation",
+          "Unicode event CRUD",
+          "unknown-property round trip",
+          "event time-range query",
+          "server recurrence expansion",
+          "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+          "EXDATE exclusion in server expansion",
+          "undated task CRUD and completion",
+          "initial and incremental synchronization",
+          "resource and collection deletion"
+        ],
+        "status": "passed",
+        "syncConfiguration": {
+          "allowSyncDepthOne": true,
+          "configurationInput": "setting absent; Compose/application default",
+          "depthOneWithOtherSyncLevelStatus": 400,
+          "observedDepthStatus": {
+            "0": 207,
+            "1": 207,
+            "missing": 207
+          },
+          "verifiedBy": "actual authenticated REPORTs to this collection"
+        },
+        "syncFallbackDisabled": true,
+        "version": "3.6.0"
+      },
+      "thunderbird.py": {
+        "client": "Thunderbird",
+        "crossClient": {
+          "excludedOccurrences": 1,
+          "icalendar": "7.3.0",
+          "nativeDetachedExceptions": 1,
+          "nativeRecurrenceInstances": 3,
+          "python-caldav": "3.6.0",
+          "sameResources": 4
+        },
+        "driver": "3.7.1",
+        "mode": "isolated headless native desktop CalDAV provider",
+        "operations": [
+          "server discovery by native provider",
+          "recurring event CRUD",
+          "Unicode and unknown-property round trip",
+          "alarm preservation without execution",
+          "undated VTODO CRUD and completion",
+          "same-object Thunderbird to Python to Thunderbird to Python edits",
+          "cross-client recurrence, alarm, extension and completion timestamp preservation",
+          "same-resource detached exception identity/time/title edits in both clients",
+          "EXDATE exclusion verified by native occurrence expansion",
+          "all-day DATE and exclusive end preservation across both clients",
+          "floating DATE-TIME preservation across both clients",
+          "native refresh and deletion synchronization"
+        ],
+        "status": "passed",
+        "syncConfiguration": {
+          "allowSyncDepthOne": true,
+          "configurationInput": "setting absent; Compose/application default",
+          "depthOneWithOtherSyncLevelStatus": 400,
+          "observedDepthStatus": {
+            "0": 207,
+            "1": 207,
+            "missing": 207
+          },
+          "verifiedBy": "actual authenticated REPORTs to this collection"
+        },
+        "version": "157.0.1"
+      }
+    }
+  }
+}

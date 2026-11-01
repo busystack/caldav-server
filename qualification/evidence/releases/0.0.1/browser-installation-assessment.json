@@ -1,0 +1,29 @@
+{
+  "overallOriginalScriptResult": "failed; do not label the complete command passed",
+  "originalCommand": "docker run isolated Playwright fixture /qualification/release-install.mjs (normal private-CA trust, real rendered Chromium UI)",
+  "originalExitCode": 1,
+  "originalScriptSha256": "847a4ab75c90f4302546874536711594b93d652b429ba97e1c61118b136208d7",
+  "originalLogSha256": "f25469f1576902d5cd5aee1f9a7da8041ae0f2b3a15c83cd10a79cff0a57eadf",
+  "runtimeVerifiedBeforeExtraFailure": [
+    "Administrator password sign-in and signed virtual passkey registration/verification",
+    "Actual Administration form creates ordinary releaseuser",
+    "Ordinary user password and separate virtual passkey MFA",
+    "Actual browser creates VEVENT and VTODO collections",
+    "Actual display-once named DAV credential issued and no longer displayed after return",
+    "Displayed server URL/username used by independent Python and actual Thunderbird setup",
+    "After first application restart: same persisted browser cookie, account, collection names and credential listing; screenshot12 occurs after these assertions"
+  ],
+  "screenshots": [
+    "01-browser-sign-in.png",
+    "02-administrator-passkey-enrolled.png",
+    "03-administration-user-provisioned.png",
+    "04-user-client-setup.png",
+    "05-issued-dav-credential-secret-masked.png",
+    "06-user-events-tasks-and-client-connection.png",
+    "12-browser-persistent-account-after-restart.png"
+  ],
+  "extraFailure": "After password reauthentication the helper navigated to protected /security/passkeys and waited for the settings-only Verify passkey to complete MFA button. Navigation wait timed out. The original final URL/status was not captured.",
+  "followupControl": "Fresh actual browser control confirmed enrolled password-only user is redirected302 to /login?factor=required; login offers Verify passkey, not the helper settings button. See browser-reauthentication-route-control.json.",
+  "scopeLimit": "Original browser.close destroyed that virtual authenticator. No forged/new key or account reset is substituted as proof of old-key persistence. Final CI must run the existing correct /login persistent-passkey flow while retaining its virtual authenticator.",
+  "manualScope": "Real UI controls driven by Playwright and screenshots visually reviewed; no human manual-click or physical-authenticator qualification."
+}

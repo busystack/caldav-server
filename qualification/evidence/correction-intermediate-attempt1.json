@@ -1,0 +1,17 @@
+{
+  "scope": "Intermediate correction run; not final qualification",
+  "log": "/tmp/busystack-correction-final-verify.log",
+  "intermediateJarSha256": "43d054ed909c9b52880807e86fa3acc554ab5cd4484fe485aa0413b9f3b0d5cc",
+  "surefire": {
+    "tests": 157,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "failsafe": {
+    "tests": 166,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0
+  }
+}

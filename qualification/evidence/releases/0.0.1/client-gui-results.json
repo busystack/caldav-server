@@ -1,0 +1,546 @@
+{
+  "client": "Thunderbird",
+  "binary": "/tmp/busystack-thunderbird-official/thunderbird/thunderbird",
+  "mode": "isolated headed GUI",
+  "tls": "Normal CA/hostname verification; test CA imported only into this new profile",
+  "label": "Release GUI UTC",
+  "guiActions": [
+    "Actual calendar wizard: On the Network; dashboard username/server URL; real masked password prompt; discovered names and Subscribe",
+    "Explicit UTC timezone profile selected; method and GUI limits separately recorded",
+    "Created event through actual editor title/location and Save and Close controls",
+    "Created task through actual editor title/location and Save and Close controls",
+    "Edited event in actual editor, then Save and Close",
+    "Edited task and completed task via status control in actual editor, then Save and Close",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Same private client profile restarted; provider read assertions confirm both unchanged remote resources after actual server restart",
+    "Deleted event through actual editor Delete button and confirmation dialog",
+    "Deleted task through actual editor Delete button and confirmation dialog",
+    "Requested synchronization with the actual Reload Remote Calendars command"
+  ],
+  "screenshots": [
+    {
+      "file": "20-thunderbird-network-calendar.png",
+      "sha256": "60297a3b8f253aae742f663342618f88ddc5ad7fe7ba09682bd09eec313e559c",
+      "context": "chrome://calendar/content/calendar-creation.xhtml"
+    },
+    {
+      "file": "21-thunderbird-server-address.png",
+      "sha256": "18778050b10f4c6080a5347ae8d7fe35ceb7764ee5647bb98ea238ac3023140d",
+      "context": "chrome://calendar/content/calendar-creation.xhtml"
+    },
+    {
+      "file": "22-thunderbird-credential-prompt.png",
+      "sha256": "1fa7c948565da21655ef0e67d03912d8eb4a24624140a1be5ea04c89794a7cc3",
+      "context": "chrome://global/content/commonDialog.xhtml",
+      "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+    },
+    {
+      "file": "23-thunderbird-discovered-calendars.png",
+      "sha256": "eccd6813a343d05dc7589f1e833959f7784ce4cf45569af4b72fc29819123548",
+      "context": "chrome://calendar/content/calendar-creation.xhtml"
+    },
+    {
+      "file": "24-thunderbird-connected-calendar.png",
+      "sha256": "efded4a826c42e574a2ff3f06cd97baf7e99f7dca39058e54be1ec2ea18e9f8e",
+      "context": "chrome://messenger/content/messenger.xhtml"
+    },
+    {
+      "file": "19-thunderbird-calendar-timezone-utc.png",
+      "sha256": "0be6fff3eb49972c7b565bdb31bd93aac92bf8769c0ebd9b7e8ce255c6bb8a75",
+      "context": "chrome://messenger/content/messenger.xhtml"
+    },
+    {
+      "file": "25-thunderbird-event-editor.png",
+      "sha256": "1df83b12cdb6ff280e3457f0807e36e3dbab5f534aef69ee0a4f874d9b2128a8",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "26-thunderbird-task-editor.png",
+      "sha256": "bc98dba63d7f6b89f6f12654e840f4e8280ad178805841824051bfb0af3b8c2a",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "27-thunderbird-event-edited.png",
+      "sha256": "60e4f91f679342057e73cde1ff496dc2b7b04a8bc53adc1cc469492cdfe5d41b",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "28-thunderbird-task-completed.png",
+      "sha256": "b56c08665f92e875f077f4aa4333731470cd842ce667bee755a3102c13c2a306",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "29-thunderbird-before-server-restart.png",
+      "sha256": "abcc1b6c54cd82589be13bba437b408e097eb2bf9da08507ee7f4ad49056ee6d",
+      "context": "chrome://messenger/content/messenger.xhtml"
+    },
+    {
+      "file": "30-thunderbird-after-server-and-client-restart.png",
+      "sha256": "58f9ab032acfe730f46e727af5351bc7f0aacaec7c0b27fe68838569b5198690",
+      "context": "chrome://messenger/content/messenger.xhtml"
+    },
+    {
+      "file": "31-thunderbird-delete-event.png",
+      "sha256": "1eef34348e65eb6bb7816c4017ffb1f5cc8b6f140378bb6146a7cd7a549b53ca",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "32-thunderbird-confirm-delete-event.png",
+      "sha256": "3bd955d44eb6131147c6946e9e910e2e8845af78ba7644d22032f77daf68dbd0",
+      "context": "chrome://global/content/commonDialog.xhtml",
+      "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+    },
+    {
+      "file": "33-thunderbird-delete-task.png",
+      "sha256": "9d015f4f81a46599e6bc76559045adcf78f1a14d52fa70e20bb1708e6d6896a1",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "34-thunderbird-confirm-delete-task.png",
+      "sha256": "9d3c17889f074e9e1b138fb3591dd2eab0e0d0e123c41d89dd84b32541f34b6c",
+      "context": "chrome://global/content/commonDialog.xhtml",
+      "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+    },
+    {
+      "file": "35-thunderbird-after-deletions.png",
+      "sha256": "03e31719b1eca3b877a32ab3de968da4bb1d539316d5e42ce83653e58d347515",
+      "context": "chrome://messenger/content/messenger.xhtml"
+    }
+  ],
+  "independentReadAssertions": [
+    {
+      "phase": "created-through-GUI",
+      "source": "python-caldav3.6.0 independent REPORT read; XML text is normalized, authoritative raw GET is separately checked; no mutation",
+      "state": {
+        "event": {
+          "uid": "b2632e96-a947-4b7b-9d72-bf8c8e2d17b5",
+          "summary": "Release GUI UTC event",
+          "href": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/b2632e96-a947-4b7b-9d72-bf8c8e2d17b5.ics",
+          "reportTextSha256": "6825ae2dab782efc3ea0f86150a95a66e2e1ae83d53304acdbfeefb1a8194f72",
+          "ical": "BEGIN:VCALENDAR\nPRODID:-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN\nVERSION:2.0\nBEGIN:VTIMEZONE\nTZID:Etc/UTC\nX-TZINFO:Etc/UTC[2026b]\nBEGIN:STANDARD\nTZOFFSETTO:+000000\nTZOFFSETFROM:+000000\nTZNAME:Etc/UTC(STD)\nDTSTART:19700101T000000\nEND:STANDARD\nEND:VTIMEZONE\nBEGIN:VEVENT\nCREATED:20261029T223609Z\nLAST-MODIFIED:20261029T223611Z\nDTSTAMP:20261029T223611Z\nUID:b2632e96-a947-4b7b-9d72-bf8c8e2d17b5\nSUMMARY:Release GUI UTC event\nDTSTART;TZID=Etc/UTC:20261029T230000\nDTEND;TZID=Etc/UTC:20261030T000000\nTRANSP:OPAQUE\nLOCATION:Clean isolated installation\nEND:VEVENT\nEND:VCALENDAR\n",
+          "status": "",
+          "percent": 0
+        },
+        "task": {
+          "uid": "bdf48cbb-17ee-4352-8103-0e1f53044d86",
+          "summary": "Release GUI UTC task",
+          "href": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/bdf48cbb-17ee-4352-8103-0e1f53044d86.ics",
+          "reportTextSha256": "e7f991988bfc3d6aeb2b2de7b5cacc4623eede9e2f39d87ce533106696ee5056",
+          "ical": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN\nBEGIN:VTODO\nCREATED:20261029T223612Z\nDTSTAMP:20261029T223613Z\nLAST-MODIFIED:20261029T223613Z\nLOCATION:Clean isolated installation\nPERCENT-COMPLETE:0\nSUMMARY:Release GUI UTC task\nUID:bdf48cbb-17ee-4352-8103-0e1f53044d86\nEND:VTODO\nEND:VCALENDAR\n",
+          "status": "",
+          "percent": 0
+        }
+      }
+    },
+    {
+      "phase": "edited-through-GUI",
+      "source": "python-caldav3.6.0 independent REPORT read; XML text is normalized, authoritative raw GET is separately checked; no mutation",
+      "state": {
+        "event": {
+          "uid": "b2632e96-a947-4b7b-9d72-bf8c8e2d17b5",
+          "summary": "Release GUI UTC event edited",
+          "href": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/b2632e96-a947-4b7b-9d72-bf8c8e2d17b5.ics",
+          "reportTextSha256": "29de9e449a61795f24508b56fe99991faf724082888b7e457d0a22d8af0f2b50",
+          "ical": "BEGIN:VCALENDAR\nPRODID:-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN\nVERSION:2.0\nBEGIN:VTIMEZONE\nTZID:Etc/UTC\nX-TZINFO:Etc/UTC[2026b]\nBEGIN:STANDARD\nTZOFFSETTO:+000000\nTZOFFSETFROM:+000000\nTZNAME:Etc/UTC(STD)\nDTSTART:19700101T000000\nEND:STANDARD\nEND:VTIMEZONE\nBEGIN:VEVENT\nCREATED:20261029T223609Z\nLAST-MODIFIED:20261029T223618Z\nDTSTAMP:20261029T223618Z\nUID:b2632e96-a947-4b7b-9d72-bf8c8e2d17b5\nSUMMARY:Release GUI UTC event edited\nDTSTART;TZID=Etc/UTC:20261029T230000\nDTEND;TZID=Etc/UTC:20261030T000000\nTRANSP:OPAQUE\nLOCATION:Clean isolated installation\nX-MOZ-GENERATION:1\nEND:VEVENT\nEND:VCALENDAR\n",
+          "status": "",
+          "percent": 0
+        },
+        "task": {
+          "uid": "bdf48cbb-17ee-4352-8103-0e1f53044d86",
+          "summary": "Release GUI UTC task edited",
+          "href": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/bdf48cbb-17ee-4352-8103-0e1f53044d86.ics",
+          "reportTextSha256": "5fc431a35de96bd6b66b50963d1505cdcedb3de4dff78c527dedd7a81aedc339",
+          "ical": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN\nBEGIN:VTODO\nCOMPLETED:20261029T230000Z\nCREATED:20261029T223612Z\nDTSTAMP:20261029T223621Z\nLAST-MODIFIED:20261029T223621Z\nLOCATION:Clean isolated installation\nPERCENT-COMPLETE:100\nSEQUENCE:1\nSTATUS:COMPLETED\nSUMMARY:Release GUI UTC task edited\nUID:bdf48cbb-17ee-4352-8103-0e1f53044d86\nX-MOZ-GENERATION:1\nEND:VTODO\nEND:VCALENDAR\n",
+          "status": "COMPLETED",
+          "percent": 100
+        }
+      }
+    },
+    {
+      "phase": "after-actual-server-restart",
+      "source": "python-caldav3.6.0 independent REPORT read; XML text is normalized, authoritative raw GET is separately checked; no mutation",
+      "state": {
+        "event": {
+          "uid": "b2632e96-a947-4b7b-9d72-bf8c8e2d17b5",
+          "summary": "Release GUI UTC event edited",
+          "href": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/b2632e96-a947-4b7b-9d72-bf8c8e2d17b5.ics",
+          "reportTextSha256": "29de9e449a61795f24508b56fe99991faf724082888b7e457d0a22d8af0f2b50",
+          "ical": "BEGIN:VCALENDAR\nPRODID:-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN\nVERSION:2.0\nBEGIN:VTIMEZONE\nTZID:Etc/UTC\nX-TZINFO:Etc/UTC[2026b]\nBEGIN:STANDARD\nTZOFFSETTO:+000000\nTZOFFSETFROM:+000000\nTZNAME:Etc/UTC(STD)\nDTSTART:19700101T000000\nEND:STANDARD\nEND:VTIMEZONE\nBEGIN:VEVENT\nCREATED:20261029T223609Z\nLAST-MODIFIED:20261029T223618Z\nDTSTAMP:20261029T223618Z\nUID:b2632e96-a947-4b7b-9d72-bf8c8e2d17b5\nSUMMARY:Release GUI UTC event edited\nDTSTART;TZID=Etc/UTC:20261029T230000\nDTEND;TZID=Etc/UTC:20261030T000000\nTRANSP:OPAQUE\nLOCATION:Clean isolated installation\nX-MOZ-GENERATION:1\nEND:VEVENT\nEND:VCALENDAR\n",
+          "status": "",
+          "percent": 0
+        },
+        "task": {
+          "uid": "bdf48cbb-17ee-4352-8103-0e1f53044d86",
+          "summary": "Release GUI UTC task edited",
+          "href": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/bdf48cbb-17ee-4352-8103-0e1f53044d86.ics",
+          "reportTextSha256": "5fc431a35de96bd6b66b50963d1505cdcedb3de4dff78c527dedd7a81aedc339",
+          "ical": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN\nBEGIN:VTODO\nCOMPLETED:20261029T230000Z\nCREATED:20261029T223612Z\nDTSTAMP:20261029T223621Z\nLAST-MODIFIED:20261029T223621Z\nLOCATION:Clean isolated installation\nPERCENT-COMPLETE:100\nSEQUENCE:1\nSTATUS:COMPLETED\nSUMMARY:Release GUI UTC task edited\nUID:bdf48cbb-17ee-4352-8103-0e1f53044d86\nX-MOZ-GENERATION:1\nEND:VTODO\nEND:VCALENDAR\n",
+          "status": "COMPLETED",
+          "percent": 100
+        }
+      }
+    },
+    {
+      "phase": "deleted-through-GUI",
+      "source": "python-caldav3.6.0 independent REPORT read; XML text is normalized, authoritative raw GET is separately checked; no mutation",
+      "state": {
+        "event": null,
+        "task": null
+      }
+    }
+  ],
+  "limitations": [
+    "Automated interaction with real GUI controls, not a person manually using the application",
+    "Private CA trust provisioning is automated through the supported profile certificate service"
+  ],
+  "version": "157.0.1",
+  "driverVersion": "3.7.1",
+  "passwordSavingProfilePreference": {
+    "configured": true,
+    "observed": true,
+    "reason": "Prevent Marionette recommended preference from disabling ordinary password saving; credential still entered only in actual GUI prompt"
+  },
+  "credentialPrompt": {
+    "mode": "password",
+    "actualDialogURI": "chrome://global/content/commonDialog.xhtml",
+    "text": "Please enter your password for https://localhost:55049/dav/:",
+    "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas",
+    "inputType": "password",
+    "screenshotBeforeSecretEntry": true,
+    "rememberPasswordSelectedThroughGUI": true
+  },
+  "discoveredCalendars": [
+    {
+      "name": "Release Events",
+      "url": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/",
+      "selected": true,
+      "disabled": false
+    },
+    {
+      "name": "Release Tasks",
+      "url": "https://localhost:55049/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/",
+      "selected": true,
+      "disabled": false
+    }
+  ],
+  "explicitTimezoneProfile": {
+    "method": "Actual Settings > Calendar controls, using owned browser.contentDocument because Preferences browsing context is top-level and omitted from Marionette content handles",
+    "observedUi": {
+      "ui": true,
+      "document": "about:preferences#calendar",
+      "manual": "false",
+      "timezone": "Etc/UTC",
+      "label": "Etc/UTC"
+    },
+    "configuredReadOnlyAssertion": {
+      "useSystem": false,
+      "local": "Etc/UTC",
+      "effective": "Etc/UTC"
+    },
+    "scope": "Explicit UTC client profile; default America/Vancouver invalid-wire rejection retained separately, not silently normalized"
+  },
+  "status": "passed",
+  "nativeNetworkPhases": [
+    [
+      {
+        "method": "HEAD",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "GET",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "HEAD",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "HEAD",
+        "status": 200,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/"
+      },
+      {
+        "method": "GET",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/principals/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/principals/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/"
+      },
+      {
+        "method": "PUT",
+        "status": 401,
+        "path": "/dav/"
+      },
+      {
+        "method": "PUT",
+        "status": 409,
+        "path": "/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "PUT",
+        "status": 201,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/b2632e96-a947-4b7b-9d72-bf8c8e2d17b5.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "PUT",
+        "status": 201,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/bdf48cbb-17ee-4352-8103-0e1f53044d86.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "PUT",
+        "status": 204,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/b2632e96-a947-4b7b-9d72-bf8c8e2d17b5.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "PUT",
+        "status": 204,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/bdf48cbb-17ee-4352-8103-0e1f53044d86.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      }
+    ],
+    [
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "DELETE",
+        "status": 204,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/b2632e96-a947-4b7b-9d72-bf8c8e2d17b5.ics"
+      },
+      {
+        "method": "DELETE",
+        "status": 204,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/bdf48cbb-17ee-4352-8103-0e1f53044d86.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0aa3122e-2f8a-4ebf-8766-91b634212e07/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/dav/calendars/492296ed-b4f9-4205-9bd2-196312e894ac/0d6b654a-08bb-4d4e-b808-88bb011afb82/"
+      }
+    ]
+  ]
+}

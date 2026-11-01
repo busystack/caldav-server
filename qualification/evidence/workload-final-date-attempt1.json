@@ -1,0 +1,322 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-27T16:16:49.327827+00:00",
+  "applicationImage": "sha256:9d458a08d84255cd174e3d64a597b794c8a3eaa621b6c050a1fbcee4c798a287",
+  "applicationMemoryLimitBytes": 1073741824,
+  "applicationNanoCpuLimit": 0,
+  "host": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "kernel": "7.0.0-38-generic",
+    "logicalCpus": 4,
+    "loadAverage": [
+      3.41015625,
+      3.87744140625,
+      4.02783203125
+    ],
+    "affinityCpuCount": 4,
+    "cpuModel": "AMD A6-3400M APU with Radeon(tm) HD Graphics",
+    "memoryBytes": 11449860096
+  },
+  "postgresVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "dockerVersion": "29.9.2",
+  "databaseBefore": {
+    "databaseBytes": 10008255,
+    "resourceTableBytes": 49152,
+    "commits": 2854,
+    "rollbacks": 2,
+    "blocksRead": 537,
+    "blocksHit": 65662,
+    "rowsReturned": 45579,
+    "rowsFetched": 32835,
+    "rowsInserted": 2504,
+    "rowsUpdated": 431,
+    "rowsDeleted": 102,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "containerSamples": [
+    {
+      "elapsedSeconds": 1.08,
+      "cpuPercent": "11.83%",
+      "memoryUsage": "257.6MiB / 1GiB",
+      "memoryPercent": "25.16%",
+      "networkIo": "1.98MB / 1.28MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 3.1,
+      "cpuPercent": "135.08%",
+      "memoryUsage": "259.7MiB / 1GiB",
+      "memoryPercent": "25.36%",
+      "networkIo": "2.06MB / 1.37MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 6.18,
+      "cpuPercent": "90.83%",
+      "memoryUsage": "265.5MiB / 1GiB",
+      "memoryPercent": "25.93%",
+      "networkIo": "2.32MB / 1.61MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 9.26,
+      "cpuPercent": "144.38%",
+      "memoryUsage": "270.6MiB / 1GiB",
+      "memoryPercent": "26.43%",
+      "networkIo": "2.66MB / 1.95MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 12.33,
+      "cpuPercent": "128.56%",
+      "memoryUsage": "279.4MiB / 1GiB",
+      "memoryPercent": "27.28%",
+      "networkIo": "3.01MB / 2.3MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 15.41,
+      "cpuPercent": "93.98%",
+      "memoryUsage": "280.3MiB / 1GiB",
+      "memoryPercent": "27.37%",
+      "networkIo": "3.34MB / 2.61MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 18.49,
+      "cpuPercent": "112.66%",
+      "memoryUsage": "281.5MiB / 1GiB",
+      "memoryPercent": "27.49%",
+      "networkIo": "3.65MB / 2.93MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 21.61,
+      "cpuPercent": "208.59%",
+      "memoryUsage": "291MiB / 1GiB",
+      "memoryPercent": "28.42%",
+      "networkIo": "5MB / 3.27MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 24.72,
+      "cpuPercent": "177.14%",
+      "memoryUsage": "301.2MiB / 1GiB",
+      "memoryPercent": "29.41%",
+      "networkIo": "6.42MB / 4.06MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 27.81,
+      "cpuPercent": "112.34%",
+      "memoryUsage": "309.9MiB / 1GiB",
+      "memoryPercent": "30.26%",
+      "networkIo": "7.88MB / 4.86MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 30.93,
+      "cpuPercent": "155.08%",
+      "memoryUsage": "316.8MiB / 1GiB",
+      "memoryPercent": "30.94%",
+      "networkIo": "9.38MB / 5.68MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 34.04,
+      "cpuPercent": "196.14%",
+      "memoryUsage": "331.9MiB / 1GiB",
+      "memoryPercent": "32.41%",
+      "networkIo": "11MB / 6.53MB",
+      "blockIo": "0B / 0B",
+      "pids": "35"
+    },
+    {
+      "elapsedSeconds": 37.12,
+      "cpuPercent": "180.05%",
+      "memoryUsage": "338.2MiB / 1GiB",
+      "memoryPercent": "33.03%",
+      "networkIo": "12.7MB / 7.42MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 40.21,
+      "cpuPercent": "93.36%",
+      "memoryUsage": "335.3MiB / 1GiB",
+      "memoryPercent": "32.74%",
+      "networkIo": "14.4MB / 8.32MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 43.29,
+      "cpuPercent": "122.99%",
+      "memoryUsage": "336.6MiB / 1GiB",
+      "memoryPercent": "32.87%",
+      "networkIo": "15.6MB / 9.68MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 46.38,
+      "cpuPercent": "65.08%",
+      "memoryUsage": "338.1MiB / 1GiB",
+      "memoryPercent": "33.02%",
+      "networkIo": "17.1MB / 10.5MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 49.47,
+      "cpuPercent": "45.89%",
+      "memoryUsage": "340MiB / 1GiB",
+      "memoryPercent": "33.21%",
+      "networkIo": "19.3MB / 11.5MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 52.55,
+      "cpuPercent": "99.17%",
+      "memoryUsage": "341.2MiB / 1GiB",
+      "memoryPercent": "33.32%",
+      "networkIo": "21MB / 12.1MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    },
+    {
+      "elapsedSeconds": 55.37,
+      "cpuPercent": "64.11%",
+      "memoryUsage": "360.9MiB / 1GiB",
+      "memoryPercent": "35.24%",
+      "networkIo": "21.2MB / 12.7MB",
+      "blockIo": "0B / 0B",
+      "pids": "34"
+    }
+  ],
+  "interpretation": "One warmed application and one sequential independent client on a shared host. Docker samples include observer overhead; PostgreSQL cumulative statistics update asynchronously. Calendar/task data is synthetic. No capacity, scalability or high-availability claim.",
+  "workload": {
+    "allowSyncDepthOne": true,
+    "calendarQueryRepresentation": "stored resources; expand=False",
+    "client": "python-caldav",
+    "dataset": {
+      "acceptedResourceBytes": 366905,
+      "collections": 2,
+      "nonRecurringEvents": 200,
+      "recurringResources": 20,
+      "tasks": 50,
+      "undatedTasks": 25,
+      "weeklyInstancesPerRecurringResource": 12
+    },
+    "icalendar": "7.3.0",
+    "interpretation": "One bounded single-client workload; no scalability, high-availability or production sizing claim.",
+    "latencyScope": "End-to-end independent client calls, including serialization, TLS/network, server/database and response parsing",
+    "operations": {
+      "eventCreate": {
+        "count": 200,
+        "maxMs": 652.02,
+        "meanMs": 63.52,
+        "medianMs": 54.61,
+        "p95Ms": 81.5
+      },
+      "eventDelete": {
+        "count": 5,
+        "maxMs": 43.57,
+        "meanMs": 39.22,
+        "medianMs": 40.42,
+        "p95Ms": 43.57
+      },
+      "eventGet": {
+        "count": 20,
+        "maxMs": 29.58,
+        "meanMs": 22.21,
+        "medianMs": 21.96,
+        "p95Ms": 25.93
+      },
+      "eventUpdate": {
+        "count": 10,
+        "maxMs": 67.69,
+        "meanMs": 46.03,
+        "medianMs": 43.23,
+        "p95Ms": 67.69
+      },
+      "incrementalSync": {
+        "count": 1,
+        "maxMs": 86.28,
+        "meanMs": 86.28,
+        "medianMs": 86.28,
+        "p95Ms": 86.28
+      },
+      "initialSync": {
+        "count": 1,
+        "maxMs": 995.96,
+        "meanMs": 995.96,
+        "medianMs": 995.96,
+        "p95Ms": 995.96
+      },
+      "monthCalendarQuery": {
+        "count": 10,
+        "maxMs": 4062.67,
+        "meanMs": 2934.53,
+        "medianMs": 2691.75,
+        "p95Ms": 4062.67
+      },
+      "recurringEventCreate": {
+        "count": 20,
+        "maxMs": 86.37,
+        "meanMs": 54.33,
+        "medianMs": 52.35,
+        "p95Ms": 84.14
+      },
+      "taskCreate": {
+        "count": 50,
+        "maxMs": 78.3,
+        "meanMs": 47.34,
+        "medianMs": 44.35,
+        "p95Ms": 57.6
+      }
+    },
+    "platform": "Linux x86_64",
+    "python": "3.14.4",
+    "status": "passed",
+    "syncFallbackDisabled": true,
+    "transport": "HTTPS with isolated test-CA validation",
+    "version": "3.6.0"
+  },
+  "databaseAfter": {
+    "databaseBytes": 10794687,
+    "resourceTableBytes": 614400,
+    "commits": 4354,
+    "rollbacks": 2,
+    "blocksRead": 549,
+    "blocksHit": 136916,
+    "rowsReturned": 94871,
+    "rowsFetched": 60204,
+    "rowsInserted": 3111,
+    "rowsUpdated": 732,
+    "rowsDeleted": 107,
+    "tempFiles": 0,
+    "tempBytes": 0,
+    "deadlocks": 0,
+    "checksumFailures": 0
+  },
+  "finishedAt": "2026-10-27T16:17:45.618820+00:00",
+  "elapsedSeconds": 55.37,
+  "observerErrors": []
+}

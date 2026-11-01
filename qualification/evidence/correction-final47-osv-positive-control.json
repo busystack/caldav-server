@@ -1,0 +1,53 @@
+{
+  "api": "https://api.osv.dev/v1/querybatch",
+  "checkedAt": "2026-10-28T00:26:17.817005+00:00",
+  "status": "advisories-returned",
+  "sbomSha256": "858b274d8c7fb4448ec0fa27c36ced9ea81438f6652ec9fc32fc15eb0ebec35f",
+  "packages": [
+    {
+      "ecosystem": "Maven",
+      "name": "org.apache.logging.log4j:log4j-core",
+      "version": "2.14.1",
+      "advisories": [
+        {
+          "id": "GHSA-3pxv-7cmr-fjr4",
+          "modified": "2026-09-10T03:50:42.492278Z"
+        },
+        {
+          "id": "GHSA-6hg6-v5c8-fphq",
+          "modified": "2026-09-10T03:50:43.570169Z"
+        },
+        {
+          "id": "GHSA-7rjr-3q55-vv33",
+          "modified": "2026-10-02T20:30:05.438504Z"
+        },
+        {
+          "id": "GHSA-8489-44mv-ggj8",
+          "modified": "2026-06-09T10:45:14.253296Z"
+        },
+        {
+          "id": "GHSA-h383-gmxw-35v2",
+          "modified": "2026-10-26T15:30:05.719203Z"
+        },
+        {
+          "id": "GHSA-jfh8-c2jp-5v3q",
+          "modified": "2025-10-22T19:37:02.616807Z"
+        },
+        {
+          "id": "GHSA-p6xc-xr62-6r2g",
+          "modified": "2026-06-09T10:30:14.432177Z"
+        },
+        {
+          "id": "GHSA-vc5p-v9hr-52mj",
+          "modified": "2026-09-10T03:50:32.126499Z"
+        }
+      ],
+      "pages": 1,
+      "complete": true
+    }
+  ],
+  "ignoredNonMavenComponents": 0,
+  "requestCount": 1,
+  "packageCount": 1,
+  "affectedPackageCount": 1
+}

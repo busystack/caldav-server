@@ -1,0 +1,7 @@
+correct accepted=owner storedBackupState=false flagsBS=false
+wrong accepted=owner storedBackupState=false flagsBS=false
+absent accepted=owner storedBackupState=false flagsBS=false
+backup-state-change accepted=owner storedBackupState=false flagsBS=true
+wrong-origin rejected=com.webauthn4j.verifier.exception.BadOriginException: The collectedClientData origin 'https://attacker.invalid' doesn't match expected: https://calendar.example
+wrong-challenge rejected=com.webauthn4j.verifier.exception.BadChallengeException: The actual challenge does not match the expected challenge. Expected: EctFTmOXWM9R35plG-_qFzC-KcpKIY5Hm_swwQf0zBg, Actual: PxrDclpj5uL1Uv9c2L3G1-jOoZ7xYJqnGzYOB2HqyZE
+invalid-signature rejected=com.webauthn4j.verifier.exception.BadSignatureException: Assertion signature is not valid.

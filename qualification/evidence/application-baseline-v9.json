@@ -1,0 +1,58 @@
+{
+  "status": "passed-baseline-not-final-date-increment",
+  "sourceCommit": "8da74b8",
+  "finishedAt": "2026-10-27T15:08:49Z",
+  "toolchain": {
+    "java": "Eclipse Temurin25.0.4.1+1",
+    "maven": "3.9.12",
+    "boot": "4.1.2",
+    "security": "7.1.2",
+    "postgres": "18.6"
+  },
+  "unit": {
+    "tests": 123,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "integration": {
+    "tests": 125,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "spotbugs": {
+    "version": "4.10.5.0",
+    "bugs": 0,
+    "errors": 0
+  },
+  "applicationImage": "sha256:461ca83649a45d8ca37ba1570584f567c0bbc95279b14a6662edfc9ce6987e89",
+  "hostAndContainerJarSha256": "8c043227a66100baddafbcf8cf3b0beac748cc69d74a1811359bac07d05db4a6",
+  "runtimeMavenComponents": 112,
+  "osv": {
+    "status": "no-advisories-returned",
+    "knownVulnerablePositiveControl": "rejected",
+    "gateUnitTests": 4
+  },
+  "priorFailedRuns": [
+    {
+      "scope": "initial combined run",
+      "unitPassed": 123,
+      "integrationPassed": 120,
+      "integrationErrors": 1,
+      "cause": "Real Keycloak startup exceeded the bounded300-second fixture deadline; no authentication assertion in that class ran. The final rerun used a bounded480-second deadline and passed all125 IT."
+    },
+    {
+      "scope": "V9 packaged SQL operations",
+      "status": "failed",
+      "stage": "Final restored application reported unhealthy through Compose after SQL invalidation/permission preservation and local/external offline recovery assertions. Failure diagnostics were unavailable before owned-project cleanup; a diagnosed rerun is required."
+    }
+  ],
+  "scopeNotes": [
+    "This baseline precedes the final HTTP date-precondition/Last-Modified increment; that increment needs its own tests and immutable artifact.",
+    "Packaged groups/recovery/proxy/OIDC/HTTPS restoration and measured workload were not executed for this baseline.",
+    "Mozilla157.0.1 native headless provider and python-caldav3.6.0 used the explicit sync Depth1 compatibility profile; manual GUI and physical authenticator qualification are unexecuted.",
+    "Owner selection of the repository license is unresolved."
+  ],
+  "mavenGoals": "./mvnw --batch-mode --no-transfer-progress spotless:apply clean verify"
+}

@@ -1,0 +1,45 @@
+{
+  "profile": "final47 local HTTPS proxy/groups/restoration/extended workload",
+  "status": "passed",
+  "completedAt": "2026-10-28T00:58:02.654130+00:00",
+  "applicationImage": "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+  "applicationSourceRevision": "47b3543674644d075ece97045088fc1e309e7d1e",
+  "browserImage": "sha256:687b77e803263ce03be5c90732dd3482ca95a5ed83ce5bccc39a496e08d61cfe",
+  "command": [
+    "python3",
+    "-u",
+    "qualification/passkeys/run.py",
+    "--application-image",
+    "sha256:f24ea0e3092464dc243a3c8f4703bd579235faa6024c55772ce1f5fb7479a855",
+    "--browser-image",
+    "sha256:687b77e803263ce03be5c90732dd3482ca95a5ed83ce5bccc39a496e08d61cfe",
+    "--proxy",
+    "--groups",
+    "--restore",
+    "--workload",
+    "--client-python",
+    "/tmp/busystack-client-venv/bin/python",
+    "--thunderbird-binary",
+    "/tmp/busystack-thunderbird-official/thunderbird/thunderbird",
+    "--workload-output",
+    "/tmp/busystack-correction-final47-workload.json"
+  ],
+  "log": "/tmp/busystack-correction-final47-restore-local.log",
+  "logSha256": "68e79d610d22d88c796389822f2ab61880ae7d7a8677503b0de81991e1e65db1",
+  "syncConfigurations": [
+    {
+      "configurationInput": "setting absent; Compose/application default",
+      "observedDepthStatus": {
+        "0": 207,
+        "1": 207,
+        "missing": 207
+      },
+      "depthOneWithOtherSyncLevelStatus": 400,
+      "allowSyncDepthOne": true
+    }
+  ],
+  "workloadReport": "/tmp/busystack-correction-final47-workload.json",
+  "workloadSha256": "66f88178d88e9222a84aa615add57f71d487f862020f27e4ac8ae7d37ec834e2",
+  "sharingReport": "/tmp/busystack-correction-final47-sharing-capacity.json",
+  "scope": "This executed local packaged profile; federated restoration remains a separate profile"
+}

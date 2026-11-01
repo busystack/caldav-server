@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · BusyStack</title>
+<meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}">
+<script th:src="@{/assets/security.js}" defer></script></head>
+<body><main><h1>Sign in to BusyStack</h1>
+<p>Account changes and client authorization require a password and a passkey verified within ten minutes. Complete both steps using the same account.</p>
+<p th:if="${param.error}">Sign in failed. Check your account details.</p>
+<p th:if="${oidcEnabled}"><a th:href="@{/oauth2/authorization/upstream}">Sign in with your organization's identity provider</a></p>
+<form th:action="@{/login}" method="post"><p><label>Username <input name="username" autocomplete="username" required></label></p><p><label>Password <input name="password" type="password" autocomplete="current-password" required></label></p><button type="submit">Verify password</button></form>
+<button type="button" id="authenticate-passkey" th:attr="data-context=@{/}">Verify passkey</button>
+<p id="security-status" role="status" aria-live="polite"></p>
+<p>After verifying your password, <a th:href="@{/security/passkeys}">enroll your first passkey</a>. For a lost passkey, contact your server administrator for the documented local recovery operation.</p>
+<p><a th:href="@{/}">Account management</a></p>
+</main></body></html>

@@ -1,0 +1,59 @@
+{
+  "reason": "First residual exact-source CI failed strict HIGH container OS advisory gate; no source exploit demonstrated",
+  "failedRun": {
+    "id": 40838593411,
+    "sourceRevision": "e6e42bbfa2f488cbc4b6c3fe0d83dfafdb13db25",
+    "url": "https://github.com/busystack/caldav-server/actions/runs/40838593411"
+  },
+  "officialNotice": "https://ubuntu.com/security/notices/USN-8956-1",
+  "officialSource": "https://github.com/adoptium/containers/blob/511f9356dc4d50932a0a5f8cfb0f87ed1aef4f07/25/jdk/ubuntu/resolute/Dockerfile",
+  "oldImage": "eclipse-temurin:25-jdk@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641",
+  "newImage": "eclipse-temurin:25-jdk@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857",
+  "verifiedJavaRuntimeBoth": "Temurin-25.0.4.1+1 (25.0.4.1+1-LTS)",
+  "javaExecutableSha256Both": "7380ce48ed5013735d2c8414db54adb8f981e7933ff594bd36f3baccddaafba3",
+  "oldBrotli": "1.2.0-3build1",
+  "newBrotli": "1.2.0-3ubuntu0.1",
+  "newImageAmd64Manifest": "sha256:c23667071ff84dfbc494852f02d0b3f413b9a73c550aa8b9d649a36f2c88c0ba",
+  "registrySourceAnnotation": "https://github.com/adoptium/containers.git#511f9356dc4d50932a0a5f8cfb0f87ed1aef4f07:25/jdk/ubuntu/resolute",
+  "constraints": "Same official Java release, no Maven updates, no software patch/fork, no advisory suppression; all active application/CI/Keycloak pins updated together. Full CI qualification required.",
+  "initialCiEvidence": "ci-attempt1.json",
+  "localCandidate": {
+    "note": "Uncommitted packaging candidate built over e6e42bb production/test tree; SOURCE_REVISION label is e6e42bb. Final committed source must be freshly built/qualified by CI; this candidate alone is not final-commit qualification.",
+    "command": "docker build --build-arg SOURCE_REVISION=e6e42bbfa2f488cbc4b6c3fe0d83dfafdb13db25 --tag busystack-caldav:residual-os-candidate .",
+    "imageId": "sha256:c23617ebed92e9980a85e124086b9a10ef724114917ad42cab5d95879c21b284",
+    "jarSha256": "317fa67bf5199f04d9b95ed8d4c59ee61ed3a75449c924a731cfdd6336e0df06",
+    "sameAsQualifiedLocalJar": true,
+    "javaAndPackageIdentity": "refreshed-container-identity.txt",
+    "strictOsScan": {
+      "command": "python3 scripts/check-container-advisories.py --image busystack-caldav:residual-os-candidate --output /tmp/busystack-residual/results/refreshed-container-advisories.json",
+      "exitCode": 0,
+      "report": "refreshed-container-advisories.json",
+      "rawReportSha256": "0172a93ec32c853f1d1c71203f35182f8965782807206db7c4792696e69c0fdc",
+      "database": {
+        "DownloadedAt": "2026-10-29T08:19:32.037071367Z",
+        "NextUpdate": "2026-10-30T07:17:11.934066735Z",
+        "UpdatedAt": "2026-10-29T07:17:11.934066875Z",
+        "Version": 2
+      },
+      "packageCount": 115,
+      "severityCounts": {
+        "LOW": 12,
+        "MEDIUM": 44
+      },
+      "blockingFindings": 0,
+      "suppressions": []
+    },
+    "fixtureUnitTests": {
+      "command": "python3 -m unittest discover -s qualification/passkeys -p 'test_*.py'",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "syntaxChecks": [
+      "bash -n scripts/install-ci-jdk.sh",
+      "ast.parse qualification/passkeys/oidc.py"
+    ],
+    "finalCiReceipt": "/home/albert/busystack/caldav-server-audit/residual-correction-evidence/remote-ci.json (post-push, exact committed revision)"
+  }
+}

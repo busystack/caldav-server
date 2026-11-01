@@ -1,0 +1,26 @@
+[
+  {
+    "label": "valid-lowercase-delimiters",
+    "method": "PUT",
+    "path": "/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-events/valid-lowercase-delimiters.ics",
+    "request_body": "begin:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//IndependentAudit//EN\r\nbegin:VEVENT\r\nUID:valid-lowercase-delimiters\r\nDTSTAMP:20261027T000000Z\r\nDTSTART:20261027T120000Z\r\nend:VEVENT\r\nend:VCALENDAR\r\n",
+    "request_headers": {
+      "Content-Type": "text/calendar"
+    },
+    "status": 204,
+    "headers": {
+      "X-Request-ID": "e8e69a8a-5e3d-4a68-affc-f20bd0f43b29",
+      "ETag": "\"8a459bdc4e5d3d3780e7ae07e01fb074d8fe47fe349003024699ee1a23ded7e2\"",
+      "Location": "https://localhost/dav/calendars/52c33b4c-424d-4c72-835d-45cd1de9c927/audit-events/valid-lowercase-delimiters.ics",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "0",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Strict-Transport-Security": "max-age=31536000 ; includeSubDomains",
+      "X-Frame-Options": "DENY",
+      "Date": "Wed, 28 Oct 2026 06:15:12 GMT"
+    },
+    "body": ""
+  }
+]

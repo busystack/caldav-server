@@ -1,0 +1,29 @@
+password-login status=302
+registration-options status=200
+registration status=200
+correct-options status=200
+correct-assertion status=200 response={"authenticated":true,"redirectUrl":"/"}
+wrong-options status=200
+wrong-assertion status=200 response={"authenticated":true,"redirectUrl":"/"}
+absent-options status=200
+absent-assertion status=200 response={"authenticated":true,"redirectUrl":"/"}
+wrong-origin-options status=200
+wrong-origin-assertion status=401 response=
+wrong-challenge-options status=200
+wrong-challenge-assertion status=401 response=
+invalid-signature-options status=200
+invalid-signature-assertion status=401 response=
+wrong-type-options status=200
+wrong-type-assertion status=401 response=
+wrong-rpidhash-options status=200
+wrong-rpidhash-assertion status=401 response=
+no-up-options status=200
+no-up-assertion status=401 response=
+no-uv-options status=200
+no-uv-assertion status=401 response=
+cross-origin-options status=200
+cross-origin-assertion status=401 response=
+untrusted-top-origin-options status=200
+untrusted-top-origin-assertion status=401 response=
+impossible-backup-flags-options status=200
+impossible-backup-flags-assertion status=401 response=

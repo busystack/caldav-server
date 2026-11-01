@@ -1,0 +1,17 @@
+{
+  "baseline": "e094e9bf4ce34b5a8559ab25fc29f06971163752",
+  "localBranch": "release/v0.0.1",
+  "localAndRemoteReleaseCommit": "e094e9bf4ce34b5a8559ab25fc29f06971163752",
+  "worktree": "clean",
+  "remoteMain": "205200ea55283c5487de74d8ccb6eb0a7652b388",
+  "tagsAndReleases": [],
+  "latestVerificationRun": 41197891250,
+  "latestVerificationConclusion": "success",
+  "viewerPermission": "ADMIN",
+  "rulesets": [],
+  "mainProtection": "API returned Branch not protected (404); no protection was removed or bypassed",
+  "packageInspection": "gh CLI package API returned 403: read:packages scope absent. Workflow GITHUB_TOKEN packages permission will be used, not a new PAT.",
+  "releaseImmutability": "Initially false; enabled with documented PUT /repos/busystack/caldav-server/immutable-releases, subsequent GET enabled=true",
+  "repositoryInstructions": "No AGENTS.md found in repository or inspected parent directories",
+  "history": "Preserved without reset or rewrite"
+}
