@@ -35,6 +35,68 @@ class PublicationGateTest(unittest.TestCase):
     def test_correct_run_passes(self):
         publish.verification(self.run, self.jobs, SHA)
 
+    def test_release_lookup_finds_drafts_and_handles_pagination(self):
+        from unittest.mock import patch
+        draft = {'id': 123, 'tag_name': 'v0.0.1', 'draft': True, 'assets': []}
+        published = [{'id': index, 'tag_name': 'v9.' + str(index), 'draft': False} for index in range(100)]
+        with patch.object(publish, 'api', side_effect=[published, [draft]]) as api:
+            self.assertEqual(publish.release_for_tag(), draft)
+            self.assertEqual(api.call_count, 2)
+        with patch.object(publish, 'api', return_value=[]):
+            self.assertIsNone(publish.release_for_tag())
+        with patch.object(publish, 'api', return_value=[draft, draft | {'id': 124}]), self.assertRaises(AssertionError):
+            publish.release_for_tag()
+
+    def test_controller_can_resume_frozen_source_without_changing_its_inputs(self):
+        import hashlib
+        import subprocess
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*arguments):
+                return subprocess.check_output(['git', '-C', str(root), '-c', 'user.name=Release fixture',
+                    '-c', 'user.email=release-fixture@example.invalid', '-c', 'commit.gpgsign=false', *arguments], text=True).strip()
+            git('init', '--quiet', '--initial-branch=main')
+            for name in ('Dockerfile', 'compose.yaml'):
+                (root / name).write_text('qualified runtime input\n')
+            notes = root / 'docs/releases/0.0.1.md'
+            notes.parent.mkdir(parents=True)
+            notes.write_text('Qualified release notes. [Operations](../operations.md)\n')
+            jar = '7' * 64
+            receipt = {'status': 'passed', 'jarSha256': jar,
+                       'runtimeInputs': {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in ('Dockerfile', 'compose.yaml')},
+                       'baselineReplacement': {'status': 'passed', 'correctedJarSha256': jar},
+                       'clients': {name: {'status': 'passed'} for name in ('thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver')}}
+            receipt_path = root / 'qualification/evidence/releases/0.0.1/official-dependencies/verification.json'
+            receipt_path.parent.mkdir(parents=True)
+            candidate.write_json(receipt_path, receipt)
+            git('add', '.')
+            git('commit', '--quiet', '-m', 'Qualified source fixture')
+            source = git('rev-parse', 'HEAD')
+            (root / 'Dockerfile').write_text('later controller checkout input\n')
+            notes.write_text('Later checkout notes.\n')
+            git('add', '.')
+            git('commit', '--quiet', '-m', 'Later controller fixture')
+            controller = git('rev-parse', 'HEAD')
+            with patch.object(publish, 'ROOT', root):
+                publish.verify_source(source, controller, 'publish')
+                publish.verify_source(controller, controller, 'stage')
+                with self.assertRaises(AssertionError):
+                    publish.verify_source(source, controller, 'stage')
+                with self.assertRaises(AssertionError):
+                    publish.verify_source('f' * 40, controller, 'publish')
+                with self.assertRaises(AssertionError):
+                    publish.verify_source(source, '0' * 40, 'publish')
+                publish.check_client_receipt(jar, source)
+                with self.assertRaises(AssertionError):
+                    publish.check_client_receipt(jar)
+                self.assertEqual(publish.source_bytes(source, 'Dockerfile'), b'qualified runtime input\n')
+                selected_notes = publish.release_notes(source, from_git=True)
+                self.assertIn('Qualified release notes.', selected_notes)
+                self.assertNotIn('Later checkout notes.', selected_notes)
+                self.assertIn('/blob/' + source + '/docs/operations.md', selected_notes)
+            self.assertEqual(git('rev-parse', 'HEAD'), controller)
+
     def test_wrong_sha_failed_incomplete_and_untrusted_runs_reject(self):
         for key, value in [('head_sha', 'b' * 40), ('status', 'in_progress'), ('conclusion', 'failure'),
                            ('path', '.github/workflows/other.yml'), ('head_branch', 'fork'), ('event', 'pull_request')]:

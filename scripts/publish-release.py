@@ -2,6 +2,7 @@
 """Explicit tested-artifact promotion. Stage first; publish only the verified staged assets."""
 import argparse
 import base64
+import hashlib
 import importlib.util
 import json
 import os
@@ -44,6 +45,37 @@ def api(path, missing=False, method='GET', fields=None):
             return None
         raise RuntimeError('GitHub API failed: ' + path + ': ' + result.stderr[:500])
     return json.loads(result.stdout) if result.stdout else None
+
+
+def release_for_tag(tag='v0.0.1'):
+    # The by-tag endpoint returns published releases only. Listings include drafts
+    # for this job's contents:write token, allowing interrupted uploads to resume.
+    matches = []
+    page = 1
+    while True:
+        releases = api(f'repos/{REPO}/releases?per_page=100&page={page}')
+        matches.extend(release for release in releases if release['tag_name'] == tag)
+        if len(releases) < 100:
+            break
+        page += 1
+    assert len(matches) <= 1, 'Ambiguous release tag'
+    return matches[0] if matches else None
+
+
+def verify_source(source_sha, controller_sha, phase):
+    assert phase in ('stage', 'publish'), 'Invalid release phase'
+    assert re.fullmatch(r'[0-9a-f]{40}', source_sha), 'Invalid source SHA'
+    head = command('git', '-C', str(ROOT), 'rev-parse', 'HEAD')
+    assert head == controller_sha, 'Dispatch/controller mismatch'
+    if phase == 'stage':
+        assert source_sha == head, 'Staging requires the current verified main commit'
+    else:
+        ancestry = subprocess.run(['git', '-C', str(ROOT), 'merge-base', '--is-ancestor', source_sha, head], capture_output=True)
+        assert ancestry.returncode == 0, 'Release source must belong to trusted main history'
+
+
+def source_bytes(sha, filename):
+    return subprocess.check_output(['git', '-C', str(ROOT), 'show', f'{sha}:{filename}'])
 
 
 def verification(run, jobs, sha):
@@ -127,8 +159,8 @@ def candidate_version(version, value):
     return value
 
 
-def release_notes(sha):
-    notes = (ROOT / 'docs/releases/0.0.1.md').read_text()
+def release_notes(sha, from_git=False):
+    notes = source_bytes(sha, 'docs/releases/0.0.1.md').decode() if from_git else (ROOT / 'docs/releases/0.0.1.md').read_text()
     def source_link(match):
         path = posixpath.normpath('docs/releases/' + match.group(1))
         assert not path.startswith('../'), 'Release documentation link escapes repository'
@@ -150,7 +182,7 @@ def check_release(sha, digest=None):
         if target['type'] == 'tag':
             target = api(f'repos/{REPO}/git/tags/{target["sha"]}')['object']
         assert target['type'] == 'commit' and target['sha'] == sha, 'Conflicting tag'
-    release = api(f'repos/{REPO}/releases/tags/v0.0.1', missing=True)
+    release = release_for_tag()
     if release:
         assert tag, 'Release without exact tag'
         if not release['draft']:
@@ -158,11 +190,12 @@ def check_release(sha, digest=None):
     return tag, release
 
 
-def check_client_receipt(jar_sha):
-    path = ROOT / 'qualification/evidence/releases/0.0.1/official-dependencies/verification.json'
-    receipt = json.loads(path.read_text())
+def check_client_receipt(jar_sha, source_sha=None):
+    def contents(name):
+        return source_bytes(source_sha, name) if source_sha else (ROOT / name).read_bytes()
+    receipt = json.loads(contents('qualification/evidence/releases/0.0.1/official-dependencies/verification.json'))
     assert receipt['jarSha256'] == jar_sha, 'Client qualification belongs to another executable'
-    assert receipt['runtimeInputs'] == {name: candidate.sha256(ROOT / name) for name in ('Dockerfile', 'compose.yaml')}, 'Client qualification runtime inputs changed'
+    assert receipt['runtimeInputs'] == {name: hashlib.sha256(contents(name)).hexdigest() for name in ('Dockerfile', 'compose.yaml')}, 'Client qualification runtime inputs changed'
     assert receipt['status'] == 'passed'
     assert receipt['baselineReplacement']['status'] == 'passed' and receipt['baselineReplacement']['correctedJarSha256'] == jar_sha, 'Internal baseline replacement not qualified'
     assert set(receipt['clients']) == {'thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver'}
@@ -183,17 +216,18 @@ def main():
     staging = candidate_version(args.version, args.candidate_version) if args.phase == 'stage' else None
     assert os.environ['GITHUB_REPOSITORY'] == REPO
     assert os.environ['GITHUB_REF'] == 'refs/heads/main', 'Dispatch publication from main'
-    assert args.source_sha == os.environ['GITHUB_SHA'] == command('git', 'rev-parse', 'HEAD'), 'Dispatch/source mismatch'
+    verify_source(args.source_sha, os.environ['GITHUB_SHA'], args.phase)
     work = Path(args.work)
     work.mkdir(parents=True, exist_ok=False)
     log = work / 'operations.jsonl'
+    journal(log, 'controller-and-release-source', {'controllerCommit': os.environ['GITHUB_SHA'], 'sourceCommit': args.source_sha})
     run = verify_run(args.verification_run, args.source_sha)
     artifact_name = f'verified-candidate-{run["id"]}-{run["run_attempt"]}'
     source = work / 'candidate'
     download(run['id'], artifact_name, source)
     record = candidate.validate(source)
     assert record['ciRun'] == run['id'] and record['ciAttempt'] == run['run_attempt'] and record['sourceCommit'] == args.source_sha
-    check_client_receipt(record['files']['caldav-server-0.0.1.jar'])
+    check_client_receipt(record['files']['caldav-server-0.0.1.jar'], args.source_sha)
     check_release(args.source_sha)
     subprocess.run(['docker', 'image', 'load', '--input', str(source / 'container.tar.gz')], check=True)
     config = json.loads(command('docker', 'image', 'inspect', record['imageId']))[0]
@@ -267,9 +301,11 @@ def main():
     journal(log, 'version-image-created-or-matched', {'digest': digest})
     if not release:
         notes = work / 'release-notes.md'
-        notes.write_text(release_notes(args.source_sha))
+        notes.write_text(release_notes(args.source_sha, from_git=True))
         subprocess.run(['gh', 'release', 'create', 'v0.0.1', '--repo', REPO, '--verify-tag', '--draft', '--title', 'BusyStack CalDAV Server 0.0.1', '--notes-file', str(notes)], check=True)
-        release = api(f'repos/{REPO}/releases/tags/v0.0.1')
+        release = release_for_tag()
+        assert release, 'Created draft release is not visible'
+    journal(log, 'release-created-or-matched', {'releaseId': release['id'], 'draft': release['draft'], 'tag': release['tag_name']})
     expected = stage['assets']
     existing = {asset['name']: asset for asset in release['assets']}
     assert set(existing) <= set(expected), 'Unexpected release asset'
@@ -278,13 +314,14 @@ def main():
     if release['draft']:
         for name in sorted(set(expected) - set(existing)):
             subprocess.run(['gh', 'release', 'upload', 'v0.0.1', str(payload / name), '--repo', REPO], check=True)
-    remote = api(f'repos/{REPO}/releases/tags/v0.0.1')
+    remote = api(f'repos/{REPO}/releases/{release["id"]}')
+    assert remote['tag_name'] == 'v0.0.1', 'Release tag changed during publication'
     assert {asset['name']: asset.get('digest') for asset in remote['assets']} == {name: 'sha256:' + sha for name, sha in expected.items()}
     journal(log, 'draft-assets-verified', {'assets': expected})
     if remote['draft']:
         subprocess.run(['gh', 'release', 'edit', 'v0.0.1', '--repo', REPO, '--draft=false', '--latest'], check=True)
-    published = api(f'repos/{REPO}/releases/tags/v0.0.1')
-    assert published['immutable'] and not published['draft']
+    published = api(f'repos/{REPO}/releases/{release["id"]}')
+    assert published['tag_name'] == 'v0.0.1' and published['immutable'] and not published['draft']
     journal(log, 'immutable-release-published', {'url': published['html_url'], 'digest': digest})
     attestation = json.loads(command('gh', 'release', 'verify', 'v0.0.1', '--repo', REPO, '--format', 'json'))
     candidate.write_json(work / 'release-attestation.json', attestation)

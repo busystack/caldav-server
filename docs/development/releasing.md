@@ -161,6 +161,19 @@ configuration examples, full HTTPS root/subpath proxy examples and operations.
 
 ## Safe retries and public verification
 
+The published-release-by-tag API does not return drafts. The controller discovers
+drafts through the authenticated release list, then checks their assets by release
+ID. A retry reuses the matching draft and uploads only missing assets.
+
+Once the version tag or image exists, keep its qualified software commit frozen.
+A controller-only fix can be merged through the release branch and resume
+publication from trusted `main` without moving that tag or rebuilding its image.
+For `publish`, the selected software SHA must be an ancestor of the current main
+controller and still match the exact successful verification run, candidate and
+staging evidence. Client/runtime receipts and release notes are read from that
+selected commit. The operation journal records controller and software commits
+separately. Staging continues to require the current verified main SHA.
+
 There is no transaction across GHCR, Git refs and Releases. Each irreversible
 step appends an operation to the retained `release-operations-RUN-ATTEMPT` journal.
 Inspect logs and actual state with `gh run view --log-failed`, `gh api`,
