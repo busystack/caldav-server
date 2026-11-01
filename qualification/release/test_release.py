@@ -59,12 +59,53 @@ class PublicationGateTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             publish.matching_version('sha256:' + '2' * 64, 'sha256:' + '1' * 64)
 
+    def test_registry_index_accepts_only_tested_amd64_and_attestations(self):
+        from unittest.mock import patch
+        digest = 'sha256:' + '4' * 64
+        index = {'manifests': [{'digest': 'sha256:' + '5' * 64, 'platform': {'os': 'linux', 'architecture': 'amd64'}},
+                               {'digest': 'sha256:' + '6' * 64, 'platform': {'os': 'unknown', 'architecture': 'unknown'},
+                                'annotations': {'vnd.docker.reference.type': 'attestation-manifest'}}]}
+        with patch.object(publish, 'command', return_value=json.dumps(index)):
+            publish.remote_image_matches({'imageId': digest, 'localDescriptorDigest': digest}, digest)
+        index['manifests'][0]['platform']['architecture'] = 'arm64'
+        with patch.object(publish, 'command', return_value=json.dumps(index)), self.assertRaises(AssertionError):
+            publish.remote_image_matches({'imageId': digest}, digest)
+
+    def test_missing_remote_artifact_rejects_before_download(self):
+        from unittest.mock import patch
+        with patch.object(publish, 'api', return_value={'artifacts': []}), patch.object(publish.subprocess, 'run') as run:
+            with self.assertRaisesRegex(AssertionError, 'Missing/ambiguous artifact'):
+                publish.download(123, 'verified-candidate-123-1', Path('/unused'))
+            run.assert_not_called()
+
+    def test_client_receipt_is_bound_to_executable_and_runtime(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name in ('Dockerfile', 'compose.yaml'):
+                (root / name).write_text('qualified runtime input')
+            path = root / 'qualification/evidence/releases/0.0.1/official-dependencies/verification.json'
+            path.parent.mkdir(parents=True)
+            jar_sha = '7' * 64
+            receipt = {'jarSha256': jar_sha, 'runtimeInputs': {name: candidate.sha256(root / name) for name in ('Dockerfile', 'compose.yaml')},
+                       'status': 'passed', 'baselineReplacement': {'status': 'passed', 'correctedJarSha256': jar_sha},
+                       'clients': {name: {'status': 'passed'} for name in ('thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver')}}
+            candidate.write_json(path, receipt)
+            with patch.object(publish, 'ROOT', root):
+                publish.check_client_receipt(jar_sha)
+                with self.assertRaises(AssertionError):
+                    publish.check_client_receipt('8' * 64)
+                (root / 'Dockerfile').write_text('different runtime')
+                with self.assertRaises(AssertionError):
+                    publish.check_client_receipt(jar_sha)
+
     def fixture(self, directory):
         jar = directory / 'caldav-server-0.0.1.jar'
         with zipfile.ZipFile(jar, 'w') as archive:
             archive.writestr('META-INF/MANIFEST.MF', 'Implementation-Version: 0.0.1\n')
-            archive.writestr('META-INF/sbom/application.cdx.json', '{}')
-        (directory / 'sbom.cdx.json').write_text('{}')
+            archive.writestr('META-INF/sbom/application.cdx.json', '{"metadata":{"component":{"version":"0.0.1"}}}')
+            archive.writestr('META-INF/maven/org.busystack/caldav-server/pom.properties', 'version=0.0.1\n')
+        (directory / 'sbom.cdx.json').write_text('{"metadata":{"component":{"version":"0.0.1"}}}')
         (directory / 'container.tar.gz').write_bytes(b'tested archive fixture')
         record = {'version': '0.0.1', 'repository': publish.REPO, 'sourceCommit': SHA, 'platform': 'linux/amd64',
                   'ciRun': 123, 'ciAttempt': 1, 'workflow': '.github/workflows/ci.yml', 'imageId': 'sha256:' + '3' * 64,

@@ -37,6 +37,15 @@ subpath, real Keycloak cross-site, local restoration with independent clients,
 federated restoration. Missing required prerequisites fail; optional NVD absence
 is recorded separately and never replaces required OSV/container checks.
 
+Exercise actual replacement of the retained qualified internal baseline with
+`python3 scripts/verify-operations.py --image CORRECTED_IMAGE --baseline-image QUALIFIED_BASELINE_IMAGE`.
+Verify the baseline's full source label and artifact identity first; local tags
+alone are insufficient. This path starts the baseline, replaces it with the
+corrected image and checks unchanged authoritative bytes, ETags and migration
+history before restart/backup/restoration. The V9 migration fixture remains
+separate. Record the corrected JAR identity and passed replacement in the client
+receipt; no older public version is implied.
+
 Run official real-client editor workflows with private disposable profiles:
 Thunderbird system Vancouver, explicit Vancouver, explicit Berlin, and GNOME
 Calendar/EDS Vancouver. Include actual creation/editing/sync/recurrence/occurrence,
@@ -45,7 +54,7 @@ validator evidence. Preserve personal accounts/settings/trust. Read the latest
 retained scripts before setup; do not reinstall working clients. Keep failed
 attempts separate. Commit the concise qualification receipt at
 `qualification/evidence/releases/0.0.1/official-dependencies/verification.json`.
-Its exact JAR SHA-256 and four successful client entries are mandatory publication
+Its exact JAR SHA-256, Dockerfile/Compose runtime-input hashes and four successful client entries are mandatory publication
 gates. Full logs/screenshots and private fixture material stay in the established
 external evidence locations. No different executable inherits client results.
 
@@ -106,21 +115,22 @@ created during staging. Failed installation evidence is retained but ineligible.
 GitHub's documented package visibility control is the package settings UI, not
 an invented REST endpoint. A new GHCR package defaults private regardless of
 repository visibility. An organization package admin must open
-https://github.com/orgs/busystack/packages/container/caldav-server/settings,
-select **Danger Zone → Change visibility → Public**, and confirm the package name.
+https://github.com/orgs/busystack/packages/container/package/caldav-server,
+choose **Package settings → Danger Zone → Change visibility → Public**, and confirm the package name.
 If this UI is unavailable to the agent, request that exact operator action after
 staging; complete all unaffected preparation. Public visibility cannot be assumed
 from inherited access permissions. Publication explicitly verifies anonymous
 registry access before creating the version tag/release.
 
-Recheck immutable releases immediately before publication. Dispatch the same
+Recheck immutable releases immediately before publication. The ephemeral workflow token cannot request repository Administration permission, so this admin API check is the dispatcher’s explicit responsibility; `immutability_confirmed=true` records that fresh check. The workflow refuses publication without it and verifies `immutable=true` after publication. Dispatch the same
 frozen SHA, verification run and exact successful staging run:
 
 ```sh
 gh api repos/busystack/caldav-server/immutable-releases
 gh workflow run release.yml --repo busystack/caldav-server --ref main \
   -f version=0.0.1 -f source_sha=QUALIFIED_SHA \
-  -f verification_run=VERIFY_RUN_ID -f phase=publish -f stage_run=STAGE_RUN_ID
+  -f verification_run=VERIFY_RUN_ID -f phase=publish -f stage_run=STAGE_RUN_ID \
+  -f immutability_confirmed=true
 gh run watch PUBLICATION_RUN_ID --repo busystack/caldav-server --exit-status
 ```
 
@@ -154,9 +164,7 @@ a defect after publication requires a new version, never deletion/recreation.
 The final workflow anonymously downloads the public assets using unauthenticated
 HTTPS, verifies all SHA-256 values, uses an empty Docker configuration without
 GitHub/registry credentials to pull the digest and repeats installation acceptance.
-Inspect available GitHub release attestation through supported CLI/API capabilities
-and retain the verification outcome; do not claim an attestation was cryptographically
-verified unless a supported verification command was actually executed.
+The release job installs an isolated checksum-pinned official GitHub CLI 2.103.3, verifies the cryptographic release attestation with `gh release verify`, and verifies every asset with `gh release verify-asset`. It retains the attestation result and operation journal. The system CLI/authentication configuration is unchanged.
 
 After successful publication, retain source-bound concise results in the release
 evidence index, including actual run URLs, digest, assets/checksums, client evidence

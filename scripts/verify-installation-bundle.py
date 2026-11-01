@@ -13,6 +13,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,13 +46,15 @@ def jar_smoke(jar, extracted, directory):
         path.chmod(0o600 if path == bootstrap else 0o444)
     db_port, app_port = port(), port()
     image = 'postgres:18.6@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6'
+    jar_secrets = directory / 'jar-secrets'
+    jar_secrets.mkdir(mode=0o700)
     environment = os.environ.copy()
     environment.update(SPRING_DATASOURCE_URL=f'jdbc:postgresql://127.0.0.1:{db_port}/busystack',
-                       SPRING_DATASOURCE_USERNAME='busystack', SPRING_CONFIG_IMPORT='configtree:' + str(directory) + '/',
+                       SPRING_DATASOURCE_USERNAME='busystack', SPRING_CONFIG_IMPORT='configtree:' + str(jar_secrets) + '/',
                        SERVER_ADDRESS='127.0.0.1', SERVER_PORT=str(app_port),
                        BUSYSTACK_PUBLIC_BASE_URL='https://calendar.example.test', BUSYSTACK_ISSUER='https://calendar.example.test')
-    (directory / 'spring.datasource.password').write_bytes(database.read_bytes())
-    (directory / 'spring.datasource.password').chmod(0o600)
+    (jar_secrets / 'spring.datasource.password').write_bytes(database.read_bytes())
+    (jar_secrets / 'spring.datasource.password').chmod(0o600)
     application = None
     with (directory / 'jar.log').open('w') as log:
         try:
@@ -80,6 +83,17 @@ def jar_smoke(jar, extracted, directory):
                     except (OSError, ValueError):
                         assert time.monotonic() < deadline, 'JAR startup deadline exceeded'
                         time.sleep(0.5)
+                for endpoint, expected in (('/login', 200), ('/dav/', 401), ('/.well-known/oauth-authorization-server', 200)):
+                    try:
+                        response = urllib.request.urlopen(f'http://127.0.0.1:{app_port}' + endpoint, timeout=10)
+                    except urllib.error.HTTPError as error:
+                        response = error
+                    with response:
+                        assert response.status == expected
+                        if endpoint == '/dav/':
+                            assert 'Basic' in response.headers.get('WWW-Authenticate', '')
+                        elif endpoint.endswith('oauth-authorization-server'):
+                            assert json.load(response)['issuer'] == 'https://calendar.example.test'
                 account = subprocess.check_output(['docker', 'exec', project, 'psql', '-U', 'postgres', '-d', 'busystack', '-Atc', "SELECT count(*) FROM accounts WHERE username='jaradmin' AND enabled;"])
                 assert account.strip() == b'1'
                 application.terminate()
@@ -90,7 +104,7 @@ def jar_smoke(jar, extracted, directory):
                 application.terminate()
                 application.wait(timeout=30)
             subprocess.run(['docker', 'rm', '--force', '--volumes', project], stdout=log, stderr=log, check=True)
-    return {'status': 'passed', 'hostJava': subprocess.check_output(['java', '--version'], text=True).splitlines()[0], 'bootstrapAndRestartPersistence': True}
+    return {'status': 'passed', 'hostJava': subprocess.check_output(['java', '--version'], text=True).splitlines()[0], 'bootstrapAndRestartPersistence': True, 'loginDavChallengeAndIssuer': True}
 
 
 def main():
@@ -101,7 +115,7 @@ def main():
     args = parser.parse_args()
     result = {'status': 'failed', 'publicAnonymous': args.public}
     try:
-        with tempfile.TemporaryDirectory(prefix='busystack-install-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='busystack install ') as temporary:
             directory = Path(temporary)
             assets = Path(args.assets).resolve() if args.assets else directory / 'download'
             environment = os.environ.copy()
@@ -133,7 +147,9 @@ def main():
             assert image.endswith('@' + manifest['container']['registryManifestDigest'])
             subprocess.run(['docker', 'pull', '--platform', 'linux/amd64', image], env=environment, check=True)
             config = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], env=environment))[0]
-            assert config['Id'] == manifest['container']['localTestedImageId']
+            assert config['Config']['Labels']['org.opencontainers.image.revision'] == manifest['sourceCommit']
+            jar_sha = subprocess.check_output(['docker', 'run', '--rm', '--entrypoint', 'sha256sum', image, '/opt/busystack/application.jar'], env=environment, text=True).split()[0]
+            assert jar_sha == manifest['jar']['sha256']
             assert config['Architecture'] == 'amd64' and config['Os'] == 'linux'
             with tarfile.open(assets / manifest['deployment']['name']) as archive:
                 archive.extractall(directory, filter='data')
@@ -183,7 +199,7 @@ def main():
             result.update(status='passed', sourceCommit=manifest['sourceCommit'],
                           jarSha256=manifest['jar']['sha256'], registryManifestDigest=manifest['container']['registryManifestDigest'],
                           deploymentSha256=manifest['deployment']['sha256'],
-                          sourceDirectoryMounts=False, profiles=['same-version', 'V9-upgrade', 'HTTPS-proxy-browser-local-restore'])
+                          sourceDirectoryMounts=False, extractionDirectoryContainsSpaces=True, profiles=['same-version', 'V9-upgrade', 'HTTPS-proxy-browser-local-restore'])
     finally:
         candidate.write_json(args.output, result)
 

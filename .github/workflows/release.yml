@@ -21,6 +21,11 @@ on:
         type: choice
         options: [stage, publish]
         required: true
+      immutability_confirmed:
+        description: Admin checked immutable-releases enabled via gh API immediately before publish
+        type: boolean
+        default: false
+        required: true
       stage_run:
         description: Successful staging run ID (required for publish)
         type: string
@@ -61,6 +66,8 @@ jobs:
           [[ "$RELEASE_RUN" =~ ^[0-9]+$ ]]
           [[ -z "$RELEASE_STAGE_RUN" || "$RELEASE_STAGE_RUN" =~ ^[0-9]+$ ]]
           python3 -m unittest discover -s qualification/release -p 'test_*.py'
+      - name: Install isolated official release-attestation CLI
+        run: bash scripts/install-release-gh.sh
       - name: Install selected JDK for downloaded JAR qualification
         run: bash scripts/install-ci-jdk.sh
       - name: Build browser fixture (application is promoted without rebuilding)
@@ -76,10 +83,12 @@ jobs:
           RELEASE_RUN: ${{ inputs.verification_run }}
           RELEASE_SHA: ${{ inputs.source_sha }}
           RELEASE_PHASE: ${{ inputs.phase }}
+          IMMUTABILITY_CONFIRMED: ${{ inputs.immutability_confirmed }}
           RELEASE_STAGE_RUN: ${{ inputs.stage_run }}
         run: |
           arguments=(--version "$RELEASE_VERSION" --verification-run "$RELEASE_RUN" --source-sha "$RELEASE_SHA" --phase "$RELEASE_PHASE" --work "$RUNNER_TEMP/release-work")
           if [[ -n "$RELEASE_STAGE_RUN" ]]; then arguments+=(--stage-run "$RELEASE_STAGE_RUN"); fi
+          if [[ "$IMMUTABILITY_CONFIRMED" == true ]]; then arguments+=(--immutability-confirmed); fi
           python3 scripts/publish-release.py "${arguments[@]}"
       - name: Retain successful staging assets
         if: success() && inputs.phase == 'stage'
@@ -99,6 +108,7 @@ jobs:
         with:
           name: release-operations-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            ${{ runner.temp }}/release-work/release-attestation.json
             ${{ runner.temp }}/release-work/operations.jsonl
             ${{ runner.temp }}/release-work/*installation.json
           retention-days: 90

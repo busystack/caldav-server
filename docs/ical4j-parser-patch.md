@@ -31,5 +31,5 @@ remain authoritative; this derived reader is never written to persistence.
 `CN=^'Babe^'`, delegation, extensions and projection regressions. The calendar
 and protocol suites retain malformed-boundary, UTF-8, atomic-write and query tests.
 `verify-dependency-integrity.py` checks absence of removed classes/shadow namespaces
-and exact official nested JAR bytes. The BSD notice remains because iCal4j is
+and exact official nested JAR bytes plus all 99 Spring Boot executable-loader classes. The BSD notice remains because iCal4j is
 still distributed, not because modified implementation source remains.

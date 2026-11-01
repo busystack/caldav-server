@@ -13,11 +13,16 @@ REMOVED = ('Ical4jCalendarParser', 'Ical4jZoneRulesBuilder')
 
 
 def inspect(path, lock=LOCK):
-    expected = json.loads(Path(lock).read_text())['artifacts']
+    record = json.loads(Path(lock).read_text())
+    expected = record['artifacts']
     with zipfile.ZipFile(path) as jar:
         names = jar.namelist()
+        assert len(names) == len(set(names)), 'Duplicate executable archive entries'
+        assert not any(entry.startswith('BOOT-INF/classes/') and entry.endswith('.class') and not entry.startswith('BOOT-INF/classes/org/busystack/') for entry in names), 'Unexpected application class namespace'
         assert not any(any(name in entry for name in REMOVED) for entry in names), 'Removed implementation in JAR'
         assert not any(entry.startswith(('BOOT-INF/classes/net/fortuna/', 'BOOT-INF/classes/org/springframework/')) for entry in names), 'Shadowed third-party classes'
+        loader = {entry: hashlib.sha256(jar.read(entry)).hexdigest() for entry in names if not entry.startswith('BOOT-INF/') and entry.endswith('.class')}
+        assert loader == record.get('executableLoader', {}).get('classes', {}), 'Executable loader differs from official artifact'
         actual = {entry.removeprefix('BOOT-INF/lib/'): hashlib.sha256(jar.read(entry)).hexdigest()
                   for entry in names if entry.startswith('BOOT-INF/lib/') and entry.endswith('.jar')}
         assert actual == {name: item['sha256'] for name, item in expected.items()}, 'Packaged dependency differs from official artifact lock'
@@ -25,7 +30,7 @@ def inspect(path, lock=LOCK):
             if entry.startswith('BOOT-INF/lib/') and entry.endswith('.jar'):
                 with zipfile.ZipFile(io.BytesIO(jar.read(entry))) as dependency:
                     assert not any(any(name in member for name in REMOVED) for member in dependency.namelist()), 'Removed implementation hidden in dependency'
-    return {'status': 'passed', 'officialArtifacts': len(actual), 'jarSha256': hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+    return {'status': 'passed', 'officialArtifacts': len(actual), 'officialLoaderClasses': len(loader), 'jarSha256': hashlib.sha256(Path(path).read_bytes()).hexdigest()}
 
 
 def source():

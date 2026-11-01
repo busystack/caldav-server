@@ -1,0 +1,219 @@
+{
+  "baselineReplacement": {
+    "baselineImageId": "sha256:9dfef252d82a7d54274ef0ef9b2c1127ede53b93b77adb8100226748e8a98dff",
+    "baselineSource": "e094e9bf4ce34b5a8559ab25fc29f06971163752",
+    "correctedImageId": "sha256:81b96ce452bf8e6ac7c07bb57c0918858e0b92a722c344437007d8635a94b0ab",
+    "correctedJarSha256": "98d9febbd849e7cd335d2f277026063765ce260264f08b65e04278936023002a",
+    "correctedSource": "9635587b7fa1e54a144355dc1579c0e4c04e1b8f",
+    "scope": "Actual running internal baseline replaced by corrected image in disposable project; bytes, ETags, V13 migration history, restart and backup/restoration verified. No older public version claimed.",
+    "status": "passed"
+  },
+  "cleanBuild": {
+    "command": "./mvnw -B -ntp clean verify",
+    "duration": "33:43",
+    "integration": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 218
+    },
+    "jarSha256": "98d9febbd849e7cd335d2f277026063765ce260264f08b65e04278936023002a",
+    "log": "results/full-clean-verify.log",
+    "status": "passed",
+    "unit": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 386
+    }
+  },
+  "clientAnalysis": "results/client-qualification-analysis.json",
+  "clientImageId": "sha256:81b96ce452bf8e6ac7c07bb57c0918858e0b92a722c344437007d8635a94b0ab",
+  "clientProvenance": {
+    "archiveSha512MatchesSignedManifestProvenance": true,
+    "currentCodeFilesMatchPreviouslySignatureVerifiedOfficialArchive": {
+      "thunderbird/application.ini": "83e4945a44546d2102362690b29095ed120c3627822004515e1952d63c2607e3",
+      "thunderbird/libxul.so": "3bae1ae176ffd85b315c84a3292bb0cec61b2bbd76031cadb81a7088b5381ebb",
+      "thunderbird/omni.ja": "0de0416ffdad82fd73229ba79492835e08d025216fa993dffc14a6fb48fcb363",
+      "thunderbird/thunderbird": "eca72b8d48a8c65a7a5938ee1d30126c313f6877382055b3f4939141957e4b32"
+    },
+    "gnomePackageVerification": "dpkg --verify returned 0 with no output",
+    "gnomeRuntimePackages": [
+      "evolution-data-server 3.56.2-8",
+      "gnome-calendar 50.0-1",
+      "libecal-2.0-3 3.56.2-8",
+      "libedataserver-1.2-27t64 3.56.2-8"
+    ],
+    "newInstallationOrSoftwareChanges": false,
+    "priorSignatureEvidence": "/home/albert/busystack/caldav-server-timezone-verification-20261030/thunderbird159/download-verification.json",
+    "status": "passed",
+    "version": "159.0"
+  },
+  "clientSourceCommit": "9635587b7fa1e54a144355dc1579c0e4c04e1b8f",
+  "clients": {
+    "gnome-vancouver": {
+      "EDS": "3.56.2-8",
+      "actualDeleteStatus": 204,
+      "client": "GNOME Calendar",
+      "clientServerRestarts": true,
+      "creationEditingReopening": true,
+      "evidence": "results/gnome-workflow-state.json",
+      "finalGetStatus": 404,
+      "finiteSeriesInstances": 3,
+      "result": "passed",
+      "status": "passed",
+      "timezone": "America/Vancouver",
+      "version": "50.0-1",
+      "wholeSeriesDeleted": true
+    },
+    "thunderbird-explicit-berlin": {
+      "case": "explicit-berlin",
+      "client": "Thunderbird",
+      "conditionalEditUsesCorrectedStrongEtag": true,
+      "conflictResponses": 0,
+      "correctedGetSha256": "8440e8a512fdece68cfd7b24357eeb9efe06e5eb68a69be9e7ed599afe90f442",
+      "editedOccurrenceRestartPersistence": true,
+      "evidenceDirectories": [
+        "thunderbird/explicit-berlin/evidence",
+        "thunderbird/explicit-berlin/evidence"
+      ],
+      "expectedSuccessfulPuts": 6,
+      "finiteSeriesInstances": 3,
+      "onlyRequiredUntilChanges": true,
+      "originalLocalUntilCount": 7,
+      "originalUploadSha256": "9270cb8d5f066558f350d4c44589d06163ba36c60e997c3fbb9f2ef2f2496771",
+      "putValidatorsOmitted": true,
+      "resourceUrls": 2,
+      "result": "passed",
+      "status": "passed",
+      "subsequentUploadRetainsCorrectedUtcRules": true,
+      "subsequentValidUploadByteIdenticalToGet": true,
+      "successfulPuts": 6,
+      "taskCompletionAndDeletion": true,
+      "timezone": "Europe/Berlin",
+      "version": "159.0"
+    },
+    "thunderbird-explicit-vancouver": {
+      "case": "explicit-vancouver",
+      "client": "Thunderbird",
+      "conditionalEditUsesCorrectedStrongEtag": true,
+      "conflictResponses": 0,
+      "correctedGetSha256": "ff245b796b36596e3470d079d1483bd662f48e23bf58f950e374dff443a34fe9",
+      "editedOccurrenceRestartPersistence": true,
+      "evidenceDirectories": [
+        "thunderbird/explicit-vancouver/evidence",
+        "thunderbird/explicit-vancouver/evidence"
+      ],
+      "expectedSuccessfulPuts": 6,
+      "finiteSeriesInstances": 3,
+      "onlyRequiredUntilChanges": true,
+      "originalLocalUntilCount": 6,
+      "originalUploadSha256": "7369f9332a5870a1732a966780cdce5657f5e03a8541a7d7045047a793ab712b",
+      "putValidatorsOmitted": true,
+      "resourceUrls": 2,
+      "result": "passed",
+      "status": "passed",
+      "subsequentUploadRetainsCorrectedUtcRules": true,
+      "subsequentValidUploadByteIdenticalToGet": true,
+      "successfulPuts": 6,
+      "taskCompletionAndDeletion": true,
+      "timezone": "America/Vancouver",
+      "version": "159.0"
+    },
+    "thunderbird-system-vancouver": {
+      "case": "system-vancouver",
+      "client": "Thunderbird",
+      "conditionalEditUsesCorrectedStrongEtag": true,
+      "conflictResponses": 0,
+      "correctedGetSha256": "c9449afc063d5febefdf346bf21d57705d01b31ebcf6e9fbf11e77dc235d1a51",
+      "editedOccurrenceRestartPersistence": true,
+      "evidenceDirectories": [
+        "thunderbird/system-vancouver/evidence-attempt2",
+        "thunderbird/system-vancouver/evidence-attempt2"
+      ],
+      "expectedSuccessfulPuts": 6,
+      "finiteSeriesInstances": 3,
+      "onlyRequiredUntilChanges": true,
+      "originalLocalUntilCount": 6,
+      "originalUploadSha256": "2c655f8e39f3a332e208084fa0377cb152bb900f978bfd0e20df2c76f94d403d",
+      "putValidatorsOmitted": true,
+      "resourceUrls": 2,
+      "result": "passed",
+      "status": "passed",
+      "subsequentUploadRetainsCorrectedUtcRules": true,
+      "subsequentValidUploadByteIdenticalToGet": true,
+      "successfulPuts": 6,
+      "taskCompletionAndDeletion": true,
+      "timezone": "America/Vancouver",
+      "version": "159.0"
+    }
+  },
+  "externalEvidence": "/home/albert/busystack/caldav-server-timezone-verification-20261030/third-party-cleanup-20261101",
+  "failedAttempts": [
+    {
+      "detail": "401 before client launch: retained fixture database had no accounts. Normal bootstrap/browser provisioning created a new synthetic credential; same case then completed in a fresh profile.",
+      "evidence": "results/thunderbird-system-vancouver-attempt1.log",
+      "result": "failed"
+    },
+    {
+      "detail": "System Python lacked the pinned icalendar fixture dependency; retried with the existing pinned client Python environment, without reinstalling clients.",
+      "evidence": "results/gnome-create-attempt1.log",
+      "result": "failed"
+    },
+    {
+      "detail": "Active-window guard refused input when desktop focus changed. Continued the same unsaved edit only in the owned client window.",
+      "evidence": "results/gnome-set-recurrence-attempt1.log",
+      "result": "failed"
+    },
+    {
+      "detail": "Direct UUID navigation did not open the recurring-instance popover. Completed through normal native search/result/editor controls.",
+      "evidence": "results/gnome-delete-series-attempt1.log",
+      "result": "failed"
+    },
+    {
+      "detail": "GNOME exited during automated accessibility search with a GcalCalendarMonitor GCAL_IS_THREAD assertion. Cause is not established. Retained same server resource/profile and resumed using native keyboard input after client relaunch.",
+      "evidence": "results/gnome-official-client-exit.log",
+      "result": "failed client/automation attempt"
+    }
+  ],
+  "httpTrace": "results/complete-client-http.jsonl",
+  "jarSha256": "98d9febbd849e7cd335d2f277026063765ce260264f08b65e04278936023002a",
+  "limitations": [
+    "Real editor controls were automated; no manual-human, physical-authenticator or universal client certification.",
+    "One automated GNOME search attempt ended in a client assertion; it is retained separately. Only the completed calendar workflows/configurations above are qualified.",
+    "Other client versions/platforms and operator-specific public DNS/certificates/network configurations remain unqualified."
+  ],
+  "officialDependencies": {
+    "gate": "scripts/verify-dependency-integrity.py",
+    "loaderClasses": 99,
+    "lock": "qualification/distribution/runtime-artifacts.json",
+    "nestedJars": 96
+  },
+  "publication": {
+    "authoritativeManifest": "https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json",
+    "process": "docs/development/releasing.md",
+    "requirements": "Final exact main CI, staged digest/bundle installation and anonymous public verification remain separate mandatory gates.",
+    "state": "pending"
+  },
+  "recordedAt": "2026-11-01T02:43:49.269578+00:00",
+  "runtimeInputs": {
+    "Dockerfile": "23f03a1f531a1b52e32963465ebd131d8a6969f45951294bb93a3c8e54e22394",
+    "compose.yaml": "44a2b67f6a77b5eb533a3aacfdca6f6184e6d350849bacadf5316f7c1767b3bc"
+  },
+  "safeguards": [
+    "Official unmodified clients verified before use; fresh private Thunderbird profiles and isolated GNOME HOME/XDG/D-Bus.",
+    "No personal accounts, credentials, desktop settings or system trust changed. Exact-source test certificate trust removed after completion.",
+    "Temporary keyboard-only portals had no screen/clipboard/persistence and were closed; native input was guarded to the test client.",
+    "All successful event/task writes came from actual client editors; fixture metadata/provisioning is separate. Historical evidence and previous prepared artifacts unchanged."
+  ],
+  "schemaVersion": 1,
+  "scope": "Corrected executable client/developer qualification; publication identity is generated separately by the release workflow",
+  "status": "passed",
+  "verificationRun": {
+    "id": 41262396896,
+    "scope": "Application/investigation/static tests, current advisory gates, distribution integrity, six packaged HTTPS profiles and local/federated restoration",
+    "sourceCommit": "9635587b7fa1e54a144355dc1579c0e4c04e1b8f",
+    "status": "passed",
+    "url": "https://github.com/busystack/caldav-server/actions/runs/41262396896"
+  }
+}

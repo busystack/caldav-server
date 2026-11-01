@@ -156,11 +156,16 @@ def checks(environment):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="busystack-caldav:0.0.1")
+    parser.add_argument("--baseline-image", help="Existing qualified internal baseline for actual replacement; not an older public release")
     args = parser.parse_args()
     if not args.image or any(character.isspace() for character in args.image):
         parser.error("--image must be a single Docker image reference")
+    if args.baseline_image and any(character.isspace() for character in args.baseline_image):
+        parser.error("--baseline-image must be a single Docker image reference")
     execute(["docker", "info"], os.environ.copy())
     args.image = execute(["docker", "image", "inspect", "--format", "{{.Id}}", args.image], os.environ.copy())
+    if args.baseline_image:
+        args.baseline_image = execute(["docker", "image", "inspect", "--format", "{{.Id}}", args.baseline_image], os.environ.copy())
     print("OPERATIONS_APPLICATION_IMAGE=" + args.image, flush=True)
 
     for initial_version in (None, "9"):
@@ -177,10 +182,12 @@ def verify(args, initial_version):
             secret_file = private / name
             secret_file.write_text(secrets.token_urlsafe(32) + "\n")
             secret_file.chmod(0o600 if name in ("bootstrap-password", "recovery-password") else 0o444)
+        baseline_image = getattr(args, "baseline_image", None) if initial_version is None else None
+        initial_image = baseline_image or args.image
         override = private / "compose.override.yaml"
         override.write_text(
             "services:\n  application:\n"
-            f"    image: {json.dumps(args.image)}\n"
+            f"    image: {json.dumps(initial_image)}\n"
             "    ports: !override\n      - '127.0.0.1::8080'\n"
         )
         environment = os.environ.copy()
@@ -292,8 +299,22 @@ COMMIT;
                 assert sql(environment, "SELECT to_regclass('public.sync_continuations') IS NULL;") == "t"
                 execute(["./scripts/backup.sh", str(archive)], environment)
                 print("OPERATIONS_V9_ARCHIVE_CREATED_BEFORE_CURRENT_STARTUP", flush=True)
+            if baseline_image:
+                compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
+                checks(environment)
+                baseline_data = sql(environment, "SELECT encode(content,'hex') || etag FROM calendar_resources ORDER BY collection_id,name;")
+                baseline_history = sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;")
+                compose(environment, "stop", "application")
+                override.write_text(override.read_text().replace(json.dumps(initial_image), json.dumps(args.image)))
+                print("OPERATIONS_REPLACING_INTERNAL_BASELINE=" + baseline_image + "; corrected=" + args.image, flush=True)
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
+            if baseline_image:
+                actual = execute(["docker", "inspect", "--format", "{{.Image}}", compose(environment, "ps", "--quiet", "application")], environment)
+                assert actual == args.image
+                assert sql(environment, "SELECT encode(content,'hex') || etag FROM calendar_resources ORDER BY collection_id,name;") == baseline_data
+                assert sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;") == baseline_history
+                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_MIGRATION_HISTORY", flush=True)
             compose(environment, "restart", "application")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)

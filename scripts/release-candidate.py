@@ -39,6 +39,10 @@ def validate(directory):
     with zipfile.ZipFile(directory / f'caldav-server-{VERSION}.jar') as jar:
         assert f'Implementation-Version: {VERSION}\n' in jar.read('META-INF/MANIFEST.MF').decode().replace('\r\n', '\n')
         assert jar.read('META-INF/sbom/application.cdx.json') == (directory / 'sbom.cdx.json').read_bytes()
+        bom = json.loads((directory / 'sbom.cdx.json').read_text())
+        assert bom['metadata']['component']['version'] == candidate['version'], 'SBOM version mismatch'
+        coordinates = dict(line.split('=', 1) for line in jar.read('META-INF/maven/org.busystack/caldav-server/pom.properties').decode().splitlines() if '=' in line and not line.startswith('#'))
+        assert coordinates['version'] == candidate['version'], 'JAR coordinates mismatch'
     return candidate
 
 
@@ -70,7 +74,7 @@ def main():
         'schemaVersion': 1, 'repository': REPOSITORY, 'version': VERSION,
         'sourceCommit': revision, 'ciRun': int(os.environ['GITHUB_RUN_ID']),
         'ciAttempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'workflow': '.github/workflows/ci.yml',
-        'platform': 'linux/amd64', 'imageId': config['Id'], 'imageTag': args.image, 'files': files,
+        'platform': 'linux/amd64', 'imageId': config['Id'], 'localDescriptorDigest': config.get('Descriptor', {}).get('digest'), 'imageTag': args.image, 'files': files,
     })
     validate(destination)
 

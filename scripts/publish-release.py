@@ -101,6 +101,22 @@ def manifest_digest(tag, anonymous=False):
         raise
 
 
+def remote_image_matches(record, digest):
+    remote = json.loads(command('docker', 'manifest', 'inspect', REGISTRY + '@' + digest))
+    if 'manifests' in remote:
+        runtime = []
+        for item in remote['manifests']:
+            if item.get('annotations', {}).get('vnd.docker.reference.type') == 'attestation-manifest':
+                continue
+            assert item.get('platform') == {'architecture': 'amd64', 'os': 'linux'}, 'Unqualified registry platform'
+            runtime.append(item)
+        assert len(runtime) == 1, 'Expected exactly one Linux AMD64 runtime manifest'
+        if record.get('localDescriptorDigest') == digest or record['imageId'] == digest:
+            return
+        remote = json.loads(command('docker', 'manifest', 'inspect', REGISTRY + '@' + runtime[0]['digest']))
+    assert remote['config']['digest'] == record['imageId'], 'Conflicting stage image'
+
+
 def matching_version(existing, expected):
     assert existing is None or existing == expected, 'Conflicting existing version; refusing overwrite'
 
@@ -131,7 +147,9 @@ def check_client_receipt(jar_sha):
     path = ROOT / 'qualification/evidence/releases/0.0.1/official-dependencies/verification.json'
     receipt = json.loads(path.read_text())
     assert receipt['jarSha256'] == jar_sha, 'Client qualification belongs to another executable'
+    assert receipt['runtimeInputs'] == {name: candidate.sha256(ROOT / name) for name in ('Dockerfile', 'compose.yaml')}, 'Client qualification runtime inputs changed'
     assert receipt['status'] == 'passed'
+    assert receipt['baselineReplacement']['status'] == 'passed' and receipt['baselineReplacement']['correctedJarSha256'] == jar_sha, 'Internal baseline replacement not qualified'
     assert set(receipt['clients']) == {'thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver'}
     assert all(result['status'] == 'passed' for result in receipt['clients'].values())
 
@@ -144,6 +162,7 @@ def main():
     parser.add_argument('--phase', choices=['stage', 'publish'], required=True)
     parser.add_argument('--stage-run', type=int)
     parser.add_argument('--work', required=True)
+    parser.add_argument('--immutability-confirmed', action='store_true')
     args = parser.parse_args()
     assert os.environ['GITHUB_REPOSITORY'] == REPO
     assert os.environ['GITHUB_REF'] == 'refs/heads/main', 'Dispatch publication from main'
@@ -169,15 +188,19 @@ def main():
         subprocess.run(['docker', 'tag', record['imageId'], REGISTRY + ':' + staging], check=True)
         # After the first push the linked package exists; retries never change staged content.
         package = api('orgs/busystack/packages/container/caldav-server', missing=True)
+        prior = None
         if package:
             prior = manifest_digest(staging)
             if prior:
-                remote = command('docker', 'manifest', 'inspect', REGISTRY + '@' + prior)
-                assert json.loads(remote)['config']['digest'] == record['imageId'], 'Conflicting stage image'
-        subprocess.run(['docker', 'push', REGISTRY + ':' + staging], check=True)
+                remote_image_matches(record, prior)
+        if prior is None:
+            subprocess.run(['docker', 'push', REGISTRY + ':' + staging], check=True)
+        package = api('orgs/busystack/packages/container/caldav-server')
+        assert package['repository']['full_name'] == REPO, 'GHCR package is not associated with this repository'
         digest = manifest_digest(staging)
         assert digest
-        journal(log, 'staged-registry-image', {'digest': digest, 'imageId': record['imageId']})
+        remote_image_matches(record, digest)
+        journal(log, 'staged-registry-image', {'digest': digest, 'imageId': record['imageId'], 'packageVisibility': package['visibility'], 'repository': package['repository']['full_name']})
         matching_version(manifest_digest(args.version), digest)
         payload = work / 'assets'
         manifest = bundle.build(source, digest, payload)
@@ -203,17 +226,27 @@ def main():
     assert candidate.sha256(staged / 'installation.json') == stage['installationSha256']
     assert json.loads((staged / 'installation.json').read_text())['status'] == 'passed'
     digest = stage['registryDigest']
-    matching_version(manifest_digest(args.version), digest)
+    existing_version_digest = manifest_digest(args.version)
+    matching_version(existing_version_digest, digest)
     assert manifest_digest(digest) == digest
     assert manifest_digest(digest, anonymous=True) == digest, 'Package must be public before version publication'
-    immutable = api(f'repos/{REPO}/immutable-releases')
-    assert immutable['enabled'], 'Enable immutable releases before publishing'
+    package = api('orgs/busystack/packages/container/caldav-server')
+    assert package['visibility'] == 'public' and package['repository']['full_name'] == REPO
+    # GITHUB_TOKEN cannot request repository Administration permission. The admin
+    # dispatcher must check the documented setting API immediately before dispatch.
+    assert args.immutability_confirmed, 'Admin must verify immutable releases before dispatch'
+    journal(log, 'immutable-setting-admin-confirmation', {'confirmed': True})
     tag, release = check_release(args.source_sha)
+    if release:
+        expected_assets = stage['assets']
+        assert set(asset['name'] for asset in release['assets']) <= expected_assets.keys(), 'Unexpected existing release asset'
+        assert all(asset.get('digest') == 'sha256:' + expected_assets[asset['name']] for asset in release['assets']), 'Conflicting existing release assets'
     if not tag:
         api(f'repos/{REPO}/git/refs', method='POST', fields={'ref': 'refs/tags/v0.0.1', 'sha': args.source_sha})
     journal(log, 'exact-tag-created-or-matched', {'sha': args.source_sha})
     subprocess.run(['docker', 'tag', record['imageId'], REGISTRY + ':' + args.version], check=True)
-    subprocess.run(['docker', 'push', REGISTRY + ':' + args.version], check=True)
+    if existing_version_digest is None:
+        subprocess.run(['docker', 'push', REGISTRY + ':' + args.version], check=True)
     assert manifest_digest(args.version) == digest
     journal(log, 'version-image-created-or-matched', {'digest': digest})
     if not release:
@@ -235,6 +268,11 @@ def main():
     published = api(f'repos/{REPO}/releases/tags/v0.0.1')
     assert published['immutable'] and not published['draft']
     journal(log, 'immutable-release-published', {'url': published['html_url'], 'digest': digest})
+    attestation = json.loads(command('gh', 'release', 'verify', 'v0.0.1', '--repo', REPO, '--format', 'json'))
+    candidate.write_json(work / 'release-attestation.json', attestation)
+    for asset in sorted(payload.iterdir()):
+        subprocess.run(['gh', 'release', 'verify-asset', 'v0.0.1', str(asset), '--repo', REPO], check=True)
+    journal(log, 'release-attestation-and-assets-verified', {'assets': sorted(expected)})
     subprocess.run(['python3', str(ROOT / 'scripts/verify-installation-bundle.py'), '--public', '--output', str(work / 'anonymous-installation.json')], check=True)
     journal(log, 'anonymous-installation-passed', {'sha': args.source_sha, 'digest': digest})
 

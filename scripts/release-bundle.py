@@ -5,6 +5,7 @@ import gzip
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -49,8 +50,7 @@ def build(source, digest, output):
         files['scripts/' + name] = (ROOT / 'scripts' / name).read_bytes()
     # All linked operational documents remain available offline. No Java/source tree.
     for path in (ROOT / 'docs').rglob('*.md'):
-        if 'development' not in path.parts:
-            files[str(path.relative_to(ROOT))] = path.read_bytes()
+        files[str(path.relative_to(ROOT))] = path.read_bytes()
     notices = {name: (ROOT / name).read_bytes() for name in ('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES')}
     for base in ('licenses', 'src/main/resources/META-INF/licenses'):
         for path in (ROOT / base).iterdir():
@@ -68,12 +68,14 @@ def build(source, digest, output):
         'verification': {'run': record['ciRun'], 'attempt': record['ciAttempt'],
                          'url': f"https://github.com/{candidate.REPOSITORY}/actions/runs/{record['ciRun']}",
                          'workflow': record['workflow'], 'requiredJobs': ['release-tools', 'application', 'dependency-audit']},
-        'container': {'image': image, 'registryManifestDigest': digest, 'localTestedImageId': record['imageId'], 'platform': 'linux/amd64'},
+        'container': {'image': image, 'registryManifestDigest': digest, 'localTestedImageId': record['imageId'], 'testedArchiveSha256': record['files']['container.tar.gz'], 'platform': 'linux/amd64'},
         'jar': {'name': f'caldav-server-{version}.jar', 'sha256': assets[f'caldav-server-{version}.jar']},
         'deployment': {'name': bundle_name, 'sha256': assets[bundle_name]},
         'assets': assets,
         'qualificationEvidence': [f"https://github.com/{candidate.REPOSITORY}/actions/runs/{record['ciRun']}",
                                   f"https://github.com/{candidate.REPOSITORY}/blob/{record['sourceCommit']}/qualification/evidence/releases/0.0.1/official-dependencies/verification.json"],
+        'stagingRun': os.environ.get('GITHUB_RUN_ID'),
+        'stagingEvidence': 'https://github.com/' + candidate.REPOSITORY + '/actions/runs/' + os.environ.get('GITHUB_RUN_ID', 'local-fixture'),
         'release': f'https://github.com/{candidate.REPOSITORY}/releases/tag/v{version}',
     }
     candidate.write_json(output / 'release-manifest.json', manifest)
