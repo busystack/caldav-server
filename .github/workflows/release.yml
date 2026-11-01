@@ -60,6 +60,7 @@ jobs:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Validate dispatch and release tooling
         env:
           RELEASE_SHA: ${{ inputs.source_sha }}
@@ -68,13 +69,16 @@ jobs:
           RELEASE_PHASE: ${{ inputs.phase }}
           RELEASE_CANDIDATE_VERSION: ${{ inputs.candidate_version }}
         run: |
-          test "$RELEASE_SHA" = "$GITHUB_SHA"
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           [[ "$RELEASE_RUN" =~ ^[0-9]+$ ]]
           [[ -z "$RELEASE_STAGE_RUN" || "$RELEASE_STAGE_RUN" =~ ^[0-9]+$ ]]
           if [[ "$RELEASE_PHASE" == stage ]]; then
+            test "$RELEASE_SHA" = "$GITHUB_SHA"
             [[ "$RELEASE_CANDIDATE_VERSION" =~ ^0[.]0[.]1-rc[.][1-9][0-9]*$ ]]
             (( ${#RELEASE_CANDIDATE_VERSION} <= 128 ))
+          else
+            git merge-base --is-ancestor "$RELEASE_SHA" HEAD
           fi
           python3 -m unittest discover -s qualification/release -p 'test_*.py'
       - name: Install isolated official release-attestation CLI
