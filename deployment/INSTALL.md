@@ -60,9 +60,8 @@ Never restore over a live database. Check the archive checksum first.
 For an update, read the target release/migration notes, back up, stop the
 application, replace the bundle with the target release's separately verified
 bundle, preserve the intended project/database volume and secret paths, pull and
-start. Changing an image does not reverse PostgreSQL migrations. Qualification
-uses the maintained internal baseline and migration fixtures; no older public
-release is claimed to exist. Never move a version tag or use `latest`.
+start. Changing an image does not reverse PostgreSQL migrations. Use the target
+release's version and digest rather than `latest`.
 
 `docker compose down` removes services while retaining database storage.
 Only after verifying backups and explicitly deciding to discard this installation,

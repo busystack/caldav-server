@@ -152,6 +152,9 @@ class PublicationGateTest(unittest.TestCase):
                 self.assertNotIn('build:', compose)
                 self.assertNotIn('/home/albert', compose)
                 self.assertFalse(any('/src/' in name for name in names))
+                self.assertFalse(any('/docs/development/' in name for name in names))
+                self.assertNotIn(prefix + 'docs/releases/0.0.1-website-handoff.md', names)
+                self.assertNotIn(prefix + 'docs/standards-corrections.md', names)
             for name in ('SHA256SUMS', 'release-manifest.json', 'notices.tar.gz'):
                 self.assertEqual((root / 'first' / name).read_bytes(), (root / 'second' / name).read_bytes())
             with self.assertRaises(FileExistsError):

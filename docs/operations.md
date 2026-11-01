@@ -1,8 +1,8 @@
 # Operations
 
-These instructions describe BusyStack CalDAV Server 0.0.1. The authoritative [release manifest](https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json) identifies source, exact artifacts, supported Linux AMD64 platform and qualification evidence. Earlier [release verification](../qualification/evidence/releases/0.0.1/verification.json) and [timezone repair](../qualification/evidence/releases/0.0.1/timezone-repair/client-verification.json) records remain historical evidence for their original executable identities.
+These instructions describe BusyStack CalDAV Server 0.0.1. The [release manifest](https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json) identifies the source, artifacts, checksums, Linux AMD64 image digest and verification evidence.
 
-This deployment runs one application and PostgreSQL. Automated evidence includes real HTTPS DAV, account-security/native OAuth, optional real Keycloak, and independent calendar/task client operations. The [conformance matrix](conformance.md) and [artifact qualification records](../qualification/evidence/README.md) record completed packaged recovery/browser checks and explicitly unexecuted environments. The project is Apache-2.0, with [separate third-party licensing and notice delivery](third-party-licenses.md).
+The default deployment runs one application and PostgreSQL. External identity integration is optional. The project is Apache-2.0, with [separate third-party licenses and notices](third-party-licenses.md).
 
 ## Administrator installation
 
