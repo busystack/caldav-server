@@ -14,10 +14,23 @@ export async function organizationPrimary(page, base, privateValues, requirePass
   await page.goto(base + '/login');
   await page.getByRole('link', {name: "Sign in with your organization's identity provider", exact: true}).click();
   const dashboard = page.getByRole('heading', {name: 'BusyStack account', exact: true});
-  const destination = await Promise.race([
-    page.locator('#kc-login').waitFor().then(() => 'provider-password'),
-    dashboard.waitFor().then(() => 'application')
-  ]);
+  let destination;
+  try {
+    destination = await Promise.race([
+      page.locator('#kc-login').waitFor().then(() => 'provider-password'),
+      dashboard.waitFor().then(() => 'application')
+    ]);
+  } catch (error) {
+    // No URL query, form values, cookies or tokens enter retained diagnostics.
+    const location = new URL(page.url());
+    const headings = await page.locator('h1, h2').allTextContents();
+    console.error('ORGANIZATION_PRIMARY_FAILURE=' + JSON.stringify({
+      origin: location.origin, path: location.pathname,
+      headings: headings.map(value => privateValues.reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value)).slice(0, 8),
+      requirePasswordForm
+    }));
+    throw error;
+  }
   if (requirePasswordForm) assert.equal(destination, 'provider-password', 'The first organization login must exercise real upstream password authentication');
   if (destination === 'provider-password') {
     assert.equal(new URL(page.url()).hostname, 'idp.identity.test');

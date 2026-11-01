@@ -68,7 +68,7 @@ Metadata-only integration may reuse matching executable/runtime qualification.
 The application job retains a `verified-candidate-RUN-ATTEMPT` artifact only after
 all application qualification succeeds. It contains the exact tested Docker save
 archive, executable JAR, embedded SBOM and candidate checksums/source/run identity.
-Separate failure evidence is never eligible for publication. The release workflow
+Separate failure evidence (`application-evidence-ATTEMPT` and `dependency-audit-ATTEMPT`) is never eligible for publication. Attempt-specific names preserve failed artifacts across retries. Rerun all jobs with `gh run rerun RUN_ID` when a verification run needs a new complete publication-eligible attempt; do not overwrite its earlier evidence. The release workflow
 also checks successful `release-tools` and `dependency-audit` jobs from the latest
 attempt, exact workflow/repository/main push or dispatch, SHA and every checksum.
 Expired or missing artifacts require a new verification candidate, not a rebuild
