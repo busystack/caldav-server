@@ -59,6 +59,13 @@ class PublicationGateTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             publish.matching_version('sha256:' + '2' * 64, 'sha256:' + '1' * 64)
 
+    def test_candidate_tags_are_versioned_readable_and_bounded_to_release(self):
+        for tag in ('0.0.1-rc.1', '0.0.1-rc.12'):
+            self.assertEqual(publish.candidate_version('0.0.1', tag), tag)
+        for tag in (None, '', 'candidate-123-1', 'latest', '0.0.1', '0.0.2-rc.1', '0.0.1-rc.0', '0.0.1-rc.01', '0.0.1-rc.1/other', '0.0.1-rc.' + '1' * 128):
+            with self.subTest(tag=tag), self.assertRaises(AssertionError):
+                publish.candidate_version('0.0.1', tag)
+
     def test_published_notes_link_to_exact_qualified_source(self):
         notes = publish.release_notes(SHA)
         self.assertNotIn('](../', notes)
@@ -152,6 +159,9 @@ class PublicationGateTest(unittest.TestCase):
                 self.assertNotIn('build:', compose)
                 self.assertNotIn('/home/albert', compose)
                 self.assertFalse(any('/src/' in name for name in names))
+                self.assertFalse(any('/docs/development/' in name for name in names))
+                self.assertNotIn(prefix + 'docs/releases/0.0.1-website-handoff.md', names)
+                self.assertNotIn(prefix + 'docs/standards-corrections.md', names)
             for name in ('SHA256SUMS', 'release-manifest.json', 'notices.tar.gz'):
                 self.assertEqual((root / 'first' / name).read_bytes(), (root / 'second' / name).read_bytes())
             with self.assertRaises(FileExistsError):

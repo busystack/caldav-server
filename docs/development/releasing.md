@@ -88,14 +88,17 @@ Use the exact frozen 40-character main SHA and successful run ID:
 ```sh
 gh workflow run release.yml --repo busystack/caldav-server --ref main \
   -f version=0.0.1 -f source_sha=QUALIFIED_SHA \
-  -f verification_run=VERIFY_RUN_ID -f phase=stage
+  -f verification_run=VERIFY_RUN_ID -f phase=stage -f candidate_version=0.0.1-rc.1
 gh run list --repo busystack/caldav-server --workflow release.yml
 gh run watch STAGE_RUN_ID --repo busystack/caldav-server --exit-status
 ```
 
 Staging loads/promotes the verified archive without rebuilding the server, checks
-its image config ID, JAR and platform, and pushes only a candidate tag with run
-and attempt identity. The package is associated with this repository through its
+its image config ID, JAR and platform, and pushes a readable release-candidate tag
+such as `0.0.1-rc.1`. Exact CI run and attempt identities stay in the manifest and
+qualification records. Reuse a candidate tag only for the identical tested image;
+select the next `rc.N` for different content. An existing conflicting candidate
+fails before a push. The package is associated with this repository through its
 OCI source label and workflow publication. It records the **registry manifest
 digest**, distinct from Docker's local config image ID and archive checksum.
 `release-bundle.py` generates final version-and-digest-pinned Compose as an output,

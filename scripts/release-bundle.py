@@ -13,6 +13,21 @@ import subprocess
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
+OPERATOR_DOCUMENTS = (
+    'docs/operations.md',
+    'docs/account-security.md',
+    'docs/calendar-semantics.md',
+    'docs/groups.md',
+    'docs/keycloak.md',
+    'docs/oauth.md',
+    'docs/observance-until-compatibility.md',
+    'docs/passkeys-and-mfa.md',
+    'docs/performance.md',
+    'docs/third-party-licenses.md',
+    'docs/versions.md',
+    'docs/adr/0004-resumable-synchronization.md',
+    'docs/releases/0.0.1.md',
+)
 spec = importlib.util.spec_from_file_location('candidate', ROOT / 'scripts/release-candidate.py')
 candidate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(candidate)
@@ -48,9 +63,9 @@ def build(source, digest, output):
         files[path.name] = path.read_bytes()
     for name in ('init-db.sh', 'backup.sh', 'restore.sh'):
         files['scripts/' + name] = (ROOT / 'scripts' / name).read_bytes()
-    # All linked operational documents remain available offline. No Java/source tree.
-    for path in (ROOT / 'docs').rglob('*.md'):
-        files[str(path.relative_to(ROOT))] = path.read_bytes()
+    # Ship explicit operator guides, without release assignments or agent handoffs.
+    for name in OPERATOR_DOCUMENTS:
+        files[name] = (ROOT / name).read_bytes()
     notices = {name: (ROOT / name).read_bytes() for name in ('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES')}
     for base in ('licenses', 'src/main/resources/META-INF/licenses'):
         for path in (ROOT / base).iterdir():

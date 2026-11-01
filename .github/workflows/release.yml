@@ -21,6 +21,11 @@ on:
         type: choice
         options: [stage, publish]
         required: true
+      candidate_version:
+        description: Staging tag, such as 0.0.1-rc.1; unused when publishing
+        type: string
+        default: '0.0.1-rc.1'
+        required: false
       immutability_confirmed:
         description: Admin checked immutable-releases enabled via gh API immediately before publish
         type: boolean
@@ -60,11 +65,17 @@ jobs:
           RELEASE_SHA: ${{ inputs.source_sha }}
           RELEASE_RUN: ${{ inputs.verification_run }}
           RELEASE_STAGE_RUN: ${{ inputs.stage_run }}
+          RELEASE_PHASE: ${{ inputs.phase }}
+          RELEASE_CANDIDATE_VERSION: ${{ inputs.candidate_version }}
         run: |
           test "$RELEASE_SHA" = "$GITHUB_SHA"
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$RELEASE_RUN" =~ ^[0-9]+$ ]]
           [[ -z "$RELEASE_STAGE_RUN" || "$RELEASE_STAGE_RUN" =~ ^[0-9]+$ ]]
+          if [[ "$RELEASE_PHASE" == stage ]]; then
+            [[ "$RELEASE_CANDIDATE_VERSION" =~ ^0[.]0[.]1-rc[.][1-9][0-9]*$ ]]
+            (( ${#RELEASE_CANDIDATE_VERSION} <= 128 ))
+          fi
           python3 -m unittest discover -s qualification/release -p 'test_*.py'
       - name: Install isolated official release-attestation CLI
         run: bash scripts/install-release-gh.sh
@@ -85,8 +96,10 @@ jobs:
           RELEASE_PHASE: ${{ inputs.phase }}
           IMMUTABILITY_CONFIRMED: ${{ inputs.immutability_confirmed }}
           RELEASE_STAGE_RUN: ${{ inputs.stage_run }}
+          RELEASE_CANDIDATE_VERSION: ${{ inputs.candidate_version }}
         run: |
           arguments=(--version "$RELEASE_VERSION" --verification-run "$RELEASE_RUN" --source-sha "$RELEASE_SHA" --phase "$RELEASE_PHASE" --work "$RUNNER_TEMP/release-work")
+          if [[ "$RELEASE_PHASE" == stage ]]; then arguments+=(--candidate-version "$RELEASE_CANDIDATE_VERSION"); fi
           if [[ -n "$RELEASE_STAGE_RUN" ]]; then arguments+=(--stage-run "$RELEASE_STAGE_RUN"); fi
           if [[ "$IMMUTABILITY_CONFIRMED" == true ]]; then arguments+=(--immutability-confirmed); fi
           python3 scripts/publish-release.py "${arguments[@]}"
