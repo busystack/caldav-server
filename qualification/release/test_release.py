@@ -59,6 +59,13 @@ class PublicationGateTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             publish.matching_version('sha256:' + '2' * 64, 'sha256:' + '1' * 64)
 
+    def test_published_notes_link_to_exact_qualified_source(self):
+        notes = publish.release_notes(SHA)
+        self.assertNotIn('](../', notes)
+        self.assertIn('https://github.com/' + publish.REPO + '/blob/' + SHA + '/docs/operations.md', notes)
+        self.assertIn('https://github.com/' + publish.REPO + '/blob/' + SHA + '/qualification/evidence/releases/0.0.1/official-dependencies/verification.json', notes)
+        self.assertIn('https://github.com/' + publish.REPO + '/releases/download/v0.0.1/release-manifest.json', notes)
+
     def test_registry_index_accepts_only_tested_amd64_and_attestations(self):
         from unittest.mock import patch
         digest = 'sha256:' + '4' * 64
@@ -152,6 +159,22 @@ class PublicationGateTest(unittest.TestCase):
 
     def test_active_source_has_no_removed_copies_or_patch_payload(self):
         integrity.source()
+
+    def test_restore_corpus_remains_available_for_source_free_deployment(self):
+        from types import SimpleNamespace
+        import hashlib
+        spec = importlib.util.spec_from_file_location('bundle_audit_corpus', ROOT / 'qualification/passkeys/audit_corpus.py')
+        corpus_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(corpus_module)
+        with tempfile.TemporaryDirectory(prefix='extracted deployment ') as temporary:
+            deployment = Path(temporary)
+            self.assertFalse((deployment / 'src').exists())
+            corpus = corpus_module.Corpus(SimpleNamespace(root=deployment))
+            for name in corpus.VALID:
+                self.assertIn(b'BEGIN:VCALENDAR', (corpus.fixture / name).read_bytes().upper())
+            for zone, (original, _) in corpus.OBSERVANCE_UPLOADS.items():
+                data = (corpus.fixture.parent / 'observance-until' / ('thunderbird159-' + zone + '.ics')).read_bytes()
+                self.assertEqual(hashlib.sha256(data).hexdigest(), original)
 
     def test_packaged_modified_dependency_and_removed_classes_reject(self):
         with tempfile.TemporaryDirectory() as temporary:

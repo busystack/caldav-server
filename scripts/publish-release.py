@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import posixpath
 import re
 import subprocess
 import urllib.error
@@ -119,6 +120,15 @@ def remote_image_matches(record, digest):
 
 def matching_version(existing, expected):
     assert existing is None or existing == expected, 'Conflicting existing version; refusing overwrite'
+
+
+def release_notes(sha):
+    notes = (ROOT / 'docs/releases/0.0.1.md').read_text()
+    def source_link(match):
+        path = posixpath.normpath('docs/releases/' + match.group(1))
+        assert not path.startswith('../'), 'Release documentation link escapes repository'
+        return '](https://github.com/' + REPO + '/blob/' + sha + '/' + path + ')'
+    return re.sub(r'\]\((\.{1,2}/[^)]+)\)', source_link, notes)
 
 
 def journal(path, operation, details):
@@ -250,7 +260,9 @@ def main():
     assert manifest_digest(args.version) == digest
     journal(log, 'version-image-created-or-matched', {'digest': digest})
     if not release:
-        subprocess.run(['gh', 'release', 'create', 'v0.0.1', '--repo', REPO, '--verify-tag', '--draft', '--title', 'BusyStack CalDAV Server 0.0.1', '--notes-file', str(ROOT / 'docs/releases/0.0.1.md')], check=True)
+        notes = work / 'release-notes.md'
+        notes.write_text(release_notes(args.source_sha))
+        subprocess.run(['gh', 'release', 'create', 'v0.0.1', '--repo', REPO, '--verify-tag', '--draft', '--title', 'BusyStack CalDAV Server 0.0.1', '--notes-file', str(notes)], check=True)
         release = api(f'repos/{REPO}/releases/tags/v0.0.1')
     expected = stage['assets']
     existing = {asset['name']: asset for asset in release['assets']}
