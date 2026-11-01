@@ -1,14 +1,24 @@
+"""Isolated multi-version release and source/controller provenance regressions."""
 import copy
+from contextlib import contextmanager, ExitStack
+import hashlib
 import importlib.util
 import io
 import json
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import release_version as versions
+import release_source
 
 
 def load(name):
@@ -21,8 +31,340 @@ def load(name):
 publish = load('publish-release')
 candidate = load('release-candidate')
 bundle = load('release-bundle')
+builder = load('build-image')
 integrity = load('verify-dependency-integrity')
 SHA = 'a' * 40
+VERSIONS = ('0.1.0', '0.2.0', '1.0.0')
+CLIENTS = ('thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver')
+
+
+def git(root, *args):
+    return subprocess.check_output(['git', '-C', str(root), '-c', 'user.name=Release fixture',
+        '-c', 'user.email=release-fixture@example.invalid', '-c', 'commit.gpgsign=false', *args], text=True).strip()
+
+
+def make_jar(path, version):
+    bom = json.dumps({'metadata': {'component': {'group': 'org.busystack', 'name': 'caldav-server', 'version': version}}})
+    with zipfile.ZipFile(path, 'w') as archive:
+        archive.writestr('META-INF/MANIFEST.MF', 'Implementation-Version: ' + version + '\n')
+        archive.writestr('META-INF/maven/org.busystack/caldav-server/pom.properties', 'groupId=org.busystack\nartifactId=caldav-server\nversion=' + version + '\n')
+        archive.writestr('META-INF/sbom/application.cdx.json', bom)
+    return bom.encode()
+
+
+@contextmanager
+def fixture(version='0.1.0'):
+    with tempfile.TemporaryDirectory(prefix='caldav-release-fixture-') as temporary, ExitStack() as stack:
+        directory = Path(temporary)
+        root = directory / 'repo'
+        root.mkdir()
+        git(root, 'init', '--quiet', '--initial-branch=main')
+        paths = ['pom.xml', 'Dockerfile', 'compose.yaml', 'LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES',
+                 'scripts/init-db.sh', 'scripts/backup.sh', 'scripts/restore.sh', *bundle.OPERATOR_DOCUMENTS]
+        for base in ('deployment', 'licenses', 'src/main/resources/META-INF/licenses'):
+            paths.extend(str(p.relative_to(ROOT)) for p in (ROOT / base).rglob('*') if p.is_file())
+        for name in paths:
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((ROOT / name).read_bytes())
+        pom = (root / 'pom.xml').read_text()
+        real_version = versions.resolve(ROOT)
+        (root / 'pom.xml').write_text(pom.replace('<artifactId>caldav-server</artifactId><version>' + real_version, '<artifactId>caldav-server</artifactId><version>' + version))
+        (root / '.gitignore').write_text('target/\n')
+        notes = root / f'docs/releases/{version}.md'
+        notes.parent.mkdir(parents=True, exist_ok=True)
+        notes.write_text('Qualified ' + version + ' notes. [Operations](../operations.md)\n')
+        source = directory / 'candidate'
+        source.mkdir()
+        sbom = make_jar(source / versions.jar_name(version), version)
+        (source / 'sbom.cdx.json').write_bytes(sbom)
+        (source / 'container.tar.gz').write_bytes(b'tested container fixture')
+        receipt = {'version': version, 'jarSha256': candidate.sha256(source / versions.jar_name(version)), 'status': 'passed',
+                   'runtimeInputs': {name: candidate.sha256(root / name) for name in ('Dockerfile', 'compose.yaml')},
+                   'clients': {name: {'status': 'passed'} for name in CLIENTS}}
+        receipt_file = root / versions.receipt_path(version)
+        receipt_file.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_json(receipt_file, receipt)
+        git(root, 'add', '.')
+        git(root, 'commit', '--quiet', '-m', 'Qualified application source')
+        sha = git(root, 'rev-parse', 'HEAD')
+        release_source.retain(sha, source / 'source.tar.gz', root)
+        record = {'schemaVersion': 2, 'version': version, 'repository': versions.REPOSITORY,
+                  'sourceCommit': sha, 'sourceTree': git(root, 'rev-parse', 'HEAD^{tree}'), 'platform': 'linux/amd64',
+                  'ciRun': 123, 'ciAttempt': 2, 'workflow': '.github/workflows/ci.yml', 'imageId': 'sha256:' + '3' * 64,
+                  'files': {p.name: candidate.sha256(p) for p in source.iterdir()}}
+        candidate.write_json(source / 'candidate.json', record)
+        for module in (candidate, bundle.candidate, publish.candidate, publish, builder):
+            stack.enter_context(patch.object(module, 'ROOT', root))
+        yield directory, root, source, record
+
+
+class VersionAndProvenanceTest(unittest.TestCase):
+    def test_versions_paths_tags_and_maven_extraction(self):
+        for version in VERSIONS:
+            with self.subTest(version=version), fixture(version) as (_, root, source, record):
+                self.assertEqual(versions.resolve(root), version)
+                self.assertEqual(versions.resolve(root, source=record['sourceCommit']), version)
+                self.assertEqual(versions.tag(version), 'v' + version)
+                self.assertEqual(versions.jar_name(version), 'caldav-server-' + version + '.jar')
+                self.assertEqual(versions.candidate_tag(version, version + '-rc.12'), version + '-rc.12')
+                candidate.validate(source, version, record['sourceCommit'])
+                publish.check_client_receipt(record['files'][versions.jar_name(version)], record['sourceCommit'], version)
+
+    def test_invalid_versions_and_candidates_reject(self):
+        for value in ('', '01.2.3', '1.02.3', '1.2.03', '1.2', '-1.2.3', '1.2.3-SNAPSHOT', 'v1.2.3', '1.2.3\n', '１.2.3', None):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                versions.stable(value)
+        for version in VERSIONS:
+            for tag in (None, '', 'latest', version, '9.9.9-rc.1', version + '-rc.0', version + '-rc.01', version + '-rc.1/other', version + '-rc.' + '1' * 128):
+                with self.subTest(version=version, tag=tag), self.assertRaises(ValueError):
+                    publish.candidate_version(version, tag)
+
+    def test_controller_version_cannot_replace_qualified_application(self):
+        with fixture() as (_, root, source, record):
+            sha = record['sourceCommit']
+            pom = root / 'pom.xml'
+            pom.write_text(pom.read_text().replace('<artifactId>caldav-server</artifactId><version>0.1.0', '<artifactId>caldav-server</artifactId><version>0.2.0'))
+            git(root, 'add', '.')
+            git(root, 'commit', '--quiet', '-m', 'Newer controller version')
+            controller = git(root, 'rev-parse', 'HEAD')
+            self.assertEqual(versions.resolve(root), '0.2.0')
+            self.assertEqual(versions.resolve(root, source=sha, requested='0.1.0'), '0.1.0')
+            with self.assertRaisesRegex(ValueError, 'differs from qualified'):
+                versions.resolve(root, source=sha, requested='0.2.0')
+            publish.verify_source(sha, controller, 'publish')
+            with self.assertRaises(AssertionError):
+                publish.verify_source(sha, controller, 'stage')
+            with self.assertRaises(AssertionError):
+                publish.verify_source(sha, '0' * 40, 'publish')
+            candidate.validate(source, '0.1.0', sha)
+            with self.assertRaises(ValueError):
+                candidate.validate(source, '0.2.0', sha)
+
+    def test_every_bundle_input_is_isolated_from_newer_controller(self):
+        for version in VERSIONS:
+            with self.subTest(version=version), fixture(version) as (directory, root, source, record):
+                digest = 'sha256:' + '1' * 64
+                first = bundle.build(source, digest, directory / 'first')
+                changed = ['compose.yaml', 'deployment/INSTALL.md', 'deployment/nginx-root.conf.example',
+                           'deployment/nginx-subpath.conf.example', f'docs/releases/{version}.md',
+                           'scripts/init-db.sh', 'scripts/backup.sh', 'scripts/restore.sh', 'LICENSE',
+                           'NOTICE', 'THIRD-PARTY-NOTICES', 'docs/operations.md']
+                for name in changed:
+                    (root / name).write_text('Unqualified controller replacement\n')
+                git(root, 'add', '.')
+                git(root, 'commit', '--quiet', '-m', 'Change controller payload files')
+                second = bundle.build(source, digest, directory / 'second')
+                self.assertEqual(first, second)
+                for path in (directory / 'first').iterdir():
+                    self.assertEqual(path.read_bytes(), (directory / 'second' / path.name).read_bytes(), path.name)
+                notes = publish.release_notes(record['sourceCommit'], version)
+                self.assertIn('Qualified ' + version, notes)
+                self.assertNotIn('Unqualified', notes)
+                self.assertIn('/blob/' + record['sourceCommit'] + '/docs/operations.md', notes)
+                manifest = bundle.validate_assets(directory / 'first', version, record['sourceCommit'])
+                with tarfile.open(directory / 'first' / versions.deployment_name(version)) as archive:
+                    prefix = 'caldav-server-' + version + '-deploy/'
+                    compose = archive.extractfile(prefix + 'compose.yaml').read().decode()
+                    self.assertIn(':' + version + '@' + digest, compose)
+                    self.assertNotIn('build:', compose)
+                    installation = archive.extractfile(prefix + 'INSTALL.md').read().decode()
+                    self.assertIn(versions.jar_name(version), installation)
+                    self.assertIn(versions.deployment_name(version), installation)
+                    self.assertNotIn('@VERSION@', installation)
+                    self.assertIn(prefix + versions.receipt_path(version), archive.getnames())
+                    self.assertFalse(any('website-handoff' in n or 'docs/development/' in n for n in archive.getnames()))
+                self.assertEqual(manifest['container']['localTestedImageId'], record['imageId'])
+
+    def test_snapshot_changes_and_missing_source_inputs_reject(self):
+        with fixture() as (directory, root, source, record):
+            snapshot = source / 'source.tar.gz'
+            data = release_source.files(snapshot.read_bytes())
+            data['deployment/INSTALL.md'] = b'changed'
+            snapshot.write_bytes(bundle.tar_bytes(data))
+            record['files']['source.tar.gz'] = candidate.sha256(snapshot)
+            candidate.write_json(source / 'candidate.json', record)
+            with self.assertRaisesRegex(AssertionError, 'differs from qualified'):
+                candidate.validate(source)
+            qualified = release_source.Snapshot(record['sourceCommit'], root)
+            with self.assertRaisesRegex(AssertionError, 'Missing qualified source input'):
+                qualified.read('missing-required-deployment-file')
+
+    def test_missing_artifacts_wrong_jar_version_and_checksums_reject(self):
+        with fixture() as (_, root, source, record):
+            jar = source / versions.jar_name(record['version'])
+            make_jar(jar, '1.0.0')
+            with self.assertRaisesRegex(AssertionError, 'checksum'):
+                candidate.validate(source)
+            record['files'][jar.name] = candidate.sha256(jar)
+            candidate.write_json(source / 'candidate.json', record)
+            with self.assertRaisesRegex(AssertionError, 'JAR implementation version'):
+                candidate.validate(source)
+            jar.unlink()
+            with self.assertRaisesRegex(AssertionError, 'Unexpected candidate contents'):
+                candidate.validate(source)
+
+    def test_client_qualification_cannot_use_different_executable_or_runtime(self):
+        with fixture() as (_, root, source, record):
+            sha = record['sourceCommit']
+            with self.assertRaisesRegex(AssertionError, 'another executable'):
+                publish.check_client_receipt('8' * 64, sha, record['version'])
+            receipt_path = root / versions.receipt_path(record['version'])
+            receipt = json.loads(receipt_path.read_text())
+            receipt['runtimeInputs']['Dockerfile'] = '0' * 64
+            candidate.write_json(receipt_path, receipt)
+            git(root, 'add', '.')
+            git(root, 'commit', '--quiet', '-m', 'Invalid qualification input')
+            with self.assertRaisesRegex(AssertionError, 'runtime inputs changed'):
+                publish.check_client_receipt(record['files'][versions.jar_name(record['version'])], git(root, 'rev-parse', 'HEAD'), record['version'])
+
+    def test_developer_build_resolves_identity_without_version_input(self):
+        for version in VERSIONS:
+            with self.subTest(version=version), fixture(version) as (_, root, source, record):
+                target = root / 'target'
+                target.mkdir()
+                jar = target / versions.jar_name(version)
+                shutil.copyfile(source / jar.name, jar)
+                # Include a real license entry for the generated image input directory.
+                with zipfile.ZipFile(jar, 'a') as archive:
+                    archive.writestr('META-INF/licenses/example.txt', 'fixture license')
+                real_run = subprocess.run
+                def execute(command, *args, **kwargs):
+                    return subprocess.CompletedProcess(command, 0) if command[0] == 'docker' else real_run(command, *args, **kwargs)
+                with patch.object(sys, 'argv', ['build-image', '--jar', str(jar)]), patch.object(builder.subprocess, 'run', side_effect=execute) as run, patch.object(builder, 'identity', return_value={'Id': record['imageId']}):
+                    builder.main()
+                command = run.call_args.args[0]
+                self.assertIn('APPLICATION_VERSION=' + version, command)
+                self.assertIn('SOURCE_REVISION=' + record['sourceCommit'], command)
+                self.assertIn('busystack-caldav:' + version, command)
+                generated = root / 'target/docker-context/.image-input'
+                self.assertEqual((generated / 'application.jar').read_bytes(), jar.read_bytes())
+                environment = builder.compose_environment('busystack-caldav:' + version, generated.parent, version, record['sourceCommit'])
+                self.assertEqual(environment['BUSYSTACK_APPLICATION_IMAGE'], 'busystack-caldav:' + version)
+                self.assertEqual(environment['BUSYSTACK_BUILD_VERSION'], version)
+
+    def test_image_metadata_and_packaged_checksum_must_agree(self):
+        labels = {'org.opencontainers.image.version': '0.1.0', 'org.opencontainers.image.revision': SHA,
+                  'org.opencontainers.image.source': 'https://github.com/' + versions.REPOSITORY, 'org.opencontainers.image.licenses': 'Apache-2.0'}
+        config = {'Config': {'Labels': labels}, 'Os': 'linux', 'Architecture': 'amd64'}
+        for key in ('org.opencontainers.image.version', 'org.opencontainers.image.revision'):
+            bad = copy.deepcopy(config)
+            bad['Config']['Labels'][key] = ''
+            with patch.object(builder.subprocess, 'check_output', return_value=json.dumps([bad]).encode()), self.assertRaises(AssertionError):
+                builder.identity('image', '0.1.0', SHA, '1' * 64)
+        with patch.object(builder.subprocess, 'check_output', side_effect=[json.dumps([config]).encode(), '2' * 64 + '  application.jar']), self.assertRaisesRegex(AssertionError, 'exact expected JAR'):
+            builder.identity('image', '0.1.0', SHA, '1' * 64)
+
+    def test_staged_assets_are_consumed_exactly_and_tampering_rejects(self):
+        with fixture() as (directory, root, source, record):
+            staged = directory / 'stage'
+            staged.mkdir()
+            digest = 'sha256:' + '1' * 64
+            manifest = bundle.build(source, digest, staged / 'assets')
+            notes = staged / 'release-notes.md'
+            notes.write_text(publish.release_notes(record['sourceCommit'], record['version']))
+            installation = {'status': 'passed', 'version': record['version'], 'sourceCommit': record['sourceCommit'],
+                            'jarSha256': manifest['jar']['sha256'], 'registryManifestDigest': digest,
+                            'deploymentSha256': manifest['deployment']['sha256']}
+            candidate.write_json(staged / 'installation.json', installation)
+            stage = {'version': record['version'], 'candidateVersion': record['version'] + '-rc.1', 'sourceCommit': record['sourceCommit'], 'verificationRun': 123,
+                     'verificationAttempt': 2, 'sourceSnapshotSha256': record['files']['source.tar.gz'], 'registryDigest': digest,
+                     'assets': {p.name: candidate.sha256(p) for p in (staged / 'assets').iterdir()},
+                     'installationSha256': candidate.sha256(staged / 'installation.json'), 'releaseNotesSha256': candidate.sha256(notes)}
+            publish.validate_stage(staged, stage, record, {'id': 123, 'run_attempt': 2})
+            (root / 'deployment/INSTALL.md').write_text('new controller instructions')
+            git(root, 'add', '.')
+            git(root, 'commit', '--quiet', '-m', 'Later controller')
+            publish.validate_stage(staged, stage, record, {'id': 123, 'run_attempt': 2})
+            for field, value in (('version', '0.2.0'), ('sourceCommit', SHA), ('verificationAttempt', 3)):
+                with self.subTest(field=field), self.assertRaises(AssertionError):
+                    publish.validate_stage(staged, stage | {field: value}, record, {'id': 123, 'run_attempt': 2})
+            notes.write_text('changed staging notes')
+            with self.assertRaisesRegex(AssertionError, 'notes changed'):
+                publish.validate_stage(staged, stage, record, {'id': 123, 'run_attempt': 2})
+
+    def test_publication_resumes_interrupted_upload_with_newer_controller_and_exact_staged_assets(self):
+        with fixture() as (directory, root, source, record):
+            staged = directory / 'stage'
+            staged.mkdir()
+            digest = 'sha256:' + '1' * 64
+            manifest = bundle.build(source, digest, staged / 'assets')
+            notes = staged / 'release-notes.md'
+            notes.write_text(publish.release_notes(record['sourceCommit'], record['version']))
+            candidate.write_json(staged / 'installation.json', {'status': 'passed', 'version': record['version'],
+                'sourceCommit': record['sourceCommit'], 'jarSha256': manifest['jar']['sha256'],
+                'deploymentSha256': manifest['deployment']['sha256'], 'registryManifestDigest': digest})
+            stage = {'version': record['version'], 'candidateVersion': record['version'] + '-rc.1',
+                'sourceCommit': record['sourceCommit'], 'verificationRun': 123, 'verificationAttempt': 2,
+                'sourceSnapshotSha256': record['files']['source.tar.gz'], 'registryDigest': digest,
+                'assets': {p.name: candidate.sha256(p) for p in (staged / 'assets').iterdir()},
+                'releaseNotesSha256': candidate.sha256(notes), 'installationSha256': candidate.sha256(staged / 'installation.json')}
+            candidate.write_json(staged / 'stage.json', stage)
+            pom = root / 'pom.xml'
+            pom.write_text(pom.read_text().replace('<artifactId>caldav-server</artifactId><version>0.1.0', '<artifactId>caldav-server</artifactId><version>0.2.0'))
+            (root / 'deployment/INSTALL.md').write_text('Unqualified controller content')
+            git(root, 'add', '.')
+            git(root, 'commit', '--quiet', '-m', 'Later trusted controller')
+            controller = git(root, 'rev-parse', 'HEAD')
+            state = {'tag': False, 'image': False, 'release': None, 'interrupted': False}
+            run = {'repository': {'full_name': publish.REPO}, 'head_repository': {'full_name': publish.REPO},
+                'head_sha': record['sourceCommit'], 'head_branch': 'main', 'status': 'completed', 'conclusion': 'success',
+                'event': 'push', 'name': 'verify', 'path': '.github/workflows/ci.yml', 'id': 123, 'run_attempt': 2}
+            def api(path, missing=False, method='GET', fields=None):
+                if path.endswith('/actions/runs/123'): return run
+                if path.endswith('/attempts/2/jobs?per_page=100&page=1'):
+                    return {'jobs': [{'name': name, 'status': 'completed', 'conclusion': 'success'} for name in publish.REQUIRED]}
+                if path.endswith('/actions/runs/456'):
+                    return run | {'id': 456, 'run_attempt': 1, 'event': 'workflow_dispatch', 'name': 'release', 'path': '.github/workflows/release.yml'}
+                if 'packages/container/' in path: return {'visibility': 'public', 'repository': {'full_name': publish.REPO}}
+                if '/git/ref/tags/' in path: return {'object': {'type': 'commit', 'sha': record['sourceCommit']}} if state['tag'] else None
+                if path.endswith('/git/refs') and method == 'POST':
+                    self.assertEqual(fields, {'ref': 'refs/tags/' + versions.tag(record['version']), 'sha': record['sourceCommit']})
+                    state['tag'] = True
+                    return {}
+                if '/releases?per_page=' in path: return [state['release']] if state['release'] else []
+                if path.endswith('/releases/77'): return state['release']
+                self.fail('Unexpected API operation: ' + path)
+            def download(run_id, name, destination):
+                shutil.copytree(source if run_id == 123 else staged, destination)
+            real_command = publish.command
+            config = {'Id': record['imageId'], 'Os': 'linux', 'Architecture': 'amd64', 'Config': {'Labels': {
+                'org.opencontainers.image.version': record['version'], 'org.opencontainers.image.revision': record['sourceCommit']}}}
+            def command(*args):
+                if args[:3] == ('docker', 'image', 'inspect'): return json.dumps([config])
+                if args[:2] == ('docker', 'run'): return record['files'][versions.jar_name(record['version'])] + '  application.jar'
+                if args[:3] == ('gh', 'release', 'verify'): return '{}'
+                return real_command(*args)
+            real_run = subprocess.run
+            def execute(command, *args, **kwargs):
+                if command[0] == 'git': return real_run(command, *args, **kwargs)
+                if command[:2] == ['docker', 'push']: state['image'] = True
+                if command[:3] == ['gh', 'release', 'create']:
+                    self.assertEqual(command[3], 'v0.1.0')
+                    state['release'] = {'id': 77, 'tag_name': 'v0.1.0', 'draft': True, 'assets': [],
+                        'body': notes.read_text(), 'html_url': 'https://example.invalid/release'}
+                if command[:3] == ['gh', 'release', 'upload']:
+                    asset = Path(command[4])
+                    if len(state['release']['assets']) == 1 and not state['interrupted']:
+                        state['interrupted'] = True
+                        raise subprocess.CalledProcessError(1, command)
+                    state['release']['assets'].append({'name': asset.name, 'digest': 'sha256:' + candidate.sha256(asset)})
+                if command[:3] == ['gh', 'release', 'edit']:
+                    state['release'].update(draft=False, immutable=True)
+                return subprocess.CompletedProcess(command, 0)
+            environment = {'GITHUB_REPOSITORY': publish.REPO, 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': controller}
+            with patch.dict('os.environ', environment), patch.object(publish, 'api', side_effect=api), patch.object(publish, 'download', side_effect=download), patch.object(publish, 'command', side_effect=command), patch.object(publish.subprocess, 'run', side_effect=execute), patch.object(publish.candidate.builder, 'identity', return_value=config), patch.object(publish, 'manifest_digest', side_effect=lambda tag, anonymous=False: digest if tag != record['version'] or state['image'] else None), patch.object(publish.bundle, 'build', side_effect=AssertionError('Publication must not regenerate assets')):
+                for attempt in (1, 2):
+                    arguments = ['publish', '--version', record['version'], '--verification-run', '123', '--source-sha', record['sourceCommit'],
+                        '--phase', 'publish', '--stage-run', '456', '--immutability-confirmed', '--work', str(directory / ('publish-' + str(attempt)))]
+                    with patch.object(sys, 'argv', arguments):
+                        if attempt == 1:
+                            with self.assertRaises(subprocess.CalledProcessError): publish.main()
+                        else:
+                            publish.main()
+            self.assertTrue(state['release']['immutable'])
+            self.assertFalse(state['release']['draft'])
+            self.assertEqual({a['name']: a['digest'] for a in state['release']['assets']}, {name: 'sha256:' + checksum for name, checksum in stage['assets'].items()})
 
 
 class PublicationGateTest(unittest.TestCase):
@@ -36,66 +378,15 @@ class PublicationGateTest(unittest.TestCase):
         publish.verification(self.run, self.jobs, SHA)
 
     def test_release_lookup_finds_drafts_and_handles_pagination(self):
-        from unittest.mock import patch
-        draft = {'id': 123, 'tag_name': 'v0.0.1', 'draft': True, 'assets': []}
+        draft = {'id': 123, 'tag_name': 'v0.2.0', 'draft': True, 'assets': []}
         published = [{'id': index, 'tag_name': 'v9.' + str(index), 'draft': False} for index in range(100)]
         with patch.object(publish, 'api', side_effect=[published, [draft]]) as api:
-            self.assertEqual(publish.release_for_tag(), draft)
+            self.assertEqual(publish.release_for_tag('v0.2.0'), draft)
             self.assertEqual(api.call_count, 2)
         with patch.object(publish, 'api', return_value=[]):
-            self.assertIsNone(publish.release_for_tag())
+            self.assertIsNone(publish.release_for_tag('v0.2.0'))
         with patch.object(publish, 'api', return_value=[draft, draft | {'id': 124}]), self.assertRaises(AssertionError):
-            publish.release_for_tag()
-
-    def test_controller_can_resume_frozen_source_without_changing_its_inputs(self):
-        import hashlib
-        import subprocess
-        from unittest.mock import patch
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            def git(*arguments):
-                return subprocess.check_output(['git', '-C', str(root), '-c', 'user.name=Release fixture',
-                    '-c', 'user.email=release-fixture@example.invalid', '-c', 'commit.gpgsign=false', *arguments], text=True).strip()
-            git('init', '--quiet', '--initial-branch=main')
-            for name in ('Dockerfile', 'compose.yaml'):
-                (root / name).write_text('qualified runtime input\n')
-            notes = root / 'docs/releases/0.0.1.md'
-            notes.parent.mkdir(parents=True)
-            notes.write_text('Qualified release notes. [Operations](../operations.md)\n')
-            jar = '7' * 64
-            receipt = {'status': 'passed', 'jarSha256': jar,
-                       'runtimeInputs': {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in ('Dockerfile', 'compose.yaml')},
-                       'baselineReplacement': {'status': 'passed', 'correctedJarSha256': jar},
-                       'clients': {name: {'status': 'passed'} for name in ('thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver')}}
-            receipt_path = root / 'qualification/evidence/releases/0.0.1/official-dependencies/verification.json'
-            receipt_path.parent.mkdir(parents=True)
-            candidate.write_json(receipt_path, receipt)
-            git('add', '.')
-            git('commit', '--quiet', '-m', 'Qualified source fixture')
-            source = git('rev-parse', 'HEAD')
-            (root / 'Dockerfile').write_text('later controller checkout input\n')
-            notes.write_text('Later checkout notes.\n')
-            git('add', '.')
-            git('commit', '--quiet', '-m', 'Later controller fixture')
-            controller = git('rev-parse', 'HEAD')
-            with patch.object(publish, 'ROOT', root):
-                publish.verify_source(source, controller, 'publish')
-                publish.verify_source(controller, controller, 'stage')
-                with self.assertRaises(AssertionError):
-                    publish.verify_source(source, controller, 'stage')
-                with self.assertRaises(AssertionError):
-                    publish.verify_source('f' * 40, controller, 'publish')
-                with self.assertRaises(AssertionError):
-                    publish.verify_source(source, '0' * 40, 'publish')
-                publish.check_client_receipt(jar, source)
-                with self.assertRaises(AssertionError):
-                    publish.check_client_receipt(jar)
-                self.assertEqual(publish.source_bytes(source, 'Dockerfile'), b'qualified runtime input\n')
-                selected_notes = publish.release_notes(source, from_git=True)
-                self.assertIn('Qualified release notes.', selected_notes)
-                self.assertNotIn('Later checkout notes.', selected_notes)
-                self.assertIn('/blob/' + source + '/docs/operations.md', selected_notes)
-            self.assertEqual(git('rev-parse', 'HEAD'), controller)
+            publish.release_for_tag('v0.2.0')
 
     def test_wrong_sha_failed_incomplete_and_untrusted_runs_reject(self):
         for key, value in [('head_sha', 'b' * 40), ('status', 'in_progress'), ('conclusion', 'failure'),
@@ -121,22 +412,16 @@ class PublicationGateTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             publish.matching_version('sha256:' + '2' * 64, 'sha256:' + '1' * 64)
 
-    def test_candidate_tags_are_versioned_readable_and_bounded_to_release(self):
-        for tag in ('0.0.1-rc.1', '0.0.1-rc.12'):
-            self.assertEqual(publish.candidate_version('0.0.1', tag), tag)
-        for tag in (None, '', 'candidate-123-1', 'latest', '0.0.1', '0.0.2-rc.1', '0.0.1-rc.0', '0.0.1-rc.01', '0.0.1-rc.1/other', '0.0.1-rc.' + '1' * 128):
-            with self.subTest(tag=tag), self.assertRaises(AssertionError):
-                publish.candidate_version('0.0.1', tag)
+    def test_conflicting_tag_rejects(self):
+        with patch.object(publish, 'api', return_value={'object': {'type': 'commit', 'sha': 'b' * 40}}), self.assertRaisesRegex(AssertionError, 'Conflicting tag'):
+            publish.check_release(SHA, '1.0.0')
 
-    def test_published_notes_link_to_exact_qualified_source(self):
-        notes = publish.release_notes(SHA)
-        self.assertNotIn('](../', notes)
-        self.assertIn('https://github.com/' + publish.REPO + '/blob/' + SHA + '/docs/operations.md', notes)
-        self.assertIn('https://github.com/' + publish.REPO + '/blob/' + SHA + '/qualification/evidence/releases/0.0.1/official-dependencies/verification.json', notes)
-        self.assertIn('https://github.com/' + publish.REPO + '/releases/download/v0.0.1/release-manifest.json', notes)
+    def test_existing_published_release_must_be_immutable(self):
+        tag = {'object': {'type': 'commit', 'sha': SHA}}
+        with patch.object(publish, 'api', return_value=tag), patch.object(publish, 'release_for_tag', return_value={'draft': False, 'immutable': False}), self.assertRaisesRegex(AssertionError, 'not immutable'):
+            publish.check_release(SHA, '1.0.0')
 
     def test_registry_index_accepts_only_tested_amd64_and_attestations(self):
-        from unittest.mock import patch
         digest = 'sha256:' + '4' * 64
         index = {'manifests': [{'digest': 'sha256:' + '5' * 64, 'platform': {'os': 'linux', 'architecture': 'amd64'}},
                                {'digest': 'sha256:' + '6' * 64, 'platform': {'os': 'unknown', 'architecture': 'unknown'},
@@ -148,87 +433,10 @@ class PublicationGateTest(unittest.TestCase):
             publish.remote_image_matches({'imageId': digest}, digest)
 
     def test_missing_remote_artifact_rejects_before_download(self):
-        from unittest.mock import patch
         with patch.object(publish, 'api', return_value={'artifacts': []}), patch.object(publish.subprocess, 'run') as run:
             with self.assertRaisesRegex(AssertionError, 'Missing/ambiguous artifact'):
                 publish.download(123, 'verified-candidate-123-1', Path('/unused'))
             run.assert_not_called()
-
-    def test_client_receipt_is_bound_to_executable_and_runtime(self):
-        from unittest.mock import patch
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            for name in ('Dockerfile', 'compose.yaml'):
-                (root / name).write_text('qualified runtime input')
-            path = root / 'qualification/evidence/releases/0.0.1/official-dependencies/verification.json'
-            path.parent.mkdir(parents=True)
-            jar_sha = '7' * 64
-            receipt = {'jarSha256': jar_sha, 'runtimeInputs': {name: candidate.sha256(root / name) for name in ('Dockerfile', 'compose.yaml')},
-                       'status': 'passed', 'baselineReplacement': {'status': 'passed', 'correctedJarSha256': jar_sha},
-                       'clients': {name: {'status': 'passed'} for name in ('thunderbird-system-vancouver', 'thunderbird-explicit-vancouver', 'thunderbird-explicit-berlin', 'gnome-vancouver')}}
-            candidate.write_json(path, receipt)
-            with patch.object(publish, 'ROOT', root):
-                publish.check_client_receipt(jar_sha)
-                with self.assertRaises(AssertionError):
-                    publish.check_client_receipt('8' * 64)
-                (root / 'Dockerfile').write_text('different runtime')
-                with self.assertRaises(AssertionError):
-                    publish.check_client_receipt(jar_sha)
-
-    def fixture(self, directory):
-        jar = directory / 'caldav-server-0.0.1.jar'
-        with zipfile.ZipFile(jar, 'w') as archive:
-            archive.writestr('META-INF/MANIFEST.MF', 'Implementation-Version: 0.0.1\n')
-            archive.writestr('META-INF/sbom/application.cdx.json', '{"metadata":{"component":{"version":"0.0.1"}}}')
-            archive.writestr('META-INF/maven/org.busystack/caldav-server/pom.properties', 'version=0.0.1\n')
-        (directory / 'sbom.cdx.json').write_text('{"metadata":{"component":{"version":"0.0.1"}}}')
-        (directory / 'container.tar.gz').write_bytes(b'tested archive fixture')
-        record = {'version': '0.0.1', 'repository': publish.REPO, 'sourceCommit': SHA, 'platform': 'linux/amd64',
-                  'ciRun': 123, 'ciAttempt': 1, 'workflow': '.github/workflows/ci.yml', 'imageId': 'sha256:' + '3' * 64,
-                  'files': {p.name: candidate.sha256(p) for p in directory.iterdir()}}
-        candidate.write_json(directory / 'candidate.json', record)
-        return record
-
-    def test_missing_artifact_and_checksum_mismatch_reject(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            self.fixture(directory)
-            candidate.validate(directory)
-            (directory / 'container.tar.gz').write_bytes(b'changed')
-            with self.assertRaises(AssertionError):
-                candidate.validate(directory)
-            (directory / 'container.tar.gz').unlink()
-            with self.assertRaises(FileNotFoundError):
-                candidate.validate(directory)
-
-    def test_bundle_is_complete_portable_digest_pinned_and_reproducible(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / 'candidate'
-            source.mkdir()
-            self.fixture(source)
-            digest = 'sha256:' + '1' * 64
-            first = bundle.build(source, digest, root / 'first')
-            second = bundle.build(source, digest, root / 'second')
-            self.assertEqual(first, second)
-            with tarfile.open(root / 'first/caldav-server-0.0.1-deploy.tar.gz') as archive:
-                names = {p.name for p in archive.getmembers()}
-                prefix = 'caldav-server-0.0.1-deploy/'
-                for name in ('compose.yaml', 'INSTALL.md', '.env.example', 'scripts/init-db.sh', 'scripts/backup.sh', 'scripts/restore.sh', 'nginx-root.conf.example', 'nginx-subpath.conf.example'):
-                    self.assertIn(prefix + name, names)
-                compose = archive.extractfile(prefix + 'compose.yaml').read().decode()
-                self.assertIn('@' + digest, compose)
-                self.assertNotIn('build:', compose)
-                self.assertNotIn('/home/albert', compose)
-                self.assertFalse(any('/src/' in name for name in names))
-                self.assertFalse(any('/docs/development/' in name for name in names))
-                self.assertNotIn(prefix + 'docs/releases/0.0.1-website-handoff.md', names)
-                self.assertNotIn(prefix + 'docs/standards-corrections.md', names)
-            for name in ('SHA256SUMS', 'release-manifest.json', 'notices.tar.gz'):
-                self.assertEqual((root / 'first' / name).read_bytes(), (root / 'second' / name).read_bytes())
-            with self.assertRaises(FileExistsError):
-                bundle.build(source, digest, root / 'first')
-
     def test_active_source_has_no_removed_copies_or_patch_payload(self):
         integrity.source()
 

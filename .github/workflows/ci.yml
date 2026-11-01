@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Validate release helpers and rejection paths before qualification
         run: |
           python3 -m unittest discover -s qualification/release -p 'test_*.py'
@@ -40,6 +41,7 @@ jobs:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Install the exact pinned Temurin JDK
         run: bash scripts/install-ci-jdk.sh
       - name: Install pinned independent CalDAV client test dependencies
@@ -56,14 +58,15 @@ jobs:
           ./mvnw --batch-mode --no-transfer-progress clean verify
           ./mvnw --batch-mode --no-transfer-progress -f investigation/protocol/pom.xml -s investigation/protocol/settings.xml test
           ./mvnw --batch-mode --no-transfer-progress -f investigation/oauth/pom.xml test
+      - name: Resolve qualified Maven identity
+        id: identity
+        run: echo "jar=$(python3 scripts/release_version.py --source-sha "$GITHUB_SHA" --format jar)" >> "$GITHUB_OUTPUT"
       - name: Build deployable container
         run: |
-          docker build --build-arg SOURCE_REVISION="$GITHUB_SHA" --tag busystack-caldav:ci .
+          jar=$(python3 scripts/release_version.py --source-sha "$GITHUB_SHA" --format jar)
+          python3 scripts/build-image.py --image busystack-caldav:ci --jar "target/$jar"
           docker image inspect --format '{{.Id}}' busystack-caldav:ci | tee target/application-image-id.txt
-          host_jar_sha=$(sha256sum target/caldav-server-0.0.1.jar)
-          image_jar_sha=$(docker run --rm --entrypoint sha256sum busystack-caldav:ci /opt/busystack/application.jar)
-          test "${host_jar_sha%% *}" = "${image_jar_sha%% *}"
-          printf '%s\n' "${host_jar_sha%% *}" > target/application-jar-sha256.txt
+          sha256sum "target/$jar" | cut -d ' ' -f 1 > target/application-jar-sha256.txt
       - name: Inspect actual source, JAR and container license delivery
         run: |
           python3 -m unittest discover -s qualification/distribution -p 'test_*.py'
@@ -110,7 +113,7 @@ jobs:
             target/surefire-reports/
             target/failsafe-reports/
             target/classes/META-INF/sbom/application.cdx.json
-            target/caldav-server-0.0.1.jar
+            target/${{ steps.identity.outputs.jar }}
             target/*.cdx.json
             target/*-qualification.txt
             target/application-image-id.txt
@@ -128,6 +131,7 @@ jobs:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Install the exact pinned Temurin JDK
         run: bash scripts/install-ci-jdk.sh
       - name: Generate runtime inventory and verify advisory gate failure behavior

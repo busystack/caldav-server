@@ -1,202 +1,148 @@
 # Release procedure
 
-Owner scope: [v0.0.1 assignment](release-0.0.1-instructions.md). Release operators
-use authenticated `gh` directly. Never expose tokens, commit credentials, use a
-long-lived publication PAT or bypass repository protections. Default verification
-is nonpublishing, including pull requests. Publication uses only the job-scoped
-repository `GITHUB_TOKEN` with contents write, Actions read and packages write.
-All Actions are pinned to commits. Linux AMD64 is the sole container platform.
+The literal `project.version` of the application `pom.xml` is the only maintained
+application version. `scripts/release_version.py` reads that direct Maven element,
+checks the project coordinates, and accepts only `X.Y.Z` without leading zeros.
+Do not maintain an application version in another configuration file. Dependency,
+probe, and private browser-harness package versions identify separate software.
 
-## Prepare and qualify
+Work on the version's release branch. Preserve historical evidence and published
+versions. Updating the application version means changing the application POM,
+writing that version's release notes and obtaining fresh qualification; no release
+script, workflow or Dockerfile needs a version-number edit.
 
-Work on `release/v0.0.1`, inspect local/remote state and preserve prior work/history.
-Keep runtime/dependency versions pinned. Remove copied third-party implementations
-and active patch payloads without moving/renaming them. Keep historical evidence
-in Git. Run the focused parser/timezone and protocol regressions first. The
-runtime artifact lock records SHA-256 of complete upstream Maven Central JARs;
-never regenerate it from a possibly modified local cache. A dependency change
-requires the assignment's separate approval.
+## Developer builds
 
-Before expensive execution, run:
+Use the pinned JDK described in `docs/versions.md`, the Maven wrapper and Python 3.
+Commit source changes before producing an image with an exact Git revision:
 
 ```sh
-python3 -m unittest discover -s qualification/release -p 'test_*.py'
-python3 -m unittest discover -s qualification/distribution -p 'test_*.py'
-python3 -m py_compile scripts/*.py
-for script in scripts/*.sh; do bash -n "$script"; done
-bash scripts/validate-workflows.sh
+python3 scripts/build-image.py
 ```
 
-Required complete verification: pinned-JDK `./mvnw -B -ntp clean verify`, protocol
-and OAuth investigation suites, static analysis, official nested dependency
-integrity and license delivery, OSV current advisory gate and positive control,
-container OS advisories, packaged operations (same-version and V9 migration/
-restoration including malformed-history rejection), passkey fixture tests, and
-all six existing packaged HTTPS profiles: default, strict sync override, Nginx
-subpath, real Keycloak cross-site, local restoration with independent clients,
-federated restoration. Missing required prerequisites fail; optional NVD absence
-is recorded separately and never replaces required OSV/container checks.
+This runs Maven clean package, selects exactly the Maven-named executable JAR,
+validates Maven coordinates, manifest and embedded SBOM, and builds a Linux AMD64
+image named `busystack-caldav:<project.version>`. It supplies the version and Git
+revision to Docker and verifies the resulting OCI labels and exact JAR checksum.
+`target/image-build.json` records the identities. No version argument is accepted.
+CI uses the same entry point with `--jar` to package the already tested JAR without
+rebuilding it. Stale extra JARs and dirty source checkouts are rejected.
 
-Exercise actual replacement of the retained qualified internal baseline with
-`python3 scripts/verify-operations.py --image CORRECTED_IMAGE --baseline-image QUALIFIED_BASELINE_IMAGE`.
-Verify the baseline's full source label and artifact identity first; local tags
-alone are insufficient. This path starts the baseline, replaces it with the
-corrected image and checks unchanged authoritative bytes, ETags and migration
-history before restart/backup/restoration. The V9 migration fixture remains
-separate. Record the corrected JAR identity and passed replacement in the client
-receipt; no older public version is implied.
-
-Run official real-client editor workflows with private disposable profiles:
-Thunderbird system Vancouver, explicit Vancouver, explicit Berlin, and GNOME
-Calendar/EDS Vancouver. Include actual creation/editing/sync/recurrence/occurrence,
-restart/reopening, tasks where applicable and deletion; retain wire/GET/conditional
-validator evidence. Preserve personal accounts/settings/trust. Read the latest
-retained scripts before setup; do not reinstall working clients. Keep failed
-attempts separate. Commit the concise qualification receipt at
-`qualification/evidence/releases/0.0.1/official-dependencies/verification.json`.
-Its exact JAR SHA-256, Dockerfile/Compose runtime-input hashes and four successful client entries are mandatory publication
-gates. Full logs/screenshots and private fixture material stay in the established
-external evidence locations. No different executable inherits client results.
-
-Push coherent commits, create/update the release PR with `gh pr create/edit`, wait
-for every required job and merge with `gh pr merge --merge --match-head-commit SHA`.
-Never squash the audited history. Preserve any protections in effect. The release
-workflow must exist on `main` before manual dispatch. Freeze the integration SHA
-and run complete `verify` there; changed binaries require fresh client evidence.
-Metadata-only integration may reuse matching executable/runtime qualification.
-
-The application job retains a `verified-candidate-RUN-ATTEMPT` artifact only after
-all application qualification succeeds. It contains the exact tested Docker save
-archive, executable JAR, embedded SBOM and candidate checksums/source/run identity.
-Separate failure evidence (`application-evidence-ATTEMPT` and `dependency-audit-ATTEMPT`) is never eligible for publication. Attempt-specific names preserve failed artifacts across retries. Rerun all jobs with `gh run rerun RUN_ID` when a verification run needs a new complete publication-eligible attempt; do not overwrite its earlier evidence. The release workflow
-also checks successful `release-tools` and `dependency-audit` jobs from the latest
-attempt, exact workflow/repository/main push or dispatch, SHA and every checksum.
-Expired or missing artifacts require a new verification candidate, not a rebuild
-inside publication. No release is triggered by push, merge or tag events.
-
-## Stage the exact image and downloadable bundle
-
-Before release, enable immutability using the documented admin API and verify:
+For development Compose, configure the ordinary database secrets and HTTPS URLs
+from the operations guide, then use the same entry point:
 
 ```sh
-gh api --method PUT repos/busystack/caldav-server/immutable-releases
-gh api repos/busystack/caldav-server/immutable-releases
+python3 scripts/build-image.py --compose up -d --no-build --wait
 ```
 
-Use the exact frozen 40-character main SHA and successful run ID:
+The wrapper supplies Compose's image, build context, version and source revision.
+Raw source-directory Docker and Compose builds fail without these inputs. The
+Dockerfile also validates the supplied metadata against the exact packaged JAR.
+Development Compose can build only the prepared, checked context. Published
+Compose has no application build and pulls the version plus registry digest.
+
+## Qualification and source identities
+
+Run the complete application, investigation, security, distribution and packaged
+HTTPS suites from `.github/workflows/ci.yml`. Pull requests verify without
+publishing. Candidate retention does not publish a release or registry tag.
+
+Perform the established real-client editor qualification on the actual version's
+executable: Thunderbird system Vancouver, explicit Vancouver and explicit Berlin,
+and GNOME Calendar/EDS Vancouver. Retain raw results and failed attempts. Record
+only executed results at `qualification/evidence/releases/<version>/verification.json`.
+The record identifies `version`, `jarSha256`, the actual client source/image,
+`runtimeInputs` SHA-256 values for `Dockerfile` and `compose.yaml`, client versions,
+passed profile results and limitations. Historical internal-baseline replacement
+work remains historical evidence; it is not a permanent future-version gate.
+The reusable four client profiles and executable/runtime binding remain required.
+Do not copy old pass claims to a new version.
+
+The successful CI candidate retains the exact JAR, embedded SBOM, saved container
+and complete source snapshot. Its version is resolved at its exact source commit,
+not at a later controller checkout. The snapshot is checked against every Git
+blob. Candidate identity distinguishes source SHA/tree, workflow/run/attempt,
+JAR SHA-256, local Docker image ID and saved-image checksum.
+
+## Approved integration
+
+Create a PR from the release branch into `main`. After owner release approval,
+squash it with commit message `Release v<version>` and preserve the release branch.
+For the first implementation release, verify `main` contains exactly the original
+`first commit` and that release commit, with the approved complete tree. Qualify
+that final squash commit in CI. Official artifacts must identify that commit;
+a branch candidate's different source SHA is not an official final revision.
+Do not add commits to `main` merely to retain generated release metadata.
+
+While `main` contains only the original README, manual Actions dispatch is
+unavailable because workflows are absent from the default branch. Do not add a
+workflow to work around this. Development and push verification use the release
+branch until the approved squash merge.
+
+## Stage, then publish
+
+Use authenticated `gh`. Both operations are explicit manual dispatches on `main`;
+concurrency is version-specific without cancellation. Minimum workflow permissions
+are contents write, Actions read and packages write for the promotion job.
 
 ```sh
-gh workflow run release.yml --repo busystack/caldav-server --ref main \
-  -f version=0.0.1 -f source_sha=QUALIFIED_SHA \
-  -f verification_run=VERIFY_RUN_ID -f phase=stage -f candidate_version=0.0.1-rc.1
-gh run list --repo busystack/caldav-server --workflow release.yml
-gh run watch STAGE_RUN_ID --repo busystack/caldav-server --exit-status
+SOURCE_SHA=the_exact_successfully_qualified_main_commit
+VERIFY_RUN=the_successful_verification_run_id
+VERSION=$(python3 scripts/release_version.py --source-sha "$SOURCE_SHA")
+gh workflow run release.yml --ref main \
+  -f version="$VERSION" -f source_sha="$SOURCE_SHA" \
+  -f verification_run="$VERIFY_RUN" -f phase=stage \
+  -f candidate_version="$VERSION-rc.1"
 ```
 
-Staging loads/promotes the verified archive without rebuilding the server, checks
-its image config ID, JAR and platform, and pushes a readable release-candidate tag
-such as `0.0.1-rc.1`. Exact CI run and attempt identities stay in the manifest and
-qualification records. Reuse a candidate tag only for the identical tested image;
-select the next `rc.N` for different content. An existing conflicting candidate
-fails before a push. The package is associated with this repository through its
-OCI source label and workflow publication. It records the **registry manifest
-digest**, distinct from Docker's local config image ID and archive checksum.
-`release-bundle.py` generates final version-and-digest-pinned Compose as an output,
-not a committed source file. No circular digest/source commit is created.
+Staging must execute at the qualified commit. It verifies the repository, CI
+workflow, event, SHA, run attempt and all required jobs (`release-tools`,
+`application`, `dependency-audit`). It rejects version mismatches, missing or
+ambiguous artifacts, conflicting image tags and invalid qualification records.
+It loads the saved tested image without rebuilding, validates OCI metadata and
+JAR bytes, and pushes only the selected readable candidate tag.
 
-Staging extracts the exact generated archive into a random directory, pulls its
-image by digest, checks complete configuration and dependencies, exercises
-non-root deployment/bootstrap/restart/backup/restore, V9 upgrade, HTTPS browser
-MFA/user/calendar provisioning and recovery, and runs the exact release JAR with
-host Java/PostgreSQL separately. Application/database containers have no checkout
-mounts. Calendar corpus files are controller-owned test inputs resolved from the
-qualification code, independently of the extracted deployment root. They are not
-installed into the deployment or mounted into the application. The release-helper
-regression checks this distinction with a deployment directory containing no
-source tree. The successful `release-stage-RUN-ATTEMPT` artifact retains exact assets,
-manifest, their checksums and installation result. No version tag/release is
-created during staging. Failed installation evidence is retained but ineligible.
+The registry manifest digest is distinct from the local Docker image ID. Staging
+builds the deployment bundle only from its checked qualified-source snapshot:
+Compose, initialization/backup/restoration scripts, documentation, proxy examples,
+release notes, licenses and evidence. `deployment/INSTALL.md` and operator guides
+are maintained templates; `@VERSION@` is rendered from that source's POM.
+Generated image digests and checksums come from verified artifacts. The complete
+bundle includes the SBOM and version-specific client record.
 
-## Make package public, then publish
+Staging tests the exact digest-pinned archive from an arbitrary extraction path,
+including Compose recovery, HTTPS browser restoration and the independent JAR
+alternative. It retains all six final assets, release notes, installation receipt
+and a stage record hashing them. Changed assets require a new verified candidate.
 
-GitHub's documented package visibility control is the package settings UI, not
-an invented REST endpoint. A new GHCR package defaults private regardless of
-repository visibility. An organization package admin must open
-https://github.com/orgs/busystack/packages/container/package/caldav-server,
-choose **Package settings → Danger Zone → Change visibility → Public**, and confirm the package name.
-If this UI is unavailable to the agent, request that exact operator action after
-staging; complete all unaffected preparation. Public visibility cannot be assumed
-from inherited access permissions. Publication explicitly verifies anonymous
-registry access before creating the version tag/release.
-
-Recheck immutable releases immediately before publication. The ephemeral workflow token cannot request repository Administration permission, so this admin API check is the dispatcher’s explicit responsibility; `immutability_confirmed=true` records that fresh check. The workflow refuses publication without it and verifies `immutable=true` after publication. Dispatch the same
-frozen SHA, verification run and exact successful staging run:
+An administrator must verify that immutable releases are enabled using GitHub's
+repository immutable-releases API immediately before publication. Confirm the
+repository-associated GHCR package is public; do not change unrelated packages.
+Then dispatch against the exact successful staging run:
 
 ```sh
-gh api repos/busystack/caldav-server/immutable-releases
-gh workflow run release.yml --repo busystack/caldav-server --ref main \
-  -f version=0.0.1 -f source_sha=QUALIFIED_SHA \
-  -f verification_run=VERIFY_RUN_ID -f phase=publish -f stage_run=STAGE_RUN_ID \
-  -f immutability_confirmed=true
-gh run watch PUBLICATION_RUN_ID --repo busystack/caldav-server --exit-status
+STAGE_RUN=the_successful_staging_run_id
+gh workflow run release.yml --ref main \
+  -f version="$VERSION" -f source_sha="$SOURCE_SHA" \
+  -f verification_run="$VERIFY_RUN" -f phase=publish \
+  -f stage_run="$STAGE_RUN" -f immutability_confirmed=true
 ```
 
-The version concurrency group never cancels an active publishing job. After
-validating candidate and staged evidence, publication rejects mismatched existing
-version/tag/release/asset state, creates the exact tag, pushes the tested image as
-`0.0.1`, creates a draft release using `gh release create --verify-tag --draft`,
-uploads all assets without clobber, verifies server-reported SHA-256 for every
-asset, then publishes the draft and verifies `immutable=true`. Relative documentation
-links in the release notes are resolved to the exact qualified source commit before
-the draft is created. Operations remain
-in one explicitly dispatched workflow; `GITHUB_TOKEN` events are not expected to
-trigger a second workflow. No `latest` tag is published.
+A newer trusted publication controller may resume the qualified ancestor source.
+The requested version must still match the old source POM, candidate JAR, SBOM and
+OCI labels. The controller may orchestrate validation; its files cannot become
+release payloads. Publication downloads and validates the exact staged assets and
+notes. It does not regenerate them from the controller. Installation and stage
+receipts must match the selected version, source, CI attempt and artifact hashes.
 
-Required assets: `caldav-server-0.0.1.jar`, `caldav-server-0.0.1-deploy.tar.gz`,
-`sbom.cdx.json`, `notices.tar.gz`, `release-manifest.json`, `SHA256SUMS`.
-The manifest links exact source/verification/evidence, architecture, JAR/archive
-checksums, registry digest and tested local image ID with distinct field names.
-The deployment archive includes notices, initialization/backup/restore scripts,
-configuration examples, full HTTPS root/subpath proxy examples and operations.
+Publication creates or matches the exact `v<version>` tag, versioned image and
+draft release. It rejects conflicting content, uploads only missing exact assets,
+checks all remote digests, then publishes immutably. Interrupted operations can
+resume with the same source/run/stage. Never overwrite a conflicting image, move a
+tag or replace an immutable release. No `latest` image tag is created.
 
-## Safe retries and public verification
-
-The published-release-by-tag API does not return drafts. The controller discovers
-drafts through the authenticated release list, then checks their assets by release
-ID. A retry reuses the matching draft and uploads only missing assets.
-
-Once the version tag or image exists, keep its qualified software commit frozen.
-A controller-only fix can be merged through the release branch and resume
-publication from trusted `main` without moving that tag or rebuilding its image.
-For `publish`, the selected software SHA must be an ancestor of the current main
-controller and still match the exact successful verification run, candidate and
-staging evidence. Client/runtime receipts and release notes are read from that
-selected commit. The operation journal records controller and software commits
-separately. Staging continues to require the current verified main SHA.
-
-There is no transaction across GHCR, Git refs and Releases. Each irreversible
-step appends an operation to the retained `release-operations-RUN-ATTEMPT` journal.
-Inspect logs and actual state with `gh run view --log-failed`, `gh api`,
-`gh release view` and registry manifest inspection. Retry the same inputs; never
-move an existing version/tag to different content or replace an asset. Matching
-completed operations are accepted, missing operations resume. Conflicting content
-fails before overwrite. Existing immutable releases can only be verified/resumed;
-a defect after publication requires a new version, never deletion/recreation.
-
-The final workflow anonymously downloads the public assets using unauthenticated
-HTTPS, verifies all SHA-256 values, uses an empty Docker configuration without
-GitHub/registry credentials to pull the digest and repeats installation acceptance.
-The release job installs an isolated checksum-pinned official GitHub CLI 2.103.3, verifies the cryptographic release attestation with `gh release verify`, and verifies every asset with `gh release verify-asset`. It retains the attestation result and operation journal. The system CLI/authentication configuration is unchanged.
-
-After successful publication, retain source-bound concise results in the release
-evidence index, including actual run URLs, digest, assets/checksums, client evidence
-locations and limitations. The stable authoritative generated identity reference is
-https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json.
-Use it in the website handoff; do not paste identities from earlier candidates.
-
-References: [GHCR](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry),
-[manual dispatch](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow),
-[token events](https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-when-your-workflow-runs/triggering-a-workflow),
-[immutability API](https://docs.github.com/en/rest/repos/repos#enable-immutable-releases),
-[package visibility](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility),
-[immutable release lifecycle](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases).
+Verify the immutable release attestation, each asset, anonymous GHCR access and
+anonymous downloaded-asset installation. Retain the operation journal and actual
+identities. A failed step is not a successful release. Existing published versions
+remain untouched unless their separately approved retirement conditions are met.
+For releases with discontinuous ancestry, compare explicit tag-to-tag source trees.

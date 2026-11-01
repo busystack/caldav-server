@@ -27,6 +27,8 @@ def load(name, path):
 
 
 candidate = load('candidate', ROOT / 'scripts/release-candidate.py')
+bundle = load('bundle', ROOT / 'scripts/release-bundle.py')
+versions = candidate.versions
 
 
 def port():
@@ -141,6 +143,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--assets')
     parser.add_argument('--public', action='store_true')
+    parser.add_argument('--version', help='Required for public verification; must match the asset manifest')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
     result = {'status': 'failed', 'publicAnonymous': args.public}
@@ -150,10 +153,11 @@ def main():
             assets = Path(args.assets).resolve() if args.assets else directory / 'download'
             environment = os.environ.copy()
             if args.public:
-                assert not args.assets
+                assert not args.assets and args.version, '--public requires an explicit --version'
+                versions.stable(args.version)
                 assets.mkdir()
                 # urllib sends neither GitHub auth headers nor cookies.
-                with urllib.request.urlopen('https://api.github.com/repos/busystack/caldav-server/releases/tags/v0.0.1', timeout=60) as response:
+                with urllib.request.urlopen('https://api.github.com/repos/busystack/caldav-server/releases/tags/' + versions.tag(args.version), timeout=60) as response:
                     release = json.load(response)
                 assert release['immutable'] and not release['draft']
                 for asset in release['assets']:
@@ -167,23 +171,22 @@ def main():
                 environment['DOCKER_CONFIG'] = str(docker_config)
                 for key in ('GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'DOCKER_AUTH_CONFIG', 'REGISTRY_AUTH_FILE'):
                     environment.pop(key, None)
-            manifest = json.loads((assets / 'release-manifest.json').read_text())
-            for line in (assets / 'SHA256SUMS').read_text().splitlines():
-                sha, name = line.split('  ', 1)
-                assert Path(name).name == name and candidate.sha256(assets / name) == sha
-            for name, sha in manifest['assets'].items():
-                assert candidate.sha256(assets / name) == sha
+            manifest = bundle.validate_assets(assets, args.version)
+            if args.public:
+                assert {a['name']: a['digest'] for a in release['assets']} == {p.name: 'sha256:' + candidate.sha256(p) for p in assets.iterdir()}
             image = manifest['container']['image']
             assert image.endswith('@' + manifest['container']['registryManifestDigest'])
             subprocess.run(['docker', 'pull', '--platform', 'linux/amd64', image], env=environment, check=True)
             config = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], env=environment))[0]
             assert config['Config']['Labels']['org.opencontainers.image.revision'] == manifest['sourceCommit']
+            assert config['Config']['Labels']['org.opencontainers.image.version'] == manifest['version']
+            assert config['Id'] == manifest['container']['localTestedImageId']
             jar_sha = subprocess.check_output(['docker', 'run', '--rm', '--entrypoint', 'sha256sum', image, '/opt/busystack/application.jar'], env=environment, text=True).split()[0]
             assert jar_sha == manifest['jar']['sha256']
             assert config['Architecture'] == 'amd64' and config['Os'] == 'linux'
             with tarfile.open(assets / manifest['deployment']['name']) as archive:
                 archive.extractall(directory, filter='data')
-            extracted = directory / 'caldav-server-0.0.1-deploy'
+            extracted = directory / ('caldav-server-' + manifest['version'] + '-deploy')
             assert not (extracted / 'src').exists() and not (extracted / 'pom.xml').exists()
             assert 'build:' not in (extracted / 'compose.yaml').read_text()
             assert image in (extracted / 'compose.yaml').read_text()
@@ -202,7 +205,7 @@ def main():
             finally:
                 os.environ.clear()
                 os.environ.update(previous_environment)
-            result.update(status='passed', sourceCommit=manifest['sourceCommit'],
+            result.update(status='passed', version=manifest['version'], sourceCommit=manifest['sourceCommit'],
                           jarSha256=manifest['jar']['sha256'], registryManifestDigest=manifest['container']['registryManifestDigest'],
                           deploymentSha256=manifest['deployment']['sha256'],
                           sourceDirectoryMounts=False, extractionDirectoryContainsSpaces=True, profiles=['same-version', 'V9-upgrade', 'HTTPS-proxy-browser-local-restore'])

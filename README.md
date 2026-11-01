@@ -1,8 +1,8 @@
-# BusyStack CalDAV Server 0.0.1
+# BusyStack CalDAV Server
 
 Independent, self-hosted Java server for calendars and tasks, with PostgreSQL persistence and built-in accounts. Local deployment works without another identity service; an existing Keycloak installation can provide optional OIDC login.
 
-Administrator downloads are provided through the [v0.0.1 release](https://github.com/busystack/caldav-server/releases/tag/v0.0.1). Use its [release manifest](https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json) for authoritative source, checksums, Linux AMD64 image digest and verification evidence. Read the [release notes](docs/releases/0.0.1.md) for supported configurations and limitations.
+The last published version is v0.0.1; [v0.1.0 preparation](docs/releases/0.1.0.md) is in progress. Administrator downloads are provided through the [v0.0.1 release](https://github.com/busystack/caldav-server/releases/tag/v0.0.1). Use its [release manifest](https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json) for authoritative source, checksums, Linux AMD64 image digest and verification evidence. Read the [release notes](docs/releases/0.0.1.md) for supported configurations and limitations.
 
 ## Capabilities
 
@@ -25,7 +25,7 @@ The alternative is the release's executable `caldav-server-0.0.1.jar`, requiring
 
 ## Developer source builds
 
-Build dependencies include Temurin Java 25.0.4.1+1, Spring Boot 4.1.2, Spring Security 7.1.2, PostgreSQL 18.6 and official iCal4j 4.4.0. See [dependency versions and licenses](docs/versions.md). The repository's `compose.yaml` supports source builds.
+Build dependencies include Temurin Java 25.0.4.1+1, Spring Boot 4.1.2, Spring Security 7.1.2, PostgreSQL 18.6 and official iCal4j 4.4.0. See [dependency versions and licenses](docs/versions.md). The repository's `compose.yaml` supports source builds through the checked build entry point. Maven's `project.version` supplies the application version automatically.
 
 ```sh
 python3 -m venv .client-venv
@@ -33,7 +33,9 @@ python3 -m venv .client-venv
 bash qualification/clients/install-thunderbird.sh .client-tools
 BUSYSTACK_CLIENT_PYTHON="$PWD/.client-venv/bin/python" \
 BUSYSTACK_THUNDERBIRD_BINARY="$PWD/.client-tools/thunderbird/thunderbird" ./mvnw -B -ntp clean verify
-docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:0.0.1 .
+python3 scripts/build-image.py
+# With the database secrets and HTTPS URLs configured:
+python3 scripts/build-image.py --compose up -d --no-build --wait
 ```
 
 Java 25, Docker and the declared integration prerequisites are required. `verify` runs formatting, static analysis, unit tests and integration tests. See the [release procedure](docs/development/releasing.md) for distribution and deployment checks.

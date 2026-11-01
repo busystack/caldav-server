@@ -1,17 +1,20 @@
 # Operations
 
-These instructions describe BusyStack CalDAV Server 0.0.1. The [release manifest](https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json) identifies the source, artifacts, checksums, Linux AMD64 image digest and verification evidence.
+This maintained installation source uses `@VERSION@`; release bundles render it
+from the qualified Maven project. Use the generated guide for installation.
+
+These instructions describe BusyStack CalDAV Server @VERSION@. The [release manifest](https://github.com/busystack/caldav-server/releases/download/v@VERSION@/release-manifest.json) identifies the source, artifacts, checksums, Linux AMD64 image digest and verification evidence.
 
 The default deployment runs one application and PostgreSQL. External identity integration is optional. The project is Apache-2.0, with [separate third-party licenses and notices](third-party-licenses.md).
 
 ## Administrator installation
 
-Start with the [v0.0.1 release assets](https://github.com/busystack/caldav-server/releases/tag/v0.0.1): `caldav-server-0.0.1-deploy.tar.gz`, `SHA256SUMS` and `release-manifest.json`. Verify the archive checksum, extract it into any installation directory and follow its `INSTALL.md`. All referenced deployment files, initialization/backup/restoration scripts, notices, safe configuration and HTTPS proxy examples are included. Its production Compose file pulls the image by version and registry manifest digest without an application build. Container deployment requires Linux AMD64 and Docker/Compose, with no checkout, Maven or host JDK. Supply and renew your own domain/DNS and trusted HTTPS certificate.
+Start with the [v@VERSION@ release assets](https://github.com/busystack/caldav-server/releases/tag/v@VERSION@): `caldav-server-@VERSION@-deploy.tar.gz`, `SHA256SUMS` and `release-manifest.json`. Verify the archive checksum, extract it into any installation directory and follow its `INSTALL.md`. All referenced deployment files, initialization/backup/restoration scripts, notices, safe configuration and HTTPS proxy examples are included. Its production Compose file pulls the image by version and registry manifest digest without an application build. Container deployment requires Linux AMD64 and Docker/Compose, with no checkout, Maven or host JDK. Supply and renew your own domain/DNS and trusted HTTPS certificate.
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-tar -xzf caldav-server-0.0.1-deploy.tar.gz
-cd caldav-server-0.0.1-deploy
+tar -xzf caldav-server-@VERSION@-deploy.tar.gz
+cd caldav-server-@VERSION@-deploy
 cp .env.example .env
 # Edit .env and create private secrets using the instructions below.
 docker compose config --quiet
@@ -19,7 +22,7 @@ docker compose pull
 docker compose up -d --no-build --wait
 ```
 
-For the JAR alternative, download and checksum `caldav-server-0.0.1.jar`, use Java 25 (selected Temurin 25.0.4.1+1) and PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-0.0.1.jar` in command examples below. No native service manager or database installer is supplied.
+For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.4.1+1) and PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
 
 ## Developer build and verification
 
@@ -31,13 +34,13 @@ python3 -m venv .client-venv
 bash qualification/clients/install-thunderbird.sh .client-tools
 BUSYSTACK_THUNDERBIRD_BINARY="$PWD/.client-tools/thunderbird/thunderbird" \
 BUSYSTACK_CLIENT_PYTHON="$PWD/.client-venv/bin/python" ./mvnw --batch-mode --no-transfer-progress verify
-docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" --tag busystack-caldav:0.0.1 .
-python3 scripts/verify-operations.py --image busystack-caldav:0.0.1
+python3 scripts/build-image.py
+python3 scripts/verify-operations.py --image "busystack-caldav:$(python3 scripts/release_version.py)"
 ```
 
 `verify` includes the required PostgreSQL integration suite; Docker must be available. Integration prerequisites must fail visibly when absent. The shell-only Maven wrapper requires `unzip` for its SHA-256-pinned ZIP distribution; its upstream tar fallback cannot use the ZIP checksum. The Docker build uses the identical Maven 3.9.12 from its pinned image directly. The container build packages the executable JAR; it skips tests because the full suite runs separately. An image build alone is not qualification.
 
-The executable JAR is `target/caldav-server-0.0.1.jar`. The container name above is a developer-local build tag; administrator installations use the published digest recorded in the release manifest. Record the checkout revision with `git rev-parse HEAD`, and calculate the JAR checksum with `sha256sum target/caldav-server-0.0.1.jar`. Preserve the matching source, image identity and configuration when installing or backing up the server.
+The executable JAR is `target/caldav-server-@VERSION@.jar`. The container name above is a developer-local build tag; administrator installations use the published digest recorded in the release manifest. Record the checkout revision with `git rev-parse HEAD`, and calculate the JAR checksum with `sha256sum target/caldav-server-@VERSION@.jar`. Preserve the matching source, image identity and configuration when installing or backing up the server.
 
 The Python 3 operations harness requires Compose 2.24.4 or newer for the port override. It creates two randomly named disposable Compose projects, bootstraps an account locally, checks the packaged application's probes/discovery/issuer and DAV challenge, restarts it, seeds database-recovery fixtures, then backs up and restores to the second database. It verifies data/ownership/sharing, restored security-state invalidation and controlled local/external offline recovery, and removes only its own projects and volumes. It never prints generated secrets. Its SQL-seeded fixtures are database procedure evidence, not independent CalDAV-client or passkey-authentication evidence. HTTPS/proxy/browser workflows require separate end-to-end tests.
 
@@ -68,7 +71,7 @@ docker compose ps
 
 The base URL and issuer must be equal, canonical absolute URLs with no trailing slash, query, credentials, fragment, or percent-encoded path. Configuration is validated at startup. These are external addresses, not `http://application:8080` or `http://database:5432`. Loopback HTTP is accepted only with the explicit development switch `BUSYSTACK_ALLOW_INSECURE_LOCAL=true`; that setting does not make HTTP suitable for network credential use.
 
-The application runs as UID/GID 10001, with a read-only root filesystem, a bounded temporary directory, dropped Linux capabilities, and a 1 GiB container memory limit. That memory limit is a conservative engineering default, not a measured production capacity claim. PostgreSQL data is persisted at `/var/lib/postgresql`, the PostgreSQL 18 image's volume root. No database port is published. The application listener is published only on `127.0.0.1`, port 8080 by default (`BUSYSTACK_HTTP_PORT` can change the host port).
+The application runs as UID/GID 10001, with a read-only root filesystem, a bounded temporary directory, dropped Linux capabilities, and a 1 GiB container memory limit. That memory limit is a conservative engineering default, not a measured production capacity claim. PostgreSQL data is persisted at `/var/lib/postgresql`, the PostgreSQL 18 image's volume root. No database port is published. The application listener is published only on `127.@VERSION@`, port 8080 by default (`BUSYSTACK_HTTP_PORT` can change the host port).
 
 PostgreSQL administration uses a separate secret. Initialization creates a non-superuser `busystack` database owner for application migrations and runtime. Initialization scripts run only on an empty database volume. Replacing a password file does not rotate an already initialized PostgreSQL role; rotate the database role and secret together during controlled downtime.
 
@@ -76,7 +79,7 @@ Compose secret mounts supply `spring.datasource.password` through Spring's confi
 
 ## HTTPS and proxy paths
 
-Terminate TLS at a configured reverse proxy and allow its local connection to `127.0.0.1:8080`. Deny public access to `/actuator/`; health probes are for local/container monitoring. Set request-size and timeout limits at the proxy as well as the application. Use valid certificates and clients' normal certificate validation.
+Terminate TLS at a configured reverse proxy and allow its local connection to `127.@VERSION@:8080`. Deny public access to `/actuator/`; health probes are for local/container monitoring. Set request-size and timeout limits at the proxy as well as the application. Use valid certificates and clients' normal certificate validation.
 
 Put either location arrangement below inside your proxy's HTTPS virtual host, using its real certificate chain and private key. For example, the surrounding Nginx configuration is:
 
@@ -108,7 +111,7 @@ location / {
     client_max_body_size 1m;
     proxy_connect_timeout 5s;
     proxy_read_timeout 120s;
-    proxy_pass http://127.0.0.1:8080;
+    proxy_pass http://127.@VERSION@:8080;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
     proxy_set_header X-Forwarded-Host "";
@@ -127,7 +130,7 @@ location = /.well-known/caldav {
     return 308 https://calendar.example.org/calendar/dav/;
 }
 location = /.well-known/oauth-authorization-server/calendar {
-    proxy_pass http://127.0.0.1:8080/calendar/.well-known/oauth-authorization-server;
+    proxy_pass http://127.@VERSION@:8080/calendar/.well-known/oauth-authorization-server;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
     proxy_set_header X-Forwarded-Host "";
@@ -136,7 +139,7 @@ location = /.well-known/oauth-authorization-server/calendar {
 location ^~ /calendar/actuator/ { return 404; }
 location /calendar/ {
     client_max_body_size 1m;
-    proxy_pass http://127.0.0.1:8080;
+    proxy_pass http://127.@VERSION@:8080;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
     proxy_set_header X-Forwarded-Host "";
@@ -151,7 +154,7 @@ The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.h
 There is no default administrator password or unauthenticated setup endpoint. The local bootstrap command requires an empty account database, a private owner-only password file, and `--spring.main.web-application-type=none`. Use the executable JAR with database configuration supplied securely through environment/configuration:
 
 ```sh
-java -jar target/caldav-server-0.0.1.jar \
+java -jar target/caldav-server-@VERSION@.jar \
   --spring.main.web-application-type=none \
   --busystack.bootstrap=true \
   --busystack.bootstrap-username=administrator \
@@ -334,6 +337,6 @@ docker compose up -d --no-deps application
 docker compose ps
 ```
 
-Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version 0.0.1 uses migrations V1–V13 and introduces no migration during final release preparation.
+Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version @VERSION@ uses migrations V1–V13 and introduces no migration during final release preparation.
 
 The native Thunderbird and Python client results are scoped to their recorded versions and interoperability profile; see [client evidence](../qualification/clients/README.md). This Compose arrangement provides no high availability, automatic failover or measured user-capacity guarantee. The [executed workload record](performance.md) reports the actual host/image/dataset, end-to-end latency, sampled memory/CPU and PostgreSQL behavior; raw evidence is retained separately. It is one sequential client, not a user-capacity or concurrency guarantee.

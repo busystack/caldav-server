@@ -26,8 +26,12 @@ services:
       - no-new-privileges:true
 
   application:
-    build: .
-    image: busystack-caldav:0.0.1
+    build:
+      context: ${BUSYSTACK_BUILD_CONTEXT:?Run python3 scripts/build-image.py --compose ...}
+      args:
+        APPLICATION_VERSION: ${BUSYSTACK_BUILD_VERSION:?Run python3 scripts/build-image.py --compose ...}
+        SOURCE_REVISION: ${BUSYSTACK_SOURCE_REVISION:?Run python3 scripts/build-image.py --compose ...}
+    image: ${BUSYSTACK_APPLICATION_IMAGE:?Run python3 scripts/build-image.py --compose ...}
     restart: unless-stopped
     depends_on:
       database:

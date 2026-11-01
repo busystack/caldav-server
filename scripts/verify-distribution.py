@@ -15,15 +15,17 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 APACHE_SHA = 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30'
 DOCUMENTS = ('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES')
-RELEASE_VERSION = '0.0.1'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import release_version as versions
 
 
-def inspect_jar(path):
+def inspect_jar(path, version=None):
+    version = version or versions.resolve(ROOT)
     with zipfile.ZipFile(path) as jar:
         manifest = dict(line.split(': ', 1) for line in jar.read('META-INF/MANIFEST.MF').decode().splitlines() if ': ' in line)
-        assert manifest.get('Implementation-Version') == RELEASE_VERSION, 'JAR implementation version differs from release'
+        assert manifest.get('Implementation-Version') == version, 'JAR implementation version differs from release'
         coordinates = dict(line.split('=', 1) for line in jar.read('META-INF/maven/org.busystack/caldav-server/pom.properties').decode().splitlines() if '=' in line and not line.startswith('#'))
-        assert coordinates.get('version') == RELEASE_VERSION, 'JAR Maven version differs from release'
+        assert coordinates.get('version') == version, 'JAR Maven version differs from release'
         for name in DOCUMENTS:
             assert jar.read('META-INF/' + name) == (ROOT / name).read_bytes(), 'JAR missing/different ' + name
         assert jar.read('META-INF/licenses/ical4j-parser-BSD-3-Clause.txt') == (ROOT / 'src/main/resources/META-INF/licenses/ical4j-parser-BSD-3-Clause.txt').read_bytes()
@@ -32,7 +34,7 @@ def inspect_jar(path):
         for name in ('asm-9.7.1-copyright-and-license.txt','logback-LICENSE.txt','EPL-2.0.txt','LGPL-2.1.txt'):
             assert jar.read('META-INF/licenses/'+name)==(ROOT/'licenses'/name).read_bytes()
         bom = json.loads(jar.read('META-INF/sbom/application.cdx.json'))
-        assert bom['metadata']['component'].get('version') == RELEASE_VERSION, 'Project SBOM version differs from release'
+        assert bom['metadata']['component'].get('version') == version, 'Project SBOM version differs from release'
         project_licenses = bom['metadata']['component']['licenses']
         assert isinstance(project_licenses,list) and len(project_licenses)==1 and set(project_licenses[0])=={'license'}, 'Project SBOM license is incorrect'
         project_license = project_licenses[0]['license']
@@ -51,13 +53,13 @@ def inspect_jar(path):
             dependencies.append({'artifact': name.split('/')[-1], 'deliveredLicenseAndNoticeFiles': notices})
         assert any(d['artifact'] == 'spring-session-core-4.1.1.jar' and d['deliveredLicenseAndNoticeFiles'] for d in dependencies)
         assert any(d['artifact'] == 'spring-session-jdbc-4.1.1.jar' and d['deliveredLicenseAndNoticeFiles'] for d in dependencies)
-        return {'projectVersion': RELEASE_VERSION, 'projectLicense': project_licenses, 'jarSha256': hashlib.sha256(Path(path).read_bytes()).hexdigest(), 'runtimeComponents': len(bom['components']), 'nestedArtifacts': dependencies}
+        return {'projectVersion': version, 'projectLicense': project_licenses, 'jarSha256': hashlib.sha256(Path(path).read_bytes()).hexdigest(), 'runtimeComponents': len(bom['components']), 'nestedArtifacts': dependencies}
 
 
-def inspect_image(image, expected_jar_sha, revision):
+def inspect_image(image, expected_jar_sha, revision, version):
     config = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], text=True))[0]
     labels = config['Config']['Labels'] or {}
-    assert labels.get('org.opencontainers.image.version') == RELEASE_VERSION, 'Image version differs from release'
+    assert labels.get('org.opencontainers.image.version') == version, 'Image version differs from release'
     assert labels.get('org.opencontainers.image.licenses') == 'Apache-2.0'
     assert labels.get('org.opencontainers.image.source') == 'https://github.com/busystack/caldav-server'
     assert labels.get('org.opencontainers.image.revision') == revision, 'Image source revision differs from qualified revision'
@@ -72,12 +74,14 @@ def inspect_image(image, expected_jar_sha, revision):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--jar',default=str(ROOT/f'target/caldav-server-{RELEASE_VERSION}.jar'))
+    parser.add_argument('--jar')
     parser.add_argument('--image',required=True)
     parser.add_argument('--revision',default=None)
     parser.add_argument('--output',default=str(ROOT/'target/qualification/distribution.json'))
     args=parser.parse_args()
     revision=args.revision or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+    version = versions.resolve(ROOT, source=revision)
+    args.jar = args.jar or str(ROOT / 'target' / versions.jar_name(version))
     report={'recordedAt':datetime.now(timezone.utc).isoformat(), 'sourceRevision':revision,'status':'error'}
     try:
         assert hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest()==APACHE_SHA, 'Project LICENSE must be the unmodified official Apache text'
@@ -91,8 +95,8 @@ def main():
         spec.loader.exec_module(integrity)
         integrity.source()
         integrity.inspect(args.jar)
-        report.update(inspect_jar(args.jar))
-        report['image']=inspect_image(args.image,report['jarSha256'],revision)
+        report.update(inspect_jar(args.jar, version))
+        report['image']=inspect_image(args.image,report['jarSha256'],revision,version)
         report['status']='passed'
     except (AssertionError,OSError,KeyError,ValueError,subprocess.CalledProcessError) as error:
         report['error']=str(error)

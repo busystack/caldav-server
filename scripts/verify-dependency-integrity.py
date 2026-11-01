@@ -6,6 +6,9 @@ import io
 import json
 from pathlib import Path
 import zipfile
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import release_version as versions
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'qualification/distribution/runtime-artifacts.json'
@@ -48,7 +51,7 @@ def source():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--jar', default=str(ROOT / 'target/caldav-server-0.0.1.jar'))
+    parser.add_argument('--jar', default=str(ROOT / 'target' / versions.jar_name(versions.resolve(ROOT))))
     args = parser.parse_args()
     source()
     print(json.dumps(inspect(args.jar), sort_keys=True))

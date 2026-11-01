@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
-"""Retain the exact tested executable/image. No registry or release mutations."""
+"""Retain the exact tested executable, image and qualified source snapshot."""
 import argparse
-import gzip
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
-import zipfile
+import sys
 
-VERSION = '0.0.1'
-REPOSITORY = 'busystack/caldav-server'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import release_version as versions
+import release_source
+
 ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY = versions.REPOSITORY
+spec = importlib.util.spec_from_file_location('image_builder', ROOT / 'scripts/build-image.py')
+builder = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(builder)
 
 
 def sha256(path):
@@ -27,23 +33,29 @@ def write_json(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def validate(directory):
+def snapshot(directory, record):
+    return release_source.Snapshot(record['sourceCommit'], ROOT, Path(directory) / 'source.tar.gz')
+
+
+def validate(directory, requested=None, source_sha=None):
     directory = Path(directory)
-    candidate = json.loads((directory / 'candidate.json').read_text())
-    assert candidate['repository'] == REPOSITORY and candidate['version'] == VERSION
-    assert candidate['platform'] == 'linux/amd64'
-    assert len(candidate['sourceCommit']) == 40 and all(c in '0123456789abcdef' for c in candidate['sourceCommit'])
-    assert candidate['files'] and set(candidate['files']) == {f'caldav-server-{VERSION}.jar', 'container.tar.gz', 'sbom.cdx.json'}
-    for name, expected in candidate['files'].items():
-        assert Path(name).name == name and sha256(directory / name) == expected, 'Candidate checksum mismatch: ' + name
-    with zipfile.ZipFile(directory / f'caldav-server-{VERSION}.jar') as jar:
-        assert f'Implementation-Version: {VERSION}\n' in jar.read('META-INF/MANIFEST.MF').decode().replace('\r\n', '\n')
-        assert jar.read('META-INF/sbom/application.cdx.json') == (directory / 'sbom.cdx.json').read_bytes()
-        bom = json.loads((directory / 'sbom.cdx.json').read_text())
-        assert bom['metadata']['component']['version'] == candidate['version'], 'SBOM version mismatch'
-        coordinates = dict(line.split('=', 1) for line in jar.read('META-INF/maven/org.busystack/caldav-server/pom.properties').decode().splitlines() if '=' in line and not line.startswith('#'))
-        assert coordinates['version'] == candidate['version'], 'JAR coordinates mismatch'
-    return candidate
+    record = json.loads((directory / 'candidate.json').read_text())
+    assert record['repository'] == REPOSITORY
+    version = versions.resolve(ROOT, source=record['sourceCommit'], requested=requested or record['version'])
+    assert record['version'] == version, 'Candidate version differs from qualified Maven version'
+    assert source_sha is None or record['sourceCommit'] == source_sha, 'Wrong candidate source commit'
+    assert record['platform'] == 'linux/amd64'
+    expected = {versions.jar_name(version), 'container.tar.gz', 'sbom.cdx.json', 'source.tar.gz'}
+    assert set(record['files']) == expected, 'Missing or unexpected candidate files'
+    assert {p.name for p in directory.iterdir()} == expected | {'candidate.json'}, 'Unexpected candidate contents'
+    for name, checksum in record['files'].items():
+        assert Path(name).name == name and sha256(directory / name) == checksum, 'Candidate checksum mismatch: ' + name
+    source = snapshot(directory, record)
+    assert source.version == version
+    assert record['sourceTree'] == subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', record['sourceCommit'] + '^{tree}'], text=True).strip()
+    _, sbom = builder.inspect_jar(directory / versions.jar_name(version), version)
+    assert sbom == (directory / 'sbom.cdx.json').read_bytes(), 'Embedded and staged SBOM differ'
+    return record
 
 
 def main():
@@ -51,32 +63,32 @@ def main():
     parser.add_argument('--output', required=True)
     parser.add_argument('--image', default='busystack-caldav:ci')
     args = parser.parse_args()
+    revision = versions.revision(root=ROOT)
+    version = versions.resolve(ROOT, source=revision)
+    assert os.environ['GITHUB_REPOSITORY'] == REPOSITORY and os.environ['GITHUB_SHA'] == revision
+    assert not subprocess.check_output(['git', 'status', '--porcelain=v1', '--untracked-files=all'], cwd=ROOT), 'Dirty candidate source'
     destination = Path(args.output)
     destination.mkdir(parents=True, exist_ok=False)
-    revision = os.environ['GITHUB_SHA']
-    assert os.environ['GITHUB_REPOSITORY'] == REPOSITORY
-    assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() == revision
-    config = json.loads(subprocess.check_output(['docker', 'image', 'inspect', args.image]))[0]
-    assert config['Os'] == 'linux' and config['Architecture'] == 'amd64'
-    assert config['Config']['Labels']['org.opencontainers.image.revision'] == revision
-    assert config['Config']['Labels']['org.opencontainers.image.version'] == VERSION
-    jar = destination / f'caldav-server-{VERSION}.jar'
-    shutil.copyfile(ROOT / 'target' / jar.name, jar)
-    with zipfile.ZipFile(jar) as archive:
-        (destination / 'sbom.cdx.json').write_bytes(archive.read('META-INF/sbom/application.cdx.json'))
-    image_jar = subprocess.check_output(['docker', 'run', '--rm', '--entrypoint', 'sha256sum', args.image, '/opt/busystack/application.jar'], text=True).split()[0]
-    assert image_jar == sha256(jar)
+    jar = destination / versions.jar_name(version)
+    expected = ROOT / 'target' / jar.name
+    assert sorted(p.name for p in expected.parent.glob('*.jar')) == [jar.name], 'Ambiguous build artifacts'
+    checksum, sbom = builder.inspect_jar(expected, version)
+    config = builder.identity(args.image, version, revision, checksum)
+    shutil.copyfile(expected, jar)
+    (destination / 'sbom.cdx.json').write_bytes(sbom)
+    release_source.retain(revision, destination / 'source.tar.gz', ROOT)
     archive = destination / 'container.tar'
-    subprocess.run(['docker', 'image', 'save', '--output', str(archive), args.image], check=True)
+    subprocess.run(['docker', 'image', 'save', '--output', str(archive), config['Id']], check=True)
     subprocess.run(['gzip', '-n', str(archive)], check=True)
-    files = {path.name: sha256(path) for path in destination.iterdir()}
     write_json(destination / 'candidate.json', {
-        'schemaVersion': 1, 'repository': REPOSITORY, 'version': VERSION,
-        'sourceCommit': revision, 'ciRun': int(os.environ['GITHUB_RUN_ID']),
-        'ciAttempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'workflow': '.github/workflows/ci.yml',
-        'platform': 'linux/amd64', 'imageId': config['Id'], 'localDescriptorDigest': config.get('Descriptor', {}).get('digest'), 'imageTag': args.image, 'files': files,
+        'schemaVersion': 2, 'repository': REPOSITORY, 'version': version,
+        'sourceCommit': revision, 'sourceTree': subprocess.check_output(['git', 'rev-parse', revision + '^{tree}'], cwd=ROOT, text=True).strip(),
+        'ciRun': int(os.environ['GITHUB_RUN_ID']), 'ciAttempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+        'workflow': '.github/workflows/ci.yml', 'platform': 'linux/amd64',
+        'imageId': config['Id'], 'localDescriptorDigest': config.get('Descriptor', {}).get('digest'),
+        'imageTag': args.image, 'files': {p.name: sha256(p) for p in destination.iterdir()},
     })
-    validate(destination)
+    validate(destination, version, revision)
 
 
 if __name__ == '__main__':

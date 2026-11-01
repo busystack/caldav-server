@@ -91,6 +91,14 @@ def execute(command, environment, *, content=None, expected=0):
     return result.stdout.strip()
 
 
+def development_environment(image):
+    config = json.loads(execute(['docker', 'image', 'inspect', image], os.environ.copy()))[0]
+    labels = config['Config']['Labels']
+    return {'BUSYSTACK_APPLICATION_IMAGE': image, 'BUSYSTACK_BUILD_CONTEXT': str(ROOT / 'target/docker-context'),
+            'BUSYSTACK_BUILD_VERSION': labels['org.opencontainers.image.version'],
+            'BUSYSTACK_SOURCE_REVISION': labels['org.opencontainers.image.revision']}
+
+
 def compose(environment, *arguments, content=None):
     return execute(["docker", "compose", *arguments], environment, content=content)
 
@@ -155,7 +163,7 @@ def checks(environment):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", default="busystack-caldav:0.0.1")
+    parser.add_argument("--image", required=True)
     parser.add_argument("--baseline-image", help="Existing qualified internal baseline for actual replacement; not an older public release")
     args = parser.parse_args()
     if not args.image or any(character.isspace() for character in args.image):
@@ -191,6 +199,7 @@ def verify(args, initial_version):
             "    ports: !override\n      - '127.0.0.1::8080'\n"
         )
         environment = os.environ.copy()
+        environment.update(development_environment(initial_image))
         environment.update(
             COMPOSE_FILE=f"{ROOT / 'compose.yaml'}:{override}",
             COMPOSE_PROJECT_NAME="busystack-operations-" + secrets.token_hex(6),

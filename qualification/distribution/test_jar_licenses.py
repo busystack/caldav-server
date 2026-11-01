@@ -17,7 +17,7 @@ class JarLicenseContractTest(unittest.TestCase):
         self.directory=tempfile.TemporaryDirectory(prefix='busystack-license-jar-test-')
         self.addCleanup(self.directory.cleanup)
 
-    def jar(self, project_license, dependency_license='Broadcom Foundation License', project_version=inspection.RELEASE_VERSION, manifest_version=inspection.RELEASE_VERSION, maven_version=inspection.RELEASE_VERSION):
+    def jar(self, project_license, dependency_license='Broadcom Foundation License', project_version=inspection.versions.resolve(ROOT), manifest_version=inspection.versions.resolve(ROOT), maven_version=inspection.versions.resolve(ROOT)):
         path=Path(self.directory.name)/'application.jar'
         session=[{'group':'org.springframework.session','name':module,'version':'4.1.1','licenses':[{'license':{'name':dependency_license}}]} for module in ('spring-session-core','spring-session-jdbc')]
         bom={'metadata':{'component':{'version':project_version,'licenses':[{'license':project_license}]}},'components':session}
@@ -60,12 +60,12 @@ class JarLicenseContractTest(unittest.TestCase):
 
     def test_snapshot_manifest_is_rejected(self):
         with self.assertRaisesRegex(AssertionError,'JAR implementation version'):
-            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},manifest_version='0.0.1-SNAPSHOT'))
+            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},manifest_version=inspection.versions.resolve(ROOT) + '-SNAPSHOT'))
 
     def test_project_sbom_version_must_match_release(self):
         with self.assertRaisesRegex(AssertionError,'Project SBOM version'):
-            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},project_version='0.0.1-SNAPSHOT'))
+            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},project_version=inspection.versions.resolve(ROOT) + '-SNAPSHOT'))
 
     def test_maven_version_must_match_release(self):
         with self.assertRaisesRegex(AssertionError,'JAR Maven version'):
-            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},maven_version='0.0.1-SNAPSHOT'))
+            inspection.inspect_jar(self.jar({'id':'Apache-2.0'},maven_version=inspection.versions.resolve(ROOT) + '-SNAPSHOT'))
