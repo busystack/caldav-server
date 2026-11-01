@@ -122,6 +122,11 @@ def matching_version(existing, expected):
     assert existing is None or existing == expected, 'Conflicting existing version; refusing overwrite'
 
 
+def candidate_version(version, value):
+    assert value and len(value) <= 128 and re.fullmatch(re.escape(version) + r'-rc\.[1-9][0-9]*', value), 'Expected a release candidate tag such as ' + version + '-rc.1'
+    return value
+
+
 def release_notes(sha):
     notes = (ROOT / 'docs/releases/0.0.1.md').read_text()
     def source_link(match):
@@ -170,10 +175,12 @@ def main():
     parser.add_argument('--verification-run', type=int, required=True)
     parser.add_argument('--source-sha', required=True)
     parser.add_argument('--phase', choices=['stage', 'publish'], required=True)
+    parser.add_argument('--candidate-version', help='Readable staging tag, for example 0.0.1-rc.1')
     parser.add_argument('--stage-run', type=int)
     parser.add_argument('--work', required=True)
     parser.add_argument('--immutability-confirmed', action='store_true')
     args = parser.parse_args()
+    staging = candidate_version(args.version, args.candidate_version) if args.phase == 'stage' else None
     assert os.environ['GITHUB_REPOSITORY'] == REPO
     assert os.environ['GITHUB_REF'] == 'refs/heads/main', 'Dispatch publication from main'
     assert args.source_sha == os.environ['GITHUB_SHA'] == command('git', 'rev-parse', 'HEAD'), 'Dispatch/source mismatch'
@@ -194,7 +201,6 @@ def main():
     assert config['Config']['Labels']['org.opencontainers.image.revision'] == args.source_sha
     assert command('docker', 'run', '--rm', '--entrypoint', 'sha256sum', record['imageId'], '/opt/busystack/application.jar').split()[0] == record['files']['caldav-server-0.0.1.jar']
     if args.phase == 'stage':
-        staging = f'candidate-{run["id"]}-{run["run_attempt"]}'
         subprocess.run(['docker', 'tag', record['imageId'], REGISTRY + ':' + staging], check=True)
         # After the first push the linked package exists; retries never change staged content.
         package = api('orgs/busystack/packages/container/caldav-server', missing=True)
@@ -210,14 +216,14 @@ def main():
         digest = manifest_digest(staging)
         assert digest
         remote_image_matches(record, digest)
-        journal(log, 'staged-registry-image', {'digest': digest, 'imageId': record['imageId'], 'packageVisibility': package['visibility'], 'repository': package['repository']['full_name']})
+        journal(log, 'staged-registry-image', {'candidateVersion': staging, 'digest': digest, 'imageId': record['imageId'], 'packageVisibility': package['visibility'], 'repository': package['repository']['full_name']})
         matching_version(manifest_digest(args.version), digest)
         payload = work / 'assets'
         manifest = bundle.build(source, digest, payload)
         # This helper extracts and exercises the exact archive, with no checkout mounts.
         subprocess.run(['python3', str(ROOT / 'scripts/verify-installation-bundle.py'), '--assets', str(payload), '--output', str(work / 'installation.json')], check=True)
         candidate.write_json(work / 'stage.json', {'sourceCommit': args.source_sha, 'verificationRun': run['id'],
-                             'verificationAttempt': run['run_attempt'], 'registryDigest': digest,
+                             'verificationAttempt': run['run_attempt'], 'candidateVersion': staging, 'registryDigest': digest,
                              'assets': {p.name: candidate.sha256(p) for p in payload.iterdir()},
                              'installationSha256': candidate.sha256(work / 'installation.json')})
         journal(log, 'staged-installation-passed', {'digest': digest, 'assets': manifest['assets']})
