@@ -19,11 +19,6 @@ RELEASE_VERSION = '0.0.1'
 
 
 def inspect_jar(path):
-    spec = importlib.util.spec_from_file_location('integrity', ROOT / 'scripts/verify-dependency-integrity.py')
-    integrity = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(integrity)
-    integrity.source()
-    integrity.inspect(path)
     with zipfile.ZipFile(path) as jar:
         manifest = dict(line.split(': ', 1) for line in jar.read('META-INF/MANIFEST.MF').decode().splitlines() if ': ' in line)
         assert manifest.get('Implementation-Version') == RELEASE_VERSION, 'JAR implementation version differs from release'
@@ -91,6 +86,11 @@ def main():
             for name in DOCUMENTS:
                 assert archive.extractfile(name).read()==(ROOT/name).read_bytes(), 'Source archive missing/different '+name
         report['sourceArchiveSha256']=hashlib.sha256(source).hexdigest()
+        spec = importlib.util.spec_from_file_location('integrity', ROOT / 'scripts/verify-dependency-integrity.py')
+        integrity = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(integrity)
+        integrity.source()
+        integrity.inspect(args.jar)
         report.update(inspect_jar(args.jar))
         report['image']=inspect_image(args.image,report['jarSha256'],revision)
         report['status']='passed'

@@ -17,7 +17,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - name: Validate release helpers and rejection paths before qualification
+        run: |
+          python3 -m unittest discover -s qualification/release -p 'test_*.py'
+          python3 -m unittest discover -s qualification/distribution -p 'test_*.py'
+          python3 -m py_compile scripts/*.py
+          for script in scripts/*.sh; do bash -n "$script"; done
+          bash scripts/validate-workflows.sh
+
   application:
+    needs: release-tools
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -74,6 +90,16 @@ jobs:
         run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --proxy --groups --restore --clients | tee target/https-restore-qualification.txt
       - name: Verify HTTPS federated recovery against the same real upstream provider
         run: python3 qualification/passkeys/run.py --application-image busystack-caldav:ci --oidc --groups --restore | tee target/oidc-restore-qualification.txt
+      - name: Retain exact tested publication candidate only after successful qualification
+        run: python3 scripts/release-candidate.py --output target/release-candidate --image busystack-caldav:ci
+      - name: Upload successful candidate separately from failure evidence
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: verified-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/release-candidate/
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -95,6 +121,7 @@ jobs:
           if-no-files-found: error
 
   dependency-audit:
+    needs: release-tools
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:

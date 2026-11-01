@@ -1,10 +1,27 @@
 # Operations
 
-These instructions describe BusyStack CalDAV Server 0.0.1. The [release verification record](../qualification/evidence/releases/0.0.1/verification.json) identifies the final source, artifacts, installation exercise and any unavailable manual checks. Standards-correction behavior and earlier root/prefix/recovery results remain in the [developer correction record](standards-corrections.md); earlier qualification links below retain their historical source scope.
+These instructions describe BusyStack CalDAV Server 0.0.1. The authoritative [release manifest](https://github.com/busystack/caldav-server/releases/download/v0.0.1/release-manifest.json) identifies source, exact artifacts, supported Linux AMD64 platform and qualification evidence. Earlier [release verification](../qualification/evidence/releases/0.0.1/verification.json) and [timezone repair](../qualification/evidence/releases/0.0.1/timezone-repair/client-verification.json) records remain historical evidence for their original executable identities.
 
 This deployment runs one application and PostgreSQL. Automated evidence includes real HTTPS DAV, account-security/native OAuth, optional real Keycloak, and independent calendar/task client operations. The [conformance matrix](conformance.md) and [artifact qualification records](../qualification/evidence/README.md) record completed packaged recovery/browser checks and explicitly unexecuted environments. The project is Apache-2.0, with [separate third-party licensing and notice delivery](third-party-licenses.md).
 
-## Build and verification
+## Administrator installation
+
+Start with the [v0.0.1 release assets](https://github.com/busystack/caldav-server/releases/tag/v0.0.1): `caldav-server-0.0.1-deploy.tar.gz`, `SHA256SUMS` and `release-manifest.json`. Verify the archive checksum, extract it into any installation directory and follow its `INSTALL.md`. All referenced deployment files, initialization/backup/restoration scripts, notices, safe configuration and HTTPS proxy examples are included. Its production Compose file pulls the image by version and registry manifest digest without an application build. Container deployment requires Linux AMD64 and Docker/Compose, with no checkout, Maven or host JDK. Supply and renew your own domain/DNS and trusted HTTPS certificate.
+
+```sh
+sha256sum --check --ignore-missing SHA256SUMS
+tar -xzf caldav-server-0.0.1-deploy.tar.gz
+cd caldav-server-0.0.1-deploy
+cp .env.example .env
+# Edit .env and create private secrets using the instructions below.
+docker compose config --quiet
+docker compose pull
+docker compose up -d --no-build --wait
+```
+
+For the JAR alternative, download and checksum `caldav-server-0.0.1.jar`, use Java 25 (selected Temurin 25.0.4.1+1) and PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-0.0.1.jar` in command examples below. No native service manager or database installer is supplied.
+
+## Developer build and verification
 
 Install Java 25 and `unzip`, then use the checked-in wrapper. Keep `.mvn/jvm.config` in the checkout: it pins the build JVM to UTC so executable JAR timestamp metadata is reproducible across host timezones. It does not change application timezone semantics.
 
@@ -20,7 +37,7 @@ python3 scripts/verify-operations.py --image busystack-caldav:0.0.1
 
 `verify` includes the required PostgreSQL integration suite; Docker must be available. Integration prerequisites must fail visibly when absent. The shell-only Maven wrapper requires `unzip` for its SHA-256-pinned ZIP distribution; its upstream tar fallback cannot use the ZIP checksum. The Docker build uses the identical Maven 3.9.12 from its pinned image directly. The container build packages the executable JAR; it skips tests because the full suite runs separately. An image build alone is not qualification.
 
-The executable JAR is `target/caldav-server-0.0.1.jar`. The container name above is a local build tag, not a promise that a registry image has been published. Record the checkout revision with `git rev-parse HEAD`, and calculate the JAR checksum with `sha256sum target/caldav-server-0.0.1.jar`. Preserve the matching source, image identity and configuration when installing or backing up the server.
+The executable JAR is `target/caldav-server-0.0.1.jar`. The container name above is a developer-local build tag; administrator installations use the published digest recorded in the release manifest. Record the checkout revision with `git rev-parse HEAD`, and calculate the JAR checksum with `sha256sum target/caldav-server-0.0.1.jar`. Preserve the matching source, image identity and configuration when installing or backing up the server.
 
 The Python 3 operations harness requires Compose 2.24.4 or newer for the port override. It creates two randomly named disposable Compose projects, bootstraps an account locally, checks the packaged application's probes/discovery/issuer and DAV challenge, restarts it, seeds database-recovery fixtures, then backs up and restores to the second database. It verifies data/ownership/sharing, restored security-state invalidation and controlled local/external offline recovery, and removes only its own projects and volumes. It never prints generated secrets. Its SQL-seeded fixtures are database procedure evidence, not independent CalDAV-client or passkey-authentication evidence. HTTPS/proxy/browser workflows require separate end-to-end tests.
 
@@ -30,7 +47,7 @@ CI checks formatting, compilation/static analysis, unit/integration tests, packa
 
 Requirements: Docker Engine with Compose v2, enough disk for PostgreSQL and backups, and an HTTPS reverse proxy operated on the same host. No Redis, Keycloak, LDAP, PHP, or frontend service is part of the default arrangement.
 
-Use the exact source revision recorded for the prepared release, then complete the explicit image build above so its OCI revision label identifies that checkout. These instructions use that local `busystack-caldav:0.0.1` image; they do not assume a published tag, release download or registry image. Start Compose without rebuilding so it retains the image and source label you just verified.
+Run the commands below from the extracted release deployment directory. Its production Compose pulls the published digest; use `docker compose pull` followed by `up --no-build`. Developers may separately use the repository's source-build Compose after building the matching local image; do not substitute that workflow for administrator installation.
 
 For a trial installation or restore exercise, choose a new Compose project and an unused loopback port before running any Compose command, for example `export COMPOSE_PROJECT_NAME=busystack-caldav-trial` and `export BUSYSTACK_HTTP_PORT=18080`. Use the same environment for startup, bootstrap, backup and restore. The proxy upstream must use the chosen port instead of 8080. Never reuse an existing deployment's project or database volume for an installation check. The ordinary installation uses the checked-in project name and loopback port 8080.
 
@@ -163,7 +180,7 @@ docker compose run --rm --no-deps --user "$(id -u):$(id -g)" \
 docker compose up -d application
 ```
 
-The image must already be built and the database healthy. The command refuses to replace any existing account. Do not set bootstrap flags on the ordinary long-running application service.
+The image must already be pulled (or source-built for development) and the database healthy. The command refuses to replace any existing account. Do not set bootstrap flags on the ordinary long-running application service.
 
 ## First browser sign-in and user creation
 

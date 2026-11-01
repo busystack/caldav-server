@@ -13,12 +13,13 @@ import tls
 IMAGE = "nginx:1.30.6-alpine@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951"
 
 
-def override(root, directory, application_image, base, port):
+def override(root, directory, application_image, base, port, template=None):
     public = urllib.parse.urlsplit(base)
     assert public.path == "/team"
     # A host-private directory protects the bind-mounted fixture key from other host users.
     (directory / "server.key").chmod(0o444)
-    template = (root / "qualification/proxy/nginx.conf.template").read_text()
+    if template is None:
+        template = (root / "qualification/proxy/nginx.conf.template").read_text()
     config = template.replace("@@PREFIX@@", public.path).replace("@@ORIGIN@@", f"{public.scheme}://{public.netloc}").replace("@@AUTHORITY@@", public.netloc).replace("@@HOSTNAME@@", public.hostname)
     (directory / "nginx.conf").write_text(config)
     return (
