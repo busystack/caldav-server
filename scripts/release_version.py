@@ -71,6 +71,6 @@ if __name__ == '__main__':
     parser.add_argument('--format', choices=('version', 'tag', 'jar', 'deployment', 'receipt'), default='version')
     args = parser.parse_args()
     version = resolve(source=args.source_sha, requested=args.requested)
-    print(candidate_tag(version, args.candidate) if args.candidate else {
+    print(candidate_tag(version, args.candidate) if args.candidate is not None else {
         'version': lambda v: v, 'tag': tag, 'jar': jar_name,
         'deployment': deployment_name, 'receipt': receipt_path}[args.format](version))

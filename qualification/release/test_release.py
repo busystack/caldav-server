@@ -100,6 +100,28 @@ def fixture(version='0.1.0'):
 
 
 class VersionAndProvenanceTest(unittest.TestCase):
+    def test_snapshot_uses_git_blobs_without_archive_line_ending_or_export_filters(self):
+        with fixture() as (_, root, _, _):
+            (root / '.gitattributes').write_text('*.cmd text eol=crlf\nNOTICE export-ignore\n')
+            (root / 'windows.cmd').write_bytes(b'@echo qualified\n')
+            git(root, 'add', '.')
+            git(root, 'commit', '--quiet', '-m', 'Qualified source with archive attributes')
+            sha = git(root, 'rev-parse', 'HEAD')
+            source = release_source.Snapshot(sha, root)
+            self.assertEqual(source.read('windows.cmd'), b'@echo qualified\n')
+            self.assertEqual(source.read('NOTICE'), (root / 'NOTICE').read_bytes())
+
+    def test_cli_rejects_explicitly_empty_candidate_and_derives_each_version(self):
+        for version in VERSIONS:
+            with self.subTest(version=version), fixture(version) as (_, root, _, _):
+                entry = root / 'scripts/release_version.py'
+                entry.write_bytes((ROOT / 'scripts/release_version.py').read_bytes())
+                result = subprocess.run([sys.executable, str(entry), '--candidate', ''], capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Expected a release candidate tag', result.stderr)
+                result = subprocess.run([sys.executable, str(entry), '--candidate', version + '-rc.1'], capture_output=True, text=True, check=True)
+                self.assertEqual(result.stdout.strip(), version + '-rc.1')
+
     def test_versions_paths_tags_and_maven_extraction(self):
         for version in VERSIONS:
             with self.subTest(version=version), fixture(version) as (_, root, source, record):

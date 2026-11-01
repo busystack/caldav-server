@@ -9,9 +9,48 @@ import tarfile
 import release_version as versions
 
 
+def tree_entries(source, root):
+    tree = subprocess.check_output(['git', '-C', str(root), 'ls-tree', '-rz', source])
+    entries = {}
+    for item in tree.split(b'\0'):
+        if not item:
+            continue
+        metadata, name = item.split(b'\t', 1)
+        mode, kind, sha = metadata.decode().split()
+        assert kind == 'blob' and mode in ('100644', '100755'), 'Unsupported source tree entry'
+        entries[name.decode()] = (mode, sha)
+    return entries
+
+
 def archive(source, root=versions.ROOT):
     source = versions.revision(source, root)
-    return subprocess.check_output(['git', '-C', str(root), 'archive', '--format=tar', source])
+    entries = tree_entries(source, root)
+    shas = sorted({sha for _, sha in entries.values()})
+    # git archive applies eol/export attributes. Read raw objects so even a newer
+    # controller's attributes cannot transform or omit qualified source bytes.
+    batch = subprocess.check_output(['git', '-C', str(root), 'cat-file', '--batch'],
+                                    input=('\n'.join(shas) + '\n').encode())
+    blobs = {}
+    cursor = 0
+    for expected in shas:
+        end = batch.index(b'\n', cursor)
+        sha, kind, length = batch[cursor:end].decode().split()
+        assert sha == expected and kind == 'blob', 'Unexpected Git object'
+        cursor = end + 1
+        size = int(length)
+        blobs[sha] = batch[cursor:cursor + size]
+        cursor += size
+        assert batch[cursor:cursor + 1] == b'\n'
+        cursor += 1
+    assert cursor == len(batch)
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode='w') as output:
+        for name, (mode, sha) in sorted(entries.items()):
+            entry = tarfile.TarInfo(name)
+            entry.size = len(blobs[sha])
+            entry.mode = 0o755 if mode == '100755' else 0o644
+            output.addfile(entry, io.BytesIO(blobs[sha]))
+    return buffer.getvalue()
 
 
 def files(data):
@@ -33,15 +72,7 @@ class Snapshot:
         expected = files(archive(self.source, root))
         self.files = files(Path(retained).read_bytes()) if retained else expected
         assert self.files == expected, 'Retained source snapshot differs from qualified Git tree'
-        tree = subprocess.check_output(['git', '-C', str(root), 'ls-tree', '-rz', self.source])
-        expected_blobs = {}
-        for item in tree.split(b'\0'):
-            if not item:
-                continue
-            metadata, name = item.split(b'\t', 1)
-            mode, kind, sha = metadata.decode().split()
-            assert kind == 'blob' and mode in ('100644', '100755'), 'Unsupported source tree entry'
-            expected_blobs[name.decode()] = sha
+        expected_blobs = {name: sha for name, (_, sha) in tree_entries(self.source, root).items()}
         actual_blobs = {name: hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
                         for name, data in self.files.items()}
         assert actual_blobs == expected_blobs, 'Source archive does not reproduce qualified Git blobs'

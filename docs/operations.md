@@ -38,7 +38,7 @@ python3 scripts/build-image.py
 python3 scripts/verify-operations.py --image "busystack-caldav:$(python3 scripts/release_version.py)"
 ```
 
-`verify` includes the required PostgreSQL integration suite; Docker must be available. Integration prerequisites must fail visibly when absent. The shell-only Maven wrapper requires `unzip` for its SHA-256-pinned ZIP distribution; its upstream tar fallback cannot use the ZIP checksum. The Docker build uses the identical Maven 3.9.12 from its pinned image directly. The container build packages the executable JAR; it skips tests because the full suite runs separately. An image build alone is not qualification.
+`verify` includes the required PostgreSQL integration suite; Docker must be available. Integration prerequisites must fail visibly when absent. The shell-only Maven wrapper requires `unzip` for its SHA-256-pinned ZIP distribution; its upstream tar fallback cannot use the ZIP checksum. The supported image-build entry point packages through the pinned Maven wrapper and validates the exact JAR before Docker runs. CI supplies the already tested JAR to that same entry point without rebuilding it. An image build alone is not qualification.
 
 The executable JAR is `target/caldav-server-@VERSION@.jar`. The container name above is a developer-local build tag; administrator installations use the published digest recorded in the release manifest. Record the checkout revision with `git rev-parse HEAD`, and calculate the JAR checksum with `sha256sum target/caldav-server-@VERSION@.jar`. Preserve the matching source, image identity and configuration when installing or backing up the server.
 
@@ -331,10 +331,7 @@ A full restore qualification must verify users, ownership, resource bytes, shari
 Take and verify a backup, retain the previous application artifact/configuration, stop the application, select the intended source revision, and build the new image before starting it against the existing database volume. Do not change dependency or base-image pins as an incidental part of an application update. Run migration validation and the qualification suite against an isolated restored copy before deployment. For the source-based Compose arrangement, after that rehearsal the application replacement is:
 
 ```sh
-docker compose stop application
-docker compose build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" application
-docker compose up -d --no-deps application
-docker compose ps
+python3 scripts/build-image.py --compose up -d --no-build --no-deps --wait application
 ```
 
 Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version @VERSION@ uses migrations V1–V13 and introduces no migration during final release preparation.
