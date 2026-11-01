@@ -106,7 +106,11 @@ image by digest, checks complete configuration and dependencies, exercises
 non-root deployment/bootstrap/restart/backup/restore, V9 upgrade, HTTPS browser
 MFA/user/calendar provisioning and recovery, and runs the exact release JAR with
 host Java/PostgreSQL separately. Application/database containers have no checkout
-mounts. The successful `release-stage-RUN-ATTEMPT` artifact retains exact assets,
+mounts. Calendar corpus files are controller-owned test inputs resolved from the
+qualification code, independently of the extracted deployment root. They are not
+installed into the deployment or mounted into the application. The release-helper
+regression checks this distinction with a deployment directory containing no
+source tree. The successful `release-stage-RUN-ATTEMPT` artifact retains exact assets,
 manifest, their checksums and installation result. No version tag/release is
 created during staging. Failed installation evidence is retained but ineligible.
 
@@ -139,7 +143,9 @@ validating candidate and staged evidence, publication rejects mismatched existin
 version/tag/release/asset state, creates the exact tag, pushes the tested image as
 `0.0.1`, creates a draft release using `gh release create --verify-tag --draft`,
 uploads all assets without clobber, verifies server-reported SHA-256 for every
-asset, then publishes the draft and verifies `immutable=true`. Operations remain
+asset, then publishes the draft and verifies `immutable=true`. Relative documentation
+links in the release notes are resolved to the exact qualified source commit before
+the draft is created. Operations remain
 in one explicitly dispatched workflow; `GITHUB_TOKEN` events are not expected to
 trigger a second workflow. No `latest` tag is published.
 

@@ -107,6 +107,36 @@ def jar_smoke(jar, extracted, directory):
     return {'status': 'passed', 'hostJava': subprocess.check_output(['java', '--version'], text=True).splitlines()[0], 'bootstrapAndRestartPersistence': True, 'loginDavChallengeAndIssuer': True}
 
 
+def https_bundle_smoke(extracted, image, browser_image='busystack-passkey-browser:qualification'):
+    """Use the extracted deployment and proxy example with controller-owned test inputs."""
+    sys.path.insert(0, str(ROOT / 'qualification/passkeys'))
+    browser = load('bundle_browser', ROOT / 'qualification/passkeys/run.py')
+    browser.ROOT = extracted
+    original_override = browser.proxy.override
+    def extracted_proxy(root, fixture, application_image, base, proxy_port):
+        from urllib.parse import urlsplit
+        public = urlsplit(base)
+        template = (extracted / 'nginx-subpath.conf.example').read_text()
+        template = template.replace('listen 443 ssl;', 'listen 8443 ssl;')
+        template = template.replace('server_name calendar.example.org;', 'server_name ' + public.hostname + ';')
+        template = template.replace('calendar.example.org', public.netloc).replace('/calendar', public.path)
+        template = template.replace('/etc/ssl/caldav/fullchain.pem', '/tls/server.pem').replace('/etc/ssl/caldav/privkey.pem', '/tls/server.key')
+        template = template.replace('http://127.0.0.1:8080', 'http://application:8080')
+        template = ('worker_processes 1;\nerror_log /dev/stderr warn;\npid /tmp/nginx.pid;\nevents { worker_connections 128; }\nhttp {\n'
+                    'access_log off;\nclient_body_temp_path /tmp/client_temp;\nproxy_temp_path /tmp/proxy_temp;\n'
+                    'fastcgi_temp_path /tmp/fastcgi_temp;\nuwsgi_temp_path /tmp/uwsgi_temp;\nscgi_temp_path /tmp/scgi_temp;\n' + template + '}\n')
+        return original_override(root, fixture, application_image, base, proxy_port, template=template)
+    browser.proxy.override = extracted_proxy
+    browser.operations.ROOT = extracted
+    previous_argv = sys.argv
+    sys.argv = ['bundle-browser', '--application-image', image, '--browser-image', browser_image, '--proxy', '--groups', '--restore']
+    try:
+        browser.main()
+    finally:
+        sys.argv = previous_argv
+        browser.proxy.override = original_override
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--assets')
@@ -167,31 +197,7 @@ def main():
             try:
                 operations.verify(argparse.Namespace(image=image), None)
                 operations.verify(argparse.Namespace(image=image), '9')
-                sys.path.insert(0, str(ROOT / 'qualification/passkeys'))
-                browser = load('bundle_browser', ROOT / 'qualification/passkeys/run.py')
-                browser.ROOT = extracted
-                original_override = browser.proxy.override
-                def extracted_proxy(root, fixture, application_image, base, proxy_port):
-                    from urllib.parse import urlsplit
-                    public = urlsplit(base)
-                    template = (extracted / 'nginx-subpath.conf.example').read_text()
-                    template = template.replace('listen 443 ssl;', 'listen 8443 ssl;')
-                    template = template.replace('server_name calendar.example.org;', 'server_name ' + public.hostname + ';')
-                    template = template.replace('calendar.example.org', public.netloc).replace('/calendar', public.path)
-                    template = template.replace('/etc/ssl/caldav/fullchain.pem', '/tls/server.pem').replace('/etc/ssl/caldav/privkey.pem', '/tls/server.key')
-                    template = template.replace('http://127.0.0.1:8080', 'http://application:8080')
-                    template = ('worker_processes 1;\nerror_log /dev/stderr warn;\npid /tmp/nginx.pid;\nevents { worker_connections 128; }\nhttp {\n'
-                                'access_log off;\nclient_body_temp_path /tmp/client_temp;\nproxy_temp_path /tmp/proxy_temp;\n'
-                                'fastcgi_temp_path /tmp/fastcgi_temp;\nuwsgi_temp_path /tmp/uwsgi_temp;\nscgi_temp_path /tmp/scgi_temp;\n' + template + '}\n')
-                    return original_override(root, fixture, application_image, base, proxy_port, template=template)
-                browser.proxy.override = extracted_proxy
-                browser.operations.ROOT = extracted
-                previous_argv = sys.argv
-                sys.argv = ['bundle-browser', '--application-image', image, '--proxy', '--groups', '--restore']
-                try:
-                    browser.main()
-                finally:
-                    sys.argv = previous_argv
+                https_bundle_smoke(extracted, image)
                 result['jarAlternative'] = jar_smoke(assets / manifest['jar']['name'], extracted, directory)
             finally:
                 os.environ.clear()

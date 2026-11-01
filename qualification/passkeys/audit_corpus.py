@@ -26,7 +26,9 @@ class Corpus:
 
     def __init__(self, checkpoint):
         self.checkpoint = checkpoint
-        self.fixture = checkpoint.root / "src/test/resources/calendar/audit"
+        # These are controller test inputs, independent of the deployment root.
+        # A downloaded deployment intentionally contains no application source.
+        self.fixture = Path(__file__).resolve().parents[2] / "src/test/resources/calendar/audit"
         self.resources, self.collections, self.tokens = {}, {}, {}
 
     def call(self, encoded, path, method="GET", body=None, **headers):
