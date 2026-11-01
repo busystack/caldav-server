@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Inspect source, executable JAR and final image license delivery; no feed or network bypass."""
 import argparse
+import importlib.util
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -18,6 +19,11 @@ RELEASE_VERSION = '0.0.1'
 
 
 def inspect_jar(path):
+    spec = importlib.util.spec_from_file_location('integrity', ROOT / 'scripts/verify-dependency-integrity.py')
+    integrity = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(integrity)
+    integrity.source()
+    integrity.inspect(path)
     with zipfile.ZipFile(path) as jar:
         manifest = dict(line.split(': ', 1) for line in jar.read('META-INF/MANIFEST.MF').decode().splitlines() if ': ' in line)
         assert manifest.get('Implementation-Version') == RELEASE_VERSION, 'JAR implementation version differs from release'

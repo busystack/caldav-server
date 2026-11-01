@@ -119,6 +119,27 @@ class CalendarParameterSemanticsTest {
     assertThatThrownBy(() -> parsed("CN=Alice,Bob")).isInstanceOf(QueryException.class);
   }
 
+  @Test
+  void parameterAdapterKeepsQuotedDelimitersAndPlaceholderLiterals() {
+    var p = parsed("CN=\"BUSYSTACK;A:B,C=D\";X-LIST=BUSYSTACK,\"a;b:c,d\"");
+    assertThat(matchesParameter(p, "CN", "BUSYSTACK;A:B,C=D")).isTrue();
+    assertThat(matchesParameter(p, "X-LIST", "a;b:c,d")).isTrue();
+  }
+
+  @Test
+  void malformedParameterHeadersNeverBecomeSafePlaceholders() {
+    for (String value :
+        List.of("CN=\"unterminated", "CN=\"Alice\"junk", "CN=Ali\"ce", "CN", "=Alice"))
+      assertThatThrownBy(() -> parsed(value)).isInstanceOf(RuntimeException.class);
+  }
+
+  @Test
+  void parameterAdapterBoundsListValuesBeforeModelConstruction() {
+    assertThatThrownBy(
+            () -> parsed("X-LIST=" + String.join(",", java.util.Collections.nCopies(1001, "x"))))
+        .isInstanceOf(RuntimeException.class);
+  }
+
   private boolean matchesParameter(CalendarContent.Parsed parsed, String name, String text) {
     var property =
         new PropertyFilter(

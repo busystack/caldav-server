@@ -53,8 +53,8 @@ public final class CalendarContent {
       var lexical =
           new LexicalContentHandler(
               new org.busystack.caldav.calendar.parser.ParsingLimitsHandler(handler));
-      new org.busystack.caldav.calendar.parser.Ical4jCalendarParser()
-          .parse(CalendarParsingInput.reader(text), lexical);
+      org.busystack.caldav.calendar.parser.ParameterInput.parse(
+          CalendarParsingInput.reader(text), lexical);
       Calendar model = calendar.get();
       if (model == null)
         throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_DATA);

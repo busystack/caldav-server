@@ -37,8 +37,8 @@ public final class FloatingTimezone {
       var handler =
           new org.busystack.caldav.calendar.parser.ParsingLimitsHandler(
               new org.busystack.caldav.calendar.parser.StrictContentHandler(result::set, registry));
-      new org.busystack.caldav.calendar.parser.Ical4jCalendarParser()
-          .parse(org.busystack.caldav.calendar.CalendarParsingInput.reader(content), handler);
+      org.busystack.caldav.calendar.parser.ParameterInput.parse(
+          org.busystack.caldav.calendar.CalendarParsingInput.reader(content), handler);
       var calendar = result.get();
       if (calendar.getComponents().size() != 1
           || !(calendar.getComponents().getFirst() instanceof VTimeZone zone)

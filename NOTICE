@@ -5,10 +5,9 @@ The project is licensed under Apache License 2.0. Contributors retain the
 copyrights applicable to their contributions; this notice does not assign them
 to a new legal entity.
 
-This distribution includes modified iCal4j parser and time-zone implementation
-source, Copyright (c) 2012, Ben Fortuna, under BSD-3-Clause. Original headers,
-modification notices and patch provenance are retained. See THIRD-PARTY-NOTICES
-and META-INF/licenses/ical4j-parser-BSD-3-Clause.txt in the executable archive.
+This distribution includes the official unmodified iCal4j 4.4.0 artifact under
+BSD-3-Clause, Copyright (c) Ben Fortuna. Its complete BSD notice is delivered in
+META-INF/licenses/ical4j-parser-BSD-3-Clause.txt and its original nested JAR.
 
 The database migrations contain adapted Spring Security 7.1.2 and Spring
 Session 4.1.1 JDBC schemas under Apache License 2.0. Their original artifacts,

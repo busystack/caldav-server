@@ -15,7 +15,7 @@ Historical baseline verified on 2026-10-27 and retained through qualified source
 | PostgreSQL server | 18.6 | [Supported releases](https://www.postgresql.org/support/versioning/), [license](https://www.postgresql.org/about/licence/): PostgreSQL License |
 | PostgreSQL JDBC | 42.7.14 | Boot BOM; [license](https://jdbc.postgresql.org/about/license/): BSD-2-Clause |
 | Flyway | 12.4.0 | Boot BOM; [Community source](https://github.com/flyway/flyway): Apache-2.0 for the required core and PostgreSQL modules |
-| iCal4j | 4.4.0 with documented application parser/timezone corrections | [Published artifact](https://repo.maven.apache.org/maven2/org/mnode/ical4j/ical4j/4.4.0/), [source](https://github.com/ical4j/ical4j): BSD-3-Clause |
+| iCal4j | 4.4.0, official unmodified artifact | [Published artifact](https://repo.maven.apache.org/maven2/org/mnode/ical4j/ical4j/4.4.0/), [source](https://github.com/ical4j/ical4j): BSD-3-Clause |
 | Testcontainers | 2.0.5 | Boot BOM; [source](https://github.com/testcontainers/testcontainers-java): MIT; test scope only |
 | JUnit Jupiter | 6.0.3 | Boot BOM; EPL-2.0; test scope only |
 | Playwright / bundled Chromium | 1.61.1 / 149.0.7827.55 | [Playwright](https://playwright.dev/): Apache-2.0; Chromium contains separately licensed components; test-only browser fixture |
@@ -25,7 +25,7 @@ Historical baseline verified on 2026-10-27 and retained through qualified source
 
 The Boot dependency-management baseline selects framework versions together. No Spring Framework or Spring Security version is independently overridden. Boot 4.1.2 supports Java 17 through 27 and Servlet 6.1; Java 25 is the application toolchain requirement. Java's LTS classification follows the [Java support roadmap](https://www.oracle.com/java/technologies/java-se-support-roadmap.html).
 
-The pre-existing BSD-licensed iCal4j source adaptations, provenance and notices remain recorded in [parser patch](ical4j-parser-patch.md) and [timezone patch](ical4j-timezone-patch.md). Those copied sources are unchanged by the independent-audit corrections. Current structural parsing and chronological timezone interpretation use independently implemented application adapters through supported APIs; see [calendar semantics](calendar-semantics.md).
+The former modified iCal4j implementation copies and patch payloads have been removed. Official parser interfaces and application-owned adapters are described in [parser integration](ical4j-parser-patch.md), [timezone integration](ical4j-timezone-patch.md) and [calendar semantics](calendar-semantics.md). Exact official runtime JAR hashes are locked in `qualification/distribution/runtime-artifacts.json`.
 
 The Maven JVM timezone is pinned to UTC in `.mvn/jvm.config`, using the [supported Maven JVM options file](https://maven.apache.org/configure.html#jvm-options). Spring Boot 4.1.2 repackage otherwise emitted timezone-dependent NTFS extra timestamp fields despite a fixed `project.build.outputTimestamp`: the host UTC−07 and container UTC JARs had identical entry bytes/order but different ZIP metadata. UTC removes that environment difference without modifying archive bytes with a custom tool. Exact final host/container SHA256 comparison belongs to the packaged qualification record.
 

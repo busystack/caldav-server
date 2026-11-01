@@ -1,11 +1,14 @@
 Third-party distribution material
 =================================
 
-This project incorporates iCal4j 4.4.0 parser and time-zone source under
-BSD-3-Clause. Its Ben Fortuna copyright, full license and modifications remain
-in source and META-INF/licenses/ical4j-parser-BSD-3-Clause.txt. The exact source
-provenance and complete changes are in docs/ical4j-parser-patch.md,
-docs/ical4j-timezone-patch.md and their accompanying patches.
+This project uses official, unmodified org.mnode.ical4j:ical4j:4.4.0 under
+BSD-3-Clause. Its Ben Fortuna copyright and complete license remain in its
+original nested JAR and META-INF/licenses/ical4j-parser-BSD-3-Clause.txt.
+The former modified parser/timezone implementation copies and patch payloads
+have been removed. Historical provenance remains in Git history. Current
+integration is documented in docs/ical4j-parser-patch.md and
+docs/ical4j-timezone-patch.md. Packaged runtime JARs are checked against the
+SHA-256 of official Maven Central bytes in qualification/distribution/runtime-artifacts.json.
 
 Spring Security 7.1.2 / Spring Session 4.1.1 schemas are adapted under Apache-2.0.
 See META-INF/licenses/spring-derived-schemas.txt for original paths and changes.
