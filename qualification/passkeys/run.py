@@ -214,6 +214,9 @@ def main():
                     "--env", "BUSYSTACK_BROWSER_READER_PASSWORD_FILE=/fixture/reader-restore-password",
                     "--volume", f"{directory / 'reader-restore-password'}:/fixture/reader-restore-password:ro",
                     "--volume", f"{checkpoint.exchange}:/fixture/recovery.json:rw", "--volume", f"{directory / 'restore-password'}:/fixture/restore-password:ro"]
+            evidence = ROOT / "target/qualification/portal-browser" / project
+            evidence.mkdir(parents=True, mode=0o700)
+            browser_command += ["--volume", f"{evidence}:/evidence:rw", "--env", "BUSYSTACK_PORTAL_EVIDENCE=/evidence"]
             browser_command.append(args.browser_image)
             browser = subprocess.Popen(
                 browser_command,

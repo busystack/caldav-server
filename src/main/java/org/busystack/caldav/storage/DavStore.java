@@ -61,6 +61,18 @@ public class DavStore {
     this.calendars = calendars;
   }
 
+  /** Acquire the existing namespace/collection locks for a compound browser operation. */
+  @Transactional
+  public Entry lockCollection(UUID actor, UUID collection) {
+    org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
+    writableHome(actor, actor);
+    lockHomes(actor);
+    Binding binding = bindingFor(actor, collection);
+    if (binding == null) missing();
+    lockCollections(collection);
+    return resolve(actor, actor, binding.path());
+  }
+
   public Entry resolve(UUID actor, UUID home, String path) {
     requireEnabled(actor);
     checkPath(path, true);

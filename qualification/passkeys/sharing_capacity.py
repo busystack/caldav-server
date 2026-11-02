@@ -33,7 +33,7 @@ SELECT set_config('busystack.defer_dav_bindings','off',true);
 SELECT dav_reconcile_memberships(id) FROM collections WHERE id IN ({collection_ids});
 COMMIT;""")
         self.started=time.monotonic()
-        current['sharingCapacity']={'firstGroup':self.groups[0],'groupName':'Capacity group 0','initialGrants':12500}
+        current['sharingCapacity']={'firstGroup':self.groups[0],'groupName':'Capacity group 0','initialGrants':12500,'collections':self.collections}
         self.checkpoint.exchange.write_text(json.dumps(current))
         self.application=self.operations.compose(self.environment,'ps','--quiet','application')
         inspected=json.loads(self.operations.execute(['docker','inspect',self.application],self.environment))[0]

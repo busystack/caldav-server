@@ -1,3 +1,4 @@
+import {openCollection,provisionAccount,grantDirect,revokeDirect} from './portal-helpers.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {randomBytes} from 'node:crypto';
@@ -13,30 +14,17 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   const prefix = new URL(base).pathname.replace(/\/$/, '');
   const federated = process.env.BUSYSTACK_BROWSER_OIDC === 'true';
   await page.goto(base + '/');
-  const collection = await page.locator('li').filter({has: page.getByText(collectionName, {exact: true})}).locator('code').innerText();
+  const collection = await openCollection(page,base,collectionName);
   const readerUsername = 'restorereader';
   const writerUsername = 'restorewriter';
   for (const member of [readerUsername, writerUsername]) {
-    await administratorPage.goto(base + '/admin');
-    const provision = administratorPage.locator(`form[action="${prefix}/admin/accounts"]`);
     const initialPassword = randomBytes(32).toString('base64url');
     privateValues.push(initialPassword);
-    await provision.locator('input[name=username]').fill(member);
-    await provision.locator('input[name=displayName]').fill('Restore ' + member);
-    await provision.locator('input[name=password]').fill(initialPassword);
-    await Promise.all([administratorPage.waitForURL(base + '/admin'),
-      provision.getByRole('button', {name: 'Create account', exact: true}).click()]);
-    await administratorPage.getByText(member, {exact: true}).waitFor();
+    await provisionAccount(administratorPage,base,member,'Restore '+member,initialPassword);
   }
-  await page.goto(base + '/');
   for (const [member, permission] of [[readerUsername, 'READ'], [writerUsername, 'WRITE']]) {
-    const share = page.locator(`form[action="${prefix}/shares"]`).filter({has: page.locator('select[name=collection]')});
-    await share.locator('select[name=collection]').selectOption(collection);
-    await share.locator('input[name=username]').fill(member);
-    await share.locator('select[name=permission]').selectOption(permission);
-    await Promise.all([page.waitForURL(base + '/'), share.getByRole('button', {name: 'Save access', exact: true}).click()]);
-    const row = page.locator('tbody tr').filter({has: page.getByText(member, {exact: true})});
-    await row.getByRole('button', {name: 'Remove individual access', exact: true}).waitFor();
+    const row=await grantDirect(page,base,collection,member,permission);
+    await row.getByRole('button',{name:'Save direct grant',exact:true}).waitFor();
   }
   const credential = await issueDavCredential(page, base, privateValues, 'Recovery snapshot device', username);
   const grant = await qualifyOAuth(page, base, privateValues, administratorPage,
@@ -79,9 +67,9 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
   assert.notEqual((await page.context().cookies()).find(value => value.name === 'JSESSIONID')?.value, oldCookie);
   console.log('HTTPS_RECOVERY_RECENT_PRIMARY_AND_WEBAUTHN_REAUTHENTICATION_PASSED');
-  await page.goto(base + '/');
-  const device = page.locator('li').filter({hasText: 'Recovery snapshot device'});
-  await Promise.all([page.waitForURL(base + '/'), device.getByRole('button', {name: 'Revoke', exact: true}).click()]);
+  await page.goto(base + '/security/credentials');
+  const device = page.locator('tbody tr').filter({hasText: 'Recovery snapshot device'});
+  await Promise.all([page.waitForURL(base + '/security/credentials'), device.getByRole('button', {name: 'Revoke', exact: true}).click()]);
   await page.goto(base + '/oauth-grants');
   const authorization = page.locator('tbody tr').filter({hasText: grant.clientId});
   await Promise.all([page.waitForURL(base + '/oauth-grants'), authorization.getByRole('button', {name: 'Revoke access', exact: true}).click()]);
@@ -118,7 +106,7 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await page.locator('input[name=password]').fill(password);
     await Promise.all([page.waitForURL(url => accountLocation(url, base)),
       page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
-    await page.getByRole('heading', {name: 'BusyStack account', exact: true}).waitFor();
+    await page.getByRole('heading', {name: /^Welcome,/}).waitFor();
   }
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');
@@ -150,7 +138,7 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await readerPage.getByRole('button', {name: 'Register passkey', exact: true}).click();
     await readerPage.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
     await Promise.all([readerPage.waitForURL(base + '/'), readerPage.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
-    await readerPage.locator('li').getByText(collectionName, {exact: true}).waitFor();
+    await openCollection(readerPage,base,collectionName);
     readerCredential = await issueDavCredential(readerPage, base, privateValues, 'Recovered shared read device', readerUsername);
   } finally {
     await readerCdp.send('WebAuthn.setAutomaticPresenceSimulation', {authenticatorId: readerAuthenticator.authenticatorId, enabled: false});
@@ -161,14 +149,9 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     readerEncoded: readerCredential.encoded}), {mode: 0o600});
   console.log('READY_RESTORE_VERIFY');
   await waitFor('RESTORE_VERIFIED');
-  await page.goto(base + '/');
-  const readerShares = page.locator('tbody tr').filter({has: page.getByText(readerUsername, {exact: true})});
-  const readerShareCount = await readerShares.count();
-  const restoredShare = readerShares.filter({has: page.locator(`input[name="collection"][value="${collection}"]`)});
-  assert.equal(await restoredShare.count(), 1);
-  await Promise.all([page.waitForURL(base + '/'), restoredShare.getByRole('button', {name: 'Remove individual access', exact: true}).click()]);
-  assert.equal(await restoredShare.count(), 0);
-  assert.equal(await readerShares.count(), readerShareCount - 1);
+  await revokeDirect(page,base,collection,readerUsername);
+  const readerShares=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Accounts with direct grants'})}).locator('tbody tr').filter({has:page.getByText(readerUsername,{exact:true})});
+  assert.equal(await readerShares.count(),0);
   console.log('READY_RESTORE_REVOKED_READER_VERIFY');
   await waitFor('RESTORE_REVOKED_READER_VERIFIED');
   console.log('HTTPS_RESTORE_SHARED_RECIPIENT_FRESH_MFA_READ_WRITE_DENIAL_AND_REVOCATION_PASSED');

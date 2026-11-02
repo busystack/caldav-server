@@ -33,6 +33,9 @@ const done=arguments[arguments.length-1];
   Services.prefs.setBoolPref('signon.rememberSignons',true);
   Services.logins.setLoginSavingEnabled(new URL(eventUrl).origin,true);
   await cal.auth.passwordManagerSave(username,password,new URL(eventUrl).origin,'BusyStack DAV');
+  const discovered=await cal.provider.caldav.detectCalendars(username,password,eventUrl,true);
+  const detected=discovered.find(calendar=>calendar.uri.spec===eventUrl);
+  if(!detected || detected.name!=='Thunderbird events' || detected.getProperty('color')!=='#126A5E') throw new Error('Native discovery lost display name or Apple calendar-color');
   globalThis.busystackCalendars=[];
   globalThis.busystackMetadata=[];
   Services.obs.addObserver({observe(subject){
@@ -62,7 +65,7 @@ const done=arguments[arguments.length-1];
     globalThis.busystackCalendars.push(calendar);
     await globalThis.busystackRefresh(calendar,true);
   }
-  return {app:Services.appinfo.name,version:Services.appinfo.version};
+  return {app:Services.appinfo.name,version:Services.appinfo.version,appleCalendarColor:detected.getProperty('color')};
 })().then(done,error=>done({error:String(error.message)}));
 """
 
@@ -282,6 +285,8 @@ def main():
         principal = client.principal()
         events = principal.make_calendar(name="Thunderbird events", cal_id="thunderbird-events", supported_calendar_component_set=["VEVENT"])
         tasks = principal.make_calendar(name="Thunderbird tasks", cal_id="thunderbird-tasks", supported_calendar_component_set=["VTODO"])
+        metadata = client.request(str(events.url), "PROPPATCH", body='<D:propertyupdate xmlns:D="DAV:" xmlns:A="http://apple.com/ns/ical/" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:set><D:prop><A:calendar-color>#126A5EFF</A:calendar-color><C:calendar-description>Native metadata qualification</C:calendar-description></D:prop></D:set></D:propertyupdate>')
+        assert metadata.status == 207
         sync_profile = verify_sync_profile(client, events)
         with tempfile.TemporaryDirectory(prefix="busystack-thunderbird-") as temporary:
             profile = Path(temporary)
@@ -324,6 +329,14 @@ def main():
                         (artifacts / ("thunderbird-" + kind + ".ics")).write_bytes(result[kind].encode("utf-8"))
                     assert len(events.events()) == 3 and len(tasks.todos(include_completed=True)) == 1
                     urls, completed = python_edits_native_items(events, tasks)
+                    stream = "".join(item.data for item in events.objects()) + "".join(item.data for item in tasks.objects())
+                    imported = driver.execute_script("""
+                      const parser=Cc['@mozilla.org/calendar/ics-parser;1'].createInstance(Ci.calIIcsParser);
+                      parser.parseString(arguments[0]);
+                      return parser.getItems().map(item=>({id:item.id,type:item.isEvent()?'VEVENT':'VTODO'}));
+                    """, script_args=[stream], new_sandbox=False)
+                    assert {item["id"] for item in imported} == {"thunderbird-event", "thunderbird-task", "thunderbird-all-day", "thunderbird-floating"}
+                    assert sum(item["type"] == "VEVENT" for item in imported) == 3
                     cross = driver.execute_async_script(CROSS_CLIENT, new_sandbox=False)
                     assert cross == {"crossClient": True, "nativeOccurrenceCount": 3, "nativeDetachedExceptions": 1}, cross
                     final = independent_items(events, tasks)
@@ -334,7 +347,7 @@ def main():
                     deleted = driver.execute_async_script(DELETE, new_sandbox=False)
                     assert deleted == {"deleted": True}, deleted
                     assert len(events.events()) == 0 and len(tasks.todos(include_completed=True)) == 0
-                    print(json.dumps({"client": info["app"], "version": info["version"], "driver": importlib.metadata.version("marionette_driver"), "crossClient": {"python-caldav": importlib.metadata.version("caldav"), "icalendar": importlib.metadata.version("icalendar"), "sameResources": 4, "nativeRecurrenceInstances": cross["nativeOccurrenceCount"], "nativeDetachedExceptions": cross["nativeDetachedExceptions"], "excludedOccurrences": 1}, "mode": "isolated headless native desktop CalDAV provider", "syncConfiguration": sync_profile, "status": "passed", "operations": ["server discovery by native provider", "recurring event CRUD", "Unicode and unknown-property round trip", "alarm preservation without execution", "undated VTODO CRUD and completion", "same-object Thunderbird to Python to Thunderbird to Python edits", "cross-client recurrence, alarm, extension and completion timestamp preservation", "same-resource detached exception identity/time/title edits in both clients", "EXDATE exclusion verified by native occurrence expansion", "all-day DATE and exclusive end preservation across both clients", "floating DATE-TIME preservation across both clients", "native refresh and deletion synchronization"]}, sort_keys=True))
+                    print(json.dumps({"client": info["app"], "version": info["version"], "driver": importlib.metadata.version("marionette_driver"), "crossClient": {"python-caldav": importlib.metadata.version("caldav"), "icalendar": importlib.metadata.version("icalendar"), "sameResources": 4, "nativeRecurrenceInstances": cross["nativeOccurrenceCount"], "nativeDetachedExceptions": cross["nativeDetachedExceptions"], "excludedOccurrences": 1}, "nativeAppleCalendarColor": info["appleCalendarColor"], "nativeIcalendarStreamItems": len(imported), "mode": "isolated headless native desktop CalDAV provider", "syncConfiguration": sync_profile, "status": "passed", "operations": ["server discovery by native provider", "recurring event CRUD", "Unicode and unknown-property round trip", "alarm preservation without execution", "undated VTODO CRUD and completion", "same-object Thunderbird to Python to Thunderbird to Python edits", "cross-client recurrence, alarm, extension and completion timestamp preservation", "same-resource detached exception identity/time/title edits in both clients", "EXDATE exclusion verified by native occurrence expansion", "all-day DATE and exclusive end preservation across both clients", "floating DATE-TIME preservation across both clients", "native refresh and deletion synchronization"]}, sort_keys=True))
                 finally:
                     try:
                         if driver is not None:

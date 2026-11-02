@@ -13,10 +13,10 @@ import org.springframework.core.env.Environment;
 public class ServletDeploymentConfiguration {
   @Bean
   org.springframework.boot.web.servlet.FilterRegistrationBean<RequestDiagnosticsFilter>
-      requestDiagnostics() {
+      requestDiagnostics(OperationalProblems problems) {
     var registration =
         new org.springframework.boot.web.servlet.FilterRegistrationBean<>(
-            new RequestDiagnosticsFilter());
+            new RequestDiagnosticsFilter(problems));
     registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE + 1);
     return registration;
   }
@@ -28,6 +28,16 @@ public class ServletDeploymentConfiguration {
         new org.springframework.boot.web.servlet.FilterRegistrationBean<>(
             new CanonicalOriginFilter(deployment.publicBaseUrl()));
     registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE);
+    return registration;
+  }
+
+  @Bean
+  org.springframework.boot.web.servlet.FilterRegistrationBean<PortabilityWorkFilter>
+      portabilityWork() {
+    var registration =
+        new org.springframework.boot.web.servlet.FilterRegistrationBean<>(
+            new PortabilityWorkFilter());
+    registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE + 2);
     return registration;
   }
 

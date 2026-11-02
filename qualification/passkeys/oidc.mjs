@@ -1,3 +1,4 @@
+import {createCollection} from './portal-helpers.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
@@ -13,7 +14,7 @@ export async function organizationPrimary(page, base, privateValues, requirePass
   privateValues.push(password);
   await page.goto(base + '/login');
   await page.getByRole('link', {name: "Sign in with your organization's identity provider", exact: true}).click();
-  const dashboard = page.getByRole('heading', {name: 'BusyStack account', exact: true});
+  const dashboard = page.getByRole('heading', {name: /^Welcome,/});
   let destination;
   try {
     destination = await Promise.race([
@@ -44,7 +45,7 @@ export async function organizationPrimary(page, base, privateValues, requirePass
   }
   await page.waitForURL(url => accountLocation(url, base));
   await dashboard.waitFor();
-  await page.locator('main > p').first().getByText(process.env.BUSYSTACK_FEDERATED_USERNAME, {exact: true}).waitFor();
+  await page.getByText(process.env.BUSYSTACK_FEDERATED_USERNAME, {exact: true}).first().waitFor();
   const cookie = (await page.context().cookies()).find(value => value.name === 'JSESSIONID');
   assert.ok(cookie && cookie.secure && cookie.httpOnly && cookie.sameSite === 'Lax', 'Cross-site OIDC callback must retain a protected Lax session');
 }
@@ -80,12 +81,7 @@ export async function newFederatedUser(browser, base, privateValues) {
   await page.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
   const prefix = new URL(base).pathname.replace(/\/$/, '');
-  const form = page.locator(`form[action="${prefix}/collections"]`);
-  await form.locator('input[name=name]').fill('Federated browser-qualified tasks');
-  await form.locator('select[name=component]').selectOption('VTODO');
-  await Promise.all([page.waitForURL(base + '/'), form.getByRole('button', {name: 'Create', exact: true}).click()]);
-  const collection = page.locator('li').filter({has: page.getByText('Federated browser-qualified tasks', {exact: true})});
-  assert.ok((await collection.innerText()).includes('VTODO'));
+  await createCollection(page,base,'Federated browser-qualified tasks','VTODO');
   assert.equal(await page.getByText('Browser-qualified tasks', {exact: true}).count(), 0, 'An organization user must not discover the local administrator collection');
   const forbidden = await page.goto(base + '/admin');
   assert.equal(forbidden.status(), 403, 'Upstream realm roles must not grant application administration');

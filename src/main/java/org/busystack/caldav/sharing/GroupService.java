@@ -29,6 +29,131 @@ public class GroupService {
 
   public record Choice(UUID id, String name) {}
 
+  public record Summary(UUID id, String name, long members, long grants) {}
+
+  public record MemberView(UUID account, String username, String displayName, boolean enabled) {}
+
+  public org.busystack.caldav.management.PortalPage<Summary> search(
+      Authentication auth, String query, int page) {
+    administrator(auth);
+    if (query == null || query.length() > 200)
+      throw new IllegalArgumentException("Search is limited to 200 characters");
+    return org.busystack.caldav.management.PortalPage.of(
+        jdbc.query(
+            "SELECT g.id,g.name,(SELECT count(*) FROM sharing_group_members m WHERE m.group_id=g.id),(SELECT count(*) FROM collection_group_members c WHERE c.group_id=g.id) FROM sharing_groups g WHERE strpos(lower(g.name),lower(?))>0 ORDER BY g.name,g.id LIMIT 51 OFFSET ?",
+            (rs, row) ->
+                new Summary(
+                    rs.getObject(1, UUID.class), rs.getString(2), rs.getLong(3), rs.getLong(4)),
+            query,
+            org.busystack.caldav.management.PortalPage.offset(page)),
+        page);
+  }
+
+  public Summary detail(Authentication auth, UUID group) {
+    administrator(auth);
+    var rows =
+        jdbc.query(
+            "SELECT g.id,g.name,(SELECT count(*) FROM sharing_group_members m WHERE m.group_id=g.id),(SELECT count(*) FROM collection_group_members c WHERE c.group_id=g.id) FROM sharing_groups g WHERE g.id=?",
+            (rs, row) ->
+                new Summary(
+                    rs.getObject(1, UUID.class), rs.getString(2), rs.getLong(3), rs.getLong(4)),
+            group);
+    if (rows.isEmpty()) throw new StoreException(StoreException.Kind.NOT_FOUND);
+    return rows.getFirst();
+  }
+
+  public org.busystack.caldav.management.PortalPage<MemberView> members(
+      Authentication auth, UUID group, String query, int page) {
+    administrator(auth);
+    requireGroup(group);
+    if (query == null || query.length() > 200)
+      throw new IllegalArgumentException("Search is limited to 200 characters");
+    return org.busystack.caldav.management.PortalPage.of(
+        jdbc.query(
+            "SELECT a.id,a.username,a.display_name,a.enabled FROM sharing_group_members m JOIN accounts a ON a.id=m.account_id WHERE m.group_id=? AND (strpos(lower(a.username),lower(?))>0 OR strpos(lower(a.display_name),lower(?))>0) ORDER BY a.username,a.id LIMIT 51 OFFSET ?",
+            (rs, row) ->
+                new MemberView(
+                    rs.getObject(1, UUID.class),
+                    rs.getString(2),
+                    rs.getString(3),
+                    rs.getBoolean(4)),
+            group,
+            query,
+            query,
+            org.busystack.caldav.management.PortalPage.offset(page)),
+        page);
+  }
+
+  @Transactional(timeout = 30)
+  public void rename(Authentication auth, UUID group, String expected, String name) {
+    RecentAuthentication.requireMfa(auth);
+    DavMutationLock.exclusive(jdbc);
+    UUID actor = administrator(auth);
+    requireGroup(group);
+    validateName(name);
+    uniqueName(name, group);
+    lockAffected(group);
+    if (jdbc.update("UPDATE sharing_groups SET name=? WHERE id=? AND name=?", name, group, expected)
+        != 1) throw new StoreException(StoreException.Kind.PRECONDITION);
+    reconcileAffected(group);
+    audit.record(
+        actor,
+        org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_UPDATED,
+        org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        null);
+  }
+
+  @Transactional(timeout = 30)
+  public void changeMember(
+      Authentication auth,
+      UUID group,
+      String username,
+      UUID member,
+      boolean add,
+      boolean confirmed) {
+    RecentAuthentication.requireMfa(auth);
+    DavMutationLock.exclusive(jdbc);
+    UUID actor = administrator(auth);
+    requireGroup(group);
+    if (!confirmed)
+      throw new IllegalArgumentException("Confirm the effect on existing group sharing");
+    if (add) member = accounts(Set.of(username)).iterator().next();
+    if (member == null) throw new IllegalArgumentException("An account is required");
+    lockAffected(group);
+    if (add
+        && !Boolean.TRUE.equals(
+            jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM sharing_group_members WHERE group_id=? AND account_id=?)",
+                Boolean.class,
+                group,
+                member))) {
+      if (jdbc.queryForObject(
+                  "SELECT count(*) FROM sharing_group_members WHERE group_id=?", Long.class, group)
+              >= 1000
+          || jdbc.queryForObject("SELECT count(*) FROM sharing_group_members", Long.class) >= 10000)
+        limit();
+    }
+    jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
+    int changed =
+        add
+            ? jdbc.update(
+                "INSERT INTO sharing_group_members(group_id,account_id) VALUES (?,?) ON CONFLICT DO NOTHING",
+                group,
+                member)
+            : jdbc.update(
+                "DELETE FROM sharing_group_members WHERE group_id=? AND account_id=?",
+                group,
+                member);
+    if (changed != 1) throw new StoreException(StoreException.Kind.PRECONDITION);
+    reconcileAffected(group);
+    jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
+    audit.record(
+        actor,
+        org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_UPDATED,
+        org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        null);
+  }
+
   public record Grant(
       UUID collection, String collectionName, UUID group, String groupName, String permission) {}
 

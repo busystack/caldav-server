@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {call} from './transport.mjs';
 
 export async function issueDavCredential(page, base, privateValues, label, username = process.env.BUSYSTACK_BROWSER_USERNAME) {
-  await page.goto(base + '/');
+  await page.goto(base + '/security/credentials');
   const form = page.locator('form').filter({has: page.locator('input[name=label]')});
   await form.locator('input[name=label]').fill(label);
   await form.locator('input[name=days]').fill('1');
@@ -15,7 +15,7 @@ export async function issueDavCredential(page, base, privateValues, label, usern
   assert.equal(credential.length, 80);
   const encoded = Buffer.from(username + ':' + credential).toString('base64');
   privateValues.push(credential, encoded);
-  await page.goto(base + '/');
+  await page.goto(base + '/security/credentials');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in management');
   return {credential, encoded};
 }
@@ -25,10 +25,10 @@ export async function qualifyDavCredentials(page, base, privateValues, username 
   const {credential, encoded} = await issueDavCredential(page, base, privateValues, label, username);
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Basic ' + encoded}})).status, 404);
   await verifySyncDepth(page, base, encoded);
-  await page.goto(base + '/');
+  await page.goto(base + '/security/credentials');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in the management page');
-  const entry = page.locator('li').filter({hasText: label});
-  await Promise.all([page.waitForURL(base + '/'), entry.getByRole('button', {name: 'Revoke', exact: true}).click()]);
+  const entry = page.locator('tbody tr').filter({hasText: label});
+  await Promise.all([page.waitForURL(base + '/security/credentials'), entry.getByRole('button', {name: 'Revoke', exact: true}).click()]);
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Basic ' + encoded}})).status, 401);
   console.log('BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED');
 }

@@ -19,6 +19,7 @@ server {
         proxy_pass http://127.0.0.1:8080/calendar/.well-known/oauth-authorization-server;
     }
     location = /calendar { return 308 https://calendar.example.org/calendar/; }
+    location = /calendar/portability/preview { client_max_body_size 9m; proxy_pass http://127.0.0.1:8080; }
     location = /actuator { return 404; }
     location ^~ /actuator/ { return 404; }
     location = /calendar/actuator { return 404; }

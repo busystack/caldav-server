@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.TimeUnit;
 import org.busystack.caldav.config.DeploymentProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,29 +16,43 @@ public final class OperationalDiagnostics {
   private final JdbcTemplate jdbc;
   private final MeterRegistry meters;
   private final DeploymentProperties deployment;
+  private final org.busystack.caldav.config.OperationalProblems problems;
+  private final org.springframework.beans.factory.ObjectProvider<
+          org.springframework.boot.info.BuildProperties>
+      builds;
 
   public OperationalDiagnostics(
       ManagementService management,
       JdbcTemplate jdbc,
       MeterRegistry meters,
-      DeploymentProperties deployment) {
+      DeploymentProperties deployment,
+      org.busystack.caldav.config.OperationalProblems problems,
+      org.springframework.beans.factory.ObjectProvider<
+              org.springframework.boot.info.BuildProperties>
+          builds) {
     this.management = management;
     this.jdbc = jdbc;
     this.meters = meters;
     this.deployment = deployment;
+    this.problems = problems;
+    this.builds = builds;
   }
 
-  @GetMapping("/admin/diagnostics")
+  @GetMapping({"/admin", "/admin/diagnostics"})
   String diagnostics(
       Authentication authentication,
       Model model,
-      jakarta.servlet.http.HttpServletResponse response) {
-    if (!management.current(authentication).administrator())
-      throw new AccessDeniedException("Administrator privilege required");
+      jakarta.servlet.http.HttpServletResponse response,
+      jakarta.servlet.http.HttpServletRequest request) {
+    management.requireAdministrator(authentication);
     response.setHeader("Cache-Control", "no-store");
     model.addAttribute("baseUrl", deployment.publicBaseUrl().toString());
     model.addAttribute("issuer", deployment.issuer().toString());
     model.addAttribute("javaVersion", Runtime.version().toString());
+    var build = builds.getIfAvailable();
+    model.addAttribute(
+        "applicationVersion", build == null ? "Unknown (development build)" : build.getVersion());
+    model.addAttribute("problems", problems.recent());
     model.addAttribute(
         "databaseVersion",
         jdbc.queryForObject("SELECT current_setting('server_version')", String.class));
@@ -51,6 +64,18 @@ public final class OperationalDiagnostics {
     model.addAttribute(
         "enabledAccounts",
         jdbc.queryForObject("SELECT count(*) FROM accounts WHERE enabled", Long.class));
+    model.addAttribute(
+        "disabledAccounts",
+        jdbc.queryForObject("SELECT count(*) FROM accounts WHERE NOT enabled", Long.class));
+    model.addAttribute(
+        "eventCollections",
+        jdbc.queryForObject(
+            "SELECT count(*) FROM collections WHERE component='VEVENT'", Long.class));
+    model.addAttribute(
+        "taskCollections",
+        jdbc.queryForObject(
+            "SELECT count(*) FROM collections WHERE component='VTODO'", Long.class));
+    model.addAttribute("databaseStatus", "Available — database queries succeeded for this request");
     model.addAttribute(
         "collections", jdbc.queryForObject("SELECT count(*) FROM collections", Long.class));
     model.addAttribute(
@@ -68,6 +93,6 @@ public final class OperationalDiagnostics {
     model.addAttribute("serverErrors", serverErrors);
     model.addAttribute("meanMillis", requests == 0 ? 0 : Math.round(total / requests));
     model.addAttribute("maxMillis", Math.round(max));
-    return "diagnostics";
+    return request.getServletPath().equals("/admin") ? "administration" : "diagnostics";
   }
 }

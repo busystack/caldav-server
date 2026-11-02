@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title + ' · BusyStack'}">BusyStack</title>
+  <meta th:if="${_csrf != null}" name="csrf-token" th:content="${_csrf.token}">
+  <meta th:if="${_csrf != null}" name="csrf-header" th:content="${_csrf.headerName}">
+  <link rel="stylesheet" th:href="@{/assets/account.css}">
+  <script th:src="@{/assets/portal.js}" defer></script>
+</head>
+<body>
+<header th:fragment="header" class="app-header">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="brand-row"><a class="brand" th:href="@{/}"><span class="brand-mark" aria-hidden="true">B</span> BusyStack <span class="brand-caption">Calendar infrastructure</span></a>
+    <div th:if="${viewer != null}" class="identity"><span th:text="${viewer.displayName}"></span><form method="post" th:action="@{/logout}"><button class="quiet">Sign out</button></form></div>
+  </div>
+  <nav th:if="${viewer != null}" aria-label="Portal" class="portal-switch"><a th:href="@{/}" th:attr="aria-current=${!administrationArea ? 'true' : null}">My account</a><a th:if="${viewer.administrator}" th:href="@{/admin}" th:attr="aria-current=${administrationArea ? 'true' : null}">Server administration</a></nav>
+  <nav th:if="${viewer != null and !administrationArea}" aria-label="Account" class="section-nav">
+    <a th:href="@{/}" th:attr="aria-current=${portalPath == '/' ? 'page' : null}">Overview</a>
+    <a th:href="@{/collections}" th:attr="aria-current=${portalPath.startsWith('/collections') ? 'page' : null}">Calendars &amp; Tasks</a>
+    <a th:href="@{/connections}" th:attr="aria-current=${portalPath == '/connections' ? 'page' : null}">Connections</a>
+    <a th:href="@{/security}" th:attr="aria-current=${portalPath.startsWith('/security') or portalPath == '/oauth-grants' ? 'page' : null}">Security</a>
+    <a th:href="@{/portability}" th:attr="aria-current=${portalPath.startsWith('/portability') ? 'page' : null}">Import &amp; Export</a>
+  </nav>
+  <nav th:if="${viewer != null and administrationArea}" aria-label="Administration" class="section-nav">
+    <a th:href="@{/admin}" th:attr="aria-current=${portalPath == '/admin' ? 'page' : null}">Overview</a>
+    <a th:href="@{/admin/accounts}" th:attr="aria-current=${portalPath.startsWith('/admin/accounts') ? 'page' : null}">Accounts</a>
+    <a th:href="@{/admin/groups}" th:attr="aria-current=${portalPath.startsWith('/admin/groups') ? 'page' : null}">Groups</a>
+    <a th:href="@{/admin/audit}" th:attr="aria-current=${portalPath == '/admin/audit' ? 'page' : null}">Security &amp; Audit</a>
+    <a th:href="@{/admin/diagnostics}" th:attr="aria-current=${portalPath == '/admin/diagnostics' ? 'page' : null}">System &amp; Diagnostics</a>
+  </nav>
+</header>
+<th:block th:fragment="feedback">
+  <p th:if="${notice != null}" th:text="${notice}" class="notice success" role="status"></p>
+  <div th:if="${viewer != null and !mfaCurrent}" class="notice"><strong>Security verification needed.</strong> Sensitive changes require primary sign-in and a passkey verified within ten minutes. <a th:href="@{/login}">Verify sign-in</a> or <a th:href="@{/security/passkeys}">set up a passkey</a>.</div>
+</th:block>
+<nav th:fragment="securityNav" aria-label="Security settings" class="security-nav"><a th:href="@{/security}">Security overview</a><a th:href="@{/security/passkeys}">Passkeys</a><a th:href="@{/security/credentials}">DAV credentials</a><a th:href="@{/security/sessions}">Sessions</a><a th:href="@{/security/recovery}">Recovery</a><a th:href="@{/oauth-grants}">OAuth grants</a></nav>
+<footer th:fragment="footer"><span>BusyStack · Your server. Your data.</span><span>Calendar and task contents are managed in your CalDAV applications.</span><p id="copy-status" role="status" aria-live="polite"></p></footer>
+<nav th:fragment="pagination(base, page)" aria-label="Pagination" class="pagination">
+  <a th:if="${page.page > 0}" th:href="@{${base}(page=${page.page - 1},q=${query},status=${filter})}">Previous</a><span th:text="${'Page ' + (page.page + 1)}"></span><a th:if="${page.hasNext}" th:href="@{${base}(page=${page.page + 1},q=${query},status=${filter})}">Next</a>
+</nav>
+</body></html>

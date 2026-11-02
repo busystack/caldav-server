@@ -17,6 +17,11 @@ spring:
   flyway:
     validate-on-migrate: true
     clean-disabled: true
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 9MB
+      file-size-threshold: 0
   mvc:
     log-request-details: false
     dispatch-options-request: true

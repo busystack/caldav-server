@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Confirm deletion')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+
+<a th:href="@{/collections/{id}(id=${collection.id})}">Cancel and return to collection</a><h1>Delete <span th:text="${collection.name}"></span>?</h1><section class="danger-zone"><p>This permanently removes this <span th:text="${collection.type.toLowerCase()}"></span>, every stored item and its synchronization history. Individual and group sharing access will be removed. Connected applications will lose this collection.</p><p>Export the collection first if you need a migration copy. Operator backups are managed separately.</p><a th:href="@{/portability/collections/{id}/export(id=${collection.id})}">Export before deleting</a><form method="post" th:action="@{/collections/{id}/delete(id=${collection.id})}"><input type="hidden" name="state" th:value="${collection.deletionState}"><label><input type="checkbox" name="confirmed" value="true" required>I confirm deletion of <strong th:text="${collection.name}"></strong> and its contents and sharing access.</label><button class="danger">Delete collection permanently</button></form></section>
+
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

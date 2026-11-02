@@ -1,3 +1,5 @@
+import {qualifyPersonalPortal,qualifyPortalPresentation} from './portal.mjs';
+import {createCollection, openCollection} from './portal-helpers.mjs';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { createInterface } from 'node:readline';
@@ -53,14 +55,10 @@ try {
   const mfaSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
   if (mfaSession) privateValues.push(mfaSession);
   assert.ok(mfaSession && mfaSession !== passwordSession, 'Passkey authentication must rotate session ID');
-  const collectionForm = page.locator(`form[action="${prefix}/collections"]`);
-  await collectionForm.locator('input[name=name]').fill('Browser-qualified tasks');
-  await collectionForm.locator('select[name=component]').selectOption('VTODO');
-  await Promise.all([page.waitForURL(base + '/'), collectionForm.locator('button').click()]);
-  const createdCollection = page.locator('li').filter({has: page.getByText('Browser-qualified tasks', {exact: true})});
-  await createdCollection.waitFor();
-  assert.ok((await createdCollection.innerText()).includes('VTODO'), 'The created collection must actually advertise VTODO');
+  await createCollection(page,base,'Browser-qualified tasks','VTODO');
   console.log('PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED');
+  const localPortal=await qualifyPersonalPortal(page,base,privateValues,process.env.BUSYSTACK_BROWSER_USERNAME);
+  await qualifyPortalPresentation(page,base,localPortal,true);
   if (process.env.BUSYSTACK_BROWSER_GROUPS === 'true') await qualifyGroups(page, base, privateValues);
   const administratorPage = page;
   let activeCdp = cdp;
@@ -76,6 +74,8 @@ try {
     activeAuthenticatorId = federated.authenticatorId;
     currentUsername = process.env.BUSYSTACK_FEDERATED_USERNAME;
     collectionName = 'Federated browser-qualified tasks';
+    const externalPortal=await qualifyPersonalPortal(page,base,privateValues,currentUsername,'external');
+    await qualifyPortalPresentation(page,base,externalPortal,false,'external');
   }
   await qualifyAccountRecovery({page, base, privateValues, administratorPage, username: currentUsername,
     cdp: activeCdp, authenticatorId: activeAuthenticatorId});
@@ -90,7 +90,7 @@ try {
   console.log('READY_RESTART');
   await waitFor('RESTARTED');
   await page.goto(base + '/');
-  await page.getByRole('heading', {name: 'BusyStack account', exact: true}).waitFor();
+  await page.getByRole('heading', {name: /^Welcome,/}).waitFor();
   assert.equal((await context.cookies()).find(value => value.name === 'JSESSIONID')?.value, persistentCookie,
     'A persisted browser session must survive the application restart');
   console.log('PERSISTED_BROWSER_SESSION_AFTER_RESTART_PASSED');
@@ -108,7 +108,7 @@ try {
   }
   await page.goto(base + '/login');
   await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
-  await page.locator('li').getByText(collectionName, {exact: true}).waitFor();
+  await openCollection(page,base,collectionName);
   console.log('PERSISTED_PASSKEY_AFTER_RESTART_PASSED');
   console.log('READY_DISABLE');
   await waitFor('DISABLED');

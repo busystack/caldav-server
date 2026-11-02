@@ -175,9 +175,35 @@ public class AccountService {
         .orElse(null);
   }
 
+  /** Profile maintenance never changes login identity, roles or external mappings. */
+  @Transactional
+  public void updateDisplayName(UUID id, String expected, String displayName) {
+    if (displayName == null
+        || displayName.isBlank()
+        || displayName.codePointCount(0, displayName.length()) > 200
+        || !XmlCharacters.valid(displayName)
+        || displayName.codePoints().anyMatch(Character::isISOControl))
+      throw new IllegalArgumentException(
+          "Use a display name of 1–200 characters without control characters");
+    if (jdbc.update(
+            "UPDATE accounts SET display_name=? WHERE id=? AND display_name=?",
+            displayName,
+            id,
+            expected)
+        != 1)
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.PRECONDITION);
+  }
+
   /** Internal operation; browser issuance must supply recent MFA before calling this service. */
   @Transactional
   public IssuedCredential issueDavCredential(UUID accountId, String label, Instant expiresAt) {
+    if (label == null
+        || label.isBlank()
+        || label.length() > 100
+        || !XmlCharacters.valid(label)
+        || label.codePoints().anyMatch(Character::isISOControl))
+      throw new IllegalArgumentException("Use a credential label of 1–100 characters");
     Account account = find(accountId);
     if (account == null || !account.enabled() || !isClientAccessCurrent(accountId))
       throw new IllegalArgumentException("Account unavailable");

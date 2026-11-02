@@ -5,29 +5,41 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class ManagementController {
   private final ManagementService management;
+  private final PortalService portal;
+  private final SharingManagementService sharing;
 
-  public ManagementController(ManagementService management) {
+  public ManagementController(
+      ManagementService management, PortalService portal, SharingManagementService sharing) {
     this.management = management;
+    this.portal = portal;
+    this.sharing = sharing;
   }
 
   @GetMapping("/")
   String dashboard(Authentication auth, Model model) {
     model.addAttribute("account", management.current(auth));
-    model.addAttribute("externallyManaged", management.externallyManaged(auth));
-    model.addAttribute("collections", management.collections(auth));
-    model.addAttribute("credentials", management.credentials(auth));
+    model.addAttribute("setup", portal.setup(auth));
+    model.addAttribute("recentCollections", portal.collections(auth, "all", "", 0));
     return "dashboard";
   }
 
   @PostMapping("/collections")
   String createCollection(
-      Authentication auth, @RequestParam String name, @RequestParam String component) {
-    management.createCollection(auth, name, component);
-    return "redirect:/";
+      Authentication auth,
+      @RequestParam String name,
+      @RequestParam String component,
+      @RequestParam(defaultValue = "") String description,
+      @RequestParam(defaultValue = "") String color,
+      RedirectAttributes flash) {
+    UUID id = portal.create(auth, name, component, description, color);
+    flash.addFlashAttribute(
+        "notice", "Collection created. Use Connections to configure your application.");
+    return "redirect:/collections/" + id;
   }
 
   @PostMapping("/shares")
@@ -35,9 +47,14 @@ public class ManagementController {
       Authentication auth,
       @RequestParam UUID collection,
       @RequestParam String username,
-      @RequestParam String permission) {
-    management.share(auth, collection, username, permission);
-    return "redirect:/";
+      @RequestParam String permission,
+      @RequestParam String expected,
+      RedirectAttributes flash) {
+    sharing.direct(auth, collection, username, permission, expected);
+    flash.addFlashAttribute(
+        "notice",
+        "Direct grant saved. Other grants may continue to provide access; review effective permissions below.");
+    return "redirect:/collections/" + collection + "/sharing";
   }
 
   @PostMapping("/credentials")
@@ -53,30 +70,11 @@ public class ManagementController {
   }
 
   @PostMapping("/credentials/{id}/revoke")
-  String revoke(Authentication auth, @PathVariable UUID id) {
+  String revoke(Authentication auth, @PathVariable UUID id, RedirectAttributes flash) {
     management.revoke(auth, id);
-    return "redirect:/";
-  }
-
-  @GetMapping("/admin")
-  String admin(Authentication auth, Model model) {
-    model.addAttribute("accounts", management.users(auth));
-    return "administration";
-  }
-
-  @PostMapping("/admin/accounts")
-  String provision(
-      Authentication auth,
-      @RequestParam String username,
-      @RequestParam String displayName,
-      @RequestParam String password) {
-    management.provision(auth, username, displayName, password);
-    return "redirect:/admin";
-  }
-
-  @PostMapping("/admin/accounts/{id}/disable")
-  String disable(Authentication auth, @PathVariable UUID id) {
-    management.disable(auth, id);
-    return "redirect:/admin";
+    flash.addFlashAttribute(
+        "notice",
+        "DAV credential revoked. Configure a replacement credential in the affected application.");
+    return "redirect:/security/credentials";
   }
 }

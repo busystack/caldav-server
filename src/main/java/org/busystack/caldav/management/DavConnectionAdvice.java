@@ -6,7 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-@ControllerAdvice(assignableTypes = ManagementController.class)
+@ControllerAdvice(assignableTypes = {ManagementController.class, PortalController.class})
 public final class DavConnectionAdvice {
   public record Connection(String url, String username, String home, boolean compatibility) {}
 

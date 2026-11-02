@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Request could not complete')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+
+<h1 th:text="${errorTitle}">The request could not complete</h1><p class="notice error" role="alert" th:text="${message}"></p><details th:if="${submitted != null and !submitted.isEmpty()}" open><summary>Your submitted non-secret fields</summary><dl><th:block th:each="field : ${submitted}"><dt th:text="${field.key}"></dt><dd th:text="${field.value}"></dd></th:block></dl></details><div class="actions"><a th:if="${retryPath != null}" class="button" th:href="@{${retryPath}}">Return to this workflow</a><a class="button" th:href="@{/collections}">Collection management</a><a th:href="@{/login}">Verify sign-in</a><a th:href="@{/security}">Security</a><a th:if="${viewer != null and viewer.administrator}" th:href="@{/admin}">Administration</a></div>
+
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

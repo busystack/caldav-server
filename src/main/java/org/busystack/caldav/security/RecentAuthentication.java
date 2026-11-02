@@ -12,6 +12,24 @@ public final class RecentAuthentication {
 
   private RecentAuthentication() {}
 
+  public static boolean primaryCurrent(Authentication authentication) {
+    try {
+      requirePrimary(authentication);
+      return true;
+    } catch (AccessDeniedException unavailable) {
+      return false;
+    }
+  }
+
+  public static boolean mfaCurrent(Authentication authentication) {
+    try {
+      requireMfa(authentication);
+      return true;
+    } catch (AccessDeniedException unavailable) {
+      return false;
+    }
+  }
+
   public static void requirePassword(Authentication authentication) {
     if (!has(authentication, FactorGrantedAuthority.PASSWORD_AUTHORITY))
       throw new AccessDeniedException("Recent password authentication is required");

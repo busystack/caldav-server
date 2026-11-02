@@ -187,14 +187,19 @@ The image must already be pulled (or source-built for development) and the datab
 
 ## First browser sign-in and user creation
 
-1. Open the configured public HTTPS address in a browser that trusts its certificate. Use the final hostname: passkeys are bound to its relying-party ID and origin. At **Sign in to BusyStack**, enter the bootstrap username/password and choose **Verify password**.
-2. Follow **enroll your first passkey** or open **Passkeys and authentication**. Give it a name, choose **Register passkey**, and complete the authenticator's user-verification prompt. Choose **Verify passkey to complete MFA** for the same account. Registration alone is not the completed two-factor sign-in.
-3. Return to **Account management**, then open **Administration**. Under **Provision an account**, enter the new user's username, display name and initial password and choose **Create account**. Usernames start with an ASCII letter or digit and contain only ASCII letters, digits, `.`, `_` or `-`, up to 64 characters. Passwords use the limits above. The new account is an ordinary user; administrator status does not grant access to that user's private calendars.
-4. Give the initial credential to the intended user through a secure channel. Sign out of the administrator session. The new user signs in and enrolls/verifies their own passkey using the same steps. Account changes require both factors verified within ten minutes. When they become stale, return to `/login` and use **Verify password** and **Verify passkey** for the same account. For an already enrolled account, the passkey settings page requires that recent MFA and redirects to login until it is complete.
-5. On the user's account page, use **Create a collection** to create an **Events** collection and a separate **Tasks** collection. Their displayed component types are `VEVENT` and `VTODO`. The account interface manages collections and access; create and edit the actual events/tasks in a CalDAV client.
-6. Under **DAV credentials**, enter a device/application label and a lifetime from 1 to 365 days, then choose **Issue credential**. The **New DAV credential** page shows the complete secret once. Copy it directly into that client's password store; do not use the account password. Losing the secret requires issuing a replacement, not retrieving the old one. Return to the account page to revoke a device's credential when needed.
+Follow [the user portal guide](portal.md) for primary sign-in, passkey enrollment
+and verification, collection creation, credential issuance and client configuration.
+Administrators use **Server administration → Accounts → Create account**, transfer
+the initial password securely, and let the user enroll their own factors. See
+[administration](administration.md) for account/group/audit workflows and boundaries.
+No email service is required. The existing password, recent-factor, session,
+recovery and identity-provider policies remain unchanged.
 
-Keep a second enrolled authenticator or securely stored recovery codes where possible. A virtual-authenticator test does not establish that a particular physical device or synchronized passkey provider works; check that device before relying on it. The documented offline recovery procedure remains available to the server operator.
+For portal imports, add a proxy location allowing a 9 MiB multipart request only
+at `/portability/preview`, preserving any application prefix. The supplied
+`deployment/nginx-*.conf.example` files include it. DAV continues to use its existing
+1 MiB body limit. See [portability](portability.md) for bounded temporary storage,
+preview expiry, transactional writes and export format.
 
 ## Client access and sync compatibility
 

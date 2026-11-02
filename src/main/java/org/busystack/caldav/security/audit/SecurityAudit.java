@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SecurityAudit {
   public enum Action {
+    DATABASE_RESTORE,
     PASSWORD_LOGIN,
     PASSWORD_CHANGED,
     ACCOUNT_DISABLED,
@@ -21,7 +22,14 @@ public class SecurityAudit {
     GROUP_CREATED,
     GROUP_UPDATED,
     GROUP_DELETED,
-    GROUP_SHARING_CHANGED
+    GROUP_SHARING_CHANGED,
+    COLLECTION_CREATED,
+    COLLECTION_UPDATED,
+    COLLECTION_DELETED,
+    COLLECTION_IMPORTED,
+    INDIVIDUAL_SHARING_CHANGED,
+    ACCOUNT_CREATED,
+    ACCOUNT_PROFILE_UPDATED
   }
 
   public enum Outcome {

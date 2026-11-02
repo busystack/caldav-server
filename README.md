@@ -45,6 +45,14 @@ Qualified graphical clients are Thunderbird 159.0 and GNOME Calendar 50.0 /
 Evolution Data Server 3.56.2 in the configurations listed in the
 [compatibility documentation](docs/observance-until-compatibility.md).
 
+## Account and administration portals
+
+Use the [user guide](docs/portal.md) for first sign-in, collection lifecycle, sharing,
+client connection and security settings; [portability](docs/portability.md) for
+validated iCalendar import/export; and [administration](docs/administration.md) for
+bounded account/group management, audit and diagnostics. The interface uses local
+server-rendered assets and does not require a frontend service or CDN.
+
 ## Documentation and limitations
 
 Start with [account security](docs/account-security.md),

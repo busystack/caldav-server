@@ -13,6 +13,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Useful correlation/latency without logging resource paths, identities, headers or bodies. */
 final class RequestDiagnosticsFilter extends OncePerRequestFilter {
+  private final OperationalProblems problems;
+
+  RequestDiagnosticsFilter(OperationalProblems problems) {
+    this.problems = problems;
+  }
+
   private static final org.slf4j.Logger LOG =
       LoggerFactory.getLogger(RequestDiagnosticsFilter.class);
 
@@ -64,6 +70,7 @@ final class RequestDiagnosticsFilter extends OncePerRequestFilter {
           method,
           failed ? 500 : response.getStatus(),
           TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+      problems.record(id, surface, method, failed ? 500 : response.getStatus());
       if (previous == null) MDC.remove("request_id");
       else MDC.put("request_id", previous);
     }

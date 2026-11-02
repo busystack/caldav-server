@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Create a collection')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+
+<a th:href="@{/collections}">Back to collections</a><h1>Create a collection</h1><p>Keep calendars and task lists separate. The type stays fixed after creation.</p>
+<section><form method="post" th:action="@{/collections}"><label>Name<input name="name" required maxlength="200"></label><label>Type<select name="component"><option value="VEVENT">Calendar — events</option><option value="VTODO">Task list — tasks</option></select></label><label>Description<textarea name="description" maxlength="8000"></textarea></label><label>Colour (optional)<input name="color" placeholder="#08645E" pattern="#[a-fA-F0-9]{6}([a-fA-F0-9]{2})?" maxlength="9" aria-describedby="colour-help"></label><p id="colour-help">Use #RRGGBB or #RRGGBBAA. This uses the Apple calendar-color convention; display depends on your client.</p><button>Create collection</button></form></section>
+
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

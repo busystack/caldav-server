@@ -18,7 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ManagementService {
   public record Credential(
-      UUID id, String label, Instant created, Instant expires, boolean revoked) {}
+      UUID id, String label, Instant created, Instant expires, boolean revoked) {
+    public String status() {
+      return revoked ? "Revoked" : expires.isAfter(Instant.now()) ? "Active" : "Expired";
+    }
+  }
 
   public record UserView(
       UUID id, String username, String displayName, boolean administrator, boolean enabled) {}
@@ -134,7 +138,16 @@ public class ManagementService {
   @Transactional
   public void revoke(Authentication auth, UUID credential) {
     RecentAuthentication.requireMfa(auth);
-    accounts.revokeDav(requireAccount(auth).id(), credential);
+    UUID actor = requireAccount(auth).id();
+    if (!Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM dav_credentials WHERE id=? AND account_id=?)",
+            Boolean.class,
+            credential,
+            actor)))
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND);
+    accounts.revokeDav(actor, credential);
   }
 
   @Transactional
@@ -170,7 +183,7 @@ public class ManagementService {
     return account;
   }
 
-  private void requireAdministrator(Authentication auth) {
+  public void requireAdministrator(Authentication auth) {
     RecentAuthentication.requireMfa(auth);
     if (!requireAccount(auth).administrator())
       throw new AccessDeniedException("Administrator required");
