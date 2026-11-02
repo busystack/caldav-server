@@ -49,7 +49,7 @@ publishing. Candidate retention does not publish a release or registry tag.
 
 Perform the established real-client editor qualification on the actual version's
 executable: Thunderbird system Vancouver, explicit Vancouver and explicit Berlin,
-and GNOME Calendar/EDS Vancouver. Retain raw results and failed attempts. Record
+and GNOME Calendar/EDS Vancouver. Retain raw results and failed attempts in CI artifacts or the external audit archive, with a concise index; do not commit routine logs, screenshots, credentials or workstation diagnostics. Record
 only executed results at `qualification/evidence/releases/<version>/verification.json`.
 The record identifies `version`, `jarSha256`, the actual client source/image,
 `runtimeInputs` SHA-256 values for `Dockerfile` and `compose.yaml`, client versions,

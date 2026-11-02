@@ -2,15 +2,10 @@
   "version": "0.1.0",
   "status": "passed",
   "recordedAt": "2026-11-02T02:42:39.676240+00:00",
-  "branch": "release/v0.1.0",
   "qualifiedSourceCommit": "5d09ecb2e241a97f429f71aecfbfd9fcd166b861",
   "verificationRun": 41357992646,
   "verificationAttempt": 1,
   "jarSha256": "bff028ac0072134458710e22e63ce433f96d4fd2619b217049d619c998151792",
-  "ciImageId": "sha256:c325af920d89fff8ababdbc542cd89fa54803209e5fab770ce08c5050d837900",
-  "loadedImageId": "sha256:b56abdc6286604c8286fadb748a7bca7332996de3b427bcd8eaab21238accad4",
-  "imageConfigDigest": "sha256:c325af920d89fff8ababdbc542cd89fa54803209e5fab770ce08c5050d837900",
-  "registryManifestDigest": null,
   "runtimeInputs": {
     "Dockerfile": "6e1125b89524a0b873ad5d81b7defa5fc62ccdb7aa64ed9a4802841817286c13",
     "compose.yaml": "17bdfbf0b5fb5ef830042311d89ce8335ac806c15275515befaf05ee7fe9bb49"
@@ -30,7 +25,7 @@
         "task completion and deletion",
         "whole-series deletion"
       ],
-      "evidence": "clients/thunderbird-system-vancouver/thunderbird-gui-results.json"
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/thunderbird-system-vancouver/thunderbird-gui-results.json"
     },
     "thunderbird-explicit-vancouver": {
       "status": "passed",
@@ -46,7 +41,7 @@
         "task completion and deletion",
         "whole-series deletion"
       ],
-      "evidence": "clients/thunderbird-explicit-vancouver/thunderbird-gui-results.json"
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/thunderbird-explicit-vancouver/thunderbird-gui-results.json"
     },
     "thunderbird-explicit-berlin": {
       "status": "passed",
@@ -62,7 +57,7 @@
         "task completion and deletion",
         "whole-series deletion"
       ],
-      "evidence": "clients/thunderbird-explicit-berlin/thunderbird-gui-results.json"
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/thunderbird-explicit-berlin/thunderbird-gui-results.json"
     },
     "gnome-vancouver": {
       "status": "passed",
@@ -76,40 +71,19 @@
       "wholeSeriesDeleted": true,
       "actualDeleteStatus": 204,
       "finalGetStatus": 404,
-      "evidence": "clients/gnome-vancouver/gnome-workflow.json"
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/gnome-vancouver/gnome-workflow.json"
     }
   },
-  "regressions": {
-    "release": 29,
-    "distribution": 11,
-    "security": 11,
-    "recoveryHelpers": 12,
-    "versions": [
-      "0.1.0",
-      "0.2.0",
-      "1.0.0"
-    ],
+  "qualificationScope": "Native-editor qualification of the identified executable and Dockerfile/Compose inputs. The release manifest records final release-source and distribution identities.",
+  "verifiedImplementationCi": {
+    "sourceCommit": "f3ba60d360117c44b3dfeb6dc9848778a98ef06a",
+    "pushRun": 41379618091,
+    "pullRequestRun": 41379622624,
     "status": "passed"
   },
-  "applicationVerification": "application-verification.json",
-  "versionOnlyJarComparison": "jar-version-only-comparison.json",
-  "infrastructureCi": {
-    "commit": "bbdacd988e038278a1abaa27d40d2e84ea0f7d54",
-    "pushRun": 41367678574,
-    "pullRequestRun": 41367684788,
-    "status": "passed"
-  },
-  "publication": {
-    "status": "not performed",
-    "finalSquashSourceQualification": "pending owner-approved integration",
-    "registryStagingAndFinalDeploymentInstallation": "pending final main source and staging; no registry digest invented",
-    "website": "Handoff prepared; website unchanged"
-  },
-  "limits": [
-    "Real client editors were automated; no physical manual-human or hardware-authenticator qualification is claimed.",
-    "The candidate source is the exact preserved successful CI commit. Later preparation commits must reproduce the same executable checksum and Dockerfile/Compose hashes; official images must identify the final qualified squash commit.",
-    "Host restarts interrupted temporary controllers. Durable evidence and the same isolated database/profile were retained. Failed automation/setup attempts remain under attempts/ and in the GNOME workflow record.",
-    "Native GUI checks used the browser-issued DAV fixture at its backup checkpoint. The extra long-running fixture controller was interrupted by a host restart; no additional combined browser-restoration pass is claimed. Complete browser/recovery checks passed in the linked CI runs.",
-    "Image configuration digest, CI/local image IDs and registry manifest digest are distinct; this is not a published image receipt."
+  "limitations": [
+    "Real editor controls were automated in isolated client profiles; manual human use and physical authenticators were not qualified.",
+    "Only the recorded client versions, platforms and timezone profiles are covered.",
+    "Failed and interrupted automation attempts remain preserved in the historical evidence archive; they are not counted as passing executions."
   ]
 }

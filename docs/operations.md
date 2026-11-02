@@ -147,7 +147,7 @@ location /calendar/ {
 }
 ```
 
-The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.html#section-3): the well-known segment is inserted before the issuer's path. The Spring application's local metadata endpoint remains inside its servlet context. Use literal configured authority/prefix values in these mappings. The embedded TLS security suite exercises a servlet subpath. The final packaged image passed actual pinned Nginx `/team`, root TLS, cross-site Keycloak and local/federated HTTPS restoration profiles with normal test-CA validation; see [exact image/evidence scope](../qualification/evidence/README.md). Later protocol/schema changes require corresponding artifact reruns.
+The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.html#section-3): the well-known segment is inserted before the issuer's path. The Spring application's local metadata endpoint remains inside its servlet context. Use literal configured authority/prefix values in these mappings. The embedded TLS security suite exercises a servlet subpath. The final packaged image passed actual pinned Nginx `/team`, root TLS, cross-site Keycloak and local/federated HTTPS restoration profiles with normal test-CA validation; see [exact image/evidence scope](https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/README.md). Later protocol/schema changes require corresponding artifact reruns.
 
 ## Local administrator bootstrap
 

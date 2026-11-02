@@ -75,7 +75,7 @@ This is substantial backend and integration work, rather than a servlet registra
 
 ## Executed embedded HTTP evidence
 
-The [probe source](../../investigation/protocol/src/test/java/org/busystack/caldav/investigation/BedeworkHttpTest.java) executed six tests with no failures, errors, or skips. [Recorded command and environment](../../investigation/protocol/evidence/runtime-result.txt) distinguish compatibility checks from expected-defect reproductions. These fixtures do not qualify PostgreSQL or real calendar semantics.
+The [probe source](../../investigation/protocol/src/test/java/org/busystack/caldav/investigation/BedeworkHttpTest.java) executed six tests with no failures, errors, or skips. [Recorded command and environment](https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/investigation/protocol/evidence/runtime-result.txt) distinguish compatibility checks from expected-defect reproductions. These fixtures do not qualify PostgreSQL or real calendar semantics.
 
 * Spring-authenticated OPTIONS and component PROPFIND work through the real released servlet in Tomcat 11.0.27 / Servlet 6.1 on Boot 4.1.2, Security 7.1.2 and Java 25.
 * Empty `VTODO` calendar-query and mandatory `DAV:expand-property` return 207. Calendar-query initially failed 500 because a JAXB implementation was absent; adding Boot-managed `org.glassfish.jaxb:jaxb-runtime:4.0.9` resolved it.

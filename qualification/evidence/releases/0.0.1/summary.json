@@ -1,0 +1,51 @@
+{
+  "version": "0.0.1",
+  "scope": "Historical qualification summary; not qualification for another executable.",
+  "publishedSourceCommit": "40b68299e8ad9fb6b77ce2845a7eb8c7122be5c9",
+  "clientSourceCommit": "9635587b7fa1e54a144355dc1579c0e4c04e1b8f",
+  "status": "passed",
+  "jarSha256": "98d9febbd849e7cd335d2f277026063765ce260264f08b65e04278936023002a",
+  "runtimeInputs": {
+    "Dockerfile": "23f03a1f531a1b52e32963465ebd131d8a6969f45951294bb93a3c8e54e22394",
+    "compose.yaml": "44a2b67f6a77b5eb533a3aacfdca6f6184e6d350849bacadf5316f7c1767b3bc"
+  },
+  "verificationRun": {
+    "id": 41262396896,
+    "scope": "Application/investigation/static tests, current advisory gates, distribution integrity, six packaged HTTPS profiles and local/federated restoration",
+    "sourceCommit": "9635587b7fa1e54a144355dc1579c0e4c04e1b8f",
+    "status": "passed",
+    "url": "https://github.com/busystack/caldav-server/actions/runs/41262396896"
+  },
+  "clients": {
+    "gnome-vancouver": {
+      "EDS": "3.56.2-8",
+      "client": "GNOME Calendar",
+      "status": "passed",
+      "timezone": "America/Vancouver",
+      "version": "50.0-1"
+    },
+    "thunderbird-explicit-berlin": {
+      "client": "Thunderbird",
+      "status": "passed",
+      "timezone": "Europe/Berlin",
+      "version": "159.0"
+    },
+    "thunderbird-explicit-vancouver": {
+      "client": "Thunderbird",
+      "status": "passed",
+      "timezone": "America/Vancouver",
+      "version": "159.0"
+    },
+    "thunderbird-system-vancouver": {
+      "client": "Thunderbird",
+      "status": "passed",
+      "timezone": "America/Vancouver",
+      "version": "159.0"
+    }
+  },
+  "originalRecord": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.0.1/official-dependencies/verification.json",
+  "limitations": [
+    "Historical successes and failed attempts retain their original scope in the archived records.",
+    "This summary does not extend client or security claims beyond the recorded executable and configurations."
+  ]
+}

@@ -1,6 +1,6 @@
 # Runtime dependency advisory checks
 
-The later standards-correction artifact has [fresh advisory and licensing evidence](../evidence/standards-corrections/verification.json). Earlier retained records below qualify their identified historical revisions.
+The [qualification index](../evidence/README.md) identifies version-specific verification and archived historical results.
 
 Generate the runtime CycloneDX inventory with `./mvnw package`, then run:
 
@@ -27,16 +27,9 @@ The gate's unit tests cover partial pagination, missing results, repeated tokens
 
 CI additionally invokes pinned OWASP Dependency-Check Maven 13.0.0 if an `NVD_API_KEY` secret is configured. This is additional coverage; OSV is the required advisory gate. A missing key is reported as an unexecuted NVD audit, not a passed NVD audit. When invoked, NVD errors or CVSS scores at least 7 fail its step. OSS Index is explicitly disabled because that source needs a separate credential.
 
-An anonymous Dependency-Check 13.0.0 run was attempted on 2026-10-27 in an isolated Maven 3.9.12/Temurin 25 container, limited to 2 GiB and one CPU. The container received only a copy of the public dependency POM (SHA-256 `ef20da167a040dbc951b624d64696ee79614a92e311e7210652ffbfab9e0246f`) and a private report directory. It had no API-key environment variable or key-related command property. The equivalent scanner command was:
-
-```sh
-mvn --batch-mode --no-transfer-progress -f /scan/pom.xml \
-  org.owasp:dependency-check-maven:13.0.0:check \
-  -Dodc.outputDirectory=/reports -Dformats=HTML,JSON \
-  -DfailBuildOnCVSS=7 -DfailOnError=true -DossIndexAnalyzerEnabled=false
-```
-
-It failed while updating NVD with `NvdApiException: Invalid API Key, length of 0 too short to provided a masked partial key`, followed by `NoDataException: No documents exist`. No NVD analysis completed and no passing NVD result is claimed. A working authenticated feed or separately verified fix/mirror is needed to qualify that additional source in this environment.
+Earlier unauthenticated NVD attempts failed during feed initialization and did
+not produce a passing audit. Their diagnostics remain in the historical archive.
+A working configured feed is required for this optional additional check.
 
 ## Required final-container OS package scan
 

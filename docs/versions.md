@@ -1,6 +1,6 @@
 # Dependency and distribution baseline
 
-Historical baseline verified on 2026-10-27 and retained through qualified source `47b3543`. Fresh evidence for the independent standards corrections is maintained in the [correction submission](standards-corrections.md). The clean 169-unit/174-integration suite, packaged root/proxy/Keycloak/default/strict profiles, independent clients, upgrades and restoration passed in the [actual CI record](../qualification/evidence/correction-ci-final.json); local artifact/measurement records are distinguished in the [qualification index](../qualification/evidence/README.md). The project is Apache-2.0; third-party license conclusions and artifact delivery are recorded separately. No Maven dependency pin changed during these corrections. The residual follow-up refreshes the official Temurin image digest as described below.
+The versions below describe the maintained build and runtime inputs. Maven's application `project.version` is the single application-version authority. [Qualification records](../qualification/evidence/README.md) identify actual verified source and artifacts; third-party licenses remain independent of the project license.
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |
@@ -37,7 +37,6 @@ The Dockerfiles and Compose file use immutable registry digests, with descriptiv
 
 | Image | Digest |
 | --- | --- |
-| `maven:3.9.12-eclipse-temurin-25` | `sha256:4f82a03a7d6679281952d628131299b1be88d7030a49c6a2b7d2ba2642e44e3e` |
 | `eclipse-temurin:25-jdk` | `sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857` |
 | `mcr.microsoft.com/playwright:v1.61.1-noble` | `sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48` |
 | `nginx:1.30.6-alpine` | `sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951` |
@@ -47,9 +46,9 @@ The Dockerfiles and Compose file use immutable registry digests, with descriptiv
 
 Residual qualification on 2026-10-29 found HIGH [CVE-2026-111497](https://ubuntu.com/security/notices/USN-8956-1) in the previous official Temurin image (`libbrotli1` 1.2.0-3build1). The refreshed official digest above supplies Ubuntu’s fixed 1.2.0-3ubuntu0.1 package while retaining **Temurin 25.0.4.1+1** and the identical Java executable SHA-256 `7380ce48ed5013735d2c8414db54adb8f981e7933ff594bd36f3baccddaafba3`. The application, CI JDK installer and optional Keycloak fixture use the same refreshed pin. No advisory suppression or third-party patch is applied; the failed scan and subsequent qualification are retained separately.
 
-The Maven image itself contains Temurin 25.0.2+10. The application Docker build overlays the pinned 25.0.4.1+1 JDK into the builder, so compilation and the deployed runtime use the same selected patch. Initial workspace investigation used the Maven image's existing 25.0.2+10 toolchain; test evidence must state the toolchain actually used.
+The supported developer build runs the Maven wrapper with the selected JDK and passes the verified JAR to Docker. The runtime image uses the same pinned Temurin release; no Maven builder image is needed.
 
-The Keycloak fixture copies the pinned official distribution onto the pinned Temurin JDK because the official UBI9 runtime requires x86-64-v2 instructions unavailable on the qualification host. No Keycloak application code is changed. The production deployment does not contain Keycloak. Browser certificate tooling is pinned to Ubuntu `libnss3-tools=2:3.98-1ubuntu0.3`; generated certificates and trust databases exist only in disposable private fixture directories.
+The Keycloak fixture copies the pinned official distribution onto the pinned Temurin JDK for a consistent test runtime. No Keycloak application code is changed. The production deployment does not contain Keycloak. Browser certificate tooling is pinned to Ubuntu `libnss3-tools=2:3.98-1ubuntu0.3`; generated certificates and trust databases exist only in disposable private fixture directories.
 
 CI installs the exact JDK from the pinned Temurin image through `scripts/install-ci-jdk.sh`, validates its release/runtime version and exports it for Maven. This avoids setup-java's SemVer rejection of the four-part 25.0.4.1 version without selecting another patch.
 

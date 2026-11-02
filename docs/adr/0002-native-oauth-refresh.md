@@ -119,7 +119,7 @@ incorrect verifier, code replay, stock refresh rejection, supported extension
 issuance/rotation, and the missing family-revocation control.
 
 The isolated investigation passed four tests; its recorded result is
-[`runtime-result.txt`](../../investigation/oauth/evidence/runtime-result.txt).
+[`runtime-result.txt`](https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/investigation/oauth/evidence/runtime-result.txt).
 `RefreshFamilyStoreIT` and `OAuthHttpIT` separately exercise the application against
 real PostgreSQL. The latter seeds completed interactive grants for most token
 flows, explicitly distinguishing token/DAV qualification from browser/passkey

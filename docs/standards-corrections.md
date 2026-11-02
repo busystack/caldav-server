@@ -1,55 +1,23 @@
-# Independent audit correction submission
+# Protocol correction traceability
 
-This is the developer's correction and verification submission for independent re-verification. It is not independent auditor approval, certification or a claim of universal interoperability.
+This record maps previously reported protocol and security findings to their
+application corrections and maintained regression tests. It is engineering
+traceability, not certification or universal interoperability.
 
-The independent audit examined `release/v0.0.1` at `923ecacc6b35a77be15b6cdcde5e1b5f2b9f76f0` and reported 17 finding groups: one High, eleven Medium and five Low. It did not demonstrate account takeover, protected-calendar-content disclosure or permanent alteration of stored authoritative bytes. The fresh developer baseline reproduced all 17 groups, including 96 recorded DAV/calendar requests and separate signed WebAuthn and metadata probes. The [baseline summary](../qualification/evidence/standards-corrections/baseline/summary.json) records the original report, CSV and archive hashes and the fixture adaptations. The three independent input files and their recorded outcomes remain unchanged outside the repository.
+The independent review covered 17 finding groups. Subsequent verification closed
+sixteen original groups and identified two residual input-validation obligations:
+original BYDAY/duration grammar and exactly empty public-client secrets. Their
+regressions are retained in the calendar and OAuth test suites. Historical result
+classifications, failed attempts, artifact identities and detailed audit reports
+remain in the [evidence archive](../qualification/evidence/README.md#historical-records).
+Current executable/client scope is recorded in the version-specific qualification
+receipt; final distribution identities come from the release manifest.
 
-## Independent re-verification follow-up
-
-Independent verification of `1328727` closed sixteen original groups and identified residual **IV-CAL-01** and **IV-AUTH-01**. Both were reproduced on a fresh isolated server before production edits. This follow-up corrects those reported obligations; it is a developer submission for independent review, not independent approval or an exhaustive calendar grammar claim.
-
-| Finding | Correction and fix commit | Fresh evidence |
-| --- | --- | --- |
-| IV-CAL-01 | Original BYDAY ordinal and duration grammar checks run before factory normalization; exact ASCII calendar boundary retains permitted BOM/case behavior. `3038a6c` | 64 new unit invocations; seven create/conditional-replacement atomicity controls at storage and actual DAV HTTP layers; original four malformed requests now 403/404; all nine original conditional replacements remain 403 with unchanged bytes/ETags/tokens. |
-| IV-AUTH-01 | Exactly empty optional public-client secrets follow omission; nonempty/whitespace and duplicate defined parameters remain errors. `11d06b4` | 20 OAuth HTTP tests; real signed password/passkey/consent/PKCE journey now refreshes with both omitted and empty secret; invalid controls return OAuth JSON 400/401 without browser redirects. |
-
-At `11d06b4bb7a8ae5eac774a391a85959ea0832ab3`, **359 unit tests and 164 selected integration tests passed with zero failures/errors/skips; integrations also had zero aborts. SpotBugs reported zero findings/errors.** The selected classes cover calendar/DAV storage, namespace/property boundaries, synchronization, OAuth/refresh families, DAV credentials, security boundaries and signed passkeys. Local integration fixtures use the auditor's unchanged supported PostgreSQL tmpfs adapter; this proves transactional/HTTP behavior rather than physical-disk durability. CI qualifies the final submitted commit through the normal project fixtures and packaged workflows, with its receipt recorded after push.
-
-[Follow-up verification manifest](../qualification/evidence/standards-corrections/residual/verification.json) and [local commands/counts](../qualification/evidence/standards-corrections/residual/local-verification.json) retain source/artifact identities, input hashes, original baseline requests and fresh corrected outcomes. Two preliminary unit runs are explicitly preserved: 352 tests/one optional-property fixture error, then 359 tests/three overly specific exception-class assertions. The positive control was corrected to the configured supported property profile, and nested invalid-data assertions now require the actual precise exception kind. No production validation, test assertion requirement, dependency or third-party implementation was weakened to make them pass.
-
-The first follow-up CI run on `e6e42bb` passed 359 unit, 215 integration, six protocol and four OAuth tests (zero failures/errors/skips), plus the container build and license inspection, but failed its current-feed OS gate on HIGH `CVE-2026-111497` in the previous official Temurin image’s `libbrotli1` 1.2.0-3build1. Packaged recovery/browser steps were consequently skipped, not passed. Ubuntu’s [official fix](https://ubuntu.com/security/notices/USN-8956-1) is 1.2.0-3ubuntu0.1. The compatible official image refresh retains Java 25.0.4.1+1 and an identical Java executable; active application/CI/Keycloak pins change together. No Maven dependency, framework source or advisory policy changes. The separate [packaging record](../qualification/evidence/standards-corrections/residual/packaging-qualification.json) retains the failed run and local candidate verification. The final exact-commit CI receipt is added to the external residual evidence directory after push.
-
-The 309-row derived matrix keeps every earlier field and appends follow-up assessments to only the eight independently affected rows. Earlier 217/75/etc developer labels remain historical; they are not an independent endorsement. Wider property/grammar, operator and physical-device limitations remain. Previously accepted invalid objects remain retrievable for authorized conditional repair or deletion; there is no migration or source-byte rewriting.
-
-## Earlier verification status
-
-The earlier source revisions, fix commits, commands/counts, artifact identities and outcomes remain recorded below. They qualify their named versions; the current residual follow-up is above. Pending or failed checks are not passes.
-
-* [Derived matrix dispositions](../qualification/evidence/standards-corrections/matrix-dispositions.csv) retain every original row, result and evidence alongside its developer disposition.
-* [Fresh baseline evidence](../qualification/evidence/standards-corrections/baseline/) contains the original-counterexample results before correction.
-* [Developer verification manifest](../qualification/evidence/standards-corrections/verification.json) identifies actual executed checks and remaining limitations.
-
-The independent matrix contains 309 assessments: 156 conformant, 29 nonconformant, 55 partially conformant, 56 unverified and 13 not applicable. Overlapping rows are not separate defects, and verification gaps are not automatically failures. The derived matrix preserves these identifiers and classifications rather than overwriting the independent CSV. The earlier developer dispositions were 217 conformant, 75 partial, 15 not applicable, one intentional historical authentication deviation and one documented leap-second SHOULD exception. Those broader row assessments remain distinct from the 17 corrected finding groups.
-
-## Earlier submission verification and handoff
-
-Production source and tests were qualified at `58f279ad83abcd0011a1dd84589b9dc6c70f8d05`. The final handoff commit adds qualification fixtures, documentation and evidence; its production/test/POM tree identities are pinned in the manifest. Local executable JAR SHA-256 is `d267d98d5a1e141aaf88679590c082cdcc4979cb4a9da64c80bb9a388fc321da`, byte-identical inside image `sha256:110295d4286f4a3e3927876e917b4588b6f25474285d0dc9b3ba2d20f9b6283c`. No image was published.
-
-* `./mvnw -B -ntp clean verify` with the pinned Java/client prerequisites: **295 unit + 209 integration tests, zero failures/errors/skips; SpotBugs zero findings**. Both independent clients, actual JDBC/signed passkeys, real Keycloak, concurrency, synchronization and restart tests ran. The isolated large-group case passed 1/0/0/0 with unchanged limits/assertions.
-* Investigation suites passed 6 protocol and 4 OAuth tests. Distribution, security-gate and browser-fixture unit suites passed 8, 11 and 12 tests respectively. Actual source/JAR/container licensing and SBOM inspection passed; Apache-2.0/notices remain delivered.
-* Fresh original probes recorded 88 DAV/calendar requests plus 4 timezone-admission requests; signed HTTP, metadata, future-zone, restart and strict-depth probes passed separately. Original baseline 96 records remain unchanged. The count differs because rejected invalid PUTs no longer have successful-GET follow-ups and the lowercase success now does.
-* All six packaged HTTPS profiles passed: root, strict depth, prefixed proxy, real Keycloak, local restoration with independent clients, and federated restoration. Both restore profiles used the original corpus and verified bytes/ETags, corrected timezone reports, history/properties/shares, old access/token invalidation and revoked-recipient denial. Actual packaged same-version and V9→V13 restore/upgrade also passed. No schema change was needed.
-* Required OSV checked 112 runtime components with no returned advisories; the vulnerable positive control failed exactly as expected. Trivy checked 115 OS packages: **46 Medium, 12 Low, zero blocking findings, no suppressions**. Optional additional NVD verification was not run locally.
-
-The first full run stopped at 295 unit tests with one error in an existing illegal BYWEEKNO/numeric-BYDAY fixture. The fixture now uses a legal neighbor and retains an illegal-form rejection assertion; the complete rerun passed. External Maven-cache permissions, absent host Node, an incomplete first probe working copy and intermediate authentication integration failures are separately retained with their superseding results. They are not erased or described as successful runs.
-
-Safe [packaged logs and reports](../qualification/evidence/standards-corrections/packaged/) and [full-suite counts](../qualification/evidence/standards-corrections/full-suite.json) are versioned. Full logs, reports, executable artifact and adapted independent probes are retained in `/home/albert/busystack/caldav-server-audit/developer-correction-evidence/` and its ZIP. Credentials/private keys are excluded from that submission archive. The original independent inputs remain unchanged. The exact final remote SHA and completed CI job/step receipt are recorded after push as `remote-ci.json` in that persistent directory; CI cannot be self-recorded inside the commit it checks. The final handoff links the exact run.
-
-## Original counterexample corrections
+## Corrections and regression coverage
 
 <!-- FINDING_RESOLUTIONS_BEGIN -->
 
-The first submission corrected each original counterexample and regression case. Independent re-verification then closed sixteen groups and specified the residual CAL-01 input classes addressed above. This table retains the earlier corrections and named-version evidence. Exact file/method/line references, standards sections, baseline records and fix commits remain in the [earlier verification manifest](../qualification/evidence/standards-corrections/verification.json).
+The first submission corrected each original counterexample and regression case. Independent re-verification then closed sixteen groups and specified the residual CAL-01 input classes addressed above. This table retains the earlier corrections and named-version evidence. Exact file/method/line references, standards sections, baseline records and fix commits remain in the [earlier verification manifest](https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/standards-corrections/verification.json).
 
 | ID / applicable normative sections | Original counterexample and root cause | Application correction | Regression evidence / fix commit / independent outcome |
 | --- | --- | --- | --- |
@@ -87,11 +55,11 @@ H-04 adds a real password→passkey→consent→code/S256→token/refresh/revoke
 
 H-05 records URI alias authorization, property/snapshot interleavings and size boundaries. For freebusy, RFC 4791 §7.3 specifically requires collection timezone and §9.11 does not define a request-timezone child; RFC 4918 §17 therefore ignores that unexpected subtree. Calendar-query retains its defined request timezone. A clean floating-event HTTP control verifies the distinction. For mixed multi-valued parameter negation, RFC 4791§9.7.3 permits text-match in its grammar but omits that case from its prose; §9.7.5 does not place the list quantifier. The current per-value reading has support in RFC 5545§3.2.11’s individual MEMBER values. CAL-R086 retains this precise interpretation gap; no mandatory defect is inferred from the ambiguity. PUT body limits retain transport 413 and identify CALDAV:max-resource-size where applicable; generic report/sync limits are not globally remapped.
 
-H-06 retains the large-group test enabled and preserves all failed executions. Its original transaction timeout was not an assertion proving a protocol defect. Fresh isolated/full-suite/CI outcomes are recorded with actual counts; production transaction limits and assertions are not weakened to manufacture success. Performance measurement is deferred. The current packaged CI correctness profile uses `--clients`, without the historical capacity/latency workload.
+H-06 retains the large-group test enabled and preserves all failed executions. Its original transaction timeout was not an assertion proving a protocol defect. Fresh isolated/full-suite/CI outcomes are recorded with actual counts; production transaction limits and assertions are not weakened to manufacture success. No new performance qualification is inferred. The current packaged CI correctness profile uses `--clients`, without the historical capacity/latency workload.
 
 ## Preserved decisions and nonblocking recommendations
 
-Java 25, Spring Boot 4/Security 7, PostgreSQL, embedded authentication and optional Keycloak remain. The original correction pass retained dependency and base-image pins, Apache-2.0 delivery and third-party notices. The residual qualification refreshes only the official Temurin base digest for the confirmed OS advisory described above; the Java release and Maven dependencies remain pinned. Neither copied upstream parser/timezone source is modified; independently implemented application adapters use supported library APIs. No Digest, primary-password DAV, scheduling, CardDAV, locking, file hosting, non-Gregorian execution or notification feature is added.
+Java 25, Spring Boot 4/Security 7, PostgreSQL, embedded authentication and optional Keycloak remain. The original correction pass retained dependency and base-image pins, Apache-2.0 delivery and third-party notices. The residual qualification refreshes only the official Temurin base digest for the confirmed OS advisory recorded in the archived packaging evidence; the Java release and Maven dependencies remain pinned. Official iCal4j artifacts remain unmodified; application-owned adapters use supported library APIs. No Digest, primary-password DAV, scheduling, CardDAV, locking, file hosting, non-Gregorian execution or notification feature is added.
 
 The approved default sync Depth: 1 accommodation applies only to sync-collection with XML sync-level=1; missing/Depth: 0 and explicit `allow-sync-depth-one=false` remain separately verified. HTTPS DAV credentials/Bearer remain the selected authentication profile, with the documented historical Digest deviation. Those decisions are not among the 17 implementation defects.
 
