@@ -1,0 +1,17 @@
+.git
+.github
+.idea
+.vscode
+target
+investigation
+docs
+scripts
+*.log
+.env
+.env.*
+secrets
+backups
+
+.client-tools/
+
+.client-venv/

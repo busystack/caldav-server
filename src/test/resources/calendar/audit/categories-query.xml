@@ -1,0 +1,1 @@
+<c:calendar-query xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:d="DAV:"><d:prop><d:getetag/></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:prop-filter name="CATEGORIES"><c:text-match collation="i;octet">alpha;beta</c:text-match></c:prop-filter></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>

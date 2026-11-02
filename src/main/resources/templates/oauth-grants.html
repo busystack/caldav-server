@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Client access · BusyStack</title><link rel="stylesheet" th:href="@{/assets/account.css}"></head>
+<body><main><h1>OAuth client access</h1><nav><a th:href="@{/}">Your account</a><a th:href="@{/security/passkeys}">Verify password and passkey</a></nav>
+<p>Approved applications can access your calendar and task collections within your existing sharing permissions. Revoking access invalidates that application's current access and refresh credentials immediately.</p><p>Revocation requires password and passkey verification within ten minutes. Applications must sign in again after thirty days.</p>
+<table><caption>Authorization grants</caption><thead><tr><th scope="col">Application</th><th scope="col">Authorized</th><th scope="col">Expires</th><th scope="col">Revoked</th><th scope="col">Action</th></tr></thead><tbody><tr th:each="grant : ${grants}"><td><span th:text="${grant.clientName}"></span> (<span th:text="${grant.clientId}"></span>)</td><td th:text="${grant.createdAt}"></td><td th:text="${grant.expiresAt}"></td><td th:text="${grant.revokedAt != null ? grant.revokedAt : 'No'}"></td><td><form th:if="${grant.revokedAt == null}" method="post" th:action="@{/oauth-grants/{id}/revoke(id=${grant.id})}"><button>Revoke access</button></form></td></tr></tbody></table><p th:if="${#lists.isEmpty(grants)}">No OAuth applications have been authorized.</p>
+</main></body></html>

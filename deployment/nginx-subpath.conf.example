@@ -1,0 +1,27 @@
+server {
+    listen 443 ssl;
+    server_name calendar.example.org; # OPERATOR: replace domain and supply DNS
+    ssl_certificate /etc/ssl/caldav/fullchain.pem; # OPERATOR: trusted chain
+    ssl_certificate_key /etc/ssl/caldav/privkey.pem; # OPERATOR: protect private key
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    gzip off;
+    client_max_body_size 1m;
+    proxy_connect_timeout 5s;
+    proxy_read_timeout 120s;
+    proxy_set_header Host calendar.example.org;
+    proxy_set_header Forwarded "";
+    proxy_set_header X-Forwarded-Host "";
+    proxy_set_header X-Forwarded-Proto "";
+    # Set both public URL and issuer to https://calendar.example.org/calendar
+    location = /.well-known/caldav { return 308 https://calendar.example.org/calendar/dav/; }
+    location = /.well-known/oauth-authorization-server/calendar {
+        proxy_pass http://127.0.0.1:8080/calendar/.well-known/oauth-authorization-server;
+    }
+    location = /calendar { return 308 https://calendar.example.org/calendar/; }
+    location = /actuator { return 404; }
+    location ^~ /actuator/ { return 404; }
+    location = /calendar/actuator { return 404; }
+    location ^~ /calendar/actuator/ { return 404; }
+    location /calendar/ { proxy_pass http://127.0.0.1:8080; }
+}

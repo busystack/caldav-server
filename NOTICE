@@ -1,0 +1,18 @@
+BusyStack CalDAV Server
+https://github.com/busystack/caldav-server
+
+The project is licensed under Apache License 2.0. Contributors retain the
+copyrights applicable to their contributions; this notice does not assign them
+to a new legal entity.
+
+This distribution includes the official unmodified iCal4j 4.4.0 artifact under
+BSD-3-Clause, Copyright (c) Ben Fortuna. Its complete BSD notice is delivered in
+META-INF/licenses/ical4j-parser-BSD-3-Clause.txt and its original nested JAR.
+
+The database migrations contain adapted Spring Security 7.1.2 and Spring
+Session 4.1.1 JDBC schemas under Apache License 2.0. Their original artifacts,
+modifications and attribution are recorded in META-INF/licenses/spring-derived-schemas.txt.
+
+Dependencies retain their separate licenses and upstream notices. Their license
+and NOTICE files remain in the unmodified nested JARs under BOOT-INF/lib; this
+project license does not replace them. See THIRD-PARTY-NOTICES.

@@ -1,0 +1,1 @@
+<c:calendar-query xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:d="DAV:"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:time-range start="20400401T110000Z" end="20400401T110001Z"/></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>

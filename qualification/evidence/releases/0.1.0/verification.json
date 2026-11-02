@@ -1,0 +1,89 @@
+{
+  "version": "0.1.0",
+  "status": "passed",
+  "recordedAt": "2026-11-02T02:42:39.676240+00:00",
+  "qualifiedSourceCommit": "5d09ecb2e241a97f429f71aecfbfd9fcd166b861",
+  "verificationRun": 41357992646,
+  "verificationAttempt": 1,
+  "jarSha256": "bff028ac0072134458710e22e63ce433f96d4fd2619b217049d619c998151792",
+  "runtimeInputs": {
+    "Dockerfile": "6e1125b89524a0b873ad5d81b7defa5fc62ccdb7aa64ed9a4802841817286c13",
+    "compose.yaml": "17bdfbf0b5fb5ef830042311d89ce8335ac806c15275515befaf05ee7fe9bb49"
+  },
+  "clients": {
+    "thunderbird-system-vancouver": {
+      "status": "passed",
+      "client": "Thunderbird",
+      "version": "159.0",
+      "timezone": "America/Vancouver",
+      "systemTimezone": true,
+      "checks": [
+        "native creation and server read",
+        "conditional time editing and reopen",
+        "bounded daily recurrence and edited occurrence",
+        "client restart with three correct occurrences",
+        "task completion and deletion",
+        "whole-series deletion"
+      ],
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/thunderbird-system-vancouver/thunderbird-gui-results.json"
+    },
+    "thunderbird-explicit-vancouver": {
+      "status": "passed",
+      "client": "Thunderbird",
+      "version": "159.0",
+      "timezone": "America/Vancouver",
+      "systemTimezone": false,
+      "checks": [
+        "native creation and server read",
+        "conditional time editing and reopen",
+        "bounded daily recurrence and edited occurrence",
+        "client restart with three correct occurrences",
+        "task completion and deletion",
+        "whole-series deletion"
+      ],
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/thunderbird-explicit-vancouver/thunderbird-gui-results.json"
+    },
+    "thunderbird-explicit-berlin": {
+      "status": "passed",
+      "client": "Thunderbird",
+      "version": "159.0",
+      "timezone": "Europe/Berlin",
+      "systemTimezone": false,
+      "checks": [
+        "native creation and server read",
+        "conditional time editing and reopen",
+        "bounded daily recurrence and edited occurrence",
+        "client restart with three correct occurrences",
+        "task completion and deletion",
+        "whole-series deletion"
+      ],
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/thunderbird-explicit-berlin/thunderbird-gui-results.json"
+    },
+    "gnome-vancouver": {
+      "status": "passed",
+      "client": "GNOME Calendar",
+      "version": "50.0-1",
+      "EDS": "3.56.2-8",
+      "timezone": "America/Vancouver",
+      "creationEditingReopening": true,
+      "finiteSeriesInstances": 3,
+      "clientServerRestarts": true,
+      "wholeSeriesDeleted": true,
+      "actualDeleteStatus": 204,
+      "finalGetStatus": 404,
+      "evidence": "https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/releases/0.1.0/clients/gnome-vancouver/gnome-workflow.json"
+    }
+  },
+  "qualificationScope": "Native-editor qualification of the identified executable and Dockerfile/Compose inputs. The release manifest records final release-source and distribution identities.",
+  "verifiedImplementationCi": {
+    "sourceCommit": "f3ba60d360117c44b3dfeb6dc9848778a98ef06a",
+    "pushRun": 41379618091,
+    "pullRequestRun": 41379622624,
+    "status": "passed"
+  },
+  "limitations": [
+    "Real editor controls were automated in isolated client profiles; manual human use and physical authenticators were not qualified.",
+    "Only the recorded client versions, platforms and timezone profiles are covered.",
+    "Failed and interrupted automation attempts remain preserved in the historical evidence archive; they are not counted as passing executions."
+  ]
+}
