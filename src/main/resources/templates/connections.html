@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Connections')}"></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
 
 <div class="page-heading"><div><span class="eyebrow">My account</span><h1>Connect your applications</h1><p>Use a dedicated DAV credential as the application password. Your browser sign-in password does not authenticate CalDAV.</p></div><a class="button" th:href="@{/security/credentials}">Issue an application credential</a></div>
 <section><h2>Your connection settings</h2><label for="server-address">Server address</label><div class="copy-field"><input id="server-address" th:value="${davConnection.url}" readonly><button type="button" data-copy="server-address">Copy server</button></div><label for="dav-username">Username</label><div class="copy-field"><input id="dav-username" th:value="${davConnection.username}" readonly><button type="button" data-copy="dav-username">Copy username</button></div><p>Authentication: named DAV credential using Basic over HTTPS. A registered application that supports BusyStack OAuth may use browser authorization instead.</p></section>

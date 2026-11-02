@@ -10,6 +10,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class SessionController {
@@ -33,7 +34,11 @@ public class SessionController {
   }
 
   @PostMapping("/security/sessions/{id}/revoke")
-  String revoke(Authentication authentication, @PathVariable UUID id, HttpServletRequest request) {
+  String revoke(
+      Authentication authentication,
+      @PathVariable UUID id,
+      HttpServletRequest request,
+      RedirectAttributes flash) {
     var session = request.getSession(false);
     if (sessions.revoke(
         authentication, id, session == null ? null : session.getId(), request.getRemoteAddr())) {
@@ -41,6 +46,8 @@ public class SessionController {
       if (session != null) session.invalidate();
       return "redirect:/login?session=ended";
     }
+    flash.addFlashAttribute(
+        "notice", "The requested owned session has ended or is already unavailable.");
     return "redirect:/security/sessions";
   }
 }

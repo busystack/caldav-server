@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class OAuthManagementController {
@@ -32,7 +33,8 @@ public class OAuthManagementController {
       Authentication authentication,
       @RequestParam String clientId,
       @RequestParam String name,
-      @RequestParam String redirects) {
+      @RequestParam String redirects,
+      RedirectAttributes flash) {
     clients.registerNative(
         authentication,
         clientId,
@@ -42,12 +44,15 @@ public class OAuthManagementController {
             .map(String::strip)
             .filter(value -> !value.isEmpty())
             .collect(Collectors.toSet()));
+    flash.addFlashAttribute("notice", "Application registration saved.");
     return "redirect:/admin/oauth-clients";
   }
 
   @PostMapping("/admin/oauth-clients/{id}/remove")
-  String remove(Authentication authentication, @PathVariable String id) {
+  String remove(Authentication authentication, @PathVariable String id, RedirectAttributes flash) {
     clients.remove(authentication, id);
+    flash.addFlashAttribute(
+        "notice", "Application registration removed. Associated grants were revoked.");
     return "redirect:/admin/oauth-clients";
   }
 
@@ -59,8 +64,9 @@ public class OAuthManagementController {
   }
 
   @PostMapping("/oauth-grants/{id}/revoke")
-  String revoke(Authentication authentication, @PathVariable String id) {
+  String revoke(Authentication authentication, @PathVariable String id, RedirectAttributes flash) {
     grants.revoke(authentication, id);
+    flash.addFlashAttribute("notice", "Matching owned application grants are revoked.");
     return "redirect:/oauth-grants";
   }
 

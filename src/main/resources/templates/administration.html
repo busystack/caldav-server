@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Administration')}"></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
 
 <div class="page-heading"><div><span class="eyebrow">Server administration</span><h1>Server overview</h1><p>Application version <strong th:text="${applicationVersion}"></strong>. Aggregate operational metadata does not grant access to private contents.</p></div><a class="button" th:href="@{/admin/accounts/new}">Create account</a></div>
 <div class="grid"><section><h2>Accounts</h2><p class="metric" th:text="${enabledAccounts}"></p><p>Enabled · <span th:text="${disabledAccounts}"></span> disabled</p><a th:href="@{/admin/accounts}">Manage accounts</a></section><section><h2>Collections</h2><p class="metric" th:text="${collections}"></p><p><span th:text="${eventCollections}"></span> calendars · <span th:text="${taskCollections}"></span> task lists</p></section><section><h2>Stored resources</h2><p class="metric" th:text="${resources}"></p><p>Calendar and task resources, excluding retained history.</p></section></div>

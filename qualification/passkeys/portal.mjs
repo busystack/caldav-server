@@ -100,6 +100,7 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
         assert.equal(await page.locator('main h1').count(),1,path+' must have one primary heading');
         assert.equal(await page.locator('link[rel=stylesheet]').count(),1);
         assert.ok(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor!=='rgba(0, 0, 0, 0)'),path+' must be styled');
+        if(output) await page.screenshot({path:output+'/'+suffix+'-'+viewport.width+'-'+path.replaceAll('/','_').replaceAll('?','_')+'.png',fullPage:true});
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),path+' must fit the viewport');
         const unlabeled=await page.locator('input:not([type=hidden]),select,textarea').evaluateAll(elements=>elements.filter(e=>!e.labels?.length && !e.getAttribute('aria-label') && !e.getAttribute('aria-labelledby')).map(e=>e.name||e.id));
         assert.deepEqual(unlabeled,[],path+' control labels');
@@ -107,7 +108,8 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
         assert.ok(await page.evaluate(()=>document.activeElement.tagName==='A'),'The skip link must be the first keyboard stop');
         await page.keyboard.press('Enter');
         assert.equal(new URL(page.url()).hash,'#main');
-        if(output) await page.screenshot({path:output+'/'+suffix+'-'+viewport.width+'-'+path.replaceAll('/','_').replaceAll('?','_')+'.png',fullPage:true});
+        assert.equal(await page.evaluate(()=>document.activeElement.id),'main','Skip navigation must move keyboard focus to the content');
+
       }
     }
     await page.setViewportSize({width:1280,height:900});

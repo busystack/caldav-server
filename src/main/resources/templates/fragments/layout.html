@@ -19,14 +19,14 @@
     <a th:href="@{/}" th:attr="aria-current=${portalPath == '/' ? 'page' : null}">Overview</a>
     <a th:href="@{/collections}" th:attr="aria-current=${portalPath.startsWith('/collections') ? 'page' : null}">Calendars &amp; Tasks</a>
     <a th:href="@{/connections}" th:attr="aria-current=${portalPath == '/connections' ? 'page' : null}">Connections</a>
-    <a th:href="@{/security}" th:attr="aria-current=${portalPath.startsWith('/security') or portalPath == '/oauth-grants' ? 'page' : null}">Security</a>
+    <a th:href="@{/security}" th:attr="aria-current=${portalPath.startsWith('/security') or portalPath == '/oauth-grants' or portalPath.startsWith('/credentials') ? 'page' : null}">Security</a>
     <a th:href="@{/portability}" th:attr="aria-current=${portalPath.startsWith('/portability') ? 'page' : null}">Import &amp; Export</a>
   </nav>
   <nav th:if="${viewer != null and administrationArea}" aria-label="Administration" class="section-nav">
     <a th:href="@{/admin}" th:attr="aria-current=${portalPath == '/admin' ? 'page' : null}">Overview</a>
     <a th:href="@{/admin/accounts}" th:attr="aria-current=${portalPath.startsWith('/admin/accounts') ? 'page' : null}">Accounts</a>
     <a th:href="@{/admin/groups}" th:attr="aria-current=${portalPath.startsWith('/admin/groups') ? 'page' : null}">Groups</a>
-    <a th:href="@{/admin/audit}" th:attr="aria-current=${portalPath == '/admin/audit' ? 'page' : null}">Security &amp; Audit</a>
+    <a th:href="@{/admin/audit}" th:attr="aria-current=${portalPath == '/admin/audit' or portalPath.startsWith('/admin/oauth-clients') ? 'page' : null}">Security &amp; Audit</a>
     <a th:href="@{/admin/diagnostics}" th:attr="aria-current=${portalPath == '/admin/diagnostics' ? 'page' : null}">System &amp; Diagnostics</a>
   </nav>
 </header>

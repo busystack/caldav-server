@@ -329,7 +329,12 @@ def main():
                         (artifacts / ("thunderbird-" + kind + ".ics")).write_bytes(result[kind].encode("utf-8"))
                     assert len(events.events()) == 3 and len(tasks.todos(include_completed=True)) == 1
                     urls, completed = python_edits_native_items(events, tasks)
-                    stream = "".join(item.data for item in events.objects()) + "".join(item.data for item in tasks.objects())
+                    stream_parts = []
+                    for resource in events.objects() + tasks.objects():
+                        resource.load()
+                        assert resource.data is not None
+                        stream_parts.append(resource.data.decode("utf-8") if isinstance(resource.data, bytes) else resource.data)
+                    stream = "".join(stream_parts)
                     imported = driver.execute_script("""
                       const parser=Cc['@mozilla.org/calendar/ics-parser;1'].createInstance(Ci.calIIcsParser);
                       parser.parseString(arguments[0]);

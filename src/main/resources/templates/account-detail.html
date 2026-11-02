@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Account details')}"></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
 
 <a th:href="@{/admin/accounts}">Back to accounts</a><h1 th:text="${account.displayName}"></h1><section><h2>Account identity</h2><dl><dt>Username</dt><dd th:text="${account.username}"></dd><dt>Status</dt><dd th:text="${account.enabled ? 'Enabled' : 'Disabled'}"></dd><dt>Role</dt><dd th:text="${account.administrator ? 'Administrator' : 'Ordinary user'}"></dd><dt>Primary sign-in</dt><dd th:text="${account.external ? 'Managed by the configured organization identity provider; no local password fallback' : 'Locally managed password'}"></dd></dl><p>Passkeys, credentials and recovery are managed by the user or the documented offline operator procedure. No password-reset, reactivation or privilege-change action is available here.</p></section>
 <section><h2>Edit profile</h2><form method="post" th:action="@{/admin/accounts/{id}/edit(id=${account.id})}"><input type="hidden" name="expected" th:value="${account.displayName}"><label>Display name<input name="displayName" th:value="${account.displayName}" required maxlength="200"></label><button>Save display name</button></form></section>

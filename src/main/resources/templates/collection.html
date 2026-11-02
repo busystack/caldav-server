@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Collection details')}"></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
 
 <a th:href="@{/collections}">Back to collections</a><div class="page-heading"><div><span class="eyebrow" th:text="${collection.type}"></span><h1 th:text="${collection.name}"></h1><p><span class="badge" th:text="${collection.access}"></span> · Owner: <span th:text="${collection.ownerName}"></span></p></div><div class="actions"><a th:if="${collection.owned}" class="button" th:href="@{/collections/{id}/sharing(id=${collection.id})}">Manage sharing</a><a class="button secondary" th:href="@{/portability/collections/{id}/export(id=${collection.id})}">Export iCalendar</a></div></div>
 <section><h2>CalDAV address</h2><label class="sr-only" for="collection-address">Collection address</label><div class="copy-field"><input id="collection-address" readonly th:value="${collection.address}"><button type="button" data-copy="collection-address">Copy address</button></div><p><a th:href="@{/connections}">Connection guide</a> · <a th:if="${collection.writable}" th:href="@{/portability(destination=${collection.id})}">Import iCalendar</a></p></section>

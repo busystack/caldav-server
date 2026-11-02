@@ -14,7 +14,7 @@
     const response = await fetch(base + path, {method, credentials: 'same-origin',
       headers: {[csrfHeader]: csrfToken, 'Content-Type': 'application/json'},
       body: body === undefined ? undefined : JSON.stringify(body)});
-    if (!response.ok) throw new Error('Request failed (' + response.status + '). Verify your password and existing passkey, then try again.');
+    if (!response.ok) throw new Error('Request failed (' + response.status + '). Verify your primary sign-in and existing passkey, then try again.');
     return response.status === 204 ? null : response.json();
   }
   function run(button, action) {
