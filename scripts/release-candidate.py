@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_version as versions
 import release_source
+import release_image
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = versions.REPOSITORY
@@ -55,7 +56,16 @@ def validate(directory, requested=None, source_sha=None):
     assert record['sourceTree'] == subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', record['sourceCommit'] + '^{tree}'], text=True).strip()
     _, sbom = builder.inspect_jar(directory / versions.jar_name(version), version)
     assert sbom == (directory / 'sbom.cdx.json').read_bytes(), 'Embedded and staged SBOM differ'
-    return record
+    digest, _ = release_image.saved_identity(directory / 'container.tar.gz', version, record['sourceCommit'])
+    assert record.get('imageConfigDigest', digest) == digest, 'Saved image configuration checksum mismatch'
+    return {**record, 'imageConfigDigest': digest}
+
+
+def load_image(directory, record):
+    actual, digest = release_image.load(Path(directory) / 'container.tar.gz', record['version'], record['sourceCommit'],
+                                       record['files'][versions.jar_name(record['version'])], builder.identity)
+    assert digest == record['imageConfigDigest']
+    return actual
 
 
 def main():
@@ -80,12 +90,14 @@ def main():
     archive = destination / 'container.tar'
     subprocess.run(['docker', 'image', 'save', '--output', str(archive), config['Id']], check=True)
     subprocess.run(['gzip', '-n', str(archive)], check=True)
+    image_config, _ = release_image.saved_identity(destination / 'container.tar.gz', version, revision)
     write_json(destination / 'candidate.json', {
         'schemaVersion': 2, 'repository': REPOSITORY, 'version': version,
         'sourceCommit': revision, 'sourceTree': subprocess.check_output(['git', 'rev-parse', revision + '^{tree}'], cwd=ROOT, text=True).strip(),
         'ciRun': int(os.environ['GITHUB_RUN_ID']), 'ciAttempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
         'workflow': '.github/workflows/ci.yml', 'platform': 'linux/amd64',
-        'imageId': config['Id'], 'localDescriptorDigest': config.get('Descriptor', {}).get('digest'),
+        'imageId': config['Id'], 'imageConfigDigest': image_config,
+        'localDescriptorDigest': config.get('Descriptor', {}).get('digest'),
         'imageTag': args.image, 'files': {p.name: sha256(p) for p in destination.iterdir()},
     })
     validate(destination, version, revision)

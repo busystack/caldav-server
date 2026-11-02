@@ -113,9 +113,9 @@ def download(run_id, name, destination):
     subprocess.run(['gh', 'run', 'download', str(run_id), '--repo', REPO, '--name', name, '--dir', str(destination)], check=True)
 
 
-def manifest_digest(tag, anonymous=False):
+def registry_headers(anonymous=False, actions='pull'):
     # Documented OCI distribution authentication. Never print the registry bearer token.
-    query = urllib.parse.urlencode({'service': 'ghcr.io', 'scope': 'repository:' + REPO + ':pull'})
+    query = urllib.parse.urlencode({'service': 'ghcr.io', 'scope': 'repository:' + REPO + ':' + actions})
     headers = {}
     if not anonymous:
         credential = os.environ['GITHUB_ACTOR'] + ':' + os.environ['GH_TOKEN']
@@ -123,8 +123,12 @@ def manifest_digest(tag, anonymous=False):
     token_request = urllib.request.Request('https://ghcr.io/token?' + query, headers=headers)
     with urllib.request.urlopen(token_request, timeout=60) as response:
         token = json.load(response)['token']
-    headers = {'Authorization': 'Bearer ' + token,
+    return {'Authorization': 'Bearer ' + token,
                'Accept': 'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json'}
+
+
+def manifest_digest(tag, anonymous=False):
+    headers = registry_headers(anonymous=anonymous)
     try:
         request = urllib.request.Request('https://ghcr.io/v2/' + REPO + '/manifests/' + tag, headers=headers)
         with urllib.request.urlopen(request, timeout=60) as response:
@@ -137,6 +141,35 @@ def manifest_digest(tag, anonymous=False):
         raise
 
 
+def promote_manifest(digest, version):
+    """Attach the final tag to the exact staged bytes, without a Docker re-export."""
+    versions.stable(version)
+    assert re.fullmatch(r'sha256:[0-9a-f]{64}', digest), 'Invalid staged registry digest'
+    existing = manifest_digest(version)
+    matching_version(existing, digest)
+    if existing is not None:
+        return
+    headers = registry_headers(actions='pull,push')
+    base = 'https://ghcr.io/v2/' + REPO + '/manifests/'
+    with urllib.request.urlopen(urllib.request.Request(base + digest, headers=headers), timeout=60) as response:
+        data = response.read()
+        media_type = response.headers['Content-Type'].split(';', 1)[0]
+        assert media_type in headers['Accept'].split(', '), 'Unsupported staged manifest media type'
+        assert response.headers['Docker-Content-Digest'] == digest, 'Staged manifest response digest changed'
+    assert 'sha256:' + hashlib.sha256(data).hexdigest() == digest, 'Staged manifest bytes do not match digest'
+    assert json.loads(data)['mediaType'] == media_type, 'Staged manifest media type differs'
+    # Check again after the download; never replace a conflicting version tag.
+    existing = manifest_digest(version)
+    matching_version(existing, digest)
+    if existing is not None:
+        return
+    request = urllib.request.Request(base + version, data=data, method='PUT',
+                                     headers={**headers, 'Content-Type': media_type})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        assert response.headers['Docker-Content-Digest'] == digest, 'Promoted registry digest changed'
+    assert manifest_digest(version) == digest, 'Final tag differs from staged registry manifest'
+
+
 def remote_image_matches(record, digest):
     remote = json.loads(command('docker', 'manifest', 'inspect', REGISTRY + '@' + digest))
     if 'manifests' in remote:
@@ -147,10 +180,8 @@ def remote_image_matches(record, digest):
             assert item.get('platform') == {'architecture': 'amd64', 'os': 'linux'}, 'Unqualified registry platform'
             runtime.append(item)
         assert len(runtime) == 1, 'Expected exactly one Linux AMD64 runtime manifest'
-        if record.get('localDescriptorDigest') == digest or record['imageId'] == digest:
-            return
         remote = json.loads(command('docker', 'manifest', 'inspect', REGISTRY + '@' + runtime[0]['digest']))
-    assert remote['config']['digest'] == record['imageId'], 'Conflicting stage image'
+    assert remote['config']['digest'] == record['imageConfigDigest'], 'Conflicting stage image configuration'
 
 
 def matching_version(existing, expected):
@@ -221,6 +252,7 @@ def validate_stage(staged, stage, record, run):
     assert manifest['sourceSnapshotSha256'] == stage['sourceSnapshotSha256']
     assert manifest['container']['registryManifestDigest'] == stage['registryDigest']
     assert manifest['container']['localTestedImageId'] == record['imageId']
+    assert manifest['container']['imageConfigDigest'] == record['imageConfigDigest']
     assert manifest['jar']['sha256'] == record['files'][versions.jar_name(record['version'])]
     for name, checksum in manifest['sourceInputs'].items():
         assert hashlib.sha256(source_bytes(record['sourceCommit'], name)).hexdigest() == checksum, 'Unqualified release payload input: ' + name
@@ -262,15 +294,12 @@ def main():
     assert record['ciRun'] == run['id'] and record['ciAttempt'] == run['run_attempt'] and record['sourceCommit'] == args.source_sha
     check_client_receipt(record['files'][versions.jar_name(args.version)], args.source_sha, args.version)
     check_release(args.source_sha, args.version)
-    subprocess.run(['docker', 'image', 'load', '--input', str(source / 'container.tar.gz')], check=True)
-    config = json.loads(command('docker', 'image', 'inspect', record['imageId']))[0]
-    assert config['Id'] == record['imageId'] and config['Architecture'] == 'amd64' and config['Os'] == 'linux'
-    assert config['Config']['Labels']['org.opencontainers.image.revision'] == args.source_sha
-    assert config['Config']['Labels']['org.opencontainers.image.version'] == args.version
-    candidate.builder.identity(record['imageId'], args.version, args.source_sha, record['files'][versions.jar_name(args.version)])
-    assert command('docker', 'run', '--rm', '--entrypoint', 'sha256sum', record['imageId'], '/opt/busystack/application.jar').split()[0] == record['files'][versions.jar_name(args.version)]
+    config = candidate.load_image(source, record)
+    loaded_id = config['Id']
+    journal(log, 'verified-image-loaded', {'ciImageId': record['imageId'], 'loadedImageId': loaded_id,
+                                         'imageConfigDigest': record['imageConfigDigest']})
     if args.phase == 'stage':
-        subprocess.run(['docker', 'tag', record['imageId'], REGISTRY + ':' + staging], check=True)
+        subprocess.run(['docker', 'tag', loaded_id, REGISTRY + ':' + staging], check=True)
         # After the first push the linked package exists; retries never change staged content.
         package = api('orgs/busystack/packages/container/caldav-server', missing=True)
         prior = None
@@ -331,9 +360,8 @@ def main():
     if not tag:
         api(f'repos/{REPO}/git/refs', method='POST', fields={'ref': 'refs/tags/' + versions.tag(args.version), 'sha': args.source_sha})
     journal(log, 'exact-tag-created-or-matched', {'sha': args.source_sha})
-    subprocess.run(['docker', 'tag', record['imageId'], REGISTRY + ':' + args.version], check=True)
     if existing_version_digest is None:
-        subprocess.run(['docker', 'push', REGISTRY + ':' + args.version], check=True)
+        promote_manifest(digest, args.version)
     assert manifest_digest(args.version) == digest
     journal(log, 'version-image-created-or-matched', {'digest': digest})
     if not release:

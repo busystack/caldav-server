@@ -292,7 +292,7 @@ def main():
             prefs = {"marionette.port": port, "marionette.host": "127.0.0.1", "marionette.enabled": True, "mail.provider.enabled": False, "mailnews.start_page.enabled": False, "datareporting.policy.dataSubmissionEnabled": False, "datareporting.healthreport.uploadEnabled": False, "toolkit.telemetry.enabled": False, "app.update.enabled": False, "calendar.timezone.local": "UTC", "network.proxy.type": 0, "mail.shell.checkDefaultClient": False, "mailnews.database.global.indexer.enabled": False}
             (profile / "user.js").write_text("\n".join("user_pref(" + json.dumps(key) + "," + json.dumps(value) + ");" for key, value in prefs.items()))
             env = os.environ.copy()
-            env.update(MOZ_HEADLESS="1", MOZ_NO_REMOTE="1")
+            env.update(MOZ_HEADLESS="1", MOZ_NO_REMOTE="1", MOZ_REMOTE_ALLOW_SYSTEM_ACCESS="1")
             with (profile / "browser.log").open("w") as log:
                 process = subprocess.Popen([binary, "--headless", "--no-remote", "--profile", str(profile), "--marionette", "--remote-allow-system-access"], env=env, stdout=log, stderr=subprocess.STDOUT)
                 driver = None

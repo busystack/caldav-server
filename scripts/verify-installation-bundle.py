@@ -180,7 +180,6 @@ def main():
             config = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], env=environment))[0]
             assert config['Config']['Labels']['org.opencontainers.image.revision'] == manifest['sourceCommit']
             assert config['Config']['Labels']['org.opencontainers.image.version'] == manifest['version']
-            assert config['Id'] == manifest['container']['localTestedImageId']
             jar_sha = subprocess.check_output(['docker', 'run', '--rm', '--entrypoint', 'sha256sum', image, '/opt/busystack/application.jar'], env=environment, text=True).split()[0]
             assert jar_sha == manifest['jar']['sha256']
             assert config['Architecture'] == 'amd64' and config['Os'] == 'linux'

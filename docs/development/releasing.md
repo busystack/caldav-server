@@ -62,7 +62,9 @@ The successful CI candidate retains the exact JAR, embedded SBOM, saved containe
 and complete source snapshot. Its version is resolved at its exact source commit,
 not at a later controller checkout. The snapshot is checked against every Git
 blob. Candidate identity distinguishes source SHA/tree, workflow/run/attempt,
-JAR SHA-256, local Docker image ID and saved-image checksum.
+JAR SHA-256, local Docker image ID, canonical saved-image configuration digest
+and saved-image checksum. Loading on another Docker engine may produce a different
+local ID; the loaded runtime configuration, filesystem layers and JAR must match.
 
 ## Approved integration
 
@@ -134,6 +136,9 @@ OCI labels. The controller may orchestrate validation; its files cannot become
 release payloads. Publication downloads and validates the exact staged assets and
 notes. It does not regenerate them from the controller. Installation and stage
 receipts must match the selected version, source, CI attempt and artifact hashes.
+The final image tag is attached to the exact staged registry manifest bytes using
+the registry API. Publication does not export the image again through a different
+Docker engine, which could change the registry manifest digest.
 
 Publication creates or matches the exact `v<version>` tag, versioned image and
 draft release. It rejects conflicting content, uploads only missing exact assets,

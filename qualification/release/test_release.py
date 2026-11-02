@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import release_version as versions
 import release_source
+import release_image
 
 
 def load(name):
@@ -52,6 +53,19 @@ def make_jar(path, version):
     return bom.encode()
 
 
+def make_image_archive(path, version, revision):
+    config = {'os': 'linux', 'architecture': 'amd64', 'rootfs': {'type': 'layers', 'diff_ids': []},
+              'config': {'Labels': {'org.opencontainers.image.version': version,
+                  'org.opencontainers.image.revision': revision,
+                  'org.opencontainers.image.source': 'https://github.com/' + versions.REPOSITORY,
+                  'org.opencontainers.image.licenses': 'Apache-2.0'}}}
+    data = json.dumps(config).encode()
+    digest = 'sha256:' + hashlib.sha256(data).hexdigest()
+    path.write_bytes(bundle.tar_bytes({'config.json': data,
+        'manifest.json': json.dumps([{'Config': 'config.json', 'RepoTags': None, 'Layers': []}]).encode()}))
+    return digest, config
+
+
 @contextmanager
 def fixture(version='0.1.0'):
     with tempfile.TemporaryDirectory(prefix='caldav-release-fixture-') as temporary, ExitStack() as stack:
@@ -78,7 +92,6 @@ def fixture(version='0.1.0'):
         source.mkdir()
         sbom = make_jar(source / versions.jar_name(version), version)
         (source / 'sbom.cdx.json').write_bytes(sbom)
-        (source / 'container.tar.gz').write_bytes(b'tested container fixture')
         receipt = {'version': version, 'jarSha256': candidate.sha256(source / versions.jar_name(version)), 'status': 'passed',
                    'runtimeInputs': {name: candidate.sha256(root / name) for name in ('Dockerfile', 'compose.yaml')},
                    'clients': {name: {'status': 'passed'} for name in CLIENTS}}
@@ -88,10 +101,11 @@ def fixture(version='0.1.0'):
         git(root, 'add', '.')
         git(root, 'commit', '--quiet', '-m', 'Qualified application source')
         sha = git(root, 'rev-parse', 'HEAD')
+        image_config, _ = make_image_archive(source / 'container.tar.gz', version, sha)
         release_source.retain(sha, source / 'source.tar.gz', root)
         record = {'schemaVersion': 2, 'version': version, 'repository': versions.REPOSITORY,
                   'sourceCommit': sha, 'sourceTree': git(root, 'rev-parse', 'HEAD^{tree}'), 'platform': 'linux/amd64',
-                  'ciRun': 123, 'ciAttempt': 2, 'workflow': '.github/workflows/ci.yml', 'imageId': 'sha256:' + '3' * 64,
+                  'ciRun': 123, 'ciAttempt': 2, 'workflow': '.github/workflows/ci.yml', 'imageId': image_config, 'imageConfigDigest': image_config,
                   'files': {p.name: candidate.sha256(p) for p in source.iterdir()}}
         candidate.write_json(source / 'candidate.json', record)
         for module in (candidate, bundle.candidate, publish.candidate, publish, builder):
@@ -100,6 +114,62 @@ def fixture(version='0.1.0'):
 
 
 class VersionAndProvenanceTest(unittest.TestCase):
+    def test_final_image_promotion_preserves_exact_staged_manifest_bytes_for_each_version(self):
+        for version in VERSIONS:
+            with self.subTest(version=version):
+                data = b'{ "schemaVersion": 2, "mediaType": "application/vnd.oci.image.index.v1+json", "manifests": [] }\n'
+                digest = 'sha256:' + hashlib.sha256(data).hexdigest()
+                def response(request, timeout):
+                    result = io.BytesIO(data)
+                    result.headers = {'Content-Type': 'application/vnd.oci.image.index.v1+json', 'Docker-Content-Digest': digest}
+                    if request.get_method() == 'PUT':
+                        self.assertEqual(request.data, data)
+                        self.assertTrue(request.full_url.endswith('/manifests/' + version))
+                    else:
+                        self.assertTrue(request.full_url.endswith('/manifests/' + digest))
+                    return result
+                with patch.object(publish, 'manifest_digest', side_effect=[None, None, digest]), patch.object(publish, 'registry_headers', return_value={'Accept': 'application/vnd.oci.image.index.v1+json'}) as auth, patch.object(publish.urllib.request, 'urlopen', side_effect=response) as requests:
+                    publish.promote_manifest(digest, version)
+                auth.assert_called_once_with(actions='pull,push')
+                self.assertEqual(requests.call_count, 2)
+
+    def test_manifest_promotion_rejects_changed_bytes_and_conflicting_tags(self):
+        digest = 'sha256:' + '1' * 64
+        result = io.BytesIO(b'{"mediaType":"application/vnd.oci.image.manifest.v1+json"}')
+        result.headers = {'Content-Type': 'application/vnd.oci.image.manifest.v1+json', 'Docker-Content-Digest': digest}
+        with patch.object(publish, 'manifest_digest', return_value=None), patch.object(publish, 'registry_headers', return_value={'Accept': result.headers['Content-Type']}), patch.object(publish.urllib.request, 'urlopen', return_value=result) as requests, self.assertRaisesRegex(AssertionError, 'bytes do not match'):
+            publish.promote_manifest(digest, '0.1.0')
+        self.assertEqual(requests.call_count, 1)
+        with patch.object(publish, 'manifest_digest', return_value='sha256:' + '2' * 64), patch.object(publish.urllib.request, 'urlopen') as requests, self.assertRaisesRegex(AssertionError, 'Conflicting'):
+            publish.promote_manifest(digest, '0.1.0')
+        requests.assert_not_called()
+        with patch.object(publish, 'manifest_digest', return_value=digest), patch.object(publish.urllib.request, 'urlopen') as requests:
+            publish.promote_manifest(digest, '0.1.0')
+        requests.assert_not_called()
+
+    def test_saved_image_version_and_revision_are_verified(self):
+        for version, revision in (('0.2.0', SHA), ('0.1.0', SHA)):
+            with fixture() as (_, _, source, record):
+                make_image_archive(source / 'container.tar.gz', version, revision)
+                with self.assertRaises(AssertionError):
+                    release_image.saved_identity(source / 'container.tar.gz', record['version'], record['sourceCommit'])
+
+    def test_daemon_local_loaded_id_can_differ_without_rebuilding_or_changing_runtime(self):
+        with fixture() as (_, _, source, record):
+            digest, saved = release_image.saved_identity(source / 'container.tar.gz', record['version'], record['sourceCommit'])
+            loaded_id = 'sha256:' + 'b' * 64
+            actual = {'Id': loaded_id, 'Os': 'linux', 'Architecture': 'amd64', 'Config': saved['config'], 'RootFS': {'Layers': []}}
+            with patch.object(release_image.subprocess, 'check_output', return_value='Loaded image ID: ' + loaded_id + '\n') as load, patch.object(candidate.builder, 'identity', return_value=actual) as inspect:
+                result = candidate.load_image(source, record)
+            self.assertEqual(result['Id'], loaded_id)
+            self.assertNotEqual(loaded_id, record['imageId'])
+            self.assertEqual(record['imageConfigDigest'], digest)
+            self.assertEqual(load.call_args.args[0][:3], ['docker', 'image', 'load'])
+            self.assertEqual(inspect.call_args.args[0], loaded_id)
+            actual['RootFS']['Layers'] = ['sha256:' + 'c' * 64]
+            with patch.object(release_image.subprocess, 'check_output', return_value='Loaded image ID: ' + loaded_id + '\n'), patch.object(candidate.builder, 'identity', return_value=actual), self.assertRaisesRegex(AssertionError, 'root filesystem'):
+                candidate.load_image(source, record)
+
     def test_snapshot_uses_git_blobs_without_archive_line_ending_or_export_filters(self):
         with fixture() as (_, root, _, _):
             (root / '.gitattributes').write_text('*.cmd text eol=crlf\nNOTICE export-ignore\n')
@@ -360,7 +430,7 @@ class VersionAndProvenanceTest(unittest.TestCase):
             real_run = subprocess.run
             def execute(command, *args, **kwargs):
                 if command[0] == 'git': return real_run(command, *args, **kwargs)
-                if command[:2] == ['docker', 'push']: state['image'] = True
+                self.assertNotIn(command[:2], (['docker', 'push'], ['docker', 'tag']))
                 if command[:3] == ['gh', 'release', 'create']:
                     self.assertEqual(command[3], 'v0.1.0')
                     state['release'] = {'id': 77, 'tag_name': 'v0.1.0', 'draft': True, 'assets': [],
@@ -375,7 +445,10 @@ class VersionAndProvenanceTest(unittest.TestCase):
                     state['release'].update(draft=False, immutable=True)
                 return subprocess.CompletedProcess(command, 0)
             environment = {'GITHUB_REPOSITORY': publish.REPO, 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': controller}
-            with patch.dict('os.environ', environment), patch.object(publish, 'api', side_effect=api), patch.object(publish, 'download', side_effect=download), patch.object(publish, 'command', side_effect=command), patch.object(publish.subprocess, 'run', side_effect=execute), patch.object(publish.candidate.builder, 'identity', return_value=config), patch.object(publish, 'manifest_digest', side_effect=lambda tag, anonymous=False: digest if tag != record['version'] or state['image'] else None), patch.object(publish.bundle, 'build', side_effect=AssertionError('Publication must not regenerate assets')):
+            def promote(staged_digest, version):
+                self.assertEqual((staged_digest, version), (digest, record['version']))
+                state['image'] = True
+            with patch.dict('os.environ', environment), patch.object(publish, 'api', side_effect=api), patch.object(publish, 'download', side_effect=download), patch.object(publish, 'command', side_effect=command), patch.object(publish.subprocess, 'run', side_effect=execute), patch.object(publish.candidate, 'load_image', return_value=config), patch.object(publish, 'manifest_digest', side_effect=lambda tag, anonymous=False: digest if tag != record['version'] or state['image'] else None), patch.object(publish, 'promote_manifest', side_effect=promote) as promotion, patch.object(publish.bundle, 'build', side_effect=AssertionError('Publication must not regenerate assets')):
                 for attempt in (1, 2):
                     arguments = ['publish', '--version', record['version'], '--verification-run', '123', '--source-sha', record['sourceCommit'],
                         '--phase', 'publish', '--stage-run', '456', '--immutability-confirmed', '--work', str(directory / ('publish-' + str(attempt)))]
@@ -384,6 +457,7 @@ class VersionAndProvenanceTest(unittest.TestCase):
                             with self.assertRaises(subprocess.CalledProcessError): publish.main()
                         else:
                             publish.main()
+                promotion.assert_called_once_with(digest, record['version'])
             self.assertTrue(state['release']['immutable'])
             self.assertFalse(state['release']['draft'])
             self.assertEqual({a['name']: a['digest'] for a in state['release']['assets']}, {name: 'sha256:' + checksum for name, checksum in stage['assets'].items()})
@@ -448,11 +522,11 @@ class PublicationGateTest(unittest.TestCase):
         index = {'manifests': [{'digest': 'sha256:' + '5' * 64, 'platform': {'os': 'linux', 'architecture': 'amd64'}},
                                {'digest': 'sha256:' + '6' * 64, 'platform': {'os': 'unknown', 'architecture': 'unknown'},
                                 'annotations': {'vnd.docker.reference.type': 'attestation-manifest'}}]}
-        with patch.object(publish, 'command', return_value=json.dumps(index)):
-            publish.remote_image_matches({'imageId': digest, 'localDescriptorDigest': digest}, digest)
+        with patch.object(publish, 'command', side_effect=[json.dumps(index), json.dumps({'config': {'digest': 'sha256:' + '7' * 64}})]):
+            publish.remote_image_matches({'imageId': digest, 'imageConfigDigest': 'sha256:' + '7' * 64}, digest)
         index['manifests'][0]['platform']['architecture'] = 'arm64'
         with patch.object(publish, 'command', return_value=json.dumps(index)), self.assertRaises(AssertionError):
-            publish.remote_image_matches({'imageId': digest}, digest)
+            publish.remote_image_matches({'imageId': digest, 'imageConfigDigest': 'sha256:' + '7' * 64}, digest)
 
     def test_missing_remote_artifact_rejects_before_download(self):
         with patch.object(publish, 'api', return_value={'artifacts': []}), patch.object(publish.subprocess, 'run') as run:
