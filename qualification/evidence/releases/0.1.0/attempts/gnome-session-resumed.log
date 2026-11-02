@@ -1,0 +1,18 @@
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.0' (uid=1000 pid=9743 comm="/usr/bin/python3 /home/albert/busystack/caldav-ser" label="unconfined")
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+fusermount3: failed to access mountpoint /run/user/1000/gvfs: Permission denied
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Activating service name='org.gnome.evolution.dataserver.Sources5' requested by ':1.0' (uid=1000 pid=9743 comm="/usr/bin/python3 /home/albert/busystack/caldav-ser" label="unconfined")
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Activating service name='org.gnome.OnlineAccounts' requested by ':1.2' (uid=1000 pid=9761 comm="/usr/libexec/evolution-source-registry" label="unconfined")
+goa-daemon-Message: 19:33:11.620: goa-daemon version 3.58.0 starting
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Activating service name='org.gnome.Identity' requested by ':1.3' (uid=1000 pid=9768 comm="/usr/libexec/goa-daemon" label="unconfined")
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Successfully activated service 'org.gnome.OnlineAccounts'
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Successfully activated service 'org.gnome.Identity'
+dbus-daemon[9742]: [session uid=1000 pid=9742 pidfd=5] Successfully activated service 'org.gnome.evolution.dataserver.Sources5'
+Traceback (most recent call last):
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gui-runtime.py", line 9, in <module>
+    from eds_setup import backend, registry, source
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/eds_setup.py", line 25, in <module>
+    assert source.get_extension(E.SOURCE_EXTENSION_WEBDAV_BACKEND).get_uri().to_string()==calendar['url']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SourceWebdav' object has no attribute 'get_uri'. Did you mean: 'set_uri'?
+A connection to the bus can't be made

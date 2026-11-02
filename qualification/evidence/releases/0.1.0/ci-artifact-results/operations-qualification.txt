@@ -1,0 +1,3 @@
+PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).
+OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V13_PASSED
+PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).

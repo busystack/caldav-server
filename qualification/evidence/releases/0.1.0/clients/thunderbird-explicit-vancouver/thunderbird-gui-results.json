@@ -1,0 +1,1840 @@
+{
+  "client": "Thunderbird",
+  "binary": "/home/albert/busystack/caldav-server/target/release-preparation/tooling/thunderbird159/thunderbird/thunderbird",
+  "mode": "isolated headless GUI DOM",
+  "tls": "Normal CA/hostname verification; test CA imported only into this new profile",
+  "label": "Repair159 explicit-vancouver",
+  "guiActions": [
+    "Actual timed event editor fields and Save and Close",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Created task through actual editor title/location and Save and Close controls",
+    "Requested synchronization with the actual Reload Remote Calendars command",
+    "Edited task and completed task via status control in actual editor, then Save and Close",
+    "Deleted task through actual editor Delete button and confirmation dialog",
+    "Deleted event through actual editor Delete button and confirmation dialog",
+    "Requested synchronization with the actual Reload Remote Calendars command"
+  ],
+  "screenshots": [
+    {
+      "file": "01-server-settings.png",
+      "sha256": "be1d8728d78fe9c79b186aa64639eff4f6d55349e03847145f9b424ec9812323",
+      "context": "chrome://calendar/content/calendar-creation.xhtml"
+    },
+    {
+      "file": "credential-dialog.png",
+      "sha256": "5cdbc6fd63ad4191434401dcbfaef775fb48862ad541d4eb8154bff7a705f7d4",
+      "context": "chrome://global/content/commonDialog.xhtml",
+      "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+    },
+    {
+      "file": "03-dedicated-calendars.png",
+      "sha256": "f644620478c3a1f263d36290c453eec0ce3cf69ae8a3b36ca9080d46df1fc333",
+      "context": "chrome://calendar/content/calendar-creation.xhtml"
+    },
+    {
+      "file": "04-timezone-controls.png",
+      "sha256": "df5f832093b8993693a67c9a1a4e3854239d8be27e4c9b2f13981071a524c610",
+      "context": "chrome://messenger/content/messenger.xhtml"
+    },
+    {
+      "file": "05-05-original-timed-event-editor.png",
+      "sha256": "f0db7810b15672f61f66b61ebbe3bb480e7ba2c142272c09f53597608e75b370",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "06-edited-event.png",
+      "sha256": "35ad972bb50505392e13555a9853212fef83f9d79ae615b1a9b67258450a54b8",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "07-reopened-edited.png",
+      "sha256": "35ad972bb50505392e13555a9853212fef83f9d79ae615b1a9b67258450a54b8",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "08-bounded-daily-until-controls.png",
+      "sha256": "d826f151b9250fbdf8e070d01eae6c6cf4c21d7b6e134582fa5ec5b9b4750dd0",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "09-edited-occurrence.png",
+      "sha256": "22eb896843ab5e7f6f3af29b799c238045831bda74e311f7291cdbc68b520e15",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "10-reopened-after-restart.png",
+      "sha256": "d826f151b9250fbdf8e070d01eae6c6cf4c21d7b6e134582fa5ec5b9b4750dd0",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "11-26-thunderbird-task-editor.png",
+      "sha256": "46eac517623908e21026c528d304ab72ac69211c3cb0c78982c29576c203e8f2",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "12-28-thunderbird-task-completed.png",
+      "sha256": "07b7384a656d13aeff4761671c3a4836abbddf18bf36e4d458ae5011c66ae50e",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "13-33-thunderbird-delete-task.png",
+      "sha256": "04d30637f5150635dbf6383250ef613a728326f6fb0d1d6dade687ad056b2270",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "34-thunderbird-confirm-delete-task.png",
+      "sha256": "4c98a81db1cef901d319bda96f6e563081c52dc35e3c4bdafb1025bf512218dc",
+      "context": "chrome://global/content/commonDialog.xhtml",
+      "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+    },
+    {
+      "file": "15-31-thunderbird-delete-event.png",
+      "sha256": "d826f151b9250fbdf8e070d01eae6c6cf4c21d7b6e134582fa5ec5b9b4750dd0",
+      "context": "chrome://calendar/content/calendar-event-dialog.xhtml"
+    },
+    {
+      "file": "32-thunderbird-confirm-delete-event.png",
+      "sha256": "0714aab89414945c65422ffc428d61f17d516e7e9bb7e0942da208f23395f560",
+      "context": "chrome://global/content/commonDialog.xhtml",
+      "capture": "Actual rendered dialog framebuffer through unmodified bundled Capture.canvas"
+    }
+  ],
+  "independentReadAssertions": [],
+  "limitations": [
+    "Automated interaction with real GUI controls, not a person manually using the application",
+    "Private CA trust provisioning is automated through the supported profile certificate service",
+    "Real editor controls automated; no physical manual-human qualification"
+  ],
+  "case": "explicit-vancouver",
+  "calendarUrls": {
+    "event": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/",
+    "task": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+  },
+  "serverFixture": "exact downloaded CI candidate 41357992646 attempt1",
+  "runtimePhases": [
+    {
+      "version": "159.0",
+      "buildId": "20261026161902",
+      "geckoVersion": "159.0",
+      "processTimezone": "America/Vancouver",
+      "marionettePasswordSaving": true
+    },
+    {
+      "version": "159.0",
+      "buildId": "20261026161902",
+      "geckoVersion": "159.0",
+      "processTimezone": "America/Vancouver",
+      "marionettePasswordSaving": true
+    }
+  ],
+  "version": "159.0",
+  "profileTimezoneKeysInitiallyOmitted": true,
+  "timezoneProfile": {
+    "ui": {
+      "source": "false",
+      "manual": "America/Vancouver"
+    },
+    "observed": {
+      "effective": "America/Vancouver",
+      "useSystem": false,
+      "localUserValue": true,
+      "local": "America/Vancouver",
+      "timezoneServiceVersion": "2026e"
+    }
+  },
+  "creationEditor": {
+    "start": [
+      2026,
+      11,
+      9,
+      10,
+      0
+    ],
+    "end": [
+      2026,
+      11,
+      9,
+      11,
+      0
+    ],
+    "startZone": "America/Vancouver",
+    "endZone": "America/Vancouver",
+    "modelStart": "20261109T100000",
+    "modelEnd": "20261109T110000"
+  },
+  "wirePhases": [
+    {
+      "phase": "creation",
+      "uploads": [
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "creation-put-1.ics",
+          "sha256": "5a3ac617099f72b9375901806c86f084892d252d842701a6d7b0101d037fce3b",
+          "bytes": 2277,
+          "capture": "Original upload clone, stream unchanged"
+        }
+      ],
+      "requests": [
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PUT",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PUT",
+          "status": 409,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PUT",
+          "status": 201,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        }
+      ]
+    },
+    {
+      "phase": "created",
+      "uploads": [
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "created-put-1.ics",
+          "sha256": "5a3ac617099f72b9375901806c86f084892d252d842701a6d7b0101d037fce3b",
+          "bytes": 2277,
+          "capture": "Original upload clone, stream unchanged"
+        }
+      ],
+      "requests": [
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PUT",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PUT",
+          "status": 409,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PUT",
+          "status": 201,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        }
+      ]
+    },
+    {
+      "phase": "edited",
+      "uploads": [
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "edited-put-1.ics",
+          "sha256": "5a3ac617099f72b9375901806c86f084892d252d842701a6d7b0101d037fce3b",
+          "bytes": 2277,
+          "capture": "Original upload clone, stream unchanged"
+        },
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "edited-put-2.ics",
+          "sha256": "f7b839a3e502d32cb36053f02b8edc328af7fb5fc5d112b04fea83cfefa7a819",
+          "bytes": 2315,
+          "capture": "Original upload clone, stream unchanged"
+        }
+      ],
+      "requests": [
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PUT",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PUT",
+          "status": 409,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PUT",
+          "status": 201,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PUT",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        }
+      ]
+    },
+    {
+      "phase": "recurrence-exception",
+      "uploads": [
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "recurrence-exception-put-1.ics",
+          "sha256": "5a3ac617099f72b9375901806c86f084892d252d842701a6d7b0101d037fce3b",
+          "bytes": 2277,
+          "capture": "Original upload clone, stream unchanged"
+        },
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "recurrence-exception-put-2.ics",
+          "sha256": "f7b839a3e502d32cb36053f02b8edc328af7fb5fc5d112b04fea83cfefa7a819",
+          "bytes": 2315,
+          "capture": "Original upload clone, stream unchanged"
+        },
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "recurrence-exception-put-3.ics",
+          "sha256": "2cbf70bf4d62bd4876d42e718282bbb990fbcb355f363cc06dd88ba41ae44011",
+          "bytes": 2356,
+          "capture": "Original upload clone, stream unchanged"
+        },
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+          "file": "recurrence-exception-put-4.ics",
+          "sha256": "5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c",
+          "bytes": 2783,
+          "capture": "Original upload clone, stream unchanged"
+        }
+      ],
+      "requests": [
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "HEAD",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "PUT",
+          "status": 401,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PUT",
+          "status": 409,
+          "path": "/team/dav/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PUT",
+          "status": 201,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PUT",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PUT",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PUT",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        }
+      ]
+    },
+    {
+      "phase": "restart",
+      "uploads": [],
+      "requests": [
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        }
+      ]
+    },
+    {
+      "phase": "complete",
+      "uploads": [
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics",
+          "file": "complete-put-1.ics",
+          "sha256": "99ce9b2a668caffbd04f151a9bbdeb272c8108e60de404dbc3ca3baec973438b",
+          "bytes": 353,
+          "capture": "Original upload clone, stream unchanged"
+        },
+        {
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics",
+          "file": "complete-put-2.ics",
+          "sha256": "2865d6b260c5a0f8663ba104dc76eca68ee397f761eea45f65b44acbe2c3a701",
+          "bytes": 440,
+          "capture": "Original upload clone, stream unchanged"
+        }
+      ],
+      "requests": [
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "PROPFIND",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 401,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "OPTIONS",
+          "status": 200,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PUT",
+          "status": 201,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "PUT",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "DELETE",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics"
+        },
+        {
+          "method": "DELETE",
+          "status": 204,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+        },
+        {
+          "method": "REPORT",
+          "status": 207,
+          "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+        }
+      ]
+    }
+  ],
+  "serverReads": [
+    {
+      "phase": "creation-stored",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 200,
+      "etag": "\"bb974df632b81bfa2a71b990e2eb69c9aa96de264ca51bc3fc66fa77f45d1fea\"",
+      "sha256": "bb974df632b81bfa2a71b990e2eb69c9aa96de264ca51bc3fc66fa77f45d1fea"
+    },
+    {
+      "phase": "edited-stored",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 200,
+      "etag": "\"f7b839a3e502d32cb36053f02b8edc328af7fb5fc5d112b04fea83cfefa7a819\"",
+      "sha256": "f7b839a3e502d32cb36053f02b8edc328af7fb5fc5d112b04fea83cfefa7a819"
+    },
+    {
+      "phase": "bounded-series",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 200,
+      "etag": "\"2cbf70bf4d62bd4876d42e718282bbb990fbcb355f363cc06dd88ba41ae44011\"",
+      "sha256": "2cbf70bf4d62bd4876d42e718282bbb990fbcb355f363cc06dd88ba41ae44011"
+    },
+    {
+      "phase": "edited-exception",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 200,
+      "etag": "\"5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c\"",
+      "sha256": "5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c"
+    },
+    {
+      "phase": "before-restart",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 200,
+      "etag": "\"5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c\"",
+      "sha256": "5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c"
+    },
+    {
+      "phase": "after-restart",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 200,
+      "etag": "\"5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c\"",
+      "sha256": "5143a91bb7fa864be7c5e9c620d61213e5698b756c39d1c4886f8ad0f95c122c"
+    },
+    {
+      "phase": "task-created",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics",
+      "status": 200,
+      "etag": "\"99ce9b2a668caffbd04f151a9bbdeb272c8108e60de404dbc3ca3baec973438b\"",
+      "sha256": "99ce9b2a668caffbd04f151a9bbdeb272c8108e60de404dbc3ca3baec973438b"
+    },
+    {
+      "phase": "task-completed",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics",
+      "status": 200,
+      "etag": "\"2865d6b260c5a0f8663ba104dc76eca68ee397f761eea45f65b44acbe2c3a701\"",
+      "sha256": "2865d6b260c5a0f8663ba104dc76eca68ee397f761eea45f65b44acbe2c3a701"
+    },
+    {
+      "phase": "task-deleted",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics",
+      "status": 404,
+      "etag": null,
+      "sha256": "a19dd026eb1668032442dec43de6168e033c4e78742e1b05bcdc36a67f4facda"
+    },
+    {
+      "phase": "event-deleted",
+      "url": "https://localhost:57981/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics",
+      "status": 404,
+      "etag": null,
+      "sha256": "a19dd026eb1668032442dec43de6168e033c4e78742e1b05bcdc36a67f4facda"
+    }
+  ],
+  "createdNative": {
+    "uid": "3410ce25-e89b-4c4c-8fe9-30e1b12d28b7",
+    "title": "Repair159 explicit-vancouver",
+    "start": {
+      "ical": "20261109T100000",
+      "tzid": "America/Vancouver",
+      "utc": "20261109T170000Z",
+      "wall": [
+        2026,
+        11,
+        9,
+        10,
+        0
+      ]
+    },
+    "end": {
+      "ical": "20261109T110000",
+      "tzid": "America/Vancouver",
+      "utc": "20261109T180000Z",
+      "wall": [
+        2026,
+        11,
+        9,
+        11,
+        0
+      ]
+    },
+    "occurrences": []
+  },
+  "editorChecks": [
+    {
+      "start": [
+        2026,
+        11,
+        9,
+        12,
+        0
+      ],
+      "end": [
+        2026,
+        11,
+        9,
+        13,
+        0
+      ],
+      "startZone": "America/Vancouver",
+      "endZone": "America/Vancouver",
+      "modelStart": "20261109T120000",
+      "modelEnd": "20261109T130000"
+    },
+    {
+      "start": [
+        2026,
+        11,
+        10,
+        14,
+        0
+      ],
+      "end": [
+        2026,
+        11,
+        10,
+        15,
+        0
+      ],
+      "startZone": "America/Vancouver",
+      "endZone": "America/Vancouver",
+      "modelStart": "20261110T140000",
+      "modelEnd": "20261110T150000"
+    }
+  ],
+  "nativeNetworkPhases": [
+    [
+      {
+        "method": "HEAD",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "GET",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "HEAD",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "HEAD",
+        "status": 200,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "GET",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "PUT",
+        "status": 401,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PUT",
+        "status": 409,
+        "path": "/team/dav/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "PUT",
+        "status": 201,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PUT",
+        "status": 204,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PUT",
+        "status": 204,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "PUT",
+        "status": 204,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      }
+    ],
+    [
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "PROPFIND",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 401,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "OPTIONS",
+        "status": 200,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PUT",
+        "status": 201,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "PUT",
+        "status": 204,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "DELETE",
+        "status": 204,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/aa7749c7-be93-4efa-a9b8-e0405a13bd46.ics"
+      },
+      {
+        "method": "DELETE",
+        "status": 204,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/3410ce25-e89b-4c4c-8fe9-30e1b12d28b7.ics"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-event/"
+      },
+      {
+        "method": "REPORT",
+        "status": 207,
+        "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-vancouver-task/"
+      }
+    ]
+  ],
+  "restartedNative": {
+    "uid": "3410ce25-e89b-4c4c-8fe9-30e1b12d28b7",
+    "title": "Repair159 explicit-vancouver",
+    "start": {
+      "ical": "20261109T120000",
+      "tzid": "America/Vancouver",
+      "utc": "20261109T190000Z",
+      "wall": [
+        2026,
+        11,
+        9,
+        12,
+        0
+      ]
+    },
+    "end": {
+      "ical": "20261109T130000",
+      "tzid": "America/Vancouver",
+      "utc": "20261109T200000Z",
+      "wall": [
+        2026,
+        11,
+        9,
+        13,
+        0
+      ]
+    },
+    "occurrences": [
+      {
+        "start": {
+          "ical": "20261109T120000",
+          "tzid": "America/Vancouver",
+          "utc": "20261109T190000Z",
+          "wall": [
+            2026,
+            11,
+            9,
+            12,
+            0
+          ]
+        },
+        "end": {
+          "ical": "20261109T130000",
+          "tzid": "America/Vancouver",
+          "utc": "20261109T200000Z",
+          "wall": [
+            2026,
+            11,
+            9,
+            13,
+            0
+          ]
+        }
+      },
+      {
+        "start": {
+          "ical": "20261110T140000",
+          "tzid": "America/Vancouver",
+          "utc": "20261110T210000Z",
+          "wall": [
+            2026,
+            11,
+            10,
+            14,
+            0
+          ]
+        },
+        "end": {
+          "ical": "20261110T150000",
+          "tzid": "America/Vancouver",
+          "utc": "20261110T220000Z",
+          "wall": [
+            2026,
+            11,
+            10,
+            15,
+            0
+          ]
+        }
+      },
+      {
+        "start": {
+          "ical": "20261111T120000",
+          "tzid": "America/Vancouver",
+          "utc": "20261111T190000Z",
+          "wall": [
+            2026,
+            11,
+            11,
+            12,
+            0
+          ]
+        },
+        "end": {
+          "ical": "20261111T130000",
+          "tzid": "America/Vancouver",
+          "utc": "20261111T200000Z",
+          "wall": [
+            2026,
+            11,
+            11,
+            13,
+            0
+          ]
+        }
+      }
+    ]
+  },
+  "result": "passed"
+}

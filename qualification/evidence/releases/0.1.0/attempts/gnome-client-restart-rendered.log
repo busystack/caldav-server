@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/accessibility.py", line 29, in <module>
+    a=o.get_action_iface();assert a.get_n_actions()>0;print(json.dumps({'action':a.get_action_name(c.get('index',0)),'returned':a.do_action(c.get('index',0))}))
+                                  ^^^^^^^^^^^^^^^^^^^
+AssertionError
+Traceback (most recent call last):
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_finish.py", line 8, in <module>
+    before=next(x for x in state['phases'] if x['phase']=='gnome-before-client-restart');after=retained('gnome-after-client-restart-fresh-atspi');assert (before['etag'],before['sha256'])==(after['etag'],after['sha256']);open_editor();assert times()['Start Time']=='12:00' and times()['End Time']=='13:00';wait(lambda:has('Number of Occurrences','spin button'),'reopened bounded recurrence');snapshot('gnome-reopened-client-restart');click('Cancel');state['clientRestart']={'status':'passed','oldPid':23546,'newPid':json.loads((P/'ready.json').read_text())['clientPid'],'sameBytesEtag':True,'harnessCorrection':'Fresh accessibility connections after process replacement; initial stale-connection navigation failure retained'};save()
+                                                                                                                                                                                                                            ~~~~~~~~~~~^^
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_helpers.py", line 42, in open_editor
+    found=sorted(x['name'] for x in rows() if x['role']=='toggle button' and x['name'].startswith(label+'\n') and 'showing' in x['states']);assert len(found)==3,found;state['renderedOccurrences']=found;save();click(found[0],'toggle button')
+                                                                                                                                                                                                                 ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_helpers.py", line 24, in click
+    assert call(data)['returned'];time.sleep(.25)
+           ~~~~^^^^^^
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_call.py", line 6, in call
+    return json.loads(subprocess.check_output(['/usr/bin/python3',str(W/'programs/accessibility.py'),json.dumps(command)],text=True))
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/usr/bin/python3', '/home/albert/busystack/caldav-server/target/release-preparation/native/programs/accessibility.py', '{"op": "click", "name": "BusyStack v0.1.0 native Vancouver\\n11/01/26, 12:00 - 13:00", "role": "toggle button"}']' returned non-zero exit status 1.

@@ -169,6 +169,10 @@ class VersionAndProvenanceTest(unittest.TestCase):
             actual['RootFS']['Layers'] = ['sha256:' + 'c' * 64]
             with patch.object(release_image.subprocess, 'check_output', return_value='Loaded image ID: ' + loaded_id + '\n'), patch.object(candidate.builder, 'identity', return_value=actual), self.assertRaisesRegex(AssertionError, 'root filesystem'):
                 candidate.load_image(source, record)
+            actual['RootFS']['Layers'] = []
+            actual['Config'] = {**saved['config'], 'Entrypoint': ['unqualified-command']}
+            with patch.object(release_image.subprocess, 'check_output', return_value='Loaded image ID: ' + loaded_id + '\n'), patch.object(candidate.builder, 'identity', return_value=actual), self.assertRaisesRegex(AssertionError, 'runtime configuration'):
+                candidate.load_image(source, record)
 
     def test_snapshot_uses_git_blobs_without_archive_line_ending_or_export_filters(self):
         with fixture() as (_, root, _, _):

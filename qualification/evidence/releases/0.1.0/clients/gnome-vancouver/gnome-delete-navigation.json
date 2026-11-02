@@ -1,0 +1,22 @@
+{
+  "focusTrail": [
+    [
+      [
+        "button",
+        "Add Reminder"
+      ]
+    ],
+    [
+      [
+        "text",
+        ""
+      ]
+    ],
+    [
+      [
+        "button",
+        "Delete Event"
+      ]
+    ]
+  ]
+}

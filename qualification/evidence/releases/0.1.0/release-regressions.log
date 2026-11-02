@@ -1,0 +1,54 @@
+test_active_source_has_no_removed_copies_or_patch_payload (test_release.PublicationGateTest.test_active_source_has_no_removed_copies_or_patch_payload) ... ok
+test_conflicting_tag_rejects (test_release.PublicationGateTest.test_conflicting_tag_rejects) ... ok
+test_conflicting_version_rejects_matching_retry_passes (test_release.PublicationGateTest.test_conflicting_version_rejects_matching_retry_passes) ... ok
+test_correct_run_passes (test_release.PublicationGateTest.test_correct_run_passes) ... ok
+test_existing_published_release_must_be_immutable (test_release.PublicationGateTest.test_existing_published_release_must_be_immutable) ... ok
+test_missing_failed_or_skipped_required_job_rejects (test_release.PublicationGateTest.test_missing_failed_or_skipped_required_job_rejects) ... ok
+test_missing_remote_artifact_rejects_before_download (test_release.PublicationGateTest.test_missing_remote_artifact_rejects_before_download) ... ok
+test_packaged_modified_dependency_and_removed_classes_reject (test_release.PublicationGateTest.test_packaged_modified_dependency_and_removed_classes_reject) ... ok
+test_registry_index_accepts_only_tested_amd64_and_attestations (test_release.PublicationGateTest.test_registry_index_accepts_only_tested_amd64_and_attestations) ... ok
+test_release_lookup_finds_drafts_and_handles_pagination (test_release.PublicationGateTest.test_release_lookup_finds_drafts_and_handles_pagination) ... ok
+test_restore_corpus_remains_available_for_source_free_deployment (test_release.PublicationGateTest.test_restore_corpus_remains_available_for_source_free_deployment) ... ok
+test_wrong_sha_failed_incomplete_and_untrusted_runs_reject (test_release.PublicationGateTest.test_wrong_sha_failed_incomplete_and_untrusted_runs_reject) ... ok
+test_cli_rejects_explicitly_empty_candidate_and_derives_each_version (test_release.VersionAndProvenanceTest.test_cli_rejects_explicitly_empty_candidate_and_derives_each_version) ... ok
+test_client_qualification_cannot_use_different_executable_or_runtime (test_release.VersionAndProvenanceTest.test_client_qualification_cannot_use_different_executable_or_runtime) ... ok
+test_controller_version_cannot_replace_qualified_application (test_release.VersionAndProvenanceTest.test_controller_version_cannot_replace_qualified_application) ... ok
+test_daemon_local_loaded_id_can_differ_without_rebuilding_or_changing_runtime (test_release.VersionAndProvenanceTest.test_daemon_local_loaded_id_can_differ_without_rebuilding_or_changing_runtime) ... ok
+test_developer_build_resolves_identity_without_version_input (test_release.VersionAndProvenanceTest.test_developer_build_resolves_identity_without_version_input) ... {"version": "0.1.0", "sourceCommit": "a02aefa77cb7c36ce6d483dea820abe3292a5487", "jarSha256": "6d7891e37da8bac9c8cf58fd3e40a415e901fa2379c2b268a4a49979ed0b66e4", "imageId": "sha256:5b92b32653b25c7043334d01964736168e453f7dbae51bb7c4c236f67be22082", "image": "busystack-caldav:0.1.0"}
+{"version": "0.2.0", "sourceCommit": "ab8c23e008d2ca13d6b564abf42501b7fa831ba9", "jarSha256": "e921cafd12fecc0101110fff66901063b5965c004b1a2cc2bbe46b3fca807b5a", "imageId": "sha256:0f2d787f73b7a4e60c752f68fb09633148a772345e3ea46053199e5917a36991", "image": "busystack-caldav:0.2.0"}
+{"version": "1.0.0", "sourceCommit": "49752f5b91f84be881dc81b67c968ea82e3d911c", "jarSha256": "41f08e639683e61a701722d8dad9359ade3afcd03c9527a5a498753d4838992d", "imageId": "sha256:8d471e6b97464fe9c012fcd3fea9fc1b9d89e41bc59d0fb7b1961cca26e20455", "image": "busystack-caldav:1.0.0"}
+ok
+test_every_bundle_input_is_isolated_from_newer_controller (test_release.VersionAndProvenanceTest.test_every_bundle_input_is_isolated_from_newer_controller) ... ok
+test_final_image_promotion_preserves_exact_staged_manifest_bytes_for_each_version (test_release.VersionAndProvenanceTest.test_final_image_promotion_preserves_exact_staged_manifest_bytes_for_each_version) ... ok
+test_image_metadata_and_packaged_checksum_must_agree (test_release.VersionAndProvenanceTest.test_image_metadata_and_packaged_checksum_must_agree) ... ok
+test_invalid_versions_and_candidates_reject (test_release.VersionAndProvenanceTest.test_invalid_versions_and_candidates_reject) ... ok
+test_manifest_promotion_rejects_changed_bytes_and_conflicting_tags (test_release.VersionAndProvenanceTest.test_manifest_promotion_rejects_changed_bytes_and_conflicting_tags) ... ok
+test_missing_artifacts_wrong_jar_version_and_checksums_reject (test_release.VersionAndProvenanceTest.test_missing_artifacts_wrong_jar_version_and_checksums_reject) ... ok
+test_publication_resumes_interrupted_upload_with_newer_controller_and_exact_staged_assets (test_release.VersionAndProvenanceTest.test_publication_resumes_interrupted_upload_with_newer_controller_and_exact_staged_assets) ... {"controllerCommit": "db79541bff1003f6393a27a2f3bf4ace391ed5ea", "operation": "controller-and-release-source", "sourceCommit": "8399d7e9b0be8fce33f34417d37b69f7a9d7ab3e"}
+{"ciImageId": "sha256:49c82fefb18fe43975d21bd1fd5e1b7b892320a5c93aa1d212af2e09f008e22f", "imageConfigDigest": "sha256:49c82fefb18fe43975d21bd1fd5e1b7b892320a5c93aa1d212af2e09f008e22f", "loadedImageId": "sha256:49c82fefb18fe43975d21bd1fd5e1b7b892320a5c93aa1d212af2e09f008e22f", "operation": "verified-image-loaded"}
+{"confirmed": true, "operation": "immutable-setting-admin-confirmation"}
+{"operation": "exact-tag-created-or-matched", "sha": "8399d7e9b0be8fce33f34417d37b69f7a9d7ab3e"}
+{"digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "operation": "version-image-created-or-matched"}
+{"draft": true, "operation": "release-created-or-matched", "releaseId": 77, "tag": "v0.1.0"}
+{"controllerCommit": "db79541bff1003f6393a27a2f3bf4ace391ed5ea", "operation": "controller-and-release-source", "sourceCommit": "8399d7e9b0be8fce33f34417d37b69f7a9d7ab3e"}
+{"ciImageId": "sha256:49c82fefb18fe43975d21bd1fd5e1b7b892320a5c93aa1d212af2e09f008e22f", "imageConfigDigest": "sha256:49c82fefb18fe43975d21bd1fd5e1b7b892320a5c93aa1d212af2e09f008e22f", "loadedImageId": "sha256:49c82fefb18fe43975d21bd1fd5e1b7b892320a5c93aa1d212af2e09f008e22f", "operation": "verified-image-loaded"}
+{"confirmed": true, "operation": "immutable-setting-admin-confirmation"}
+{"operation": "exact-tag-created-or-matched", "sha": "8399d7e9b0be8fce33f34417d37b69f7a9d7ab3e"}
+{"digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "operation": "version-image-created-or-matched"}
+{"draft": true, "operation": "release-created-or-matched", "releaseId": 77, "tag": "v0.1.0"}
+{"assets": {"SHA256SUMS": "036717a838ba174158a4870acd19ba6bf9bb1c6688e544071bf3b455ae322761", "caldav-server-0.1.0-deploy.tar.gz": "b470b57c1a91a7d83e4b698b8867d7d3d748af51d20cbb98b55948ce1c05534d", "caldav-server-0.1.0.jar": "2f03b968341a9641bdca32e960eb2d12c6db67e592bdd74629ed3e626b03771e", "notices.tar.gz": "50b0c8a7dfd9424b770993df7fbf1d961dd25c36a97320bba1ca8d96c963a0b1", "release-manifest.json": "17d6a044a9d4c77bf456b4a15c7198f8e4a013c19448a2ba0ad8e11af21dd574", "sbom.cdx.json": "0bf5010c3616396a808213a0df15ddbc264dd9accbe84ddf1e31eedade00a0ba"}, "operation": "draft-assets-verified"}
+{"digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "operation": "immutable-release-published", "url": "https://example.invalid/release"}
+{"assets": ["SHA256SUMS", "caldav-server-0.1.0-deploy.tar.gz", "caldav-server-0.1.0.jar", "notices.tar.gz", "release-manifest.json", "sbom.cdx.json"], "operation": "release-attestation-and-assets-verified"}
+{"digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "operation": "anonymous-installation-passed", "sha": "8399d7e9b0be8fce33f34417d37b69f7a9d7ab3e"}
+ok
+test_saved_image_version_and_revision_are_verified (test_release.VersionAndProvenanceTest.test_saved_image_version_and_revision_are_verified) ... ok
+test_snapshot_changes_and_missing_source_inputs_reject (test_release.VersionAndProvenanceTest.test_snapshot_changes_and_missing_source_inputs_reject) ... ok
+test_snapshot_uses_git_blobs_without_archive_line_ending_or_export_filters (test_release.VersionAndProvenanceTest.test_snapshot_uses_git_blobs_without_archive_line_ending_or_export_filters) ... warning: in the working copy of 'windows.cmd', LF will be replaced by CRLF the next time Git touches it
+ok
+test_staged_assets_are_consumed_exactly_and_tampering_rejects (test_release.VersionAndProvenanceTest.test_staged_assets_are_consumed_exactly_and_tampering_rejects) ... ok
+test_versions_paths_tags_and_maven_extraction (test_release.VersionAndProvenanceTest.test_versions_paths_tags_and_maven_extraction) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 12.005s
+
+OK

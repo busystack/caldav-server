@@ -39,6 +39,5 @@ def load(path, version, revision, jar_sha, inspect):
     actual = inspect(references[0], version, revision, jar_sha)
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', actual['Id']), 'Invalid loaded image ID'
     assert actual['RootFS']['Layers'] == expected['rootfs']['diff_ids'], 'Loaded image root filesystem differs from verified archive'
-    for key, value in expected['config'].items():
-        assert actual['Config'].get(key) == value, 'Loaded image runtime configuration differs: ' + key
+    assert actual['Config'] == expected['config'], 'Loaded image runtime configuration differs from verified archive'
     return actual, digest

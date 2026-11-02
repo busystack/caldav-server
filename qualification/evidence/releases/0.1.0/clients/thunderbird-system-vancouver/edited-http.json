@@ -1,0 +1,344 @@
+[
+  {
+    "method": "HEAD",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "GET",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "HEAD",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "HEAD",
+    "path": "/team/dav/",
+    "status": 200,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "GET",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "GET",
+    "path": "/team/dav/",
+    "status": 200,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/principals/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PUT",
+    "path": "/team/dav/",
+    "status": 401,
+    "ifMatch": "nothing",
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PUT",
+    "path": "/team/dav/",
+    "status": 409,
+    "ifMatch": "nothing",
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-task/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-task/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 200,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 200,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-task/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PUT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/a9e1906f-2322-4a99-af55-bab436feba53.ics",
+    "status": 201,
+    "ifMatch": null,
+    "ifNoneMatch": "*",
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-task/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PUT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/a9e1906f-2322-4a99-af55-bab436feba53.ics",
+    "status": 204,
+    "ifMatch": "\"3e00b9b5654d5dda96154733ef3e5ba0b2c29e4b62564494f1e74e117f5ac7cd\"",
+    "ifNoneMatch": null,
+    "etag": "\"32e289e82adc592cc4af2e21f487a13b3cd2058bc5e24f3f9f99f1f4e071afb2\"",
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-system-vancouver-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  }
+]

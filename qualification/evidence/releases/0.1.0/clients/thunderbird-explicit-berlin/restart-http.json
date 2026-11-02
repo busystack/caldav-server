@@ -1,0 +1,92 @@
+[
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-berlin-task/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-berlin-event/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-berlin-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "PROPFIND",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-berlin-task/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 401,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 200,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "OPTIONS",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/",
+    "status": 200,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-berlin-event/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  },
+  {
+    "method": "REPORT",
+    "path": "/team/dav/calendars/d3e7d901-4748-4dc2-a359-94121eb7e7cb/repair159-explicit-berlin-task/",
+    "status": 207,
+    "ifMatch": null,
+    "ifNoneMatch": null,
+    "etag": null,
+    "lastModified": null
+  }
+]

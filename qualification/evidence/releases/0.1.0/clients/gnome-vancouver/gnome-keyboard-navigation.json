@@ -1,0 +1,95 @@
+{
+  "focusTrail": [
+    [
+      [
+        "text",
+        "Title"
+      ]
+    ],
+    [
+      [
+        "text",
+        "Location"
+      ]
+    ],
+    [
+      [
+        "combo box",
+        "Calendar"
+      ]
+    ],
+    [
+      [
+        "radio button",
+        "Time Slot"
+      ]
+    ],
+    [
+      [
+        "text",
+        "Start Date"
+      ]
+    ],
+    [
+      [
+        "toggle button",
+        "Edit date"
+      ]
+    ],
+    [
+      [
+        "text",
+        "Start Time"
+      ]
+    ],
+    [
+      [
+        "toggle button",
+        "Edit time"
+      ]
+    ],
+    [
+      [
+        "text",
+        "End Date"
+      ]
+    ],
+    [
+      [
+        "toggle button",
+        "Edit date"
+      ]
+    ],
+    [
+      [
+        "text",
+        "End Time"
+      ]
+    ],
+    [
+      [
+        "toggle button",
+        "Edit time"
+      ]
+    ],
+    [
+      [
+        "combo box",
+        "Repeat"
+      ]
+    ],
+    [
+      [
+        "combo box",
+        "Repeat"
+      ]
+    ],
+    [
+      [
+        "combo box",
+        "End Repeat"
+      ]
+    ]
+  ],
+  "inputGuard": "Every temporary portal key requires the isolated GNOME client PID to own the active accessibility window"
+}

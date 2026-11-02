@@ -1,0 +1,9 @@
+{
+  "sourceUid": "busystack-v010-vancouver",
+  "tls": "Independent CA chain and hostname verification before exact-certificate ESource trust",
+  "hostname": "localhost",
+  "certificateSha256": "053eb13a64dc647fbfa50a676bec32903747cfbe75a314ba48418207aba585be",
+  "signals": [],
+  "resumeAfterHostRestart": true,
+  "connectionState": "connected"
+}

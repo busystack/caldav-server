@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_finish.py", line 6, in <module>
+    before=retained('gnome-before-client-restart');old=json.loads((P/'ready.json').read_text())['clientPid'];new=call({'op':'restart'})['clientPid'];assert new!=old;call({'op':'refresh'});time.sleep(3);after=retained('gnome-after-client-restart');assert (after['etag'],after['sha256'])==(before['etag'],before['sha256']);open_editor();assert times()['Start Time']=='12:00' and times()['End Time']=='13:00';wait(lambda:has('Number of Occurrences','spin button'),'reopened bounded recurrence');snapshot('gnome-reopened-client-restart');click('Cancel');state['clientRestart']={'status':'passed','oldPid':old,'newPid':new,'sameBytesEtag':True};save()
+                                                                                                                                                                                                                                                                                                                                 ~~~~~~~~~~~^^
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_helpers.py", line 41, in open_editor
+    call({'op':'open','uid':state['uid']});wait(lambda:has('Edit Additional Details','button'),'event popover');click('Edit Additional Details');wait(lambda:has('Save','button') and has('Start Time','text'),'event editor')
+                                           ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/albert/busystack/caldav-server/target/release-preparation/native/programs/gnome_helpers.py", line 20, in wait
+    raise TimeoutError(desc+': '+str(last))
+TimeoutError: event popover: None

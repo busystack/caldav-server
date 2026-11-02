@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "preparedSource": "aca2e59bae2d306c9406b28dd3258ef7093a64b9",
+  "results": [
+    {
+      "case": "missing",
+      "status": "rejected",
+      "returnCode": 1
+    },
+    {
+      "case": "wrong-version",
+      "status": "rejected",
+      "returnCode": 1
+    },
+    {
+      "case": "wrong-revision",
+      "status": "rejected",
+      "returnCode": 1
+    },
+    {
+      "case": "unwrapped-compose-without-metadata",
+      "status": "rejected",
+      "returnCode": 1
+    }
+  ]
+}
