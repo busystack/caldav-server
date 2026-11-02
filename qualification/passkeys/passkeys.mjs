@@ -3,7 +3,7 @@ import {createCollection, openCollection} from './portal-helpers.mjs';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { createInterface } from 'node:readline';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { qualifyOAuth } from './oauth.mjs';
 import { qualifyDavCredentials } from './dav-credentials.mjs';
 import {qualifyAccountRecovery} from './account-recovery.mjs';
@@ -59,6 +59,12 @@ try {
   console.log('PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED');
   const localPortal=await qualifyPersonalPortal(page,base,privateValues,process.env.BUSYSTACK_BROWSER_USERNAME);
   await qualifyPortalPresentation(page,base,localPortal,true);
+  if (process.env.BUSYSTACK_GNOME_EXCHANGE) {
+    writeFileSync(process.env.BUSYSTACK_GNOME_EXCHANGE, JSON.stringify({address:localPortal.address,
+      name:localPortal.name, username:process.env.BUSYSTACK_BROWSER_USERNAME, credential:localPortal.device.credential}));
+    console.log('READY_GNOME');
+    await waitFor('GNOME_VERIFIED');
+  }
   if (process.env.BUSYSTACK_BROWSER_GROUPS === 'true') await qualifyGroups(page, base, privateValues);
   const administratorPage = page;
   let activeCdp = cdp;

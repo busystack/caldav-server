@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
-import {openCollection,provisionAccount,prefixOf} from './portal-helpers.mjs';
+import {openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect} from './portal-helpers.mjs';
 
 export async function qualifyGroups(page,base,privateValues) {
   const prefix=prefixOf(base),member='browsergroupmember',password=randomBytes(32).toString('base64url');
   privateValues.push(password);
   const account=await provisionAccount(page,base,member,'Browser Group Member',password);
+  const display='Group member <img src=x onerror=alert(1)>';
+  const profile=page.locator(`form[action="${prefix}/admin/accounts/${account}/edit"]`);
+  await profile.locator('input[name=displayName]').fill(display);
+  await Promise.all([page.waitForURL(base+'/admin/accounts/'+account),profile.getByRole('button',{name:'Save display name',exact:true}).click()]);
+  assert.equal(await page.getByRole('heading',{name:display,exact:true}).count(),1);
+  assert.equal(await page.locator('img[src=x]').count(),0);
+  await page.goto(base+'/admin/accounts?q='+encodeURIComponent(member)+'&status=enabled');
+  assert.equal(await page.locator('tbody tr').count(),1);
+  assert.equal(await page.getByRole('link',{name:member,exact:true}).count(),1);
   await page.goto(base+'/admin/groups');
   const create=page.locator(`form[action="${prefix}/admin/groups"]`);
   await create.locator('input[name=name]').fill('Browser sharing group');
@@ -35,6 +44,13 @@ export async function qualifyGroups(page,base,privateValues) {
   for(const permission of ['WRITE','REVOKE']) {
     await grant.locator('select[name=permission]').selectOption(permission);
     await Promise.all([page.waitForURL(base+'/collections/'+collection+'/sharing'),grant.getByRole('button',{name:'Save group grant',exact:true}).click()]);
+    if(permission==='WRITE') {
+      await grantDirect(page,base,collection,member,'READ');
+      const effective=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Combined direct and group access'})}).locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
+      assert.ok((await effective.innerText()).includes('Read and write'));
+      await revokeDirect(page,base,collection,member);
+      assert.ok((await effective.innerText()).includes('Read and write'),'Removing direct access must preserve the effective group write grant');
+    }
   }
   assert.equal(await grant.count(),0);
   await page.goto(base+'/admin/groups/'+group);
@@ -44,6 +60,22 @@ export async function qualifyGroups(page,base,privateValues) {
   assert.equal(await page.getByRole('link',{name:'Browser group renamed',exact:true}).count(),0);
   await page.goto(base+'/collections/'+collection+'/sharing');
   assert.equal(await page.locator(`option[value="${group}"]`).count(),0);
+  await page.goto(base+'/admin/accounts/'+account);
+  const disable=page.locator(`form[action="${prefix}/admin/accounts/${account}/disable"]`);
+  await disable.locator('input[name=confirmed]').check();
+  await Promise.all([page.waitForURL(base+'/admin/accounts/'+account),disable.getByRole('button',{name:'Disable account',exact:true}).click()]);
+  assert.equal(await page.getByText('Disabled',{exact:true}).count(),1);
+  await page.goto(base+'/admin/accounts?q='+encodeURIComponent(member)+'&status=disabled');
+  assert.equal(await page.locator('tbody tr').count(),1);
+  const disabledContext=await page.context().browser().newContext();
+  try {
+    const disabledPage=await disabledContext.newPage();
+    await disabledPage.goto(base+'/login');
+    await disabledPage.locator('input[name=username]').fill(member);
+    await disabledPage.locator('input[name=password]').fill(password);
+    await Promise.all([disabledPage.waitForURL(base+'/login?error'),disabledPage.getByRole('button',{name:'Verify password',exact:true}).click()]);
+  } finally {await disabledContext.close();}
+  console.log('BROWSER_ACCOUNT_PROFILE_SEARCH_DISABLE_AND_EFFECTIVE_DIRECT_GROUP_ACCESS_PASSED');
   console.log('BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED');
 }
 

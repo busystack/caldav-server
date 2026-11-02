@@ -1,4 +1,5 @@
 target/
+.qualification-runs/
 **/target/
 .idea/
 *.iml

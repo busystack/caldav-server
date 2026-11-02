@@ -93,7 +93,7 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
   const observe=request=>{if(!request.url().startsWith(base+'/') && !request.url().startsWith('data:')) unexpected.push(new URL(request.url()).origin);};
   page.on('request',observe);
   try {
-    for(const viewport of [{width:1280,height:900},{width:390,height:844}]) {
+    for(const viewport of [{width:1280,height:900},{width:390,height:844},{width:320,height:844}]) {
       await page.setViewportSize(viewport);
       for(const path of pages) {
         const response=await page.goto(base+path);assert.equal(response.status(),200,path);
@@ -116,6 +116,8 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
     await page.goto(base+'/connections');
     await page.getByRole('button',{name:'Copy server',exact:true}).focus();
     assert.ok(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle!=='none'));
+    await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Two hundred percent text resizing must reflow');
     await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce'});
     await page.goto(base+'/');
     if(output) await page.screenshot({path:output+'/'+suffix+'-dark-overview.png',fullPage:true});

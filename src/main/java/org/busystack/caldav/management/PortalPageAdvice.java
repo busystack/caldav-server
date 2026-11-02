@@ -21,6 +21,7 @@ public class PortalPageAdvice {
   @ModelAttribute
   void layout(Authentication auth, HttpServletRequest request, Model model) {
     String path = request.getServletPath();
+    if (path.equals("/dav") || path.startsWith("/dav/") || path.startsWith("/.well-known/")) return;
     model.addAttribute("portalPath", path);
     model.addAttribute("administrationArea", path.startsWith("/admin"));
     model.addAttribute("viewer", null);
@@ -30,8 +31,9 @@ public class PortalPageAdvice {
       try {
         model.addAttribute("viewer", management.current(auth));
         model.addAttribute("externallyManaged", management.externallyManaged(auth));
-      } catch (org.springframework.security.access.AccessDeniedException unavailable) {
-        // Error pages must remain renderable after a disabled or ended session.
+      } catch (org.springframework.security.access.AccessDeniedException
+          | org.springframework.dao.DataAccessException unavailable) {
+        // Safe error layouts remain renderable after account revocation or a database outage.
       }
     }
   }

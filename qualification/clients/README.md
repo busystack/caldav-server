@@ -39,3 +39,23 @@ The packaged restore corpus admits the captured uploads, verifies corrected hash
 and transformed-PUT validator omission, and checks bytes/history/UTC expansion after
 restoration. Missing prerequisites, startup failures and assertion failures remain
 failures; earlier attempts are not relabeled as successful runs.
+
+## Optional installed GNOME connection wizard
+
+On a Linux graphical workstation with GNOME Calendar `50.0-1`, Evolution Data
+Server `3.56.2-8`, Python GI/AT-SPI, GNOME Keyring, bubblewrap and an existing X11
+or Xwayland display, `qualification/passkeys/run.py --gnome` adds a real native
+connection wizard to the existing packaged HTTPS browser profile. Use
+`--application-image` and `--browser-image` as documented in the
+[passkey qualification](../passkeys/README.md). Missing prerequisites fail;
+this optional profile is never silently substituted for the normal browser run.
+
+The browser creates the collection, edits metadata, imports contents and issues a
+DAV credential. The host fixture drives only its own GNOME accessibility tree
+through Manage Calendars, Add Calendar, HTTPS address, credentials and discovery.
+It verifies the durable native CalDAV source. It uses a disposable home, private
+session/accessibility buses, keyring and namespace-only fixture CA trust. It does
+not modify installed software, the host trust store or the user's existing
+calendar/profile. Secrets remain in temporary private exchange files; retained
+results contain redacted diagnostics and accessible control names. This profile
+qualifies account setup, not every event-editing or assistive-technology workflow.

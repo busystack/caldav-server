@@ -71,9 +71,12 @@ Thunderbird instructions on Connections follow the documented network-calendar
 wizard. Historical qualification covers Thunderbird 159.0 and GNOME Calendar 50.0 /
 EDS 3.56.2 on the exact 0.1.0 executable and configurations in the
 [client record](observance-until-compatibility.md#qualified-client-configurations).
-The GNOME record uses a source provisioned through EDS's supported API; it does not
-qualify a graphical account-creation wizard. Do not equate that with a verified
-GNOME setup procedure. Current artifact results are recorded separately; BusyMax
+The historical GNOME record uses a source provisioned through EDS's supported API.
+Connections also documents the GNOME 50.0 wizard: **Manage Calendars → Add Calendar**,
+enter the collection HTTPS address under **Connect to an Online Calendar**, supply
+the username and dedicated DAV credential in **Credentials**, choose **Connect**,
+select the discovered calendar and choose **Add Calendar**. Those graphical setup
+steps are documented but await qualification. Current artifact results are recorded separately; BusyMax
 and other untested clients are not advertised as supported.
 
 Registered OAuth applications may use browser consent instead of a DAV credential.

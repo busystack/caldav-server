@@ -73,6 +73,7 @@ def main():
     parser.add_argument("--oidc", action="store_true", help="Also qualify a real Keycloak login across distinct reserved test sites")
     parser.add_argument("--restore", action="store_true", help="Qualify actual HTTPS authentication, content and sync after restoring an older database")
     parser.add_argument("--groups", action="store_true", help="Require the V9 group-management and owner-sharing browser workflow")
+    parser.add_argument("--gnome", action="store_true", help="Also drive the installed GNOME connection wizard in an isolated home/DBus/X11 session")
     parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
     parser.add_argument("--clients", action="store_true", help="Run existing Python/native Thunderbird correctness profiles on the packaged server, without performance workload")
     parser.add_argument("--client-python", default=os.environ.get("BUSYSTACK_CLIENT_PYTHON", str(ROOT / ".client-venv/bin/python")))
@@ -80,6 +81,8 @@ def main():
     parser.add_argument("--strict-sync-depth", action="store_true", help="Explicit false override; default qualification leaves the setting absent")
     parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
     args = parser.parse_args()
+    if args.gnome and args.oidc:
+        parser.error("The installed GNOME fixture uses localhost TLS, not the browser container's reserved OIDC hostnames")
     if args.clients and (not args.restore or args.oidc or args.strict_sync_depth):
         parser.error("--clients requires local --restore and the default synchronization compatibility profile")
     if args.clients and (not Path(args.client_python).is_file() or not os.access(args.thunderbird_binary, os.X_OK)):
@@ -208,6 +211,11 @@ def main():
                 browser_command += ["--env", "BUSYSTACK_BROWSER_CAPACITY=true"]
             if args.groups:
                 browser_command += ["--env", "BUSYSTACK_BROWSER_GROUPS=true"]
+            if args.gnome:
+                gnome_exchange = directory / "gnome-client.json"
+                gnome_exchange.touch(mode=0o600)
+                browser_command += ["--volume", f"{gnome_exchange}:/fixture/gnome-client.json:rw",
+                    "--env", "BUSYSTACK_GNOME_EXCHANGE=/fixture/gnome-client.json"]
             if checkpoint is not None:
                 browser_command += ["--env", "BUSYSTACK_BROWSER_RESTORE=true", "--env", "BUSYSTACK_BROWSER_RECOVERY_FILE=/fixture/recovery.json",
                     "--env", "BUSYSTACK_BROWSER_RECOVERY_PASSWORD_FILE=/fixture/restore-password",
@@ -229,7 +237,7 @@ def main():
             selector.register(browser.stdout, selectors.EVENT_READ)
             pending = b""
             signals = set()
-            deadline = time.monotonic() + (1200 if args.restore else 600)
+            deadline = time.monotonic() + (1200 if args.restore else 600) + (240 if args.gnome else 0)
             password = (directory / "bootstrap-password").read_text().strip()
             while time.monotonic() < deadline:
                 events = selector.select(timeout=1)
@@ -246,7 +254,16 @@ def main():
                     line = raw.decode(errors="replace")
                     print(line.replace(password, "[redacted]"), flush=True)
                     signals.add(line)
-                    if line == "READY_CAPACITY_SHARING" and checkpoint is not None and args.workload:
+                    if line == "READY_GNOME" and args.gnome:
+                        gnome_fixture = json.loads(gnome_exchange.read_text())
+                        gnome_fixture["ca"] = str(directory / "ca.pem")
+                        gnome_exchange.write_text(json.dumps(gnome_fixture))
+                        subprocess.run(["/usr/bin/python3", str(ROOT / "qualification/clients/gnome.py"),
+                            "--fixture", str(gnome_exchange), "--output", str(evidence)], check=True, timeout=250)
+                        gnome_exchange.write_text("{}")
+                        browser.stdin.write(b"GNOME_VERIFIED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_CAPACITY_SHARING" and checkpoint is not None and args.workload:
                         sharing_load = sharing_capacity.SharingCapacity(checkpoint, environment)
                         sharing_load.seed()
                         browser.stdin.write(b"CAPACITY_SHARING_SEEDED\n")

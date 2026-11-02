@@ -35,6 +35,7 @@
   <div th:if="${viewer != null and !mfaCurrent}" class="notice"><strong>Security verification needed.</strong> Sensitive changes require primary sign-in and a passkey verified within ten minutes. <a th:href="@{/login}">Verify sign-in</a> or <a th:href="@{/security/passkeys}">set up a passkey</a>.</div>
 </th:block>
 <nav th:fragment="securityNav" aria-label="Security settings" class="security-nav"><a th:href="@{/security}">Security overview</a><a th:href="@{/security/passkeys}">Passkeys</a><a th:href="@{/security/credentials}">DAV credentials</a><a th:href="@{/security/sessions}">Sessions</a><a th:href="@{/security/recovery}">Recovery</a><a th:href="@{/oauth-grants}">OAuth grants</a></nav>
+<time class="timestamp" th:fragment="timestamp(value, fallback)" th:datetime="${value}" th:text="${value == null ? fallback : #temporals.format(value, 'uuuu-MM-dd HH:mm', 'UTC') + ' UTC'}"></time>
 <footer th:fragment="footer"><span>BusyStack · Your server. Your data.</span><span>Calendar and task contents are managed in your CalDAV applications.</span><p id="copy-status" role="status" aria-live="polite"></p></footer>
 <nav th:fragment="pagination(base, page)" aria-label="Pagination" class="pagination">
   <a th:if="${page.page > 0}" th:href="@{${base}(page=${page.page - 1},q=${query},status=${filter})}">Previous</a><span th:text="${'Page ' + (page.page + 1)}"></span><a th:if="${page.hasNext}" th:href="@{${base}(page=${page.page + 1},q=${query},status=${filter})}">Next</a>

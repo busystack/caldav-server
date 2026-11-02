@@ -25,7 +25,7 @@ export async function provisionAccount(page,base,username,displayName,password) 
   await form.locator('input[name=displayName]').fill(displayName);
   await form.locator('input[name=password]').fill(password);
   await Promise.all([page.waitForURL(/\/admin\/accounts\/[a-f0-9-]{36}$/i),form.getByRole('button',{name:'Create account',exact:true}).click()]);
-  await page.getByText(username,{exact:true}).waitFor();
+  await page.getByText(username,{exact:true}).and(page.locator('dd')).waitFor();
   return new URL(page.url()).pathname.split('/').at(-1);
 }
 export async function grantDirect(page,base,collection,username,permission) {

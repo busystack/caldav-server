@@ -420,6 +420,44 @@ class PortalManagementIT {
   }
 
   @Test
+  void multipartAdmissionChecksRealBytesSizeAndDestinationWithoutLeakingContent() throws Exception {
+    var browser = browser(owner, true);
+    String csrf = csrf(get(browser, "/portability").body());
+    var invalid =
+        upload(
+            browser,
+            csrf,
+            collection,
+            "../../unsafe.ics",
+            "<script>not a calendar</script>".getBytes(StandardCharsets.UTF_8));
+    assertThat(invalid.statusCode()).isEqualTo(400);
+    assertThat(invalid.body())
+        .contains("/team/assets/account.css")
+        .doesNotContain("<script>not a calendar</script>", "../../unsafe.ics");
+    var oversized = upload(browser, csrf, collection, "large.ics", new byte[8 * 1024 * 1024 + 1]);
+    assertThat(oversized.statusCode()).isEqualTo(413);
+    assertThat(oversized.body()).contains("/team/assets/account.css", "Upload too large");
+    assertThat(oversized.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
+    assertThat(
+            upload(
+                    browser,
+                    csrf,
+                    portal.create(auth(other, true), "Other private", "VEVENT", "", ""),
+                    "calendar.ics",
+                    event("denied"))
+                .statusCode())
+        .isEqualTo(403);
+    assertThat(
+            upload(browser, csrf, collection, "../../unsafe.ics", event("accepted")).statusCode())
+        .isEqualTo(200);
+    assertThat(calendars.metadataBatch(owner, collection, "", 10)).isEmpty();
+    assertThat(
+            get(browser(admin, true), "/portability/collections/" + collection + "/export")
+                .statusCode())
+        .isEqualTo(403);
+  }
+
+  @Test
   void exportHttpHeadersAndAuditViewerNeverRevealSecrets() throws Exception {
     calendars.put(owner, collection, "one.ics", "one", event("one"), WriteCondition.create());
     var credential = management.issue(auth(owner, true), "Private label", 1);
@@ -588,6 +626,35 @@ class PortalManagementIT {
             .timeout(Duration.ofSeconds(30))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(form))
+            .build(),
+        HttpResponse.BodyHandlers.ofString());
+  }
+
+  private HttpResponse<String> upload(
+      HttpClient browser, String csrf, UUID destination, String filename, byte[] content)
+      throws Exception {
+    String boundary = "BusyStack" + UUID.randomUUID().toString().replace("-", "");
+    var body = new java.io.ByteArrayOutputStream();
+    body.write(
+        ("--"
+                + boundary
+                + "\r\nContent-Disposition: form-data; name=\"destination\"\r\n\r\n"
+                + destination
+                + "\r\n--"
+                + boundary
+                + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\""
+                + filename
+                + "\"\r\nContent-Type: text/calendar\r\n\r\n")
+            .getBytes(StandardCharsets.UTF_8));
+    body.write(content);
+    body.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+    return browser.send(
+        HttpRequest.newBuilder(URI.create(base() + "/portability/preview"))
+            .timeout(Duration.ofSeconds(30))
+            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .header("Accept", "text/html")
+            .header("X-CSRF-TOKEN", csrf)
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
             .build(),
         HttpResponse.BodyHandlers.ofString());
   }
