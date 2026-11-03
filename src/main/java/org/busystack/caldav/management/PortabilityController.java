@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -73,16 +74,30 @@ public class PortabilityController {
   }
 
   @GetMapping("/portability/collections/{id}/export")
-  void export(Authentication auth, @PathVariable UUID id, HttpServletResponse response)
+  ModelAndView export(
+      Authentication auth,
+      @PathVariable UUID id,
+      HttpServletResponse response,
+      RedirectAttributes flash)
       throws IOException {
     var export = portability.export(auth, id);
     try {
-      response.setContentType("text/calendar; charset=utf-8");
       response.setHeader("Cache-Control", "no-store");
+      if (export.length() == 0) {
+        flash.addFlashAttribute(
+            "notice",
+            "This export snapshot contained no calendar or task items. No file was downloaded.");
+        return new ModelAndView("redirect:/collections/" + id);
+      }
+      response.setContentType("text/calendar; charset=utf-8");
       response.setHeader(
-          "Content-Disposition", "attachment; filename=\"busystack-collection.ics\"");
+          "Content-Disposition",
+          "attachment; filename=\"busystack-collection"
+              + (export.stream() ? "-stream" : "")
+              + ".ics\"");
       response.setContentLengthLong(export.length());
       Files.copy(export.path(), response.getOutputStream());
+      return null;
     } finally {
       Files.deleteIfExists(export.path());
     }

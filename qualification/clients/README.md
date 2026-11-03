@@ -24,6 +24,14 @@ This launches Thunderbird's native CalDAV provider in its real desktop executabl
 
 The same-object round-trip profile also requires Thunderbird to create a recurring event, a completed undated task, an all-day event and a floating-time event. The separate python-caldav/icalendar client reads and modifies those exact resources; Thunderbird refreshes and verifies the modifications, edits them again, and Python verifies the final data and unchanged resource URLs. Assertions retain recurrence count, alarm trigger, extension properties, task completion timestamp, exclusive all-day end, and floating values without invented UTC/TZID qualifiers. A passing JSON result includes `crossClient.sameResources: 4`. The recorded IndependentClientIT run passed this complete profile; subsequent application artifacts must run the process again before extending that claim. This profile uses isolated test-CA trust and the unmodified server defaults, with observed depth behavior recorded alongside configuration provenance.
 
+IndependentClientIT also exports the live resources through PortabilityService after
+Python's edits. Thunderbird's native file parser must consume all four UIDs across
+the event/task downloads and retain the detached recurrence exception. The result
+records `nativePortalExportItems: 4`. Compatible calendar contexts export one
+VCALENDAR; distinct contexts retain a lossless stream. Thunderbird 159.0's file
+parser cannot consume multiple VCALENDAR roots; this limitation does not affect
+its native DAV provider. See [portability](../../docs/portability.md).
+
 Results and native-client serialized fixtures are written under
 `target/qualification` and retained as CI artifacts. The
 [qualification index](../evidence/README.md) identifies concise version-specific
@@ -43,9 +51,10 @@ failures; earlier attempts are not relabeled as successful runs.
 ## Optional installed GNOME connection wizard
 
 On a Linux graphical workstation with GNOME Calendar `50.0-1`, Evolution Data
-Server `3.56.2-8`, Python GI/AT-SPI, GNOME Keyring, bubblewrap and an existing X11
-or Xwayland display, `qualification/passkeys/run.py --gnome` adds a real native
-connection wizard to the existing packaged HTTPS browser profile. Use
+Server `3.56.2-8`, Python GI/AT-SPI, GNOME Keyring, bubblewrap, xauth and Docker, `qualification/passkeys/run.py --gnome` adds a real native
+connection wizard to the existing packaged HTTPS browser profile. The existing
+browser fixture supplies an authenticated private Xvfb display; no host desktop
+or existing graphical session is accessed. Use
 `--application-image` and `--browser-image` as documented in the
 [passkey qualification](../passkeys/README.md). Missing prerequisites fail;
 this optional profile is never silently substituted for the normal browser run.
@@ -54,8 +63,18 @@ The browser creates the collection, edits metadata, imports contents and issues 
 DAV credential. The host fixture drives only its own GNOME accessibility tree
 through Manage Calendars, Add Calendar, HTTPS address, credentials and discovery.
 It verifies the durable native CalDAV source. It uses a disposable home, private
-session/accessibility buses, keyring and namespace-only fixture CA trust. It does
+session/accessibility buses, keyring and namespace-only fixture CA trust. The
+private buses use their documented AppArmor setting because policy queries cannot
+operate against the namespace's read-only security filesystem; host policy is
+unchanged. The pinned GNOME 50 Add Calendar row has no activation action and
+reports local coordinates as screen coordinates; the fixture uses the visually
+checked native dialog layout and standard X11 input within that private display. It does
 not modify installed software, the host trust store or the user's existing
 calendar/profile. Secrets remain in temporary private exchange files; retained
 results contain redacted diagnostics and accessible control names. This profile
 qualifies account setup, not every event-editing or assistive-technology workflow.
+`--gnome-only` is an explicit targeted profile for native setup; the full browser,
+security and restore profiles must still run separately. `BUSYSTACK_GNOME_DEBUG=1`
+optionally runs only the isolated native client under the installed GDB, stopping
+on GLib criticals and retaining function-only backtraces without arguments or
+locals. This diagnoses upstream crashes without changing installed binaries.

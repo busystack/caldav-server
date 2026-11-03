@@ -75,7 +75,7 @@ The historical GNOME record uses a source provisioned through EDS's supported AP
 Connections also documents the GNOME 50.0 wizard: **Manage Calendars → Add Calendar**,
 enter the collection HTTPS address under **Connect to an Online Calendar**, supply
 the username and dedicated DAV credential in **Credentials**, choose **Connect**,
-select the discovered calendar and choose **Add Calendar**. Those graphical setup
+wait for the address to validate and choose **Add Calendar**. Those graphical setup
 steps are documented but await qualification. Current artifact results are recorded separately; BusyMax
 and other untested clients are not advertised as supported.
 

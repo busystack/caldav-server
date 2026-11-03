@@ -58,13 +58,16 @@ try {
   await createCollection(page,base,'Browser-qualified tasks','VTODO');
   console.log('PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED');
   const localPortal=await qualifyPersonalPortal(page,base,privateValues,process.env.BUSYSTACK_BROWSER_USERNAME);
-  await qualifyPortalPresentation(page,base,localPortal,true);
+  if (process.env.BUSYSTACK_GNOME_ONLY !== 'true') await qualifyPortalPresentation(page,base,localPortal,true);
   if (process.env.BUSYSTACK_GNOME_EXCHANGE) {
-    writeFileSync(process.env.BUSYSTACK_GNOME_EXCHANGE, JSON.stringify({address:localPortal.address,
+    writeFileSync(process.env.BUSYSTACK_GNOME_EXCHANGE, JSON.stringify({address:localPortal.address,discoverAddress:localPortal.serverAddress,
       name:localPortal.name, username:process.env.BUSYSTACK_BROWSER_USERNAME, credential:localPortal.device.credential}));
     console.log('READY_GNOME');
     await waitFor('GNOME_VERIFIED');
   }
+  if (process.env.BUSYSTACK_GNOME_ONLY === 'true') {
+    console.log('NATIVE_CONNECTION_SETUP_ONLY_PASSED');
+  } else {
   if (process.env.BUSYSTACK_BROWSER_GROUPS === 'true') await qualifyGroups(page, base, privateValues);
   const administratorPage = page;
   let activeCdp = cdp;
@@ -125,6 +128,7 @@ try {
   await page.getByRole('button', {name: 'Verify passkey', exact: true}).click();
   await page.locator('#security-status').filter({hasText: '(401)'}).waitFor();
   console.log('DISABLED_SESSION_AND_PASSKEY_PASSED');
+  }
 } catch (error) {
   let diagnostic = String(error.stack || error);
   for (const value of privateValues) diagnostic = diagnostic.replaceAll(value, '[redacted]');

@@ -73,7 +73,8 @@ def main():
     parser.add_argument("--oidc", action="store_true", help="Also qualify a real Keycloak login across distinct reserved test sites")
     parser.add_argument("--restore", action="store_true", help="Qualify actual HTTPS authentication, content and sync after restoring an older database")
     parser.add_argument("--groups", action="store_true", help="Require the V9 group-management and owner-sharing browser workflow")
-    parser.add_argument("--gnome", action="store_true", help="Also drive the installed GNOME connection wizard in an isolated home/DBus/X11 session")
+    parser.add_argument("--gnome", action="store_true", help="Also drive the installed GNOME connection wizard in an isolated home/DBus/private Xvfb session")
+    parser.add_argument("--gnome-only", action="store_true", help="Target only real MFA, portal collection/credential setup and the native GNOME connection wizard")
     parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
     parser.add_argument("--clients", action="store_true", help="Run existing Python/native Thunderbird correctness profiles on the packaged server, without performance workload")
     parser.add_argument("--client-python", default=os.environ.get("BUSYSTACK_CLIENT_PYTHON", str(ROOT / ".client-venv/bin/python")))
@@ -81,6 +82,10 @@ def main():
     parser.add_argument("--strict-sync-depth", action="store_true", help="Explicit false override; default qualification leaves the setting absent")
     parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
     args = parser.parse_args()
+    if args.gnome_only:
+        if args.groups or args.oidc or args.restore or args.workload or args.clients or args.strict_sync_depth:
+            parser.error("--gnome-only is a separate targeted setup profile; run full browser/security profiles independently")
+        args.gnome = True
     if args.gnome and args.oidc:
         parser.error("The installed GNOME fixture uses localhost TLS, not the browser container's reserved OIDC hostnames")
     if args.clients and (not args.restore or args.oidc or args.strict_sync_depth):
@@ -216,6 +221,8 @@ def main():
                 gnome_exchange.touch(mode=0o600)
                 browser_command += ["--volume", f"{gnome_exchange}:/fixture/gnome-client.json:rw",
                     "--env", "BUSYSTACK_GNOME_EXCHANGE=/fixture/gnome-client.json"]
+                if args.gnome_only:
+                    browser_command += ["--env", "BUSYSTACK_GNOME_ONLY=true"]
             if checkpoint is not None:
                 browser_command += ["--env", "BUSYSTACK_BROWSER_RESTORE=true", "--env", "BUSYSTACK_BROWSER_RECOVERY_FILE=/fixture/recovery.json",
                     "--env", "BUSYSTACK_BROWSER_RECOVERY_PASSWORD_FILE=/fixture/restore-password",
@@ -257,6 +264,7 @@ def main():
                     if line == "READY_GNOME" and args.gnome:
                         gnome_fixture = json.loads(gnome_exchange.read_text())
                         gnome_fixture["ca"] = str(directory / "ca.pem")
+                        gnome_fixture["displayImage"] = args.browser_image
                         gnome_exchange.write_text(json.dumps(gnome_fixture))
                         subprocess.run(["/usr/bin/python3", str(ROOT / "qualification/clients/gnome.py"),
                             "--fixture", str(gnome_exchange), "--output", str(evidence)], check=True, timeout=250)
@@ -306,6 +314,10 @@ def main():
             except subprocess.TimeoutExpired as error:
                 raise RuntimeError("Browser qualification exceeded its deadline") from error
             assert result == 0, "Browser qualification failed"
+            if args.gnome_only:
+                assert "NATIVE_CONNECTION_SETUP_ONLY_PASSED" in signals
+                print("PASS: targeted real MFA, portal collection/credential setup and native GNOME connection wizard. Recovery, OAuth, groups, restore and restart are unexecuted in this targeted profile.")
+                return
             for expected in ("PASSWORD_PLUS_WEBAUTHN_AND_MUTATION_PASSED", "BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED", "BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED", "BROWSER_S256_CONSENT_TOKEN_REFRESH_AND_GRANT_REVOCATION_PASSED", "BROWSER_CONSENT_WITHOUT_CSRF_REJECTED", "PERSISTED_PASSKEY_AFTER_RESTART_PASSED", "DISABLED_SESSION_AND_PASSKEY_PASSED"):
                 assert expected in signals, expected
             if args.oidc:

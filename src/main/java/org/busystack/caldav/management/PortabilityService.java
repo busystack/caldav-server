@@ -42,7 +42,7 @@ public class PortabilityService {
     }
   }
 
-  public record Export(Path path, long length) {}
+  public record Export(Path path, long length, boolean stream) {}
 
   private final PortalService portal;
   private final SessionSecurity sessions;
@@ -167,6 +167,7 @@ public class PortabilityService {
   /** Build the complete download under one committed snapshot before sending success headers. */
   @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 60)
   public Export export(Authentication auth, UUID id) throws IOException {
+    RecentAuthentication.requireMfa(auth);
     UUID actor = sessions.assertCurrent(auth).id();
     var collection = calendars.collection(actor, id);
     if (!exports.tryAcquire()) throw new StoreException(StoreException.Kind.LIMIT);
@@ -176,6 +177,9 @@ public class PortabilityService {
       long length = 0;
       int count = 0;
       String after = "";
+      CalendarInterchange.ExportParts first = null;
+      String context = null;
+      boolean compatible = true;
       try (var output = Files.newOutputStream(file)) {
         while (true) {
           var batch = calendars.resourceBatch(actor, id, after);
@@ -184,6 +188,11 @@ public class PortabilityService {
             byte[] body = resource.content();
             // Reuse strict validation for legacy invalid resources; never omit them silently.
             org.busystack.caldav.calendar.CalendarContent.parse(body, collection.component());
+            var parts = CalendarInterchange.exportParts(body);
+            if (first == null) {
+              first = parts;
+              context = parts.contextFingerprint();
+            } else if (!context.equals(parts.contextFingerprint())) compatible = false;
             if (++count > 10000 || length + body.length + 2 > 64L * 1024 * 1024)
               throw new StoreException(StoreException.Kind.LIMIT);
             output.write(body);
@@ -196,15 +205,27 @@ public class PortabilityService {
             after = resource.name();
           }
         }
-        if (count == 0) {
-          byte[] empty =
-              "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Collection export//EN\r\nEND:VCALENDAR\r\n"
-                  .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-          output.write(empty);
-          length = empty.length;
-        }
       }
-      return new Export(file, length);
+      if (compatible && count > 1) {
+        // One VCALENDAR is consumed by more migration tools. Combine only identical calendar
+        // contexts: no property, timezone, component or parameter needs rewriting or dropping.
+        after = "";
+        try (var output = Files.newOutputStream(file)) {
+          output.write(first.header());
+          output.write(first.zones());
+          while (true) {
+            var batch = calendars.resourceBatch(actor, id, after);
+            if (batch.isEmpty()) break;
+            for (var resource : batch) {
+              output.write(CalendarInterchange.exportParts(resource.content()).items());
+              after = resource.name();
+            }
+          }
+          output.write(first.closing());
+        }
+        length = Files.size(file);
+      }
+      return new Export(file, length, !compatible);
     } catch (IOException | RuntimeException failure) {
       if (file != null) Files.deleteIfExists(file);
       throw failure;

@@ -329,19 +329,28 @@ def main():
                         (artifacts / ("thunderbird-" + kind + ".ics")).write_bytes(result[kind].encode("utf-8"))
                     assert len(events.events()) == 3 and len(tasks.todos(include_completed=True)) == 1
                     urls, completed = python_edits_native_items(events, tasks)
-                    stream_parts = []
-                    for resource in events.objects() + tasks.objects():
-                        resource.load()
-                        assert resource.data is not None
-                        stream_parts.append(resource.data.decode("utf-8") if isinstance(resource.data, bytes) else resource.data)
-                    stream = "".join(stream_parts)
-                    imported = driver.execute_script("""
-                      const parser=Cc['@mozilla.org/calendar/ics-parser;1'].createInstance(Ci.calIIcsParser);
-                      parser.parseString(arguments[0]);
-                      return parser.getItems().map(item=>({id:item.id,type:item.isEvent()?'VEVENT':'VTODO'}));
-                    """, script_args=[stream], new_sandbox=False)
-                    assert {item["id"] for item in imported} == {"thunderbird-event", "thunderbird-task", "thunderbird-all-day", "thunderbird-floating"}
-                    assert sum(item["type"] == "VEVENT" for item in imported) == 3
+                    imported = None
+                    if os.environ.get("BUSYSTACK_EXPORT_EXCHANGE"):
+                        exchange = Path(os.environ["BUSYSTACK_EXPORT_EXCHANGE"])
+                        (exchange / 'export-ready').touch()
+                        deadline = time.monotonic() + 60
+                        while not (exchange / 'export-complete').exists():
+                            assert time.monotonic() < deadline, 'Actual portal export did not become ready'
+                            time.sleep(.1)
+                        imported = []
+                        for kind in ('events', 'tasks'):
+                            document = (exchange / (kind + '.ics')).read_text()
+                            assert document.count('BEGIN:VCALENDAR') == 1
+                            items = driver.execute_script("""
+                              const parser=Cc['@mozilla.org/calendar/ics-parser;1'].createInstance(Ci.calIIcsParser);
+                              parser.parseString(arguments[0]);
+                              return parser.getItems().map(item=>({id:item.id,type:item.isEvent()?'VEVENT':'VTODO',
+                                exceptions:item.recurrenceInfo?.getExceptionIds().length??0}));
+                            """, script_args=[document], new_sandbox=False)
+                            imported.extend(items)
+                        assert {item["id"] for item in imported} == {"thunderbird-event", "thunderbird-task", "thunderbird-all-day", "thunderbird-floating"}, imported
+                        assert sum(item["type"] == "VEVENT" for item in imported) == 3
+                        assert next(item for item in imported if item['id']=='thunderbird-event')['exceptions'] == 1
                     cross = driver.execute_async_script(CROSS_CLIENT, new_sandbox=False)
                     assert cross == {"crossClient": True, "nativeOccurrenceCount": 3, "nativeDetachedExceptions": 1}, cross
                     final = independent_items(events, tasks)
@@ -352,7 +361,7 @@ def main():
                     deleted = driver.execute_async_script(DELETE, new_sandbox=False)
                     assert deleted == {"deleted": True}, deleted
                     assert len(events.events()) == 0 and len(tasks.todos(include_completed=True)) == 0
-                    print(json.dumps({"client": info["app"], "version": info["version"], "driver": importlib.metadata.version("marionette_driver"), "crossClient": {"python-caldav": importlib.metadata.version("caldav"), "icalendar": importlib.metadata.version("icalendar"), "sameResources": 4, "nativeRecurrenceInstances": cross["nativeOccurrenceCount"], "nativeDetachedExceptions": cross["nativeDetachedExceptions"], "excludedOccurrences": 1}, "nativeAppleCalendarColor": info["appleCalendarColor"], "nativeIcalendarStreamItems": len(imported), "mode": "isolated headless native desktop CalDAV provider", "syncConfiguration": sync_profile, "status": "passed", "operations": ["server discovery by native provider", "recurring event CRUD", "Unicode and unknown-property round trip", "alarm preservation without execution", "undated VTODO CRUD and completion", "same-object Thunderbird to Python to Thunderbird to Python edits", "cross-client recurrence, alarm, extension and completion timestamp preservation", "same-resource detached exception identity/time/title edits in both clients", "EXDATE exclusion verified by native occurrence expansion", "all-day DATE and exclusive end preservation across both clients", "floating DATE-TIME preservation across both clients", "native refresh and deletion synchronization"]}, sort_keys=True))
+                    print(json.dumps({"client": info["app"], "version": info["version"], "driver": importlib.metadata.version("marionette_driver"), "crossClient": {"python-caldav": importlib.metadata.version("caldav"), "icalendar": importlib.metadata.version("icalendar"), "sameResources": 4, "nativeRecurrenceInstances": cross["nativeOccurrenceCount"], "nativeDetachedExceptions": cross["nativeDetachedExceptions"], "excludedOccurrences": 1}, "nativeAppleCalendarColor": info["appleCalendarColor"], "nativePortalExportItems": len(imported) if imported is not None else 'not executed in this profile', "mode": "isolated headless native desktop CalDAV provider", "syncConfiguration": sync_profile, "status": "passed", "operations": ["server discovery by native provider", "recurring event CRUD", "Unicode and unknown-property round trip", "alarm preservation without execution", "undated VTODO CRUD and completion", "same-object Thunderbird to Python to Thunderbird to Python edits", "cross-client recurrence, alarm, extension and completion timestamp preservation", "same-resource detached exception identity/time/title edits in both clients", "EXDATE exclusion verified by native occurrence expansion", "all-day DATE and exclusive end preservation across both clients", "floating DATE-TIME preservation across both clients", "native refresh and deletion synchronization"]}, sort_keys=True))
                 finally:
                     try:
                         if driver is not None:

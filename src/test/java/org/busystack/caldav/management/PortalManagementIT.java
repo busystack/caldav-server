@@ -62,6 +62,7 @@ class PortalManagementIT {
   @Autowired CalendarStore calendars;
   @Autowired DavStore dav;
   @Autowired GroupService groups;
+  @Autowired org.busystack.caldav.config.OperationalProblems problems;
   @Autowired JdbcTemplate jdbc;
   @Autowired SessionRepository<? extends Session> repository;
   @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
@@ -282,9 +283,11 @@ class PortalManagementIT {
                 .getBytes(StandardCharsets.UTF_8));
     assertThat(conflict.conflicts()).isEqualTo(1);
     var exported = portability.export(auth(owner, true), collection);
+    assertThat(exported.stream()).isFalse();
     byte[] bytes;
     try {
       bytes = Files.readAllBytes(exported.path());
+      assertThat(new String(bytes, StandardCharsets.UTF_8).split("BEGIN:VCALENDAR", -1)).hasSize(2);
     } finally {
       Files.deleteIfExists(exported.path());
     }
@@ -297,6 +300,43 @@ class PortalManagementIT {
     assertThat(roundtrip.imported()).isEqualTo(2);
     for (var m : calendars.metadataBatch(owner, destination, "", 10))
       assertThat(calendars.get(owner, destination, m.name()).content()).isEqualTo(event(m.uid()));
+  }
+
+  @Test
+  void incompatibleCalendarContextsExportLosslesslyWithoutCombiningTimezoneDefinitions()
+      throws Exception {
+    String zone =
+        "BEGIN:VTIMEZONE\r\nTZID:Private/Fixed\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0200\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n";
+    byte[] a =
+        calendarBody("zone-a")
+            .replace("BEGIN:VEVENT", zone + "BEGIN:VEVENT")
+            .replace("DTSTART:20261028T000000Z", "DTSTART;TZID=Private/Fixed:20261028T000000")
+            .getBytes(StandardCharsets.UTF_8);
+    byte[] b =
+        new String(a, StandardCharsets.UTF_8)
+            .replace("zone-a", "zone-b")
+            .replace("+0200", "+0300")
+            .getBytes(StandardCharsets.UTF_8);
+    portability.confirm(
+        auth(owner, true), portability.preview(auth(owner, true), collection, a).token(), true);
+    portability.confirm(
+        auth(owner, true), portability.preview(auth(owner, true), collection, b).token(), true);
+    var export = portability.export(auth(owner, true), collection);
+    try {
+      assertThat(export.stream()).isTrue();
+      var items =
+          new org.busystack.caldav.calendar.CalendarInterchange(
+                  new org.busystack.caldav.calendar.CalendarAdmission(
+                      new org.busystack.caldav.config.DavCompatibilityProperties(true, true)))
+              .read(Files.readAllBytes(export.path()), "VEVENT");
+      assertThat(items).hasSize(2).allSatisfy(i -> assertThat(i.rejection()).isEmpty());
+      assertThat(items)
+          .extracting(i -> new String(i.content(), StandardCharsets.UTF_8))
+          .containsExactlyInAnyOrder(
+              new String(a, StandardCharsets.UTF_8), new String(b, StandardCharsets.UTF_8));
+    } finally {
+      Files.deleteIfExists(export.path());
+    }
   }
 
   @Test
@@ -438,6 +478,15 @@ class PortalManagementIT {
     assertThat(oversized.statusCode()).isEqualTo(413);
     assertThat(oversized.body()).contains("/team/assets/account.css", "Upload too large");
     assertThat(oversized.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
+    var oversizedForm =
+        upload(browser, csrf, collection, "large.ics", new byte[8 * 1024 * 1024 + 1], false);
+    assertThat(oversizedForm.statusCode()).isEqualTo(413);
+    assertThat(oversizedForm.body()).contains("/team/assets/account.css", "Upload too large");
+    assertThat(problems.recent())
+        .noneMatch(
+            p ->
+                p.requestId()
+                    .equals(oversizedForm.headers().firstValue("X-Request-ID").orElseThrow()));
     assertThat(
             upload(
                     browser,
@@ -459,7 +508,22 @@ class PortalManagementIT {
 
   @Test
   void exportHttpHeadersAndAuditViewerNeverRevealSecrets() throws Exception {
+    var ownerBrowser = browser(owner, true);
+    assertThat(
+            get(browser(owner, false), "/portability/collections/" + collection + "/export")
+                .statusCode())
+        .isEqualTo(403);
+    var empty = get(ownerBrowser, "/portability/collections/" + collection + "/export");
+    assertThat(empty.statusCode()).isEqualTo(302);
+    assertThat(empty.headers().firstValue("Location").orElse(""))
+        .endsWith("/team/collections/" + collection);
+    assertThat(get(ownerBrowser, "/collections/" + collection).body())
+        .contains("This export snapshot contained no calendar or task items");
     calendars.put(owner, collection, "one.ics", "one", event("one"), WriteCondition.create());
+    calendars.share(owner, collection, reader, "READ");
+    assertThat(
+            get(browser(reader, true), "/portability/collections/" + collection + "/export").body())
+        .isEqualTo(calendarBody("one"));
     var credential = management.issue(auth(owner, true), "Private label", 1);
     var response = get(browser(owner, true), "/portability/collections/" + collection + "/export");
     assertThat(response.statusCode()).isEqualTo(200);
@@ -633,10 +697,25 @@ class PortalManagementIT {
   private HttpResponse<String> upload(
       HttpClient browser, String csrf, UUID destination, String filename, byte[] content)
       throws Exception {
+    return upload(browser, csrf, destination, filename, content, true);
+  }
+
+  private HttpResponse<String> upload(
+      HttpClient browser,
+      String csrf,
+      UUID destination,
+      String filename,
+      byte[] content,
+      boolean header)
+      throws Exception {
     String boundary = "BusyStack" + UUID.randomUUID().toString().replace("-", "");
     var body = new java.io.ByteArrayOutputStream();
     body.write(
         ("--"
+                + boundary
+                + "\r\nContent-Disposition: form-data; name=\"_csrf\"\r\n\r\n"
+                + csrf
+                + "\r\n--"
                 + boundary
                 + "\r\nContent-Disposition: form-data; name=\"destination\"\r\n\r\n"
                 + destination
@@ -648,15 +727,14 @@ class PortalManagementIT {
             .getBytes(StandardCharsets.UTF_8));
     body.write(content);
     body.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-    return browser.send(
+    var request =
         HttpRequest.newBuilder(URI.create(base() + "/portability/preview"))
             .timeout(Duration.ofSeconds(30))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
             .header("Accept", "text/html")
-            .header("X-CSRF-TOKEN", csrf)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
-            .build(),
-        HttpResponse.BodyHandlers.ofString());
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()));
+    if (header) request.header("X-CSRF-TOKEN", csrf);
+    return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
   }
 
   private String base() {

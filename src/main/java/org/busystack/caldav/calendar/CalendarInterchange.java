@@ -39,6 +39,63 @@ public final class CalendarInterchange {
 
   private record Frame(byte[] original, byte[] header, byte[] closing, List<byte[]> components) {}
 
+  /** Raw, bounded framing for export; callers first validate the stored resource. */
+  public record ExportParts(byte[] header, byte[] zones, byte[] items, byte[] closing) {
+    public ExportParts {
+      header = header.clone();
+      zones = zones.clone();
+      items = items.clone();
+      closing = closing.clone();
+    }
+
+    @Override
+    public byte[] header() {
+      return header.clone();
+    }
+
+    @Override
+    public byte[] zones() {
+      return zones.clone();
+    }
+
+    @Override
+    public byte[] items() {
+      return items.clone();
+    }
+
+    @Override
+    public byte[] closing() {
+      return closing.clone();
+    }
+
+    public String contextFingerprint() {
+      try {
+        var digest = java.security.MessageDigest.getInstance("SHA-256");
+        digest.update(java.nio.ByteBuffer.allocate(4).putInt(header.length).array());
+        digest.update(header);
+        digest.update(zones);
+        return java.util.HexFormat.of().formatHex(digest.digest());
+      } catch (java.security.NoSuchAlgorithmException impossible) {
+        throw new IllegalStateException(impossible);
+      }
+    }
+  }
+
+  public static ExportParts exportParts(byte[] resource) {
+    var framed = frames(resource);
+    if (framed.size() != 1) throw invalid();
+    var frame = framed.getFirst();
+    var zones = new ByteArrayOutputStream();
+    var items = new ByteArrayOutputStream();
+    for (byte[] component : frame.components()) {
+      String first = lines(component).getFirst().value();
+      if (first.equalsIgnoreCase("BEGIN:VTIMEZONE")) zones.writeBytes(component);
+      else items.writeBytes(component);
+    }
+    return new ExportParts(
+        frame.header(), zones.toByteArray(), items.toByteArray(), frame.closing());
+  }
+
   private final CalendarAdmission admission;
 
   public CalendarInterchange(CalendarAdmission admission) {

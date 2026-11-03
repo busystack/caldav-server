@@ -52,7 +52,7 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await primaryCannotMutate(page, base);
   await cdp.send('WebAuthn.setAutomaticPresenceSimulation', {authenticatorId, enabled: false});
   await page.goto(base + '/security/recovery');
-  assert.equal(await page.locator('main strong').innerText(), '10', 'Anonymous recovery must not consume a valid code');
+  assert.equal(await page.locator('main p').filter({hasText:/^Unused codes:/}).locator('strong').innerText(), '10', 'Anonymous recovery must not consume a valid code');
   await page.getByLabel('Recovery code', {exact: true}).fill(codes[0]);
   await Promise.all([page.waitForURL(url => url.pathname === prefix + '/login' && url.searchParams.has('recovered')),
     page.getByRole('button', {name: 'Use code and reset account access', exact: true}).click()]);
@@ -69,7 +69,7 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await cdp.send('WebAuthn.clearCredentials', {authenticatorId});
   await primary();
   await page.goto(base + '/security/recovery');
-  assert.equal(await page.locator('main strong').innerText(), '9');
+  assert.equal(await page.locator('main p').filter({hasText:/^Unused codes:/}).locator('strong').innerText(), '9');
   await page.getByLabel('Recovery code', {exact: true}).fill(codes[0]);
   const [replay] = await Promise.all([page.waitForResponse(response => response.request().method() === 'POST'
     && response.url() === base + '/security/recovery/use'), page.getByRole('button', {name: 'Use code and reset account access', exact: true}).click()]);

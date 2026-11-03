@@ -6,27 +6,40 @@ a weaker calendar profile or scheduling actions.
 
 ## Export
 
-An owner or current read-authorized recipient can export a collection. Application
+An owner or current read-authorized recipient can export a collection after
+primary sign-in and passkey verification within ten minutes. Application
 administration provides no additional content access. A repeatable-read snapshot
 retrieves bodies in the existing batches of at most 16 resources / 4 MiB. A private
 temporary file is completed and validated before download success headers are
 sent. Errors never return a silently incomplete successful export. The download
 uses `text/calendar; charset=utf-8`, a fixed safe attachment filename and
 `Cache-Control: no-store`; the file is removed after delivery.
+An empty export snapshot returns to the collection with a notice; no unusable
+empty interchange file is downloaded.
 
-The output is a lossless [RFC 5545 §3.4 iCalendar stream](https://www.rfc-editor.org/rfc/rfc5545.html#section-3.4):
-complete VCALENDAR objects in resource order. This keeps resource UIDs, recurrence
-masters/exceptions, supported extensions and each resource's timezone definitions
-together without merging conflicting definitions with the same TZID. Stored valid
-objects are not rebuilt through a serializer. A missing final line ending receives
-a separator before the next object. Ordinary resource retrieval remains unchanged.
+For multiple resources with byte-identical calendar headers and embedded timezone
+definitions, export produces one VCALENDAR containing all their components. Headers,
+VTIMEZONEs and every event/task component retain their original bytes; only repeated
+identical wrappers and timezone definitions are removed. A single resource exports
+unchanged. No serializer rewrites recurrence, properties or parameter values.
 
-Some other importers consume only one VCALENDAR. Test the destination's complete
-stream behavior before migration; protocol interoperability does not establish its
-file-import behavior. BusyStack accepts both multi-component VCALENDAR files and
-streams. Export limits are 10,000 resources and 64 MiB. Files larger than the
-import limit must be divided at complete VCALENDAR boundaries before importing.
-These are explicit operating limits, not a claim of arbitrary-size migration.
+When headers or timezone definitions differ, combining them could lose calendar
+properties or conflate different definitions of the same TZID. Export instead emits
+a lossless [RFC 5545 §3.4 iCalendar stream](https://www.rfc-editor.org/rfc/rfc5545.html#section-3.4)
+of complete stored VCALENDAR objects, with a `-stream.ics` filename. A missing final
+line ending receives a separator. BusyStack imports both representations.
+
+**Thunderbird 159.0's native file parser does not consume multiple VCALENDAR roots.**
+Its CalICSService wraps ICAL.parse's multi-root array as a single component. Use a
+single-VCALENDAR export for its file importer; a lossless stream requires an importer
+that accepts RFC 5545 streams, such as BusyStack. Native DAV synchronization remains
+independent of file import. Do not assume another application's file-import support
+from its protocol support.
+
+Export limits are 10,000 resources and 64 MiB. Files larger than the import limit
+must be divided at complete UID series (single VCALENDAR) or VCALENDAR boundaries
+(stream) before importing. These are explicit operating limits, not a claim of
+arbitrary-size migration.
 
 ## Preview, confirm and results
 

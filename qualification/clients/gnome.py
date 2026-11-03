@@ -5,11 +5,13 @@ Only a disposable home and this process's own application accessibility tree are
 No installed application, host trust store, existing calendar or user configuration changes.
 """
 import argparse
+import base64
 import configparser
 import json
 import os
 from pathlib import Path
 import shutil
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -32,7 +34,13 @@ def execute_child(root):
     # Unlock only this fixture's private login keyring through the supported daemon interface.
     subprocess.run(['gnome-keyring-daemon', '--unlock'], input=b'private-qualification-keyring\n',
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=15)
-    process = subprocess.Popen(['gnome-calendar'], stdout=(root / 'application.log').open('w'), stderr=subprocess.STDOUT)
+    command = ['gnome-calendar']
+    if os.environ.get('BUSYSTACK_GNOME_DEBUG') == '1':
+        # Optional upstream-crash diagnosis only; suppress all function arguments and locals.
+        command = ['gdb', '--batch', '--nx', '-ex', 'set startup-with-shell off',
+                   '-ex', 'set print frame-arguments none', '-ex', 'set environment G_DEBUG fatal-criticals',
+                   '-ex', 'run', '-ex', 'thread apply all backtrace', '--args', 'gnome-calendar']
+    process = subprocess.Popen(command, stdout=(root / 'application.log').open('w'), stderr=subprocess.STDOUT)
     def capture(label):
         import ctypes
         x = ctypes.CDLL('libX11.so.6')
@@ -46,6 +54,9 @@ def execute_child(root):
         x.XGetWindowProperty.argtypes = [pointer, window, window, ctypes.c_long, ctypes.c_long, ctypes.c_int, window, ctypes.POINTER(window), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(window), ctypes.POINTER(window), ctypes.POINTER(ctypes.POINTER(ctypes.c_ubyte))]
         x.XFree.argtypes = [pointer]
         x.XCloseDisplay.argtypes = [pointer]
+        x.XSetInputFocus.argtypes = [pointer, window, ctypes.c_int, window]
+        x.XRaiseWindow.argtypes = [pointer, window]
+        x.XFlush.argtypes = [pointer]
         display = x.XOpenDisplay(None)
         assert display
         pid_atom = x.XInternAtom(display, b'_NET_WM_PID', 0)
@@ -74,6 +85,10 @@ def execute_child(root):
                 native = GdkX11.X11Window.foreign_new_for_display(Gdk.Display.get_default(), wid)
                 width, height = native.get_width(), native.get_height()
                 if width >= 200 and height >= 100:
+                    if label == 'initial':
+                        x.XRaiseWindow(display, wid)
+                        x.XSetInputFocus(display, wid, 2, 0)
+                        x.XFlush(display)
                     pixbuf = Gdk.pixbuf_get_from_window(native, 0, 0, width, height)
                     if pixbuf: pixbuf.savev(str(root / (label + '-' + str(index) + '.png')), 'png', [], [])
         finally:
@@ -82,7 +97,7 @@ def execute_child(root):
         context = GLib.MainContext.default()
         while context.pending():
             context.iteration(False)
-    def nodes():
+    def nodes(showing=True):
         pump()
         desktop = Atspi.get_desktop(0)
         apps = [desktop.get_child_at_index(i) for i in range(desktop.get_child_count())]
@@ -94,8 +109,7 @@ def execute_child(root):
             if item is None or depth > 40 or len(result) >= 2000:
                 return
             try:
-                item.clear_cache()
-                if item.get_state_set().contains(Atspi.StateType.SHOWING):
+                if not showing or item.get_state_set().contains(Atspi.StateType.SHOWING):
                     result.append(item)
                 for n in range(min(item.get_child_count(), 160)):
                     visit(item.get_child_at_index(n), depth + 1)
@@ -115,7 +129,13 @@ def execute_child(root):
     def wait(condition, label, seconds=35):
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
-            found = condition()
+            if process.poll() is not None:
+                raise RuntimeError('The native client exited during ' + label + ' with status ' + str(process.returncode))
+            try:
+                found = condition()
+            except GLib.Error:
+                # Dialog closure can invalidate accessibility objects during a tree traversal.
+                found = None
             if found:
                 return found
             time.sleep(.2)
@@ -164,11 +184,35 @@ def execute_child(root):
             frames = [n for n in nodes() if n.get_role_name() == 'frame'
                       and n.get_state_set().contains(Atspi.StateType.ACTIVE)]
             bounds = [n.get_component_iface().get_extents(Atspi.CoordType.SCREEN) for n in frames]
+            if item.get_name() == 'Add Calendar' and rect.x == 0 and rect.y == 0:
+                # This pinned AdwButtonRow reports a local rectangle as SCREEN coordinates.
+                # Use the visually checked 50.0 centered dialog and its documented 15px bottom margin.
+                dialogs = [n for n in nodes() if n.get_role_name() == 'dialog' and n.get_name() == 'Calendar Settings']
+                assert len(dialogs) == 1 and len(bounds) == 1
+                assert 700 <= bounds[0].width <= 1400 and 550 <= bounds[0].height <= 1000
+                x = bounds[0].x + bounds[0].width // 2
+                y = bounds[0].y + bounds[0].height // 2 + 500 // 2 - 15 - rect.height // 2
             assert rect.width > 0 and rect.height > 0 and any(b.x <= x < b.x+b.width and b.y <= y < b.y+b.height for b in bounds)
-            assert Atspi.generate_mouse_event(x, y, 'b1c')
+            import ctypes
+            native_x = ctypes.CDLL('libX11.so.6')
+            native_x.XOpenDisplay.restype = ctypes.c_void_p
+            native_x.XFlush.argtypes = [ctypes.c_void_p]
+            native_x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+            xtest = ctypes.CDLL('libXtst.so.6')
+            xtest.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
+            xtest.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+            native_display = native_x.XOpenDisplay(None)
+            assert native_display
+            try:
+                assert xtest.XTestFakeMotionEvent(native_display, 0, x, y, 0)
+                assert xtest.XTestFakeButtonEvent(native_display, 1, 1, 10)
+                assert xtest.XTestFakeButtonEvent(native_display, 1, 0, 20)
+                native_x.XFlush(native_display)
+            finally:
+                native_x.XCloseDisplay(native_display)
             history_path = root / 'actions.json'
             history = json.loads(history_path.read_text()) if history_path.exists() else []
-            history.append({'role':'button', 'name':item.get_name(), 'selected':'native click within active owned application bounds'})
+            history.append({'role':'button', 'name':item.get_name(), 'selected':'XTEST click in authenticated private display within active owned application bounds', 'point':[x,y]})
             history_path.write_text(json.dumps(history, indent=2))
             return
         raise RuntimeError('The owned GNOME control has no accessible activation action')
@@ -187,16 +231,18 @@ def execute_child(root):
         click('Manage Calendars')
         click('Add Calendar')
         wait(lambda: len(editable()) >= 2, 'network-address')
-        editable()[-1].get_editable_text_iface().set_text_contents(fixture['address'])
+        editable()[-1].get_editable_text_iface().set_text_contents(fixture.get('discoverAddress', fixture['address']))
         wait(lambda: named('Credentials'), 'credential-dialog')
+        snapshot('credential-prompt')
         fields = editable()
         password_fields = [n for n in fields if 'password' in n.get_role_name()]
-        user_fields = [n for n in fields if 'password' not in n.get_role_name()]
-        assert password_fields and user_fields
-        user_fields[-1].get_editable_text_iface().set_text_contents(fixture['username'])
-        password_fields[-1].get_editable_text_iface().set_text_contents(fixture['credential'])
+        user_fields = [n for n in fields if n.get_name() == 'User']
+        assert len(password_fields) == 1 and len(user_fields) == 1
+        user_fields[0].get_editable_text_iface().set_text_contents(fixture['username'])
+        password_fields[0].get_editable_text_iface().set_text_contents(fixture['credential'])
         click('Connect')
-        wait(lambda: named(fixture['name']), 'discovered-collection', 60)
+        wait(lambda: any(n.get_role_name() == 'button' and n.get_name() == 'Add Calendar'
+                        and n.get_state_set().contains(Atspi.StateType.SENSITIVE) for n in nodes()), 'validated-source', 60)
         snapshot('discovered')
         click('Add Calendar')
         wait(lambda: any(fixture['name'] in n.get_name() for n in nodes()), 'saved-source')
@@ -216,6 +262,7 @@ def execute_child(root):
         assert config.get('Security', 'Method') == 'tls'
         assert config.get('Authentication', 'User') == fixture['username']
         assert config.get('Authentication', 'Host') == urlsplit(fixture['address']).hostname
+        assert config.getint('Authentication', 'Port') == (urlsplit(fixture['address']).port or 443)
         assert config.get('WebDAV Backend', 'ResourcePath') == urlsplit(fixture['address']).path
         colour = config.get('Calendar', 'Color', fallback='')
         report = {'status': 'passed', 'client': 'GNOME Calendar', 'version': fixture['gnomeVersion'],
@@ -242,8 +289,8 @@ def main():
     if args.child:
         execute_child(args.child)
         return
-    if not os.environ.get('DISPLAY') or not shutil.which('bwrap'):
-        raise SystemExit('GNOME qualification requires the existing Linux X11 display, bubblewrap and native GNOME/AT-SPI prerequisites')
+    if not shutil.which('bwrap') or not shutil.which('xauth'):
+        raise SystemExit('GNOME qualification requires bubblewrap, xauth and installed GNOME/AT-SPI prerequisites')
     assert args.fixture and args.output
     fixture = json.loads(args.fixture.read_text())
     versions = {package: subprocess.check_output(['dpkg-query', '-W', '-f=${Version}', package], text=True).strip()
@@ -252,8 +299,9 @@ def main():
     fixture.update(gnomeVersion=versions['gnome-calendar'], edsVersion=versions['evolution-data-server'])
     with tempfile.TemporaryDirectory(prefix='busystack-portal-gnome-') as directory:
         root = Path(directory)
-        for name in ('home', 'run', 'config', 'data', 'cache', 'state'):
+        for name in ('home', 'run', 'config', 'data', 'cache', 'state', 'X11'):
             (root / name).mkdir(mode=0o700)
+        (root / 'X11').chmod(0o1777)
         shutil.copyfile(__file__, root / 'gnome.py')
         (root / 'client.json').write_text(json.dumps(fixture))
         (root / 'client.json').chmod(0o600)
@@ -267,27 +315,54 @@ def main():
         for key in ('DBUS_SESSION_BUS_ADDRESS', 'DBUS_STARTER_ADDRESS', 'DBUS_STARTER_BUS_TYPE', 'AT_SPI_BUS_ADDRESS', 'WAYLAND_DISPLAY', 'SSH_AUTH_SOCK'):
             env.pop(key, None)
         env.update(XDG_RUNTIME_DIR=str(root / 'run'), XDG_CONFIG_HOME=str(root / 'config'), XDG_DATA_HOME=str(root / 'data'),
-                   XDG_CACHE_HOME=str(root / 'cache'), XDG_STATE_HOME=str(root / 'state'), GDK_BACKEND='x11',
+                   XDG_CACHE_HOME=str(root / 'cache'), XDG_STATE_HOME=str(root / 'state'), GDK_BACKEND='x11', GSK_RENDERER='cairo',
                    GTK_A11Y='atspi', GTK_USE_PORTAL='0', NO_AT_BRIDGE='0', TZ='America/Vancouver', LANG='C.UTF-8', LC_ALL='C.UTF-8',
-                   GNOME_KEYRING_CONTROL=str(root / 'run/keyring'))
-        if env.get('XAUTHORITY'):
-            shutil.copyfile(env['XAUTHORITY'], root / 'xauth')
-            (root / 'xauth').chmod(0o600)
-            env['XAUTHORITY'] = str(root / 'xauth')
+                   GNOME_KEYRING_CONTROL=str(root / 'run/keyring'), XDG_SESSION_TYPE='x11')
+        display = ':' + str(100 + secrets.randbelow(9000))
+        (root / 'xauth').touch(mode=0o600)
+        subprocess.run(['xauth', '-f', str(root / 'xauth'), 'source', '-'],
+                       input='add ' + display + ' . ' + secrets.token_hex(16) + '\n', text=True, check=True, capture_output=True)
+        env.update(DISPLAY=display, XAUTHORITY=str(root / 'xauth'))
+        display_name = 'busystack-gnome-display-' + secrets.token_hex(6)
+        display_log = (root / 'xvfb.log').open('w')
+        display_process = subprocess.Popen(['docker', 'run', '--rm', '--name', display_name, '--network', 'none',
+            '--user', str(os.getuid()) + ':' + str(os.getgid()),
+            '--volume', str(root / 'X11') + ':/tmp/.X11-unix:rw', '--volume', str(root / 'xauth') + ':/fixture/xauth:ro',
+            '--entrypoint', '/usr/bin/Xvfb', fixture['displayImage'], display, '-screen', '0', '1366x900x24',
+            '-nolisten', 'tcp', '-auth', '/fixture/xauth', '-noreset'], stdout=display_log, stderr=subprocess.STDOUT)
         command = ['bwrap', '--ro-bind', '/', '/', '--tmpfs', '/tmp', '--bind', str(root), str(root),
-                   '--ro-bind', '/tmp/.X11-unix', '/tmp/.X11-unix', '--bind', str(root / 'home'), str(Path.home()),
+                   '--ro-bind', str(root / 'X11'), '/tmp/.X11-unix', '--bind', str(root / 'home'), str(Path.home()),
                    '--chdir', str(root),
                    '--ro-bind', str(root / 'trust.pem'), '/etc/ssl/certs/ca-certificates.crt', '--proc', '/proc', '--dev', '/dev',
                    '--ro-bind', str(root / 'a11y-bus.conf'), str(accessibility_config),
                    '--unshare-pid', '--die-with-parent', 'dbus-run-session', '--config-file', str(root / 'bus.conf'), '--',
                    '/usr/bin/python3', str(root / 'gnome.py'), '--child', str(root)]
-        result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=240)
+        try:
+            deadline = time.monotonic() + 30
+            while not (root / 'X11' / ('X' + display[1:])).exists():
+                if display_process.poll() is not None or time.monotonic() > deadline:
+                    raise RuntimeError('The private authenticated Xvfb display did not start')
+                time.sleep(.1)
+            try:
+                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=240)
+            except subprocess.TimeoutExpired as failure:
+                def decoded(value):
+                    return value.decode(errors='replace') if isinstance(value, bytes) else (value or '')
+                result = subprocess.CompletedProcess(command, 124, decoded(failure.stdout), decoded(failure.stderr))
+        finally:
+            subprocess.run(['docker', 'rm', '--force', display_name], capture_output=True, timeout=15)
+            display_process.wait(timeout=15)
+            display_log.close()
         args.output.mkdir(parents=True, exist_ok=True)
         # Retain only redacted fixture diagnostics and accessibility names, never credentials/source files/keyrings.
         diagnostic = result.stdout + result.stderr
         for secret in (fixture['credential'],):
             diagnostic = diagnostic.replace(secret, '[redacted]')
         (args.output / 'gnome-process.log').write_text(diagnostic)
+        application_log = (root / 'application.log').read_text(errors='replace') if (root / 'application.log').exists() else ''
+        for secret in (fixture['credential'], base64.b64encode((fixture['username'] + ':' + fixture['credential']).encode()).decode()):
+            application_log = application_log.replace(secret, '[redacted]')
+        (args.output / 'gnome-application.log').write_text(application_log)
         for path in root.glob('*.json'):
             if path.name != 'client.json':
                 shutil.copyfile(path, args.output / ('gnome-' + path.name))

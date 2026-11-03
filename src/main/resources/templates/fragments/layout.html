@@ -32,7 +32,7 @@
 </header>
 <th:block th:fragment="feedback">
   <p th:if="${notice != null}" th:text="${notice}" class="notice success" role="status"></p>
-  <div th:if="${viewer != null and !mfaCurrent}" class="notice"><strong>Security verification needed.</strong> Sensitive changes require primary sign-in and a passkey verified within ten minutes. <a th:href="@{/login}">Verify sign-in</a> or <a th:href="@{/security/passkeys}">set up a passkey</a>.</div>
+  <div th:if="${viewer != null and !mfaCurrent}" class="notice"><strong>Security verification needed.</strong> Portal downloads and sensitive changes require primary sign-in and a passkey verified within ten minutes. <a th:href="@{/login}">Verify sign-in</a> or <a th:href="@{/security/passkeys}">set up a passkey</a>.</div>
 </th:block>
 <nav th:fragment="securityNav" aria-label="Security settings" class="security-nav"><a th:href="@{/security}">Security overview</a><a th:href="@{/security/passkeys}">Passkeys</a><a th:href="@{/security/credentials}">DAV credentials</a><a th:href="@{/security/sessions}">Sessions</a><a th:href="@{/security/recovery}">Recovery</a><a th:href="@{/oauth-grants}">OAuth grants</a></nav>
 <time class="timestamp" th:fragment="timestamp(value, fallback)" th:datetime="${value}" th:text="${value == null ? fallback : #temporals.format(value, 'uuuu-MM-dd HH:mm', 'UTC') + ' UTC'}"></time>

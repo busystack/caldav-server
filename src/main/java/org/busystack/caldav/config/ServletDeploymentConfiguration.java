@@ -18,6 +18,8 @@ public class ServletDeploymentConfiguration {
         new org.springframework.boot.web.servlet.FilterRegistrationBean<>(
             new RequestDiagnosticsFilter(problems));
     registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE + 1);
+    registration.setDispatcherTypes(
+        jakarta.servlet.DispatcherType.REQUEST, jakarta.servlet.DispatcherType.ERROR);
     return registration;
   }
 

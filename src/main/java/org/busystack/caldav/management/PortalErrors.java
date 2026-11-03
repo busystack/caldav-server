@@ -26,7 +26,6 @@ public class PortalErrors {
     StoreException.class,
     DataAccessException.class,
     org.busystack.caldav.calendar.CalendarValidationException.class,
-    org.springframework.web.multipart.MaxUploadSizeExceededException.class,
     org.springframework.web.bind.MissingServletRequestParameterException.class,
     org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
     AccessDeniedException.class,
@@ -81,11 +80,6 @@ public class PortalErrors {
       title = "Temporarily unavailable";
       message =
           "The database operation could not complete. Try again after the operator checks database connectivity and service logs using the request identifier.";
-    } else if (failure
-        instanceof org.springframework.web.multipart.MaxUploadSizeExceededException) {
-      status = 413;
-      title = "File too large";
-      message = "Import files are limited to 8 MiB, with a 1 MiB maximum for each UID series.";
     }
     response.setStatus(status);
     response.setHeader("Cache-Control", "no-store");

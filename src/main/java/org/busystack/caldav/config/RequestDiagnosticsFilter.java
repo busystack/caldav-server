@@ -13,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Useful correlation/latency without logging resource paths, identities, headers or bodies. */
 final class RequestDiagnosticsFilter extends OncePerRequestFilter {
+  private static final String CORRELATION = RequestDiagnosticsFilter.class.getName() + ".id";
   private final OperationalProblems problems;
 
   RequestDiagnosticsFilter(OperationalProblems problems) {
@@ -23,10 +24,26 @@ final class RequestDiagnosticsFilter extends OncePerRequestFilter {
       LoggerFactory.getLogger(RequestDiagnosticsFilter.class);
 
   @Override
+  protected boolean shouldNotFilterErrorDispatch() {
+    return false;
+  }
+
+  @Override
+  protected void doFilterNestedErrorDispatch(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+    doFilterInternal(request, response, chain);
+  }
+
+  @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    String id = UUID.randomUUID().toString(), previous = MDC.get("request_id");
+    String id = (String) request.getAttribute(CORRELATION), previous = MDC.get("request_id");
+    if (id == null) {
+      id = UUID.randomUUID().toString();
+      request.setAttribute(CORRELATION, id);
+    }
     response.setHeader("X-Request-ID", id);
     MDC.put("request_id", id);
     long start = System.nanoTime();
@@ -68,9 +85,11 @@ final class RequestDiagnosticsFilter extends OncePerRequestFilter {
           id,
           surface,
           method,
-          failed ? 500 : response.getStatus(),
+          failed ? "unavailable" : response.getStatus(),
           TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
-      problems.record(id, surface, method, failed ? 500 : response.getStatus());
+      // A thrown filter exception has no final HTTP status yet. The container's ERROR
+      // dispatch records the actual response; e.g. oversized form-body CSRF uploads become 413.
+      if (!failed) problems.record(id, surface, method, response.getStatus());
       if (previous == null) MDC.remove("request_id");
       else MDC.put("request_id", previous);
     }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync, mkdirSync} from 'node:fs';
+import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
 import {createCollection,openCollection,provisionAccount,grantDirect,revokeDirect,prefixOf} from './portal-helpers.mjs';
 import {issueDavCredential} from './dav-credentials.mjs';
 import {call} from './transport.mjs';
@@ -34,6 +34,8 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await Promise.all([page.waitForURL(base+'/collections/'+id),edit.getByRole('button',{name:'Save details',exact:true}).click()]);
   assert.equal(await page.locator('#collection-address').inputValue(),originalAddress);
   assert.equal(await page.locator('img[src=x]').count(),0);
+  await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'This export snapshot contained no calendar or task items'}).waitFor();
   await importFile(page,base,id,series);
   assert.equal(await page.getByRole('cell',{name:'Ready',exact:true}).count(),2);
   await confirmImport(page,base);
@@ -81,7 +83,9 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await Promise.all([page.waitForURL(base+'/collections'),page.getByRole('button',{name:'Delete collection permanently',exact:true}).click()]);
   assert.ok([403,404].includes((await call(base,new URL(destinationAddress).pathname.slice(prefixOf(base).length),{method:'PROPFIND',headers:{Authorization:'Basic '+device.encoded,Depth:'0'},body:'<D:propfind xmlns:D="DAV:"><D:allprop/></D:propfind>'})).status));
   console.log('PORTAL_COLLECTION_METADATA_IMPORT_EXPORT_ROUNDTRIP_CONFLICTS_AND_CONFIRMED_DELETE_PASSED '+suffix);
-  return {id,address:originalAddress,device,name:name+' renamed'};
+  await page.goto(base+'/connections');
+  const serverAddress=await page.locator('#server-address').inputValue();
+  return {id,address:originalAddress,serverAddress,device,name:name+' renamed'};
 }
 
 export async function qualifyPortalPresentation(page,base,collection,administrator=true,suffix='local') {
@@ -89,25 +93,31 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
   if(output) mkdirSync(output,{recursive:true});
   const pages=['/','/collections','/collections/new','/collections/'+collection.id,'/collections/'+collection.id+'/sharing','/connections','/security','/security/credentials','/security/passkeys','/security/sessions','/security/recovery','/security/password','/oauth-grants','/portability','/login'];
   if(administrator) pages.push('/admin','/admin/accounts','/admin/accounts/new','/admin/groups','/admin/audit','/admin/diagnostics','/admin/oauth-clients');
+  pages.push('/collections?scope=shared');
+  const visits=pages.map(path=>[path,200]);
+  visits.push(['/collections?page=-1',400],['/missing-portal-page',404],
+    [administrator?'/collections/00000000-0000-0000-0000-000000000001':'/admin',403]);
   const unexpected=[];
   const observe=request=>{if(!request.url().startsWith(base+'/') && !request.url().startsWith('data:')) unexpected.push(new URL(request.url()).origin);};
   page.on('request',observe);
   try {
     for(const viewport of [{width:1280,height:900},{width:390,height:844},{width:320,height:844}]) {
       await page.setViewportSize(viewport);
-      for(const path of pages) {
-        const response=await page.goto(base+path);assert.equal(response.status(),200,path);
+      for(const [path,status] of visits) {
+        const response=await page.goto(base+path);assert.equal(response.status(),status,path);
         assert.equal(await page.locator('main h1').count(),1,path+' must have one primary heading');
         assert.equal(await page.locator('link[rel=stylesheet]').count(),1);
         assert.ok(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor!=='rgba(0, 0, 0, 0)'),path+' must be styled');
         if(output) await page.screenshot({path:output+'/'+suffix+'-'+viewport.width+'-'+path.replaceAll('/','_').replaceAll('?','_')+'.png',fullPage:true});
+        if(output && viewport.width===1280) writeFileSync(output+'/'+suffix+'-'+path.replaceAll('/','_')+'-accessibility.txt',await page.locator('main').ariaSnapshot());
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),path+' must fit the viewport');
         const unlabeled=await page.locator('input:not([type=hidden]),select,textarea').evaluateAll(elements=>elements.filter(e=>!e.labels?.length && !e.getAttribute('aria-label') && !e.getAttribute('aria-labelledby')).map(e=>e.name||e.id));
         assert.deepEqual(unlabeled,[],path+' control labels');
         await page.keyboard.press('Tab');
-        assert.ok(await page.evaluate(()=>document.activeElement.tagName==='A'),'The skip link must be the first keyboard stop');
-        await page.keyboard.press('Enter');
+        assert.ok(await page.evaluate(()=>document.activeElement.classList.contains('skip-link')),'The skip link must be the first keyboard stop');
+        await Promise.all([page.waitForURL(url=>url.hash==='#main'),page.keyboard.press('Enter')]);
         assert.equal(new URL(page.url()).hash,'#main');
+        await page.waitForFunction(()=>document.activeElement.id==='main');
         assert.equal(await page.evaluate(()=>document.activeElement.id),'main','Skip navigation must move keyboard focus to the content');
 
       }
@@ -116,6 +126,12 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
     await page.goto(base+'/connections');
     await page.getByRole('button',{name:'Copy server',exact:true}).focus();
     assert.ok(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle!=='none'));
+    await page.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:new URL(base).origin});
+    await page.getByRole('button',{name:'Copy server',exact:true}).click();
+    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#server-address').inputValue());
+    await page.getByRole('button',{name:'Copy username',exact:true}).click();
+    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#dav-username').inputValue());
+    await page.evaluate(()=>navigator.clipboard.writeText(''));
     await page.evaluate(()=>document.documentElement.style.fontSize='200%');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Two hundred percent text resizing must reflow');
     await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce'});

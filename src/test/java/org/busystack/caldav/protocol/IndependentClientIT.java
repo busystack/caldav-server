@@ -45,6 +45,8 @@ class IndependentClientIT {
   }
 
   @Autowired AccountService accounts;
+  @Autowired org.busystack.caldav.management.PortabilityService portability;
+  @Autowired org.busystack.caldav.storage.DavStore dav;
 
   @Test
   void independentPythonCalendarAndTaskClientUsesActualHttpsPostgresqlServer() throws Exception {
@@ -111,8 +113,49 @@ class IndependentClientIT {
           .isTrue();
       builder.command(python, "qualification/clients/thunderbird.py");
       builder.environment().put("BUSYSTACK_THUNDERBIRD_BINARY", desktop);
+      builder.environment().put("BUSYSTACK_EXPORT_EXCHANGE", privateDirectory.toString());
       var desktopProcess = builder.start();
-      boolean desktopFinished = desktopProcess.waitFor(360, TimeUnit.SECONDS);
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(360);
+      boolean exported = false;
+      while (desktopProcess.isAlive() && System.nanoTime() < deadline) {
+        if (!exported && Files.exists(privateDirectory.resolve("export-ready"))) {
+          var account = accounts.find(id);
+          var auth =
+              org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+                  .authenticated(
+                      account.username(),
+                      null,
+                      java.util.List.of(
+                          new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                              "ROLE_USER"),
+                          org.busystack.caldav.security.session.SessionSecurity.authority(
+                              account.securityEpoch()),
+                          org.springframework.security.core.authority.FactorGrantedAuthority
+                              .fromAuthority(
+                                  org.springframework.security.core.authority.FactorGrantedAuthority
+                                      .PASSWORD_AUTHORITY),
+                          org.springframework.security.core.authority.FactorGrantedAuthority
+                              .fromAuthority(
+                                  org.springframework.security.core.authority.FactorGrantedAuthority
+                                      .WEBAUTHN_AUTHORITY)));
+          for (String name : java.util.List.of("events", "tasks")) {
+            var collection = dav.resolve(id, id, "thunderbird-" + name).collection();
+            var download = portability.export(auth, collection.id());
+            try {
+              assertThat(download.stream())
+                  .as("Native fixture calendars have identical contexts")
+                  .isFalse();
+              Files.copy(download.path(), privateDirectory.resolve(name + ".ics"));
+            } finally {
+              Files.deleteIfExists(download.path());
+            }
+          }
+          Files.createFile(privateDirectory.resolve("export-complete"));
+          exported = true;
+        }
+        desktopProcess.waitFor(100, TimeUnit.MILLISECONDS);
+      }
+      boolean desktopFinished = !desktopProcess.isAlive();
       if (!desktopFinished) desktopProcess.destroyForcibly();
       assertThat(desktopFinished).as("Desktop-client qualification timed out").isTrue();
       String desktopResult = Files.readString(output);
@@ -121,9 +164,11 @@ class IndependentClientIT {
           .isZero();
       assertThat(desktopResult).contains("\"status\": \"passed\"", "\"client\": \"Thunderbird\"");
       Files.writeString(Path.of("target/qualification/thunderbird.json"), desktopResult);
+      assertThat(exported).as("Real portal export consumed by native Thunderbird parser").isTrue();
     } finally {
-      Files.deleteIfExists(secret);
-      Files.deleteIfExists(output);
+      try (var files = Files.list(privateDirectory)) {
+        for (var file : files.toList()) Files.deleteIfExists(file);
+      }
       Files.deleteIfExists(privateDirectory);
     }
   }
