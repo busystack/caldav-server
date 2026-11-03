@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
-import {createCollection,openCollection,provisionAccount,grantDirect,revokeDirect,prefixOf} from './portal-helpers.mjs';
+import {createCollection,openCollection,provisionAccount,grantDirect,revokeDirect,prefixOf,captureWorkflow} from './portal-helpers.mjs';
 import {issueDavCredential} from './dav-credentials.mjs';
 import {call} from './transport.mjs';
 
@@ -37,8 +37,10 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
   await page.getByRole('status').filter({hasText:'This export snapshot contained no calendar or task items'}).waitFor();
   await importFile(page,base,id,series);
+  await captureWorkflow(page,'import-preview');
   assert.equal(await page.getByRole('cell',{name:'Ready',exact:true}).count(),2);
   await confirmImport(page,base);
+  await captureWorkflow(page,'import-results');
   assert.equal(await page.getByRole('cell',{name:'Imported',exact:true}).count(),2);
   const device=await issueDavCredential(page,base,privateValues,'Portal round trip '+suffix,username);
   const urls=await resourceUrls(page,base,originalAddress,device.encoded);assert.equal(urls.length,2);
@@ -55,7 +57,16 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
   const download=await downloadPromise;
   const exported=readFileSync(await download.path());
-  assert.equal(exported.toString(),originalBodies.join(''));
+  assert.equal(download.suggestedFilename(),'busystack-collection.ics');
+  const document=exported.toString();
+  assert.equal(document.split('BEGIN:VCALENDAR\r\n').length-1,1);
+  assert.equal(document.split('BEGIN:VTIMEZONE\r\n').length-1,1);
+  assert.equal(document.split('BEGIN:VEVENT\r\n').length-1,3);
+  assert.ok(document.endsWith('END:VCALENDAR\r\n'));
+  for(const body of originalBodies) {
+    for(const component of body.matchAll(/BEGIN:(VEVENT|VTIMEZONE)\r\n[\s\S]*?END:\1\r\n/g))
+      assert.ok(document.includes(component[0]),'Export must preserve every original component byte');
+  }
   const destination=await createCollection(page,base,'Portal migrated '+suffix,'VEVENT');
   const destinationAddress=await page.locator('#collection-address').inputValue();
   await importFile(page,base,destination,exported);await confirmImport(page,base);
@@ -65,15 +76,18 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   assert.deepEqual(migrated.sort(),originalBodies.sort());
   await importFile(page,base,destination,exported);
   assert.equal(await page.getByRole('cell',{name:'Skipped',exact:true}).count(),2);
+  await captureWorkflow(page,'import-duplicate');
   await page.getByRole('button',{name:'Discard preview',exact:true}).click();
   await importFile(page,base,destination,Buffer.from(exported.toString().replace('SUMMARY:Family time','SUMMARY:Conflicting edit')));
   assert.equal(await page.getByRole('cell',{name:'Conflicting',exact:true}).count(),1);
+  await captureWorkflow(page,'import-conflict');
   await page.getByRole('button',{name:'Discard preview',exact:true}).click();
   const deniedUpload=await page.evaluate(async target=>{
     const response=await fetch(target,{method:'POST',body:new FormData()});return response.status;
   },prefixOf(base)+'/portability/preview');
   assert.equal(deniedUpload,403);
   await page.goto(base+'/collections/'+destination+'/delete');
+  await captureWorkflow(page,'delete-confirmation');
   const withoutConfirmation=await page.evaluate(async ()=>{
     const form=document.querySelector('main form');const data=new URLSearchParams(new FormData(form));data.delete('confirmed');
     return (await fetch(form.action,{method:'POST',body:data})).status;
@@ -85,7 +99,8 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   console.log('PORTAL_COLLECTION_METADATA_IMPORT_EXPORT_ROUNDTRIP_CONFLICTS_AND_CONFIRMED_DELETE_PASSED '+suffix);
   await page.goto(base+'/connections');
   const serverAddress=await page.locator('#server-address').inputValue();
-  return {id,address:originalAddress,serverAddress,device,name:name+' renamed'};
+  const gnomeAddress=await page.locator('#gnome-address').inputValue();
+  return {id,address:originalAddress,serverAddress,gnomeAddress,device,name:name+' renamed'};
 }
 
 export async function qualifyPortalPresentation(page,base,collection,administrator=true,suffix='local') {
@@ -95,16 +110,22 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
   if(administrator) pages.push('/admin','/admin/accounts','/admin/accounts/new','/admin/groups','/admin/audit','/admin/diagnostics','/admin/oauth-clients');
   pages.push('/collections?scope=shared');
   const visits=pages.map(path=>[path,200]);
-  visits.push(['/collections?page=-1',400],['/missing-portal-page',404],
-    [administrator?'/collections/00000000-0000-0000-0000-000000000001':'/admin',403]);
+  visits.push(['/collections?page=-1',400],['/missing-portal-page',404],['/portability/preview',403,'POST']);
+  if(!administrator) visits.push(['/admin',403]);
   const unexpected=[];
   const observe=request=>{if(!request.url().startsWith(base+'/') && !request.url().startsWith('data:')) unexpected.push(new URL(request.url()).origin);};
   page.on('request',observe);
   try {
     for(const viewport of [{width:1280,height:900},{width:390,height:844},{width:320,height:844}]) {
       await page.setViewportSize(viewport);
-      for(const [path,status] of visits) {
-        const response=await page.goto(base+path);assert.equal(response.status(),status,path);
+      for(const [path,status,method] of visits) {
+        const response=method==='POST'
+          ? (await Promise.all([page.waitForNavigation(),page.evaluate(target=>{
+              const form=document.createElement('form');form.method='POST';form.action=target;
+              document.body.append(form);form.submit();
+            },base+path)]))[0]
+          : await page.goto(base+path);
+        assert.equal(response.status(),status,path);
         assert.equal(await page.locator('main h1').count(),1,path+' must have one primary heading');
         assert.equal(await page.locator('link[rel=stylesheet]').count(),1);
         assert.ok(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor!=='rgba(0, 0, 0, 0)'),path+' must be styled');
@@ -129,6 +150,8 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
     await page.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:new URL(base).origin});
     await page.getByRole('button',{name:'Copy server',exact:true}).click();
     assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#server-address').inputValue());
+    await page.getByRole('button',{name:'Copy GNOME address',exact:true}).click();
+    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#gnome-address').inputValue());
     await page.getByRole('button',{name:'Copy username',exact:true}).click();
     assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#dav-username').inputValue());
     await page.evaluate(()=>navigator.clipboard.writeText(''));

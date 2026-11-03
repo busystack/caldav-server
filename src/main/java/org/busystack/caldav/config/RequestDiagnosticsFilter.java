@@ -13,7 +13,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Useful correlation/latency without logging resource paths, identities, headers or bodies. */
 final class RequestDiagnosticsFilter extends OncePerRequestFilter {
-  private static final String CORRELATION = RequestDiagnosticsFilter.class.getName() + ".id";
+  private static final String CORRELATION = RequestDiagnosticsFilter.class.getName() + ".request";
+
+  private record Request(String id, String surface, String method, long started) {}
+
   private final OperationalProblems problems;
 
   RequestDiagnosticsFilter(OperationalProblems problems) {
@@ -39,14 +42,16 @@ final class RequestDiagnosticsFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    String id = (String) request.getAttribute(CORRELATION), previous = MDC.get("request_id");
-    if (id == null) {
-      id = UUID.randomUUID().toString();
-      request.setAttribute(CORRELATION, id);
+    var original = (Request) request.getAttribute(CORRELATION);
+    if (original == null) {
+      original =
+          new Request(
+              UUID.randomUUID().toString(), surface(request), method(request), System.nanoTime());
+      request.setAttribute(CORRELATION, original);
     }
-    response.setHeader("X-Request-ID", id);
-    MDC.put("request_id", id);
-    long start = System.nanoTime();
+    String previous = MDC.get("request_id");
+    response.setHeader("X-Request-ID", original.id());
+    MDC.put("request_id", original.id());
     boolean failed = false;
     try {
       chain.doFilter(request, response);
@@ -54,44 +59,49 @@ final class RequestDiagnosticsFilter extends OncePerRequestFilter {
       failed = true;
       throw ex;
     } finally {
-      String relative = request.getRequestURI().substring(request.getContextPath().length());
-      String surface =
-          relative.startsWith("/dav")
-              ? "dav"
-              : relative.startsWith("/oauth")
-                  ? "oauth"
-                  : relative.startsWith("/actuator") ? "health" : "browser";
-      String method =
-          java.util.Set.of(
-                      "GET",
-                      "HEAD",
-                      "POST",
-                      "PUT",
-                      "DELETE",
-                      "OPTIONS",
-                      "PROPFIND",
-                      "PROPPATCH",
-                      "REPORT",
-                      "MKCALENDAR",
-                      "MKCOL",
-                      "COPY",
-                      "MOVE",
-                      "ACL")
-                  .contains(request.getMethod())
-              ? request.getMethod()
-              : "other";
       LOG.info(
           "event=http_request request_id={} surface={} method={} status={} duration_ms={}",
-          id,
-          surface,
-          method,
+          original.id(),
+          original.surface(),
+          original.method(),
           failed ? "unavailable" : response.getStatus(),
-          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - original.started()));
       // A thrown filter exception has no final HTTP status yet. The container's ERROR
       // dispatch records the actual response; e.g. oversized form-body CSRF uploads become 413.
-      if (!failed) problems.record(id, surface, method, response.getStatus());
+      if (!failed)
+        problems.record(original.id(), original.surface(), original.method(), response.getStatus());
       if (previous == null) MDC.remove("request_id");
       else MDC.put("request_id", previous);
     }
+  }
+
+  private static String surface(HttpServletRequest request) {
+    String relative = request.getRequestURI().substring(request.getContextPath().length());
+    return relative.startsWith("/dav")
+        ? "dav"
+        : relative.startsWith("/oauth")
+            ? "oauth"
+            : relative.startsWith("/actuator") ? "health" : "browser";
+  }
+
+  private static String method(HttpServletRequest request) {
+    return java.util.Set.of(
+                "GET",
+                "HEAD",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS",
+                "PROPFIND",
+                "PROPPATCH",
+                "REPORT",
+                "MKCALENDAR",
+                "MKCOL",
+                "COPY",
+                "MOVE",
+                "ACL")
+            .contains(request.getMethod())
+        ? request.getMethod()
+        : "other";
   }
 }

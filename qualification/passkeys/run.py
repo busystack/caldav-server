@@ -342,6 +342,14 @@ def main():
                     if value: raw = raw.replace(value, "[redacted]")
             raw = re.sub(r"[A-Za-z0-9_+/=-]{40,}", "[redacted-value]", raw)
             raw = re.sub(r"([?&](?:code|state|code_challenge)=)[^&\s)\"]+", r"\1[redacted]", raw)
+            if args.gnome:
+                # Coarse native-client troubleshooting only; never retain paths, headers or bodies.
+                from collections import Counter
+                responses = Counter((method,status) for method,status in re.findall(
+                    r"surface=dav method=([A-Z]+) status=(\d+|unavailable)",raw))
+                (evidence / 'gnome-dav-response-summary.json').write_text(json.dumps([
+                    {'method':method,'status':status,'count':count}
+                    for (method,status),count in sorted(responses.items())],indent=2)+'\n')
             for line in raw.splitlines():
                 if any(marker in line for marker in (" ERROR ", "Caused by:", "APPLICATION FAILED", "Description:", "Reason:", "Action:")):
                     print("APPLICATION_DIAGNOSTIC " + line, flush=True)

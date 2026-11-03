@@ -60,7 +60,7 @@ try {
   const localPortal=await qualifyPersonalPortal(page,base,privateValues,process.env.BUSYSTACK_BROWSER_USERNAME);
   if (process.env.BUSYSTACK_GNOME_ONLY !== 'true') await qualifyPortalPresentation(page,base,localPortal,true);
   if (process.env.BUSYSTACK_GNOME_EXCHANGE) {
-    writeFileSync(process.env.BUSYSTACK_GNOME_EXCHANGE, JSON.stringify({address:localPortal.address,discoverAddress:localPortal.serverAddress,
+    writeFileSync(process.env.BUSYSTACK_GNOME_EXCHANGE, JSON.stringify({address:localPortal.address,connectionAddress:localPortal.gnomeAddress,
       name:localPortal.name, username:process.env.BUSYSTACK_BROWSER_USERNAME, credential:localPortal.device.credential}));
     console.log('READY_GNOME');
     await waitFor('GNOME_VERIFIED');

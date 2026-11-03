@@ -72,12 +72,19 @@ wizard. Historical qualification covers Thunderbird 159.0 and GNOME Calendar 50.
 EDS 3.56.2 on the exact 0.1.0 executable and configurations in the
 [client record](observance-until-compatibility.md#qualified-client-configurations).
 The historical GNOME record uses a source provisioned through EDS's supported API.
-Connections also documents the GNOME 50.0 wizard: **Manage Calendars → Add Calendar**,
-enter the collection HTTPS address under **Connect to an Online Calendar**, supply
-the username and dedicated DAV credential in **Credentials**, choose **Connect**,
-wait for the address to validate and choose **Add Calendar**. Those graphical setup
-steps are documented but await qualification. Current artifact results are recorded separately; BusyMax
-and other untested clients are not advertised as supported.
+The GNOME 50.0 wizard has also passed a private-profile graphical setup and native
+EDS read/write-permission check on the 0.2.0 development server. Use **Manage
+Calendars → Add Calendar**, paste the portal's **GNOME connection address** under
+**Connect to an Online Calendar**, supply the username and dedicated DAV credential
+in **Credentials**, and choose **Connect**. When validation completes, choose **Add
+Calendar**. Enter the same DAV credential in the native calendar-authentication
+prompt when synchronization begins. The address includes only the username, never
+the password: GNOME otherwise fails to retain the authentication user after
+discovery. The qualification requires both imported UIDs, the recurrence exception,
+extension data and native owner write permission; it does not claim full native
+editor or assistive-technology coverage. Exact artifact/configuration results are
+recorded separately. BusyMax and other untested clients are not advertised as
+supported.
 
 Registered OAuth applications may use browser consent instead of a DAV credential.
 Review them under **Security → OAuth applications**; see [OAuth](oauth.md).

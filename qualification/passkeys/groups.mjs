@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
-import {openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect} from './portal-helpers.mjs';
+import {openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect,captureWorkflow} from './portal-helpers.mjs';
 
 export async function qualifyGroups(page,base,privateValues) {
   const prefix=prefixOf(base),member='browsergroupmember',password=randomBytes(32).toString('base64url');
@@ -12,6 +12,7 @@ export async function qualifyGroups(page,base,privateValues) {
   await Promise.all([page.waitForURL(base+'/admin/accounts/'+account),profile.getByRole('button',{name:'Save display name',exact:true}).click()]);
   assert.equal(await page.getByRole('heading',{name:display,exact:true}).count(),1);
   assert.equal(await page.locator('img[src=x]').count(),0);
+  await captureWorkflow(page,'account-detail');
   await page.goto(base+'/admin/accounts?q='+encodeURIComponent(member)+'&status=enabled');
   assert.equal(await page.locator('tbody tr').count(),1);
   assert.equal(await page.getByRole('link',{name:member,exact:true}).count(),1);
@@ -33,6 +34,7 @@ export async function qualifyGroups(page,base,privateValues) {
   await rename.locator('input[name=name]').fill('Browser group renamed');
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),rename.getByRole('button',{name:'Save group name',exact:true}).click()]);
   await page.getByRole('heading',{name:'Browser group renamed',exact:true}).waitFor();
+  await captureWorkflow(page,'group-detail');
   const collection=await openCollection(page,base,'Browser-qualified tasks');
   await page.goto(base+'/collections/'+collection+'/sharing');
   const sharing=page.locator(`form[action="${prefix}/group-shares"]`).filter({has:page.locator('select[name=group]')});
@@ -48,6 +50,7 @@ export async function qualifyGroups(page,base,privateValues) {
       await grantDirect(page,base,collection,member,'READ');
       const effective=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Combined direct and group access'})}).locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
       assert.ok((await effective.innerText()).includes('Read and write'));
+      await captureWorkflow(page,'effective-direct-group-access');
       await revokeDirect(page,base,collection,member);
       assert.ok((await effective.innerText()).includes('Read and write'),'Removing direct access must preserve the effective group write grant');
     }

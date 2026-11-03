@@ -7,6 +7,7 @@ No installed application, host trust store, existing calendar or user configurat
 import argparse
 import base64
 import configparser
+import ctypes
 import json
 import os
 from pathlib import Path
@@ -15,8 +16,111 @@ import secrets
 import subprocess
 import sys
 import tempfile
+import threading
 import time
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
+
+
+def read_native_source(uid, root):
+    """Use the installed public EDS C API; no additional GIR or test parser is needed."""
+    pointer = ctypes.c_void_p
+    glib = ctypes.CDLL('libglib-2.0.so.0')
+    objects = ctypes.CDLL('libgobject-2.0.so.0')
+    gio = ctypes.CDLL('libgio-2.0.so.0')
+    sources = ctypes.CDLL('libedataserver-1.2.so.27')
+    calendars = ctypes.CDLL('libecal-2.0.so.3')
+    ical = ctypes.CDLL('libical-glib.so.3')
+    def api(library, name, returns, *arguments):
+        function = getattr(library, name)
+        function.restype, function.argtypes = returns, list(arguments)
+        return function
+    unref = api(objects, 'g_object_unref', None, pointer)
+    free = api(glib, 'g_free', None, pointer)
+    free_error = api(glib, 'g_error_free', None, pointer)
+    free_list = api(glib, 'g_slist_free_full', None, pointer, pointer)
+    cancellable = api(gio, 'g_cancellable_new', pointer)()
+    cancel = api(gio, 'g_cancellable_cancel', None, pointer)
+    deadline = threading.Timer(45, lambda: cancel(cancellable))
+    deadline.daemon = True
+    deadline.start()
+    retained, head = [], pointer()
+    class Link(ctypes.Structure):
+        pass
+    Link._fields_ = [('data', pointer), ('next', ctypes.POINTER(Link))]
+    def checked(function, label, *arguments):
+        error = pointer()
+        value = function(*arguments, ctypes.byref(error))
+        if error:
+            free_error(error)
+            raise RuntimeError('Native EDS ' + label + ' failed')
+        assert value, 'Native EDS ' + label + ' did not succeed'
+        return value
+    try:
+        registry = checked(api(sources, 'e_source_registry_new_sync', pointer, pointer, ctypes.POINTER(pointer)),
+                           'registry', cancellable)
+        retained.append(registry)
+        source = api(sources, 'e_source_registry_ref_source', pointer, pointer, ctypes.c_char_p)(registry, uid.encode())
+        assert source, 'The wizard source must be present in the native registry'
+        retained.append(source)
+        client = checked(api(calendars, 'e_cal_client_connect_sync', pointer, pointer, ctypes.c_int,
+                             ctypes.c_uint32, pointer, ctypes.POINTER(pointer)),
+                         'connection', source, 0, 20, cancellable)  # E_CAL_CLIENT_SOURCE_TYPE_EVENTS
+        retained.append(client)
+        state = {'phase':'connecting', 'online':bool(api(sources,'e_client_is_online',ctypes.c_int,pointer)(client)),
+                 'readonly':bool(api(sources,'e_client_is_readonly',ctypes.c_int,pointer)(client))}
+        (root / 'backend-state.json').write_text(json.dumps(state,indent=2))
+        checked(api(sources, 'e_client_refresh_sync', ctypes.c_int, pointer, pointer, ctypes.POINTER(pointer)),
+                'refresh', client, cancellable)
+        get_objects = api(calendars, 'e_cal_client_get_object_list_sync', ctypes.c_int, pointer, ctypes.c_char_p,
+                          ctypes.POINTER(pointer), pointer, ctypes.POINTER(pointer))
+        serialize = api(ical, 'i_cal_component_as_ical_string', pointer, pointer)
+        get_uid = api(ical, 'i_cal_component_get_uid', ctypes.c_char_p, pointer)
+        while True:
+            checked(get_objects, 'object retrieval', client, b'#t', ctypes.byref(head), cancellable)
+            components, uids = [], []
+            link = ctypes.cast(head, ctypes.POINTER(Link))
+            while link:
+                assert len(components) < 20, 'Unexpected native fixture resource count'
+                component = link.contents.data
+                text = serialize(component)
+                assert text
+                try:
+                    components.append(ctypes.string_at(text).decode('utf-8'))
+                    uids.append(get_uid(component).decode('utf-8'))
+                finally:
+                    free(text)
+                link = link.contents.next
+            if set(uids) == {'portal-series', 'portal-second'}:
+                state.update(phase='data-retrieved',cachedComponents=len(components),
+                    readonly=bool(api(sources,'e_client_is_readonly',ctypes.c_int,pointer)(client)))
+                (root / 'backend-state.json').write_text(json.dumps(state,indent=2))
+                break
+            if state.get('cachedComponents') != len(components):
+                state['cachedComponents'] = len(components)
+                (root / 'backend-state.json').write_text(json.dumps(state,indent=2))
+            # Refresh initiates asynchronous backend work. Wait for actual cached data,
+            # including any native credential prompt, under the existing 45-second cancellation.
+            if head:
+                free_list(head, ctypes.cast(unref, pointer))
+                head.value = None
+            time.sleep(.25)
+        content = '\n'.join(components)
+        assert content.count('BEGIN:VEVENT') == 3 and content.count('RECURRENCE-ID') == 1
+        assert all(value in content for value in ('SUMMARY:Family time', 'SUMMARY:Moved occurrence',
+                   'SUMMARY:Second event', 'X-PRIVATE:preserve', 'DURATION:P1D', 'COUNT=3', 'FREQ=DAILY'))
+        assert all(value in content for value in ('DTSTART;TZID=Fixture/Fixed:20261102T090000',
+                   'RECURRENCE-ID;TZID=Fixture/Fixed:20261103T090000', 'DTSTART;TZID=Fixture/Fixed:20261103T110000'))
+        assert not api(sources, 'e_client_is_readonly', ctypes.c_int, pointer)(client), 'The owner calendar must remain writable in the native client'
+        return {'uidSeries':2, 'eventComponents':3, 'recurrenceExceptions':1, 'writable':True,
+                'interface':'installed EDS public ECalClient API after native wizard provisioning'}
+    finally:
+        deadline.cancel()
+        deadline.join()
+        if head:
+            free_list(head, ctypes.cast(unref, pointer))
+        for value in reversed(retained):
+            unref(value)
+        unref(cancellable)
 
 
 def execute_child(root):
@@ -34,6 +138,17 @@ def execute_child(root):
     # Unlock only this fixture's private login keyring through the supported daemon interface.
     subprocess.run(['gnome-keyring-daemon', '--unlock'], input=b'private-qualification-keyring\n',
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=15)
+    subprocess.run(['gnome-keyring-daemon', '--start', '--components=secrets'],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=15)
+    login_keyring = bus.call_sync('org.freedesktop.secrets','/org/freedesktop/secrets',
+        'org.freedesktop.Secret.Service','ReadAlias',GLib.Variant('(s)',('login',)),
+        GLib.VariantType.new('(o)'),Gio.DBusCallFlags.NONE,10000,None).unpack()[0]
+    assert login_keyring != '/', 'The private login keyring must be unlocked and available'
+    bus.call_sync('org.freedesktop.secrets','/org/freedesktop/secrets','org.freedesktop.Secret.Service',
+        'SetAlias',GLib.Variant('(so)',('default',login_keyring)),None,Gio.DBusCallFlags.NONE,10000,None)
+    monitor = Gio.NetworkMonitor.get_default()
+    (root / 'network-state.json').write_text(json.dumps({'monitor':monitor.__gtype__.name,
+        'available':monitor.get_network_available()},indent=2))
     command = ['gnome-calendar']
     if os.environ.get('BUSYSTACK_GNOME_DEBUG') == '1':
         # Optional upstream-crash diagnosis only; suppress all function arguments and locals.
@@ -60,6 +175,12 @@ def execute_child(root):
         display = x.XOpenDisplay(None)
         assert display
         pid_atom = x.XInternAtom(display, b'_NET_WM_PID', 0)
+        owned_pids = {process.pid}
+        # Under optional GDB diagnosis the accessible application is the debugger's child.
+        # The private accessibility bus still identifies the exact native application PID.
+        for accessible in nodes():
+            if accessible.get_role_name() == 'application':
+                owned_pids.add(accessible.get_process_id())
         matches = []
         def visit(parent, depth=0):
             if depth > 4: return
@@ -73,7 +194,7 @@ def execute_child(root):
                     data = ctypes.POINTER(ctypes.c_ubyte)()
                     x.XGetWindowProperty(display, wid, pid_atom, 0, 1, 0, 0, ctypes.byref(actual), ctypes.byref(fmt), ctypes.byref(size), ctypes.byref(remaining), ctypes.byref(data))
                     if data:
-                        if size.value and fmt.value == 32 and ctypes.cast(data, ctypes.POINTER(window))[0] == process.pid:
+                        if size.value and fmt.value == 32 and ctypes.cast(data, ctypes.POINTER(window))[0] in owned_pids:
                             matches.append(wid)
                         x.XFree(data)
                     visit(wid, depth + 1)
@@ -97,25 +218,41 @@ def execute_child(root):
         context = GLib.MainContext.default()
         while context.pending():
             context.iteration(False)
+    owned_windows = []
+    freeze_windows = False
     def nodes(showing=True):
+        nonlocal owned_windows
         pump()
         desktop = Atspi.get_desktop(0)
         apps = [desktop.get_child_at_index(i) for i in range(desktop.get_child_count())]
         candidates = [a for a in apps if a.get_name().lower() in ('gnome-calendar', 'org.gnome.calendar')]
         if not candidates:
             return []
-        result = []
+        application = candidates[0]
+        # GTK 4.22's root GetChildAtIndex can return an unrealized/closed toplevel when
+        # an AT-SPI child count is stale. Keep the known windows across modal closure;
+        # ordinary widget contexts safely report defunct children through the same API.
+        if not freeze_windows:
+            application.clear_cache()
+            owned_windows = [application.get_child_at_index(i)
+                             for i in range(min(application.get_child_count(), 16))]
+        result = [application]
+        visited = 0
         def visit(item, depth=0):
-            if item is None or depth > 40 or len(result) >= 2000:
+            nonlocal visited
+            if item is None or depth > 40 or visited >= 2000:
                 return
+            visited += 1
             try:
-                if not showing or item.get_state_set().contains(Atspi.StateType.SHOWING):
-                    result.append(item)
+                if showing and not item.get_state_set().contains(Atspi.StateType.SHOWING):
+                    return
+                result.append(item)
                 for n in range(min(item.get_child_count(), 160)):
                     visit(item.get_child_at_index(n), depth + 1)
             except GLib.Error:
                 pass
-        visit(candidates[0])
+        for owned in owned_windows:
+            visit(owned)
         return result
     def snapshot(label):
         rows = [{'role': n.get_role_name(), 'name': '[password field]' if 'password' in n.get_role_name() else n.get_name(),
@@ -123,8 +260,8 @@ def execute_child(root):
                  'actions': [n.get_action_iface().get_action_name(i) for i in range(n.get_action_iface().get_n_actions())]
                     if n.get_role_name() == 'button' and n.get_action_iface() else []}
                 for n in nodes()]
-        (root / (label + '.json')).write_text(json.dumps(rows, indent=2))
-        if label in ('initial', 'discovered', 'connected', 'failed-network-address'):
+        (root / (label + '.json')).write_text(json.dumps(rows, indent=2).replace(fixture['credential'], '[redacted]'))
+        if label in ('initial', 'discovered', 'connected', 'failed-network-address', 'failed-native-sync'):
             capture(label)
     def wait(condition, label, seconds=35):
         deadline = time.monotonic() + seconds
@@ -231,7 +368,13 @@ def execute_child(root):
         click('Manage Calendars')
         click('Add Calendar')
         wait(lambda: len(editable()) >= 2, 'network-address')
-        editable()[-1].get_editable_text_iface().set_text_contents(fixture.get('discoverAddress', fixture['address']))
+        connection_uri = fixture['connectionAddress']
+        discovery = urlsplit(connection_uri)
+        assert discovery.scheme == 'https' and discovery.password is None
+        assert unquote(discovery.username or '') == fixture['username']
+        assert discovery.hostname == urlsplit(fixture['address']).hostname
+        assert discovery.port == urlsplit(fixture['address']).port
+        editable()[-1].get_editable_text_iface().set_text_contents(connection_uri)
         wait(lambda: named('Credentials'), 'credential-dialog')
         snapshot('credential-prompt')
         fields = editable()
@@ -240,6 +383,7 @@ def execute_child(root):
         assert len(password_fields) == 1 and len(user_fields) == 1
         user_fields[0].get_editable_text_iface().set_text_contents(fixture['username'])
         password_fields[0].get_editable_text_iface().set_text_contents(fixture['credential'])
+        freeze_windows = True
         click('Connect')
         wait(lambda: any(n.get_role_name() == 'button' and n.get_name() == 'Add Calendar'
                         and n.get_state_set().contains(Atspi.StateType.SENSITIVE) for n in nodes()), 'validated-source', 60)
@@ -258,6 +402,12 @@ def execute_child(root):
         matched = wait(saved_sources, 'saved-source-file')
         assert len(matched) == 1, 'Exactly the selected collection must be provisioned'
         source, config = matched[0]
+        (root / 'source-metadata.json').write_text(json.dumps({
+            'parent':config.get('Data Source','Parent',fallback=''),
+            'user':config.get('Authentication','User',fallback=''),
+            'method':config.get('Authentication','Method',fallback=''),
+            'host':config.get('Authentication','Host',fallback=''),
+            'path':config.get('WebDAV Backend','ResourcePath',fallback='')},indent=2))
         assert config.get('Calendar', 'BackendName') == 'caldav'
         assert config.get('Security', 'Method') == 'tls'
         assert config.get('Authentication', 'User') == fixture['username']
@@ -265,11 +415,56 @@ def execute_child(root):
         assert config.getint('Authentication', 'Port') == (urlsplit(fixture['address']).port or 443)
         assert config.get('WebDAV Backend', 'ResourcePath') == urlsplit(fixture['address']).path
         colour = config.get('Calendar', 'Color', fallback='')
+        assert colour.upper() == '#126A5EFF', 'Native discovery must preserve the portal colour'
+        # Finish the real wizard, then authenticate the backend if it prompts separately.
+        def in_settings(item):
+            for _ in range(20):
+                if item is None: return False
+                if item.get_role_name() == 'dialog' and item.get_name() == 'Calendar Settings': return True
+                item = item.get_parent()
+            return False
+        close = [n for n in named('Close') if n.get_role_name() == 'button' and in_settings(n)]
+        assert len(close) == 1
+        action(close[0])
+        freeze_windows = False
+        native = {}
+        def retrieve():
+            try:
+                native['result'] = read_native_source(source.stem, root)
+            except Exception as failure:
+                native['error'] = str(failure)
+        worker = threading.Thread(target=retrieve, daemon=True)
+        worker.start()
+        def synced():
+            nonlocal freeze_windows
+            if 'error' in native: raise RuntimeError(native['error'])
+            if 'result' in native: return native['result']
+            desktop = Atspi.get_desktop(0)
+            apps = [desktop.get_child_at_index(i) for i in range(min(desktop.get_child_count(),20))]
+            (root / 'backend-applications.json').write_text(json.dumps([
+                {'name':app.get_name(),'pid':app.get_process_id()} for app in apps if app],indent=2))
+            passwords = [n for n in editable() if 'password' in n.get_role_name()
+                         or n.get_name().strip().rstrip(':').casefold() == 'password']
+            if passwords:
+                assert len(passwords) == 1
+                snapshot('backend-credential-prompt')
+                passwords[0].get_editable_text_iface().set_text_contents(fixture['credential'])
+                buttons = [n for n in nodes() if n.get_role_name() == 'button' and n.get_name() in ('Connect','Authenticate','OK')
+                           and n.get_state_set().contains(Atspi.StateType.SENSITIVE)]
+                assert len(buttons) == 1
+                freeze_windows = True
+                action(buttons[0])
+            return None
+        try:
+            synchronization = wait(synced, 'native-event-synchronization', 60)
+        except Exception:
+            snapshot('failed-native-sync')
+            raise
         report = {'status': 'passed', 'client': 'GNOME Calendar', 'version': fixture['gnomeVersion'],
                   'dataServerVersion': fixture['edsVersion'], 'mode': 'real native connection wizard in private home/DBus/X11 namespace',
                   'tls': 'normal verification with fixture CA only in private namespace',
-                  'steps': ['Manage Calendars', 'Add Calendar', 'collection HTTPS URL', 'Credentials User/Password', 'Connect', 'native discovery', 'Add Calendar'],
-                  'nativeBackend': 'caldav', 'nativeColour': colour}
+                  'steps': ['Manage Calendars', 'Add Calendar', 'trusted HTTPS discovery URL with username', 'Credentials User/Password', 'Connect', 'native discovery', 'Add Calendar', 'native backend password prompt', 'native event synchronization'],
+                  'nativeBackend': 'caldav', 'nativeColour': colour, 'synchronization':synchronization}
         (root / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
         snapshot('connected')
     finally:
@@ -316,7 +511,7 @@ def main():
             env.pop(key, None)
         env.update(XDG_RUNTIME_DIR=str(root / 'run'), XDG_CONFIG_HOME=str(root / 'config'), XDG_DATA_HOME=str(root / 'data'),
                    XDG_CACHE_HOME=str(root / 'cache'), XDG_STATE_HOME=str(root / 'state'), GDK_BACKEND='x11', GSK_RENDERER='cairo',
-                   GTK_A11Y='atspi', GTK_USE_PORTAL='0', NO_AT_BRIDGE='0', TZ='America/Vancouver', LANG='C.UTF-8', LC_ALL='C.UTF-8',
+                   GTK_A11Y='atspi', NO_AT_BRIDGE='0', TZ='America/Vancouver', LANG='C.UTF-8', LC_ALL='C.UTF-8',
                    GNOME_KEYRING_CONTROL=str(root / 'run/keyring'), XDG_SESSION_TYPE='x11')
         display = ':' + str(100 + secrets.randbelow(9000))
         (root / 'xauth').touch(mode=0o600)
@@ -351,8 +546,18 @@ def main():
                 result = subprocess.CompletedProcess(command, 124, decoded(failure.stdout), decoded(failure.stderr))
         finally:
             subprocess.run(['docker', 'rm', '--force', display_name], capture_output=True, timeout=15)
-            display_process.wait(timeout=15)
+            try:
+                display_process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                display_process.terminate()
+                try:
+                    display_process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    display_process.kill()
+                    display_process.wait(timeout=5)
             display_log.close()
+            args.output.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root / 'xvfb.log', args.output / 'gnome-display.log')
         args.output.mkdir(parents=True, exist_ok=True)
         # Retain only redacted fixture diagnostics and accessibility names, never credentials/source files/keyrings.
         diagnostic = result.stdout + result.stderr

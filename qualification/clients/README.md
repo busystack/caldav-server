@@ -62,7 +62,12 @@ this optional profile is never silently substituted for the normal browser run.
 The browser creates the collection, edits metadata, imports contents and issues a
 DAV credential. The host fixture drives only its own GNOME accessibility tree
 through Manage Calendars, Add Calendar, HTTPS address, credentials and discovery.
-It verifies the durable native CalDAV source. It uses a disposable home, private
+It verifies the durable native CalDAV source, normal native password prompting,
+and retrieval through the installed public ECalClient API: two UID series, three
+event components, one recurrence exception, preserved extensions and owner write
+permission. The password is entered through the GUI; it is never injected into the
+EDS API. The connection URI comes directly from the portal's dedicated GNOME
+field and includes the username without a password. It uses a disposable home, private
 session/accessibility buses, keyring and namespace-only fixture CA trust. The
 private buses use their documented AppArmor setting because policy queries cannot
 operate against the namespace's read-only security filesystem; host policy is
@@ -78,3 +83,11 @@ security and restore profiles must still run separately. `BUSYSTACK_GNOME_DEBUG=
 optionally runs only the isolated native client under the installed GDB, stopping
 on GLib criticals and retaining function-only backtraces without arguments or
 locals. This diagnoses upstream crashes without changing installed binaries.
+
+The private fixture initializes its own unlocked login keyring and default alias
+through supported GNOME Keyring / Secret Service interfaces. GTK 4.22 can fail
+when its root accessible child count becomes stale as a credential window closes;
+the driver retains known application windows during that transition. It bounds all
+visited nodes and prunes hidden trees. EDS's native password prompt exposes a text
+role with the accessible label `Password:`; the driver uses that label. These are
+fixture adaptations through public interfaces, with no upstream software patches.

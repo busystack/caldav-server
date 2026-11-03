@@ -14,6 +14,7 @@ public final class OperationalProblems {
   private final ArrayDeque<Problem> recent = new ArrayDeque<>();
 
   public synchronized void record(String requestId, String surface, String method, int status) {
+    recent.removeIf(p -> p.requestId().equals(requestId));
     if (status < 500) return;
     if (recent.size() == 50) recent.removeLast();
     recent.addFirst(new Problem(Instant.now(), requestId, surface, method, status));

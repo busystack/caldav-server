@@ -1,4 +1,33 @@
 import assert from 'node:assert/strict';
+import {mkdirSync} from 'node:fs';
+export async function captureWorkflow(page,label) {
+  const output=process.env.BUSYSTACK_PORTAL_EVIDENCE;
+  if(!output || process.env.BUSYSTACK_GNOME_ONLY==='true') return;
+  mkdirSync(output,{recursive:true});
+  const initial=page.viewportSize();
+  try {
+    for(const width of [1280,390]) {
+      await page.setViewportSize({width,height:900});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+' must fit the viewport');
+      for(const region of await page.locator('.table-scroll').all()) {
+        if(await region.evaluate(element=>element.scrollWidth>element.clientWidth+1)) {
+          await region.focus();
+          await page.keyboard.press('ArrowRight');
+          const handle=await region.elementHandle();
+          try {await page.waitForFunction(element=>element.scrollLeft>0,handle);}
+          finally {await handle.dispose();}
+          await page.keyboard.press('Tab');
+          assert.ok(await region.evaluate(element=>document.activeElement!==element),'Scrollable tables must not trap keyboard focus');
+          await region.evaluate(element=>{element.scrollLeft=0;});
+        }
+      }
+      await page.screenshot({path:output+'/workflow-'+label+'-'+width+'.png',fullPage:true});
+    }
+  } finally {
+    await page.setViewportSize(initial);
+  }
+}
+
 export function prefixOf(base) {return new URL(base).pathname.replace(/\/$/, '');}
 export async function openCollection(page, base, name) {
   await page.goto(base + '/collections?scope=all');

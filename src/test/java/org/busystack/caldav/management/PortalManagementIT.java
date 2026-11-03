@@ -409,6 +409,10 @@ class PortalManagementIT {
           .contains("/team/assets/account.css")
           .doesNotContain(hostile);
       assertThat(response.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
+      if (path.equals("/connections")) {
+        assertThat(response.body())
+            .contains("id=\"gnome-address\"", "value=\"https://portal-owner@localhost/team/dav/\"");
+      }
     }
     var adminBrowser = browser(admin, true);
     UUID g = groups.create(auth(admin, true), "Group " + hostile, Set.of());
