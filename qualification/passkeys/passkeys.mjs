@@ -1,5 +1,5 @@
 import {qualifyPersonalPortal,qualifyPortalPresentation} from './portal.mjs';
-import {createCollection, openCollection} from './portal-helpers.mjs';
+import {createCollection, openCollection, captureWorkflow} from './portal-helpers.mjs';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { createInterface } from 'node:readline';
@@ -33,6 +33,7 @@ try {
   const localAuthenticator = await cdp.send('WebAuthn.addVirtualAuthenticator', {options: {protocol: 'ctap2', transport: 'internal',
     hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true}});
   await page.goto(base + '/login');
+  await captureWorkflow(page,'sign-in');
   assert.equal(await page.locator('meta[name=csrf-token]').count(), 1);
   await page.locator('input[name=username]').fill(process.env.BUSYSTACK_BROWSER_USERNAME);
   await page.locator('input[name=password]').fill(password);

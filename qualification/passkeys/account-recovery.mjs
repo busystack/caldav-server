@@ -4,6 +4,7 @@ import {call, json} from './transport.mjs';
 import {issueDavCredential} from './dav-credentials.mjs';
 import {qualifyOAuth} from './oauth.mjs';
 import {organizationPrimary, primaryCannotMutate, signOut} from './oidc.mjs';
+import {captureWorkflow} from './portal-helpers.mjs';
 
 export async function qualifyAccountRecovery({page, base, privateValues, administratorPage,
   username, cdp, authenticatorId}) {
@@ -29,6 +30,7 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await page.getByRole('heading', {name: 'Save your recovery codes', exact: true}).waitFor();
   const codes = await page.locator('ol code').allInnerTexts();
   privateValues.push(...codes);
+  await captureWorkflow(page,'recovery-codes-once',[page.locator('ol code')]);
   assert.equal(codes.length, 10);
   assert.equal(new Set(codes).size, 10);
   assert.ok(codes.every(value => value.length === 80));

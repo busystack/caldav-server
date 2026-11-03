@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {mkdirSync} from 'node:fs';
-export async function captureWorkflow(page,label) {
+import {mkdirSync,writeFileSync} from 'node:fs';
+export async function captureWorkflow(page,label,mask=[]) {
   const output=process.env.BUSYSTACK_PORTAL_EVIDENCE;
   if(!output || process.env.BUSYSTACK_GNOME_ONLY==='true') return;
   mkdirSync(output,{recursive:true});
@@ -8,7 +8,19 @@ export async function captureWorkflow(page,label) {
   try {
     for(const width of [1280,390]) {
       await page.setViewportSize({width,height:900});
-      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+' must fit the viewport');
+      const fits=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1);
+      if(!fits) {
+        await page.screenshot({path:output+'/workflow-'+label+'-'+width+'-overflow.png',fullPage:true,mask});
+        writeFileSync(output+'/workflow-'+label+'-'+width+'-overflow.json',JSON.stringify(await page.evaluate(()=>({
+          viewport:innerWidth,documentWidth:document.documentElement.scrollWidth,
+          elements:[...document.querySelectorAll('body *')].filter(element=>element.getBoundingClientRect().right>innerWidth+1 && (!element.closest('.table-scroll') || getComputedStyle(element).position==='absolute'))
+            .slice(0,40).map(element=>({tag:element.tagName,classes:[...element.classList],
+              left:element.getBoundingClientRect().left,right:element.getBoundingClientRect().right,
+              width:element.getBoundingClientRect().width,minWidth:getComputedStyle(element).minWidth,
+              position:getComputedStyle(element).position,containingBlock:element.offsetParent?.tagName}))
+        })),null,2));
+      }
+      assert.ok(fits,label+' must fit the viewport');
       for(const region of await page.locator('.table-scroll').all()) {
         if(await region.evaluate(element=>element.scrollWidth>element.clientWidth+1)) {
           await region.focus();
@@ -21,7 +33,7 @@ export async function captureWorkflow(page,label) {
           await region.evaluate(element=>{element.scrollLeft=0;});
         }
       }
-      await page.screenshot({path:output+'/workflow-'+label+'-'+width+'.png',fullPage:true});
+      await page.screenshot({path:output+'/workflow-'+label+'-'+width+'.png',fullPage:true,mask});
     }
   } finally {
     await page.setViewportSize(initial);

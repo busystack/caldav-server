@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {randomBytes, createHash} from 'node:crypto';
 import {call, json} from './transport.mjs';
+import {captureWorkflow} from './portal-helpers.mjs';
 
 export async function qualifyOAuth(page, base, privateValues, administratorPage = page, options = {}) {
   const clientId = options.clientId || 'browser-native-qualification';
@@ -46,6 +47,7 @@ export async function qualifyOAuth(page, base, privateValues, administratorPage 
       const headings = await page.locator('h1').allInnerTexts();
       throw new Error(`Consent page unavailable: status=${authorizationPage.status()}, path=${new URL(page.url()).pathname}, headings=${JSON.stringify(headings)}`);
     }
+    await captureWorkflow(page,'oauth-consent');
     const consentState = await page.locator('form').filter({has: page.getByRole('button', {name: 'Authorize application', exact: true})}).locator('input[name=state]').inputValue();
     privateValues.push(consentState);
     const missingCsrf = await page.evaluate(async values => (await fetch(values.target, {

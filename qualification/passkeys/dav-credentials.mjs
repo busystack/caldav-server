@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {call} from './transport.mjs';
+import {captureWorkflow} from './portal-helpers.mjs';
 
 export async function issueDavCredential(page, base, privateValues, label, username = process.env.BUSYSTACK_BROWSER_USERNAME) {
   await page.goto(base + '/security/credentials');
@@ -15,6 +16,7 @@ export async function issueDavCredential(page, base, privateValues, label, usern
   assert.equal(credential.length, 80);
   const encoded = Buffer.from(username + ':' + credential).toString('base64');
   privateValues.push(credential, encoded);
+  await captureWorkflow(page,'credential-once',[page.locator('main code')]);
   await page.goto(base + '/security/credentials');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in management');
   return {credential, encoded};
