@@ -16,7 +16,7 @@ export async function issueDavCredential(page, base, privateValues, label, usern
   assert.equal(credential.length, 80);
   const encoded = Buffer.from(username + ':' + credential).toString('base64');
   privateValues.push(credential, encoded);
-  await captureWorkflow(page,'credential-once',[page.locator('main code')]);
+  await captureWorkflow(page,'credential-once',[page.locator('main dd').filter({has:page.locator('#issued-secret')})]);
   await page.goto(base + '/security/credentials');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in management');
   return {credential, encoded};

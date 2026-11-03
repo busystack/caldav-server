@@ -30,7 +30,8 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await page.getByRole('heading', {name: 'Save your recovery codes', exact: true}).waitFor();
   const codes = await page.locator('ol code').allInnerTexts();
   privateValues.push(...codes);
-  await captureWorkflow(page,'recovery-codes-once',[page.locator('ol code')]);
+  // Mask the block: an inline code element can wrap beyond its screenshot mask rectangle.
+  await captureWorkflow(page,'recovery-codes-once',[page.locator('main ol')]);
   assert.equal(codes.length, 10);
   assert.equal(new Set(codes).size, 10);
   assert.ok(codes.every(value => value.length === 80));

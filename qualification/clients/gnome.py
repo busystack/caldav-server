@@ -366,6 +366,12 @@ def execute_child(root):
         wait(nodes, 'application')
         snapshot('initial')
         click('Manage Calendars')
+        wait(lambda: named('Calendar Settings'), 'calendar-settings')
+        # The row is exposed to AT-SPI while the libadwaita modal is still
+        # animating into place. Its pinned SCREEN-coordinate workaround must
+        # run after that transition, not against the intermediate position.
+        time.sleep(.5)
+        pump()
         click('Add Calendar')
         wait(lambda: len(editable()) >= 2, 'network-address')
         connection_uri = fixture['connectionAddress']
