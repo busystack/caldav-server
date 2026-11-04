@@ -22,7 +22,17 @@ docker compose pull
 docker compose up -d --no-build --wait
 ```
 
-For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.5+8), launch with `-XX:+ExitOnOutOfMemoryError`, and use PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
+For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.5+8), set `umask 077` before launching with `-XX:+ExitOnOutOfMemoryError`, and use PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
+
+The container sets this private umask before executing Java as PID 1. Standalone
+process supervision must likewise use umask 0077 (for example, systemd `UMask=0077`).
+This also makes servlet multipart buffers 0600 at creation, independently of their
+0700 containing directory. A standalone shell launch is:
+
+```sh
+umask 077
+java -XX:+ExitOnOutOfMemoryError -jar target/caldav-server-@VERSION@.jar
+```
 
 The portability directory defaults to `${java.io.tmpdir}/busystack-portability`,
 owned by the application user with mode 0700 (files 0600). Standalone operators
@@ -173,6 +183,7 @@ The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.h
 There is no default administrator password or unauthenticated setup endpoint. The local bootstrap command requires an empty account database, a private owner-only password file, and `--spring.main.web-application-type=none`. Use the executable JAR with database configuration supplied securely through environment/configuration:
 
 ```sh
+umask 077
 java -XX:+ExitOnOutOfMemoryError -jar target/caldav-server-@VERSION@.jar \
   --spring.main.web-application-type=none \
   --busystack.bootstrap=true \

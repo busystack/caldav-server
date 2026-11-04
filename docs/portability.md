@@ -85,7 +85,10 @@ attachment fetch or alarm execution occurs.
 All portability and servlet multipart files live beneath an application-controlled
 private directory, defaulting to `${java.io.tmpdir}/busystack-portability`. Override
 `busystack.portability.directory` only with a dedicated directory owned by the
-application user with mode 0700; staged data files use 0600. This location must not
+application user with mode 0700; staged data files use 0600. The container sets
+umask 0077 before executing Java, so servlet multipart files also start at 0600.
+Standalone JAR supervision must set the same umask; see [operations](operations.md).
+This location must not
 be served by a web server. Paths and random filenames never derive from uploaded
 names or calendar data. Symbolic-link directories are refused. A process lock
 prevents two instances sharing the directory.

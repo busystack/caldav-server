@@ -83,6 +83,11 @@ def main():
             state = json.loads(operations.execute(['docker', 'inspect', application], env))[0]
             assert state['HostConfig']['ReadonlyRootfs']
             assert '-XX:+ExitOnOutOfMemoryError' in state['Config']['Entrypoint']
+            java_command = operations.compose(env, 'exec', '-T', 'application', 'cat', '/proc/1/cmdline').split('\0')
+            assert java_command[0] == 'java', 'The private-umask launcher must exec Java as PID1'
+            assert '-XX:+ExitOnOutOfMemoryError' in java_command
+            status = operations.compose(env, 'exec', '-T', 'application', 'cat', '/proc/1/status')
+            assert any(line.split() == ['Umask:', '0077'] for line in status.splitlines()), 'The application process must create owner-only multipart files'
             assert '/tmp' in state['HostConfig']['Tmpfs']
             blocks, block_size = map(int, operations.compose(env, 'exec', '-T', 'application', 'stat', '-f', '-c', '%b %S', '/tmp').split())
             assert blocks * block_size == 384 * 1024 * 1024
@@ -106,8 +111,9 @@ def main():
                            BUSYSTACK_PUBLIC_BASE_URL=f'https://localhost:{port}', BUSYSTACK_ISSUER=f'https://localhost:{port}')
             command = [str(args.java_home.resolve() / 'bin/java'), '-Xmx256m', '-XX:+ExitOnOutOfMemoryError', '-Djava.io.tmpdir=' + str(temp), '-jar', str(args.jar.resolve())]
             with (root / 'standalone.log').open('wb') as log:
-                process = subprocess.Popen(command, env=jar_env, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+                process = subprocess.Popen(command, env=jar_env, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, umask=0o077)
                 ready(f'http://127.0.0.1:{port}', process)
+                assert any(line.split() == ['Umask:', '0077'] for line in Path('/proc', str(process.pid), 'status').read_text().splitlines())
                 staging = temp / 'busystack-portability'
                 assert staging.stat().st_mode & 0o777 == 0o700
                 orphan = staging / ('data-' + str(uuid.uuid4()) + '.private')
@@ -126,7 +132,7 @@ def main():
                 probe_directory.mkdir(mode=0o700)
                 memory_probe = memory_failure_probe(args.java_home, probe_directory)
                 assert orphan.exists() and multipart.exists()
-                process = subprocess.Popen(command, env=jar_env, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+                process = subprocess.Popen(command, env=jar_env, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, umask=0o077)
                 ready(f'http://127.0.0.1:{port}', process)
                 assert not orphan.exists() and not multipart.exists()
                 assert unrelated.read_text() == 'preserve unrelated file'
@@ -136,7 +142,9 @@ def main():
                           composeReadOnly=True, composeTmpfsBytes=384 * 1024 * 1024,
                           composeForcedTerminationClean=True, standaloneForcedTerminationRemnantsObserved=True,
                           standaloneStartupOrphansRemoved=True, unrelatedFilePreserved=True,
-                          directoryMode='0700', seededFileMode='0600', gracefulShutdown=True, memoryFailureProbe=memory_probe,
+                          directoryMode='0700', seededFileMode='0600', composeJavaPid1=True,
+                          composeProcessUmask='0077', standaloneProcessUmask='0077',
+                          gracefulShutdown=True, memoryFailureProbe=memory_probe,
                           scope='Real packaged startup/shutdown; seeded crash remnants. HTTP imports and transaction interruption are separate tests.')
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(result, indent=2) + '\n')

@@ -16,4 +16,6 @@ ENV SERVER_ADDRESS=0.0.0.0
 RUN groupadd --gid 10001 busystack && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin busystack && chown -R 10001:10001 /opt/busystack
 USER 10001:10001
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=40.0", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "-jar", "/opt/busystack/application.jar"]
+# The shell only establishes private creation modes, then Java remains PID 1.
+# Keep each argument separate so bootstrap/recovery arguments pass through unchanged.
+ENTRYPOINT ["/bin/sh", "-ec", "umask 077; exec \"$@\"", "busystack", "java", "-XX:MaxRAMPercentage=40.0", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "-jar", "/opt/busystack/application.jar"]
