@@ -14,6 +14,9 @@ temporary file is completed and validated before download success headers are
 sent. Errors never return a silently incomplete successful export. The download
 uses `text/calendar; charset=utf-8`, a fixed safe attachment filename and
 `Cache-Control: no-store`; the file is removed after delivery.
+If the snapshot transaction cannot commit, transaction completion discards the
+completed file before any download is issued. Failed deletion remains charged to
+the shared capacity budget until cleanup succeeds.
 An empty export snapshot returns to the collection with a notice; no unusable
 empty interchange file is downloaded.
 

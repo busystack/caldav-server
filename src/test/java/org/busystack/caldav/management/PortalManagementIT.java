@@ -95,6 +95,57 @@ class PortalManagementIT {
   }
 
   @Test
+  void exportSnapshotCommitFailureReleasesCompletedFileAndReservation() throws Exception {
+    dav.putResource(
+        owner, collection, "commit.ics", event("export-commit"), WriteCondition.create());
+    long before = portabilityStorage.reservedBytes();
+    var completed = new java.util.concurrent.atomic.AtomicReference<PortabilityService.Export>();
+    jdbc.execute(
+        "CREATE FUNCTION qualification_export_commit_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action='EXPORT_COMMIT_TEST' THEN RAISE EXCEPTION 'Qualification export commit failure'; END IF; RETURN NEW; END $$");
+    jdbc.execute(
+        "CREATE CONSTRAINT TRIGGER qualification_export_commit_failure AFTER INSERT ON security_audit DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION qualification_export_commit_failure()");
+    try {
+      var tx = new org.springframework.transaction.support.TransactionTemplate(transactions);
+      tx.setIsolationLevel(
+          org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+      assertThatThrownBy(
+              () ->
+                  tx.execute(
+                      status -> {
+                        try {
+                          completed.set(portability.export(auth(owner, true), collection));
+                        } catch (java.io.IOException failure) {
+                          throw new java.io.UncheckedIOException(failure);
+                        }
+                        assertThat(completed.get().path()).isRegularFile();
+                        jdbc.update(
+                            "INSERT INTO security_audit(account_id,action,outcome) VALUES (?,'EXPORT_COMMIT_TEST','SUCCESS')",
+                            owner);
+                        return completed.get();
+                      }))
+          .isInstanceOf(RuntimeException.class)
+          .hasStackTraceContaining("Qualification export commit failure");
+      assertThat(completed.get()).isNotNull();
+      assertThat(completed.get().path()).doesNotExist();
+      assertThat(portabilityStorage.reservedBytes()).isLessThanOrEqualTo(before);
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM security_audit WHERE action='EXPORT_COMMIT_TEST'",
+                  Long.class))
+          .isZero();
+    } finally {
+      jdbc.execute("DROP TRIGGER qualification_export_commit_failure ON security_audit");
+      jdbc.execute("DROP FUNCTION qualification_export_commit_failure()");
+      if (completed.get() != null) completed.get().close();
+    }
+    try (var successful = portability.export(auth(owner, true), collection)) {
+      assertThat(successful.path()).isRegularFile();
+      assertThat(successful.length()).isPositive();
+    }
+    assertThat(portabilityStorage.reservedBytes()).isLessThanOrEqualTo(before);
+  }
+
+  @Test
   void invalidRowFormsRetainTheirPageAndMemberFilter() throws Exception {
     var names = new HashSet<String>();
     for (int n = 0; n < 51; n++) {

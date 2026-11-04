@@ -375,6 +375,16 @@ public class PortabilityService {
         length = Files.size(file);
       }
       var result = new Export(managed, length, !compatible);
+      if (org.springframework.transaction.support.TransactionSynchronizationManager
+          .isSynchronizationActive())
+        org.springframework.transaction.support.TransactionSynchronizationManager
+            .registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                  @Override
+                  public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) result.close();
+                  }
+                });
       transferred = true;
       return result;
     } finally {
