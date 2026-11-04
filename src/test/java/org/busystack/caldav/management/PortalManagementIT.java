@@ -584,6 +584,91 @@ class PortalManagementIT {
   }
 
   @Test
+  void differentCalendarClosingsPreserveResourceLimitOnHttpRoundTrip() throws Exception {
+    var client = browser(owner, true);
+    String csrf = csrf(get(client, "/portability").body());
+    int scenario = 0;
+    for (String ending : List.of("\r\n", "\n", "", "\r")) {
+      for (int order = 0; order < 3; order++) {
+        boolean neighbor = order != 0;
+        UUID source =
+            portal.create(
+                auth(owner, true), "Closing boundary source " + scenario, "VEVENT", "", "");
+        UUID target =
+            portal.create(
+                auth(owner, true), "Closing boundary target " + scenario++, "VEVENT", "", "");
+        byte[] small = event("closing-small");
+        String text =
+            calendarBody("closing-limit").replace("END:VCALENDAR\r\n", "END:VCALENDAR" + ending);
+        int padding =
+            org.busystack.caldav.calendar.CalendarContent.MAX_BYTES
+                - text.getBytes(StandardCharsets.UTF_8).length;
+        byte[] large =
+            text.replace("X-CLIENT:preserve", "X-CLIENT:preserve" + "x".repeat(padding))
+                .getBytes(StandardCharsets.UTF_8);
+        assertThat(large).hasSize(org.busystack.caldav.calendar.CalendarContent.MAX_BYTES);
+        assertThat(org.busystack.caldav.calendar.CalendarContent.parse(large, "VEVENT").uid())
+            .isEqualTo("closing-limit");
+        calendars.put(
+            owner,
+            source,
+            order == 1 ? "a-limit.ics" : "b-limit.ics",
+            "closing-limit",
+            large,
+            WriteCondition.create());
+        if (neighbor)
+          calendars.put(
+              owner,
+              source,
+              order == 1 ? "b-small.ics" : "a-small.ics",
+              "closing-small",
+              small,
+              WriteCondition.create());
+        var response =
+            client.send(
+                HttpRequest.newBuilder(
+                        URI.create(base() + "/portability/collections/" + source + "/export"))
+                    .GET()
+                    .build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(response.statusCode()).isEqualTo(200);
+        boolean stream = neighbor && !ending.equals("\r\n");
+        assertThat(response.headers().firstValue("Content-Disposition"))
+            .hasValue(
+                "attachment; filename=\"busystack-collection"
+                    + (stream ? "-stream" : "")
+                    + ".ics\"");
+        var preview = upload(client, csrf, target, "closing-boundary.ics", response.body());
+        assertThat(preview.statusCode()).isEqualTo(200);
+        assertThat(preview.body()).doesNotContain("UID series exceeds the 1 MiB resource limit");
+        var matcher =
+            java.util.regex.Pattern.compile("/portability/import/([a-f0-9-]{36})")
+                .matcher(preview.body());
+        assertThat(matcher.find()).isTrue();
+        var result =
+            post(
+                client,
+                "/portability/import/" + matcher.group(1),
+                Map.of("_csrf", csrf, "confirmed", "true"));
+        assertThat(result.statusCode()).isEqualTo(200);
+        var resources = calendars.metadataBatch(owner, target, "", 10);
+        assertThat(resources).hasSize(neighbor ? 2 : 1);
+        for (var resource : resources) {
+          byte[] stored = calendars.get(owner, target, resource.name()).content();
+          assertThat(stored.length)
+              .isLessThanOrEqualTo(org.busystack.caldav.calendar.CalendarContent.MAX_BYTES);
+          assertThat(org.busystack.caldav.calendar.CalendarContent.parse(stored, "VEVENT").uid())
+              .isEqualTo(resource.uid());
+          byte[] expected = resource.uid().equals("closing-limit") ? large : small;
+          if (resource.uid().equals("closing-limit") && ending.equals("\r"))
+            expected = java.util.Arrays.copyOf(expected, expected.length - 1);
+          assertThat(stored).isEqualTo(expected);
+        }
+      }
+    }
+  }
+
+  @Test
   void realHttpMediumStreamsRoundTripDistinctTimezonesMetadataExceptionsAndTasks()
       throws Exception {
     for (String type : List.of("VEVENT", "VTODO")) {

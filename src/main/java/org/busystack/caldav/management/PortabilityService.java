@@ -345,9 +345,9 @@ public class PortabilityService {
             output.write(body);
             length += body.length;
             if (body[body.length - 1] != '\n') {
-              output.write('\r');
+              if (body[body.length - 1] != '\r') output.write('\r');
               output.write('\n');
-              length += 2;
+              length += body[body.length - 1] == '\r' ? 1 : 2;
             }
             after = resource.name();
           }

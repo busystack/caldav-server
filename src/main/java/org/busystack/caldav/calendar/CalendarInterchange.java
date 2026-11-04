@@ -76,6 +76,7 @@ public final class CalendarInterchange {
         digest.update(java.nio.ByteBuffer.allocate(4).putInt(header.length).array());
         digest.update(header);
         digest.update(zones);
+        digest.update(closing);
         return java.util.HexFormat.of().formatHex(digest.digest());
       } catch (java.security.NoSuchAlgorithmException impossible) {
         throw new IllegalStateException(impossible);
@@ -160,7 +161,23 @@ public final class CalendarInterchange {
         throws java.io.IOException {
       checkTime();
       var s = series.get(number);
-      long size = s.frame.header.size + s.frame.zones.size + s.parts.size + s.frame.closing.size;
+      long size =
+          s.frame.groups == 1
+              ? s.frame.end - s.frame.start
+              : s.frame.header.size + s.frame.zones.size + s.parts.size + s.frame.closing.size;
+      int framing = 0;
+      if (size > CalendarContent.MAX_BYTES && size <= CalendarContent.MAX_BYTES + 2L) {
+        // A calendar file's terminal line ending is transport framing. Use the existing accepted
+        // EOF-terminated representation if only that framing prevents a UID resource fitting.
+        // No component/property bytes are omitted, and unchanged admission still runs below.
+        source.seek(s.frame.end - 1);
+        int last = source.readUnsignedByte();
+        if (last == '\n') {
+          framing = 1;
+          source.seek(s.frame.end - 2);
+          if (source.readUnsignedByte() == '\r') framing = 2;
+        } else if (last == '\r') framing = 1;
+      }
       String rejection =
           s.duplicate
               ? "UID occurs in multiple calendar objects; combine its recurrence series before importing"
@@ -169,26 +186,23 @@ public final class CalendarInterchange {
         rejection = "Unsupported component type";
       else if (!s.type.equals(destination))
         rejection = "Does not match the destination collection type";
-      else if (size > CalendarContent.MAX_BYTES)
+      else if (size - framing > CalendarContent.MAX_BYTES)
         rejection = "UID series exceeds the 1 MiB resource limit";
       byte[] content = new byte[0];
       String uid = s.uid;
       if (rejection.isEmpty()) {
-        var out = new ByteArrayOutputStream((int) size);
         if (s.frame.groups == 1) {
-          if (s.frame.end - s.frame.start > CalendarContent.MAX_BYTES)
-            rejection = "UID series exceeds the 1 MiB resource limit";
-          else {
-            source.seek(s.frame.start);
-            content = new byte[(int) (s.frame.end - s.frame.start)];
-            source.readFully(content);
-          }
+          source.seek(s.frame.start);
+          content = new byte[(int) (size - framing)];
+          source.readFully(content);
         } else {
+          var out = new ByteArrayOutputStream((int) size);
           copy(s.frame.header, out);
           copy(s.frame.zones, out);
           copy(s.parts, out);
           copy(s.frame.closing, out);
           content = out.toByteArray();
+          if (framing != 0) content = Arrays.copyOf(content, content.length - framing);
         }
         if (rejection.isEmpty()) {
           try {
@@ -314,7 +328,7 @@ public final class CalendarInterchange {
         offset += line.length;
         String value;
         try {
-          value = CalendarParsingInput.decode(line).replaceFirst("[\\r]?\\n$", "");
+          value = CalendarParsingInput.decode(line).replaceFirst("(?:\\r?\\n|\\r)$", "");
           CalendarTextProfile.validate(value);
         } catch (java.nio.charset.CharacterCodingException failure) {
           throw invalid();

@@ -20,13 +20,14 @@ the shared capacity budget until cleanup succeeds.
 An empty export snapshot returns to the collection with a notice; no unusable
 empty interchange file is downloaded.
 
-For multiple resources with byte-identical calendar headers and embedded timezone
-definitions, export produces one VCALENDAR containing all their components. Headers,
+For multiple resources with byte-identical calendar headers, embedded timezone
+definitions and closing framing, export produces one VCALENDAR containing all their components. Headers,
 VTIMEZONEs and every event/task component retain their original bytes; only repeated
-identical wrappers and timezone definitions are removed. A single resource exports
-unchanged. No serializer rewrites recurrence, properties or parameter values.
+identical wrappers and timezone definitions are removed. A single resource retains
+its calendar content; terminal transport line endings may be completed. No serializer
+rewrites recurrence, properties or parameter values.
 
-When headers or timezone definitions differ, combining them could lose calendar
+When headers, timezone definitions or closing framing differ, combining them could lose calendar
 properties or conflate different definitions of the same TZID. Export instead emits
 a lossless [RFC 5545 §3.4 iCalendar stream](https://www.rfc-editor.org/rfc/rfc5545.html#section-3.4)
 of complete stored VCALENDAR objects, with a `-stream.ics` filename. A missing final
@@ -52,6 +53,14 @@ complexity limits locate UID series; every resulting resource goes through full
 CalendarAdmission and the existing VEVENT/VTODO validation. All exceptions for a
 UID remain with the master. Unsupported components and wrong-destination types
 are reported explicitly. Malformed framing rejects the file before mutation.
+
+The 1 MiB bound applies to each constructed UID resource. If only one or two
+terminal CR/LF framing bytes would exceed that bound, the importer uses the
+EOF-terminated form already accepted by DAV admission. Component, property and
+timezone bytes are not removed. The resulting resource still passes the unchanged
+1 MiB validator; a payload that cannot fit without removing calendar information
+is rejected. This also preserves round trips for admitted resources exactly at
+the limit when an interchange stream adds a line-ending separator.
 
 Preview and actual results show 50 entries per page with whole-file counts. An
 identical existing UID/resource is **Skipped**. Different content with an existing

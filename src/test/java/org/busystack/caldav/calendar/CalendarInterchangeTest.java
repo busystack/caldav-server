@@ -28,6 +28,57 @@ class CalendarInterchangeTest {
 
   @org.junit.jupiter.api.io.TempDir java.nio.file.Path temporary;
 
+  @Test
+  void exportContextsKeepDifferentCalendarClosingBytesDistinct() {
+    byte[] crlf = bytes(object(event("closing")));
+    var fingerprints = new java.util.HashSet<String>();
+    for (String ending : java.util.List.of("\r\n", "\n", "", "\r")) {
+      byte[] resource =
+          new String(crlf, StandardCharsets.UTF_8)
+              .replace("END:VCALENDAR\r\n", "END:VCALENDAR" + ending)
+              .getBytes(StandardCharsets.UTF_8);
+      assertThat(CalendarContent.parse(resource, "VEVENT").uid()).isEqualTo("closing");
+      assertThat(read(resource, "VEVENT").getFirst().content()).isEqualTo(resource);
+      fingerprints.add(CalendarInterchange.exportParts(resource).contextFingerprint());
+    }
+    assertThat(fingerprints).hasSize(4);
+    assertThat(CalendarInterchange.exportParts(crlf).contextFingerprint())
+        .isEqualTo(CalendarInterchange.exportParts(crlf.clone()).contextFingerprint());
+  }
+
+  @Test
+  void transportLineEndingsNeverIncreaseTheAdmittedResourceLimit() {
+    String body = object(event("boundary")).replace("END:VCALENDAR\n", "END:VCALENDAR");
+    byte[] original = bytes(body);
+    int padding = CalendarContent.MAX_BYTES - original.length;
+    original = bytes(body.replace("X-DATA:preserve", "X-DATA:preserve" + "x".repeat(padding)));
+    assertThat(original).hasSize(CalendarContent.MAX_BYTES);
+    assertThat(CalendarContent.parse(original, "VEVENT").uid()).isEqualTo("boundary");
+    var wire = new java.io.ByteArrayOutputStream();
+    wire.writeBytes(original);
+    wire.writeBytes(bytes("\n"));
+    byte[] framed = wire.toByteArray();
+    assertThatThrownBy(() -> CalendarContent.parse(framed, "VEVENT"))
+        .isInstanceOf(CalendarValidationException.class);
+    // Interchange may choose the already accepted EOF-terminated representation. The DAV
+    // validator and its byte bound stay unchanged; no component/property bytes are removed.
+    var candidate = read(framed, "VEVENT").getFirst();
+    assertThat(candidate.rejection()).isEmpty();
+    assertThat(candidate.content()).isEqualTo(original);
+    wire.writeBytes(bytes(object(event("neighbor"))));
+    var stream = read(wire.toByteArray(), "VEVENT");
+    assertThat(stream).hasSize(2).allSatisfy(item -> assertThat(item.rejection()).isEmpty());
+    assertThat(stream.getFirst().content()).isEqualTo(original);
+    var tooLarge = new java.io.ByteArrayOutputStream();
+    tooLarge.writeBytes(
+        bytes(body.replace("X-DATA:preserve", "X-DATA:preserve" + "x".repeat(padding + 1))));
+    tooLarge.writeBytes(bytes("\n"));
+    tooLarge.writeBytes(bytes(object(event("neighbor"))));
+    var rejected = read(tooLarge.toByteArray(), "VEVENT");
+    assertThat(rejected.getFirst().rejection()).contains("1 MiB");
+    assertThat(rejected.getLast().rejection()).isEmpty();
+  }
+
   private java.util.List<CalendarInterchange.Item> read(byte[] bytes, String component) {
     var source = temporary.resolve(java.util.UUID.randomUUID() + ".ics");
     var index = temporary.resolve(java.util.UUID.randomUUID() + ".index");
