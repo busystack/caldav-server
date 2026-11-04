@@ -28,7 +28,8 @@ public final class PortabilityStorage implements AutoCloseable {
   private final Semaphore operations = new Semaphore(2);
   private final Set<PrivateFile> files = new HashSet<>();
   private final ThreadLocal<Work> current = new ThreadLocal<>();
-  private long reserved;
+  private long reserved, multipartPending;
+  private int uploads;
 
   public PortabilityStorage(
       @Value("${busystack.portability.directory:${java.io.tmpdir}/busystack-portability}")
@@ -100,7 +101,7 @@ public final class PortabilityStorage implements AutoCloseable {
   }
 
   public Work begin(boolean upload) {
-    if (current.get() != null) return new Work(false, 0);
+    if (current.get() != null) return new Work(false, 0, false);
     long bytes = upload ? UPLOAD_BYTES + FILE_BYTES + INDEX_BYTES : FILE_BYTES;
     if (!operations.tryAcquire()) throw new CapacityException();
     synchronized (this) {
@@ -109,27 +110,41 @@ public final class PortabilityStorage implements AutoCloseable {
         throw new CapacityException();
       }
       reserved += bytes;
+      if (upload) uploads++;
     }
-    var work = new Work(true, bytes);
+    var work = new Work(true, bytes, upload);
     current.set(work);
     return work;
   }
 
   public final class Work implements AutoCloseable {
-    private final boolean owner;
+    private final boolean owner, upload;
     private long remaining;
+    private boolean finished;
 
-    private Work(boolean owner, long remaining) {
+    private Work(boolean owner, long remaining, boolean upload) {
       this.owner = owner;
       this.remaining = remaining;
+      this.upload = upload;
     }
 
     @Override
     public void close() {
       if (!owner) return;
       synchronized (PortabilityStorage.this) {
-        reserved -= remaining;
-        remaining = 0;
+        if (finished) return;
+        finished = true;
+        if (upload) {
+          uploads--;
+          long retained = Math.min(UPLOAD_BYTES, remaining);
+          multipartPending += retained;
+          reserved -= remaining - retained;
+          remaining = 0;
+          cleanupMultipart();
+        } else {
+          reserved -= remaining;
+          remaining = 0;
+        }
       }
       current.remove();
       operations.release();
@@ -201,6 +216,32 @@ public final class PortabilityStorage implements AutoCloseable {
     }
   }
 
+  /** No request can still read a part once all synchronous upload work has returned. */
+  private void cleanupMultipart() {
+    if (uploads != 0 || multipartPending == 0) return;
+    Path directory = root.resolve("multipart");
+    try {
+      if (!Files.notExists(directory, LinkOption.NOFOLLOW_LINKS)) {
+        if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS))
+          throw new IOException("Invalid multipart directory");
+        try (var entries = Files.newDirectoryStream(directory)) {
+          for (Path entry : entries) {
+            if (Files.notExists(entry, LinkOption.NOFOLLOW_LINKS)) continue;
+            if (!entry.getFileName().toString().matches("upload_[A-Za-z0-9_-]+\\.tmp")
+                || !Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS))
+              throw new IOException("Unexpected multipart entry");
+            Files.deleteIfExists(entry);
+          }
+        }
+      }
+      reserved -= multipartPending;
+      multipartPending = 0;
+    } catch (IOException | RuntimeException failure) {
+      org.slf4j.LoggerFactory.getLogger(PortabilityStorage.class)
+          .warn("Private multipart cleanup pending");
+    }
+  }
+
   /** Qualification/operator observation contains counts only, never file names or contents. */
   public synchronized long usedBytes() throws IOException {
     long total = 0;
@@ -223,11 +264,13 @@ public final class PortabilityStorage implements AutoCloseable {
   @Scheduled(fixedDelay = 30000)
   public synchronized void cleanup() {
     for (var file : List.copyOf(files)) if (file.deleting) file.close();
+    cleanupMultipart();
   }
 
   @PreDestroy
   public synchronized void close() throws IOException {
     for (var file : List.copyOf(files)) file.close();
+    cleanupMultipart();
     lock.release();
     lockChannel.close();
   }

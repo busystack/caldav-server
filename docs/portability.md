@@ -127,6 +127,9 @@ reconstructed resource retains the existing parser limits (2,000 components,
 20,000 properties, 40,000 parameters) and recurrence/timezone validation bounds.
 The item, file, index and deadline bounds also limit total file-processing work.
 
+Multipart buffer reservations remain charged through deletion, including early
+security rejection. Cleanup waits until no synchronous upload can still read a
+part; failed deletion retains capacity and is retried with other cleanup.
 Capacity is reserved before multipart parsing or processing, transferred to
 retained files and released only after deletion. Two maximum uploads cannot run
 together. Retained previews may prevent an otherwise allowed operation: 503 with

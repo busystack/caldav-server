@@ -50,6 +50,13 @@ export async function qualifyGroups(page,base,privateValues) {
   await captureWorkflow(page,'group-detail');
   const collection=await openCollection(page,base,'Browser-qualified tasks');
   await page.goto(base+'/collections/'+collection+'/sharing');
+  const direct=page.locator(`form[action="${prefix}/shares"]`).filter({has:page.locator('input[name=username]:not([type=hidden])')});
+  await direct.locator('..').locator('summary').click();
+  await direct.locator('[name=username]').fill('missing-account');
+  await direct.locator('[name=permission]').selectOption('WRITE');
+  await expectFieldError(page,direct,'username',400,'direct-sharing');
+  assert.equal(await direct.locator('[name=username]').inputValue(),'missing-account');
+  assert.equal(await direct.locator('[name=permission]').inputValue(),'WRITE');
   const sharing=page.locator(`form[action="${prefix}/group-shares"]`).filter({has:page.locator('select[name=group]')});
   await sharing.locator('..').locator('summary').click();
   await sharing.locator('select[name=group]').selectOption(group);

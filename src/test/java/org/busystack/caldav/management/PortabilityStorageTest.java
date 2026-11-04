@@ -13,6 +13,82 @@ class PortabilityStorageTest {
   @TempDir Path temporary;
 
   @Test
+  void failedMultipartCleanupKeepsItsCapacityUntilDeletionCanSucceed() throws Exception {
+    try (var storage = new PortabilityStorage(temporary.resolve("private").toString())) {
+      Path directory = storage.multipartDirectory();
+      Path blocked = directory.resolve("upload_fixture_0001.tmp");
+      try (var work = storage.begin(true)) {
+        Files.createDirectory(blocked);
+        Files.writeString(blocked.resolve("block"), "fixture");
+      }
+      assertThat(storage.reservedBytes()).isEqualTo(PortabilityStorage.UPLOAD_BYTES);
+      Files.delete(blocked.resolve("block"));
+      Files.delete(blocked);
+      storage.cleanup();
+      assertThat(storage.reservedBytes()).isZero();
+    }
+  }
+
+  @Test
+  void concurrentUploadCleanupNeverDeletesAnotherLiveUploadAndRetainsCompletedBuffers()
+      throws Exception {
+    try (var storage = new PortabilityStorage(temporary.resolve("private").toString());
+        var pool = Executors.newFixedThreadPool(2)) {
+      Path directory = storage.multipartDirectory();
+      Path first = directory.resolve("upload_first_0001.tmp"),
+          second = directory.resolve("upload_second_0002.tmp");
+      var ready = new CountDownLatch(1);
+      var otherReady = new CountDownLatch(1);
+      var finish = new CountDownLatch(1);
+      var finished = new CountDownLatch(1);
+      var finishOther = new CountDownLatch(1);
+      var one =
+          pool.submit(
+              () -> {
+                var work = storage.begin(true);
+                var data = storage.create(PortabilityStorage.FILE_BYTES);
+                try (var index = storage.create(PortabilityStorage.INDEX_BYTES)) {
+                  Files.writeString(data.path(), "x");
+                  data.compact();
+                }
+                Files.writeString(first, "first buffer");
+                ready.countDown();
+                finish.await(10, TimeUnit.SECONDS);
+                work.close();
+                finished.countDown();
+                return data;
+              });
+      var two =
+          pool.submit(
+              () -> {
+                assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+                try (var work = storage.begin(true)) {
+                  Files.writeString(second, "live buffer");
+                  otherReady.countDown();
+                  finishOther.await(10, TimeUnit.SECONDS);
+                }
+                return null;
+              });
+      try {
+        assertThat(otherReady.await(10, TimeUnit.SECONDS)).isTrue();
+        finish.countDown();
+        assertThat(finished.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(first).exists();
+        assertThat(second).exists();
+        assertThat(storage.reservedBytes()).isEqualTo(226 * PortabilityStorage.MIB + 1);
+      } finally {
+        finish.countDown();
+        finishOther.countDown();
+      }
+      one.get().close();
+      two.get();
+      assertThat(first).doesNotExist();
+      assertThat(second).doesNotExist();
+      assertThat(storage.reservedBytes()).isZero();
+    }
+  }
+
+  @Test
   void fileCountIsBoundedEvenWhenFilesAreTiny() throws Exception {
     try (var storage = new PortabilityStorage(temporary.resolve("private").toString())) {
       var files = new java.util.ArrayList<PortabilityStorage.PrivateFile>();

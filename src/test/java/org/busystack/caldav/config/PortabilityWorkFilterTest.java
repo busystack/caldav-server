@@ -14,6 +14,26 @@ class PortabilityWorkFilterTest {
   @TempDir Path temporary;
 
   @Test
+  void earlySecurityRejectionRemovesParsedMultipartBuffersBeforeReleasingCapacity()
+      throws Exception {
+    try (var storage = new PortabilityStorage(temporary.resolve("private").toString())) {
+      var multipart = storage.multipartDirectory().resolve("upload_rejected_0001.tmp");
+      var filter = new PortabilityWorkFilter(storage);
+      var response = new MockHttpServletResponse();
+      filter.doFilter(
+          request("/team", "/portability/preview", "multipart/form-data; boundary=fixture"),
+          response,
+          (req, res) -> {
+            java.nio.file.Files.writeString(multipart, "private rejected upload");
+            ((jakarta.servlet.http.HttpServletResponse) res).sendError(403);
+          });
+      assertThat(response.getStatus()).isEqualTo(403);
+      assertThat(multipart).doesNotExist();
+      assertThat(storage.reservedBytes()).isZero();
+    }
+  }
+
+  @Test
   void unsupportedMultipartSurfacesNeverReachParsingOrAuthentication() throws Exception {
     try (var storage = new PortabilityStorage(temporary.resolve("private").toString())) {
       var filter = new PortabilityWorkFilter(storage);
