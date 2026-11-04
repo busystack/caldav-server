@@ -357,6 +357,26 @@ def main():
                 assert "HTTPS_RESTORE_SHARED_RECIPIENT_FRESH_MFA_READ_WRITE_DENIAL_AND_REVOCATION_PASSED" in signals
             print("PASS: trusted test-CA HTTPS, Chromium virtual CTAP2 enrollment/assertion, password+passkey MFA enforcement, session rotation, persistence across restart, disabled-session/passkey denial.")
         except Exception:
+            # Coarse fixture liveness only: never print environment, request bodies or credentials.
+            for service in ("application", "reverse-proxy") if args.proxy else ("application",):
+                try:
+                    identifiers = operations.compose(environment, "ps", "--all", "--quiet", service).splitlines()
+                    if not identifiers:
+                        raise RuntimeError("Fixture service unavailable")
+                    state = json.loads(operations.execute(["docker", "inspect", identifiers[0]], environment))[0]
+                    print("QUALIFICATION_SERVICE_STATE=" + json.dumps({
+                        "service": service, "image": state["Image"],
+                        "status": state["State"]["Status"], "running": state["State"]["Running"],
+                        "oomKilled": state["State"]["OOMKilled"], "exitCode": state["State"]["ExitCode"],
+                        "restartCount": state["RestartCount"],
+                    }, sort_keys=True), flush=True)
+                except (RuntimeError, subprocess.TimeoutExpired, ValueError, KeyError, IndexError):
+                    print("QUALIFICATION_SERVICE_STATE_UNAVAILABLE=" + service, flush=True)
+            try:
+                with tls.opener(directory / "ca.pem").open(base + "/login", timeout=5) as diagnostic:
+                    print("QUALIFICATION_HOST_LOGIN_STATUS=" + str(diagnostic.status), flush=True)
+            except Exception as diagnostic_failure:
+                print("QUALIFICATION_HOST_LOGIN_FAILURE=" + type(diagnostic_failure).__name__, flush=True)
             # Emit only sanitized error diagnostics from this disposable application, before cleanup.
             try:
                 raw = operations.compose(environment, "logs", "--no-log-prefix", "--tail", "120", "application")

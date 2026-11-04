@@ -24,7 +24,7 @@ export async function qualifyGroups(page,base,privateValues) {
   assert.equal(await page.locator('tbody tr').count(),1);
   assert.equal(await page.getByRole('link',{name:member,exact:true}).count(),1);
   await page.goto(base+'/admin/groups');
-  const create=page.locator(`form[action="${prefix}/admin/groups"]`);
+  const create=page.locator(`form[method="post"][action="${prefix}/admin/groups"]`);
   await create.locator('input[name=name]').fill('');
   await expectFieldError(page,create,'name',400,'group-create');
   await create.locator('input[name=name]').fill('Browser sharing group');
