@@ -42,7 +42,17 @@ public class PortabilityService {
     }
   }
 
-  public record Export(Path path, long length, boolean stream) {}
+  public record Export(PortabilityStorage.PrivateFile file, long length, boolean stream)
+      implements AutoCloseable {
+    public Path path() {
+      return file.path();
+    }
+
+    @Override
+    public void close() {
+      file.close();
+    }
+  }
 
   private final PortalService portal;
   private final SessionSecurity sessions;
@@ -52,7 +62,7 @@ public class PortabilityService {
   private final ImportStaging staging;
   private final JdbcTemplate jdbc;
   private final SecurityAudit audit;
-  private final java.util.concurrent.Semaphore exports = new java.util.concurrent.Semaphore(2);
+  private final PortabilityStorage storage;
 
   public PortabilityService(
       PortalService portal,
@@ -62,7 +72,8 @@ public class PortabilityService {
       CalendarInterchange interchange,
       ImportStaging staging,
       JdbcTemplate jdbc,
-      SecurityAudit audit) {
+      SecurityAudit audit,
+      PortabilityStorage storage) {
     this.portal = portal;
     this.sessions = sessions;
     this.calendars = calendars;
@@ -71,35 +82,143 @@ public class PortabilityService {
     this.staging = staging;
     this.jdbc = jdbc;
     this.audit = audit;
+    this.storage = storage;
   }
 
-  @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 30)
-  public Report preview(Authentication auth, UUID destination, byte[] file) throws IOException {
+  @Transactional(
+      isolation = Isolation.REPEATABLE_READ,
+      timeout = CalendarInterchange.MAX_PROCESSING_SECONDS,
+      rollbackFor = IOException.class)
+  public Report preview(Authentication auth, UUID destination, java.io.InputStream input)
+      throws IOException {
+    long deadline =
+        System.nanoTime()
+            + java.util.concurrent.TimeUnit.SECONDS.toNanos(
+                CalendarInterchange.MAX_PROCESSING_SECONDS);
     RecentAuthentication.requireMfa(auth);
     var actor = sessions.assertCurrent(auth);
     var collection = portal.collection(auth, destination);
     if (!collection.writable()) throw new StoreException(StoreException.Kind.FORBIDDEN);
-    var items = interchange.read(file, collection.component());
-    var results = classify(actor.id(), destination, items, false);
-    var stage = staging.save(actor.id(), actor.epoch(), destination, file);
-    return report(stage.token(), collection.name(), stage.expires(), results);
+    try (var work = storage.begin(true)) {
+      var file = storage.create(PortabilityStorage.FILE_BYTES);
+      boolean retained = false;
+      try (var index = storage.create(PortabilityStorage.INDEX_BYTES)) {
+        try (var output = Files.newOutputStream(file.path())) {
+          byte[] buffer = new byte[8192];
+          long length = 0;
+          int n;
+          while ((n = input.read(buffer)) != -1) {
+            length += n;
+            if (length > CalendarInterchange.MAX_FILE_BYTES || System.nanoTime() > deadline)
+              throw new StoreException(StoreException.Kind.LIMIT);
+            output.write(buffer, 0, n);
+          }
+        }
+        List<ItemResult> results;
+        try (var items = interchange.open(file.path(), index.path(), deadline)) {
+          results = classify(actor.id(), destination, items, collection.component(), false);
+        }
+        file.compact();
+        long reportBytes =
+            results.stream()
+                .mapToLong(
+                    i ->
+                        256L
+                            + 2L
+                                * (i.uid().length()
+                                    + i.label().length()
+                                    + i.explanation().length()))
+                .sum();
+        var stage =
+            staging.save(
+                actor.id(),
+                actor.epoch(),
+                destination,
+                file,
+                reportBytes,
+                prepared ->
+                    report(prepared.token(), collection.name(), prepared.expires(), results));
+        retained = true;
+        return stage.report();
+      } finally {
+        if (!retained) file.close();
+      }
+    }
   }
 
-  @Transactional(timeout = 30, rollbackFor = IOException.class)
+  // Convenience for small internal fixtures; HTTP always streams from the multipart file.
+  @Transactional(
+      isolation = Isolation.REPEATABLE_READ,
+      timeout = CalendarInterchange.MAX_PROCESSING_SECONDS,
+      rollbackFor = IOException.class)
+  public Report preview(Authentication auth, UUID destination, byte[] file) throws IOException {
+    return preview(auth, destination, new java.io.ByteArrayInputStream(file));
+  }
+
+  @Transactional(
+      timeout = CalendarInterchange.MAX_PROCESSING_SECONDS,
+      rollbackFor = IOException.class)
   public Report confirm(Authentication auth, UUID token, boolean confirmed) throws IOException {
+    long deadline =
+        System.nanoTime()
+            + java.util.concurrent.TimeUnit.SECONDS.toNanos(
+                CalendarInterchange.MAX_PROCESSING_SECONDS);
+    RecentAuthentication.requireMfa(auth);
+    var actor = sessions.assertCurrent(auth);
+    var available = staging.owned(token, actor.id(), actor.epoch());
+    if (!confirmed)
+      throw FormValidation.field(
+          "confirmed", "Confirm importing the ready items before continuing.");
+    dav.lockCollection(actor.id(), available.destination());
+    var collection = portal.collection(auth, available.destination());
+    if (!collection.writable()) throw new StoreException(StoreException.Kind.FORBIDDEN);
+    var stage = staging.begin(token, actor.id(), actor.epoch());
+    var outcome = new java.util.concurrent.atomic.AtomicReference<Report>();
+    org.springframework.transaction.support.TransactionSynchronizationManager
+        .registerSynchronization(
+            new org.springframework.transaction.support.TransactionSynchronization() {
+              @Override
+              public void afterCompletion(int status) {
+                staging.complete(stage, status, outcome.get());
+              }
+            });
+    try (var work = storage.begin(false);
+        var index = storage.create(PortabilityStorage.INDEX_BYTES);
+        var items = interchange.open(stage.path(), index.path(), deadline)) {
+      var results = classify(actor.id(), stage.destination(), items, collection.component(), true);
+      audit.record(
+          actor.id(),
+          SecurityAudit.Action.COLLECTION_IMPORTED,
+          SecurityAudit.Outcome.SUCCESS,
+          null);
+      var report = report(null, collection.name(), null, results);
+      outcome.set(report);
+      return report;
+    }
+  }
+
+  public UUID currentToken(Authentication auth) {
+    if (!RecentAuthentication.mfaCurrent(auth)) return null;
+    var actor = sessions.assertCurrent(auth);
+    var stage = staging.current(actor.id(), actor.epoch());
+    if (stage == null) return null;
+    try {
+      portal.collection(auth, stage.destination());
+    } catch (StoreException unavailable) {
+      if (unavailable.kind() == StoreException.Kind.FORBIDDEN
+          || unavailable.kind() == StoreException.Kind.NOT_FOUND) return null;
+      throw unavailable;
+    }
+    return stage.token();
+  }
+
+  public Report review(Authentication auth, UUID token, int page) {
     RecentAuthentication.requireMfa(auth);
     var actor = sessions.assertCurrent(auth);
     var stage = staging.owned(token, actor.id(), actor.epoch());
-    if (!confirmed) throw new IllegalArgumentException("Confirm importing the ready items");
-    dav.lockCollection(actor.id(), stage.destination());
-    var collection = portal.collection(auth, stage.destination());
-    if (!collection.writable()) throw new StoreException(StoreException.Kind.FORBIDDEN);
-    var items =
-        interchange.read(staging.take(token, actor.id(), actor.epoch()), collection.component());
-    var results = classify(actor.id(), stage.destination(), items, true);
-    audit.record(
-        actor.id(), SecurityAudit.Action.COLLECTION_IMPORTED, SecurityAudit.Outcome.SUCCESS, null);
-    return report(null, collection.name(), null, results);
+    // Never redisplay private preview metadata after destination access is revoked.
+    portal.collection(auth, stage.destination());
+    return stage.report();
   }
 
   public void cancel(Authentication auth, UUID token) {
@@ -108,9 +227,21 @@ public class PortabilityService {
   }
 
   private List<ItemResult> classify(
-      UUID actor, UUID destination, List<CalendarInterchange.Item> items, boolean write) {
+      UUID actor,
+      UUID destination,
+      CalendarInterchange.IndexedFile items,
+      String component,
+      boolean write)
+      throws IOException {
     List<ItemResult> result = new ArrayList<>();
-    for (var item : items) {
+    long resourceBytes = 0;
+    for (int n = 0; n < items.size(); n++) {
+      var item = interchange.item(items, n, component);
+      if (item.rejection().isEmpty()) {
+        resourceBytes += item.content().length;
+        if (resourceBytes > PortabilityStorage.FILE_BYTES)
+          throw new StoreException(StoreException.Kind.LIMIT);
+      }
       String status, explanation;
       if (!item.rejection().isEmpty()) {
         status = "Rejected";
@@ -142,7 +273,13 @@ public class PortabilityService {
                 WriteCondition.create());
         }
       }
-      result.add(new ItemResult(item.number(), item.label(), item.uid(), status, explanation));
+      result.add(
+          new ItemResult(
+              item.number(),
+              item.label(),
+              item.uid().substring(0, Math.min(100, item.uid().length())),
+              status,
+              explanation));
     }
     return List.copyOf(result);
   }
@@ -165,15 +302,22 @@ public class PortabilityService {
   }
 
   /** Build the complete download under one committed snapshot before sending success headers. */
-  @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 60)
+  @Transactional(
+      isolation = Isolation.REPEATABLE_READ,
+      timeout = CalendarInterchange.MAX_PROCESSING_SECONDS)
   public Export export(Authentication auth, UUID id) throws IOException {
     RecentAuthentication.requireMfa(auth);
     UUID actor = sessions.assertCurrent(auth).id();
     var collection = calendars.collection(actor, id);
-    if (!exports.tryAcquire()) throw new StoreException(StoreException.Kind.LIMIT);
-    Path file = null;
-    try {
-      file = Files.createTempFile("busystack-export-", ".private");
+    PortabilityStorage.PrivateFile managed = null;
+    boolean transferred = false;
+    try (var work = storage.begin(false)) {
+      managed = storage.create(PortabilityStorage.FILE_BYTES);
+      Path file = managed.path();
+      long deadline =
+          System.nanoTime()
+              + java.util.concurrent.TimeUnit.SECONDS.toNanos(
+                  CalendarInterchange.MAX_PROCESSING_SECONDS);
       long length = 0;
       int count = 0;
       String after = "";
@@ -182,6 +326,8 @@ public class PortabilityService {
       boolean compatible = true;
       try (var output = Files.newOutputStream(file)) {
         while (true) {
+          if (System.nanoTime() > deadline || Thread.currentThread().isInterrupted())
+            throw new StoreException(StoreException.Kind.LIMIT);
           var batch = calendars.resourceBatch(actor, id, after);
           if (batch.isEmpty()) break;
           for (var resource : batch) {
@@ -193,7 +339,8 @@ public class PortabilityService {
               first = parts;
               context = parts.contextFingerprint();
             } else if (!context.equals(parts.contextFingerprint())) compatible = false;
-            if (++count > 10000 || length + body.length + 2 > 64L * 1024 * 1024)
+            if (++count > CalendarInterchange.MAX_ITEMS
+                || length + body.length + 2 > PortabilityStorage.FILE_BYTES)
               throw new StoreException(StoreException.Kind.LIMIT);
             output.write(body);
             length += body.length;
@@ -214,6 +361,8 @@ public class PortabilityService {
           output.write(first.header());
           output.write(first.zones());
           while (true) {
+            if (System.nanoTime() > deadline || Thread.currentThread().isInterrupted())
+              throw new StoreException(StoreException.Kind.LIMIT);
             var batch = calendars.resourceBatch(actor, id, after);
             if (batch.isEmpty()) break;
             for (var resource : batch) {
@@ -225,12 +374,11 @@ public class PortabilityService {
         }
         length = Files.size(file);
       }
-      return new Export(file, length, !compatible);
-    } catch (IOException | RuntimeException failure) {
-      if (file != null) Files.deleteIfExists(file);
-      throw failure;
+      var result = new Export(managed, length, !compatible);
+      transferred = true;
+      return result;
     } finally {
-      exports.release();
+      if (!transferred && managed != null) managed.close();
     }
   }
 }

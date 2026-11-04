@@ -29,8 +29,15 @@ public class PortabilityController {
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "") String destination,
       Model model) {
-    model.addAttribute("collectionPage", portal.collections(auth, "all", "", page));
+    if (destination.isEmpty())
+      model.addAttribute("collectionPage", portal.collections(auth, "all", "", page));
+    else
+      model.addAttribute(
+          "collectionPage",
+          new PortalPage<>(
+              java.util.List.of(portal.collection(auth, UUID.fromString(destination))), 0, false));
     model.addAttribute("selectedDestination", destination);
+    model.addAttribute("currentImportToken", portability.currentToken(auth));
     return "portability";
   }
 
@@ -41,17 +48,15 @@ public class PortabilityController {
       @RequestParam MultipartFile file,
       Model model)
       throws IOException {
-    if (file.isEmpty() || file.getSize() > CalendarInterchange.MAX_FILE_BYTES)
+    if (file.isEmpty())
+      throw FormValidation.field("file", "Choose an iCalendar file to validate and preview.");
+    if (file.getSize() > CalendarInterchange.MAX_FILE_BYTES)
       throw new org.busystack.caldav.storage.StoreException(
           org.busystack.caldav.storage.StoreException.Kind.LIMIT);
-    byte[] content;
     try (var input = file.getInputStream()) {
-      content = input.readNBytes(CalendarInterchange.MAX_FILE_BYTES + 1);
+      model.addAttribute("report", portability.preview(auth, destination, input));
     }
-    if (content.length > CalendarInterchange.MAX_FILE_BYTES)
-      throw new org.busystack.caldav.storage.StoreException(
-          org.busystack.caldav.storage.StoreException.Kind.LIMIT);
-    model.addAttribute("report", portability.preview(auth, destination, content));
+    paginate(model, 0, ((PortabilityService.Report) model.getAttribute("report")).token());
     return "import-report";
   }
 
@@ -63,7 +68,32 @@ public class PortabilityController {
       Model model)
       throws IOException {
     model.addAttribute("report", portability.confirm(auth, token, confirmed));
+    paginate(model, 0, token);
     return "import-report";
+  }
+
+  @GetMapping("/portability/import/{token}")
+  String review(
+      Authentication auth,
+      @PathVariable UUID token,
+      @RequestParam(defaultValue = "0") int page,
+      Model model) {
+    model.addAttribute("report", portability.review(auth, token, page));
+    paginate(model, page, token);
+    return "import-report";
+  }
+
+  private void paginate(Model model, int page, UUID token) {
+    var report = (PortabilityService.Report) model.getAttribute("report");
+    int start = PortalPage.offset(page);
+    if (start > report.items().size())
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.PRECONDITION);
+    model.addAttribute(
+        "itemPage", report.items().subList(start, Math.min(start + 50, report.items().size())));
+    model.addAttribute("reportPage", page);
+    model.addAttribute("hasNextItems", start + 50 < report.items().size());
+    model.addAttribute("reportId", token);
   }
 
   @PostMapping("/portability/import/{token}/cancel")
@@ -99,7 +129,7 @@ public class PortabilityController {
       Files.copy(export.path(), response.getOutputStream());
       return null;
     } finally {
-      Files.deleteIfExists(export.path());
+      export.close();
     }
   }
 }

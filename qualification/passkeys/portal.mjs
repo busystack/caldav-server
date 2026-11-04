@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
-import {createCollection,openCollection,provisionAccount,grantDirect,revokeDirect,prefixOf,captureWorkflow} from './portal-helpers.mjs';
+import {createCollection,openCollection,provisionAccount,grantDirect,revokeDirect,prefixOf,captureWorkflow,expectFieldError} from './portal-helpers.mjs';
 import {issueDavCredential} from './dav-credentials.mjs';
 import {call} from './transport.mjs';
 
@@ -25,9 +25,19 @@ async function resourceUrls(page,base,address,encoded) {
 }
 export async function qualifyPersonalPortal(page,base,privateValues,username,suffix='local') {
   const name='Portal events '+suffix;
-  const id=await createCollection(page,base,name,'VEVENT');
+  await page.goto(base+'/collections/new');
+  const create=page.locator('form').filter({has:page.getByRole('button',{name:'Create collection',exact:true})});
+  await create.locator('[name=name]').fill(name); await create.locator('[name=description]').fill('Retain description'); await create.locator('[name=color]').fill('invalid');
+  await expectFieldError(page,create,'color',400,'collection-create');
+  assert.equal(await create.locator('[name=name]').inputValue(),name);
+  assert.equal(await create.locator('[name=description]').inputValue(),'Retain description');
+  await create.locator('[name=color]').fill('#123456');
+  await Promise.all([page.waitForURL(/\/collections\/[a-f0-9-]{36}$/i),create.getByRole('button',{name:'Create collection',exact:true}).click()]);
+  const id=new URL(page.url()).pathname.split('/').at(-1);
   const originalAddress=await page.locator('#collection-address').inputValue();
   const edit=page.locator('form').filter({has:page.getByRole('button',{name:'Save details',exact:true})});
+  await edit.locator('input[name=name]').fill('');
+  await expectFieldError(page,edit,'name',400,'collection-edit');
   await edit.locator('input[name=name]').fill(name+' renamed');
   await edit.locator('textarea[name=description]').fill('<img src=x onerror=alert(1)> family description');
   await edit.locator('input[name=color]').fill('#126A5EFF');
@@ -36,12 +46,23 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   assert.equal(await page.locator('img[src=x]').count(),0);
   await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
   await page.getByRole('status').filter({hasText:'This export snapshot contained no calendar or task items'}).waitFor();
+  await page.goto(base+'/portability?destination='+id);
+  const upload=page.locator('form').filter({has:page.locator(`input[name=destination][value="${id}"]`)});
+  await upload.locator('[name=file]').setInputFiles({name:'invalid.ics',mimeType:'text/calendar',buffer:Buffer.from('not iCalendar')});
+  await expectFieldError(page,upload,'file',400,'import-file');
   await importFile(page,base,id,series);
+  const confirmation=page.locator('form').filter({has:page.getByRole('button',{name:'Confirm import',exact:true})});
+  await expectFieldError(page,confirmation,'confirmed',400,'import-confirm');
   await captureWorkflow(page,'import-preview');
   assert.equal(await page.getByRole('cell',{name:'Ready',exact:true}).count(),2);
   await confirmImport(page,base);
   await captureWorkflow(page,'import-results');
   assert.equal(await page.getByRole('cell',{name:'Imported',exact:true}).count(),2);
+  await page.goto(base+'/security/credentials');
+  const credential=page.locator('form').filter({has:page.getByRole('button',{name:'Issue credential',exact:true})});
+  await credential.locator('[name=label]').fill('Retain device'); await credential.locator('[name=days]').fill('366');
+  await expectFieldError(page,credential,'days',400,'credential-create');
+  assert.equal(await credential.locator('[name=label]').inputValue(),'Retain device');
   const device=await issueDavCredential(page,base,privateValues,'Portal round trip '+suffix,username);
   const urls=await resourceUrls(page,base,originalAddress,device.encoded);assert.equal(urls.length,2);
   const originalBodies=[];

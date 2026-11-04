@@ -15,8 +15,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public final class CalendarInterchange {
-  public static final int MAX_FILE_BYTES = 8 * 1024 * 1024;
-  public static final int MAX_ITEMS = 1000;
+  public static final int MAX_FILE_BYTES = 64 * 1024 * 1024;
+  public static final int MAX_ITEMS = 10000;
+  public static final int MAX_INDEX_BYTES = 32 * 1024 * 1024;
+  public static final int MAX_PROCESSING_SECONDS = 600;
 
   public record Item(
       int number, String uid, String component, String label, byte[] content, String rejection) {
@@ -102,92 +104,323 @@ public final class CalendarInterchange {
     this.admission = admission;
   }
 
-  public List<Item> read(byte[] file, String destinationComponent) {
-    if (file == null || file.length == 0 || file.length > MAX_FILE_BYTES) throw invalid();
-    List<Item> result = new ArrayList<>();
-    var budget = new Budget();
-    long retainedBytes = 0;
-    for (Frame frame : frames(file)) {
-      var model = index(frame.original(), budget);
-      if (model.size() != frame.components().size()) throw invalid();
-      ByteArrayOutputStream zones = new ByteArrayOutputStream();
-      Map<String, List<Integer>> groups = new LinkedHashMap<>();
-      for (int n = 0; n < model.size(); n++) {
-        var c = model.get(n);
-        if (c.type().equals(net.fortuna.ical4j.model.Component.VTIMEZONE))
-          zones.writeBytes(frame.components().get(n));
-        else {
-          String uid = c.uid();
-          groups.computeIfAbsent(c.type() + "\u0000" + uid, k -> new ArrayList<>()).add(n);
-        }
+  /**
+   * File offsets and linked segments keep bodies and arbitrarily interleaved exceptions on disk.
+   */
+  public static final class IndexedFile implements AutoCloseable {
+    private final java.io.RandomAccessFile source, index;
+    private final List<Series> series = new ArrayList<>();
+    private boolean duplicatesResolved;
+    private final long deadline;
+
+    private IndexedFile(java.nio.file.Path source, java.nio.file.Path index, long deadline)
+        throws java.io.IOException {
+      this.deadline = deadline;
+      this.source = new java.io.RandomAccessFile(source.toFile(), "r");
+      try {
+        this.index = new java.io.RandomAccessFile(index.toFile(), "rw");
+        this.index.setLength(0);
+      } catch (java.io.IOException | RuntimeException | Error failure) {
+        this.source.close();
+        throw failure;
       }
-      if (groups.isEmpty()) throw invalid();
-      for (var group : groups.values()) {
-        var first = model.get(group.getFirst());
-        String uid = first.uid();
-        String label = first.label();
-        long size = frame.header().length + (long) zones.size() + frame.closing().length;
-        for (int index : group) size += frame.components().get(index).length;
-        if (size <= CalendarContent.MAX_BYTES && retainedBytes + size > 16L * 1024 * 1024)
-          throw invalid();
-        byte[] content = new byte[0];
-        if (size <= CalendarContent.MAX_BYTES) {
-          var bytes = new ByteArrayOutputStream();
-          bytes.writeBytes(frame.header());
-          bytes.writeBytes(zones.toByteArray());
-          for (int index : group) bytes.writeBytes(frame.components().get(index));
-          bytes.writeBytes(frame.closing());
-          content = groups.size() == 1 ? frame.original() : bytes.toByteArray();
-          retainedBytes += content.length;
+    }
+
+    private void resolveDuplicates(String destination, CalendarAdmission admission)
+        throws java.io.IOException {
+      if (duplicatesResolved) return;
+      var candidates = new ArrayList<Integer>();
+      for (int n = 0; n < series.size(); n++)
+        if (series.get(n).duplicate) {
+          candidates.add(n);
+          series.get(n).duplicate = false;
         }
-        String rejection = "";
-        if (!java.util.Set.of("VEVENT", "VTODO").contains(first.type()))
-          rejection = "Unsupported component type";
-        else if (!first.type().equals(destinationComponent))
-          rejection = "Does not match the destination collection type";
-        else if (size > CalendarContent.MAX_BYTES)
-          rejection = "UID series exceeds the 1 MiB resource limit";
-        else {
+      Map<String, List<Integer>> valid = new java.util.HashMap<>();
+      for (int n : candidates) {
+        var candidate = item(n, destination, admission);
+        if (candidate.rejection().isEmpty())
+          valid.computeIfAbsent(candidate.uid(), uid -> new ArrayList<>()).add(n);
+      }
+      for (var matches : valid.values())
+        if (matches.size() > 1) for (int n : matches) series.get(n).duplicate = true;
+      duplicatesResolved = true;
+    }
+
+    public int size() {
+      return series.size();
+    }
+
+    public void checkTime() {
+      if (Thread.currentThread().isInterrupted() || System.nanoTime() > deadline)
+        throw new org.busystack.caldav.storage.StoreException(
+            org.busystack.caldav.storage.StoreException.Kind.LIMIT);
+    }
+
+    public Item item(int number, String destination, CalendarAdmission admission)
+        throws java.io.IOException {
+      checkTime();
+      var s = series.get(number);
+      long size = s.frame.header.size + s.frame.zones.size + s.parts.size + s.frame.closing.size;
+      String rejection =
+          s.duplicate
+              ? "UID occurs in multiple calendar objects; combine its recurrence series before importing"
+              : "";
+      if (!java.util.Set.of("VEVENT", "VTODO").contains(s.type))
+        rejection = "Unsupported component type";
+      else if (!s.type.equals(destination))
+        rejection = "Does not match the destination collection type";
+      else if (size > CalendarContent.MAX_BYTES)
+        rejection = "UID series exceeds the 1 MiB resource limit";
+      byte[] content = new byte[0];
+      String uid = s.uid;
+      if (rejection.isEmpty()) {
+        var out = new ByteArrayOutputStream((int) size);
+        if (s.frame.groups == 1) {
+          if (s.frame.end - s.frame.start > CalendarContent.MAX_BYTES)
+            rejection = "UID series exceeds the 1 MiB resource limit";
+          else {
+            source.seek(s.frame.start);
+            content = new byte[(int) (s.frame.end - s.frame.start)];
+            source.readFully(content);
+          }
+        } else {
+          copy(s.frame.header, out);
+          copy(s.frame.zones, out);
+          copy(s.parts, out);
+          copy(s.frame.closing, out);
+          content = out.toByteArray();
+        }
+        if (rejection.isEmpty()) {
           try {
-            var accepted = admission.admit(content, destinationComponent);
+            var accepted = admission.admit(content, destination);
             content = accepted.content();
             uid = accepted.parsed().uid();
           } catch (IllegalArgumentException
-              | org.busystack.caldav.calendar.query.QueryException invalid) {
+              | org.busystack.caldav.calendar.query.QueryException failure) {
             rejection = "Invalid or unsupported calendar data in this UID series";
           }
         }
-        result.add(
-            new Item(
-                result.size() + 1,
-                uid,
-                first.type(),
-                label,
-                rejection.isEmpty() ? content : new byte[0],
-                rejection));
-        if (result.size() > MAX_ITEMS) throw invalid();
+      }
+      return new Item(
+          number + 1, uid, s.type, s.label, rejection.isEmpty() ? content : new byte[0], rejection);
+    }
+
+    private void copy(Chain chain, ByteArrayOutputStream output) throws java.io.IOException {
+      long cursor = chain.first;
+      byte[] buffer = new byte[8192];
+      while (cursor >= 0) {
+        index.seek(cursor);
+        long offset = index.readLong();
+        int length = index.readInt();
+        cursor = index.readLong();
+        source.seek(offset);
+        while (length > 0) {
+          int n = Math.min(length, buffer.length);
+          source.readFully(buffer, 0, n);
+          output.write(buffer, 0, n);
+          length -= n;
+        }
       }
     }
-    // Separate VCALENDAR objects must not turn repeated UIDs into an accidental overwrite.
-    Map<String, Long> counts =
-        result.stream()
-            .filter(i -> i.rejection().isEmpty())
-            .collect(
-                java.util.stream.Collectors.groupingBy(
-                    Item::uid, java.util.stream.Collectors.counting()));
-    return result.stream()
-        .map(
-            i ->
-                counts.getOrDefault(i.uid(), 0L) > 1
-                    ? new Item(
-                        i.number(),
-                        i.uid(),
-                        i.component(),
-                        i.label(),
-                        i.content(),
-                        "UID occurs in multiple calendar objects; combine its recurrence series before importing")
-                    : i)
-        .toList();
+
+    private void append(Chain chain, long offset, int length) throws java.io.IOException {
+      chain.size += length;
+      if (chain.last >= 0) {
+        index.seek(chain.last);
+        long previous = index.readLong();
+        int size = index.readInt();
+        if (previous + size == offset) {
+          index.seek(chain.last + 8);
+          index.writeInt(size + length);
+          return;
+        }
+      }
+      long position = index.length();
+      if (position + 20 > MAX_INDEX_BYTES) throw invalid();
+      index.seek(position);
+      index.writeLong(offset);
+      index.writeInt(length);
+      index.writeLong(-1);
+      if (chain.last >= 0) {
+        index.seek(chain.last + 12);
+        index.writeLong(position);
+      } else chain.first = position;
+      chain.last = position;
+    }
+
+    @Override
+    public void close() throws java.io.IOException {
+      try {
+        source.close();
+      } finally {
+        index.close();
+      }
+    }
+  }
+
+  private static final class Chain {
+    long first = -1, last = -1, size;
+  }
+
+  private static final class FileFrame {
+    long start, end;
+    int groups;
+    final Chain header = new Chain(), zones = new Chain(), closing = new Chain();
+  }
+
+  private static final class Series {
+    final FileFrame frame;
+    final String type, uid, label;
+    final Chain parts = new Chain();
+    boolean duplicate;
+
+    Series(FileFrame frame, Indexed item) {
+      this.frame = frame;
+      type = item.type();
+      uid = item.uid();
+      label = item.label();
+    }
+  }
+
+  /** Build a bounded disk index; never retain input or resulting resource bodies together. */
+  public IndexedFile open(java.nio.file.Path input, java.nio.file.Path index)
+      throws java.io.IOException {
+    return open(
+        input,
+        index,
+        System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(MAX_PROCESSING_SECONDS));
+  }
+
+  public IndexedFile open(java.nio.file.Path input, java.nio.file.Path index, long deadline)
+      throws java.io.IOException {
+    long size = java.nio.file.Files.size(input);
+    if (size == 0 || size > MAX_FILE_BYTES) throw invalid();
+    var result = new IndexedFile(input, index, deadline);
+    try (var raw = new java.io.BufferedInputStream(java.nio.file.Files.newInputStream(input));
+        var stream = new java.io.PushbackInputStream(raw, 1)) {
+      long offset = 0;
+      int frames = 0;
+      Map<String, Series> unique = new java.util.HashMap<>();
+      FileFrame frame = null;
+      Map<String, Series> groups = null;
+      java.util.ArrayDeque<String> nesting = new java.util.ArrayDeque<>();
+      long componentStart = 0;
+      var component = new ByteArrayOutputStream();
+      while (true) {
+        result.checkTime();
+        byte[] line = nextLine(stream);
+        if (line == null) break;
+        long start = offset;
+        offset += line.length;
+        String value;
+        try {
+          value = CalendarParsingInput.decode(line).replaceFirst("[\\r]?\\n$", "");
+          CalendarTextProfile.validate(value);
+        } catch (java.nio.charset.CharacterCodingException failure) {
+          throw invalid();
+        }
+        if (frame == null) {
+          if (!value.replaceFirst("^\uFEFF", "").equalsIgnoreCase("BEGIN:VCALENDAR")
+              || ++frames > MAX_ITEMS) throw invalid();
+          frame = new FileFrame();
+          frame.start = start;
+          groups = new LinkedHashMap<>();
+          result.append(frame.header, start, line.length);
+        } else if (nesting.isEmpty() && value.equalsIgnoreCase("END:VCALENDAR")) {
+          result.append(frame.closing, start, line.length);
+          frame.end = offset;
+          frame.groups = groups.size();
+          if (groups.isEmpty()) throw invalid();
+          frame = null;
+        } else {
+          if (nesting.isEmpty() && !value.regionMatches(true, 0, "BEGIN:", 0, 6)) {
+            if (value.regionMatches(true, 0, "END:", 0, 4)) throw invalid();
+            result.append(frame.header, start, line.length);
+            if (frame.header.size > CalendarContent.MAX_BYTES) throw invalid();
+            continue;
+          }
+          if (nesting.isEmpty()) {
+            componentStart = start;
+            component.reset();
+          }
+          if (component.size() + line.length <= CalendarContent.MAX_BYTES)
+            component.writeBytes(line);
+          if (value.regionMatches(true, 0, "BEGIN:", 0, 6)) {
+            String type = value.substring(6).toUpperCase(java.util.Locale.ROOT);
+            if (type.equals("VCALENDAR") || nesting.size() >= 8) throw invalid();
+            nesting.push(type);
+          } else if (value.regionMatches(true, 0, "END:", 0, 4)) {
+            if (nesting.isEmpty()
+                || !nesting.pop().equals(value.substring(4).toUpperCase(java.util.Locale.ROOT)))
+              throw invalid();
+            if (nesting.isEmpty()) {
+              int length = Math.toIntExact(offset - componentStart);
+              var info =
+                  length <= CalendarContent.MAX_BYTES
+                      ? indexComponent(component.toByteArray())
+                      : new Indexed("OVERSIZED", "", "Oversized component");
+              if (info.type().equals("VTIMEZONE")) {
+                result.append(frame.zones, componentStart, length);
+                if (frame.zones.size > CalendarContent.MAX_BYTES) throw invalid();
+              } else {
+                String key = info.type() + "\u0000" + info.uid();
+                Series series = groups.get(key);
+                if (series == null) {
+                  if (result.series.size() >= MAX_ITEMS) throw invalid();
+                  series = new Series(frame, info);
+                  groups.put(key, series);
+                  result.series.add(series);
+                  Series previous = unique.putIfAbsent(info.uid(), series);
+                  if (previous != null) {
+                    previous.duplicate = true;
+                    series.duplicate = true;
+                  }
+                }
+                result.append(series.parts, componentStart, length);
+              }
+            }
+          }
+        }
+      }
+      if (frame != null || !nesting.isEmpty() || result.series.isEmpty()) throw invalid();
+      return result;
+    } catch (java.io.IOException | RuntimeException | Error failure) {
+      result.close();
+      throw failure;
+    }
+  }
+
+  public Item item(IndexedFile file, int number, String destination) throws java.io.IOException {
+    file.resolveDuplicates(destination, admission);
+    return file.item(number, destination, admission);
+  }
+
+  private static Indexed indexComponent(byte[] component) {
+    var wrapped = new ByteArrayOutputStream();
+    wrapped.writeBytes(
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack indexing//EN\r\n"
+            .getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    wrapped.writeBytes(component);
+    if (component[component.length - 1] != '\n') wrapped.writeBytes(new byte[] {'\r', '\n'});
+    wrapped.writeBytes("END:VCALENDAR\r\n".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    var entries = index(wrapped.toByteArray(), new Budget());
+    if (entries.size() != 1) throw invalid();
+    return entries.getFirst();
+  }
+
+  private static byte[] nextLine(java.io.PushbackInputStream stream) throws java.io.IOException {
+    var bytes = new ByteArrayOutputStream();
+    int value;
+    while ((value = stream.read()) != -1) {
+      bytes.write(value);
+      if (bytes.size() > CalendarContent.MAX_BYTES) throw invalid();
+      if (value == '\n') {
+        int next = stream.read();
+        if (next != -1) stream.unread(next);
+        if (next != ' ' && next != '\t') break;
+      }
+    }
+    return bytes.size() == 0 ? null : bytes.toByteArray();
   }
 
   private record Indexed(String type, String uid, String label) {}
@@ -240,7 +473,12 @@ public final class CalendarInterchange {
 
     @Override
     public void endComponent(String name) {
-      if (depth-- == 1) items.add(new Indexed(type, uid, label));
+      if (depth-- == 1)
+        items.add(
+            new Indexed(
+                type,
+                uid.length() > 1024 ? uid.substring(0, 1025) : uid,
+                label.length() > 200 ? label.substring(0, 200) : label));
     }
 
     @Override

@@ -84,3 +84,24 @@ export async function revokeDirect(page,base,collection,username) {
   await row.locator('select[name=permission]').selectOption('REVOKE');
   await Promise.all([page.waitForURL(base+'/collections/'+collection+'/sharing'),row.getByRole('button',{name:'Save direct grant',exact:true}).click()]);
 }
+
+export async function expectFieldError(page,form,field,status,label) {
+  await form.evaluate(element=>{element.noValidate=true;});
+  const [response]=await Promise.all([page.waitForNavigation(),form.locator('button').first().click()]);
+  assert.equal(response.status(),status,label);
+  const summary=page.locator('[data-error-summary]');
+  await summary.waitFor();
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('[data-error-summary]'));
+  const control=page.locator('[aria-invalid="true"]').filter({hasNot:page.locator('[type=hidden]')});
+  const target=page.locator(`[name="${field}"][aria-invalid="true"]`);
+  assert.equal(await target.count(),1,label+' has one invalid editable field');
+  const id=await target.getAttribute('id'),description=await target.getAttribute('aria-describedby');
+  assert.ok(id && description);
+  assert.equal(await target.evaluate(element=>element.labels.length>0),true);
+  assert.ok((await page.locator('[id="'+description+'"]').innerText()).trim());
+  await summary.locator(`a[href="#${id}"]`).click();
+  assert.equal(await target.evaluate(element=>document.activeElement===element),true,'Error link moves keyboard focus to its field');
+  for(const password of await page.locator('input[type=password]').all()) assert.equal(await password.inputValue(),'','Passwords must never be redisplayed');
+  assert.ok(await control.count()>0);
+  await captureWorkflow(page,'form-error-'+label);
+}

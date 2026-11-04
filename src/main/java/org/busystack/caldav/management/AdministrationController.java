@@ -43,9 +43,9 @@ public class AdministrationController {
   @PostMapping("/admin/accounts")
   String provision(
       Authentication auth,
-      @RequestParam String username,
-      @RequestParam String displayName,
-      @RequestParam String password,
+      @RequestParam(defaultValue = "") String username,
+      @RequestParam(defaultValue = "") String displayName,
+      @RequestParam(defaultValue = "") String password,
       RedirectAttributes flash) {
     UUID id = administration.create(auth, username, displayName, password);
     flash.addFlashAttribute(
@@ -59,7 +59,7 @@ public class AdministrationController {
       Authentication auth,
       @PathVariable UUID id,
       @RequestParam String expected,
-      @RequestParam String displayName,
+      @RequestParam(defaultValue = "") String displayName,
       RedirectAttributes flash) {
     administration.edit(auth, id, expected, displayName);
     flash.addFlashAttribute("notice", "Display name saved.");

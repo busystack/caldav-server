@@ -36,10 +36,10 @@ that accepts RFC 5545 streams, such as BusyStack. Native DAV synchronization rem
 independent of file import. Do not assume another application's file-import support
 from its protocol support.
 
-Export limits are 10,000 resources and 64 MiB. Files larger than the import limit
-must be divided at complete UID series (single VCALENDAR) or VCALENDAR boundaries
-(stream) before importing. These are explicit operating limits, not a claim of
-arbitrary-size migration.
+Export and import both support at most 10,000 resources / UID series and 64 MiB.
+Every successful export can be uploaded directly into an authorized destination of
+the same component type. No manual splitting, recurrence reconstruction or
+calendar-context merging is required. Arbitrary larger migrations are not supported.
 
 ## Preview, confirm and results
 
@@ -50,43 +50,95 @@ CalendarAdmission and the existing VEVENT/VTODO validation. All exceptions for a
 UID remain with the master. Unsupported components and wrong-destination types
 are reported explicitly. Malformed framing rejects the file before mutation.
 
-Preview lists each item and its disposition. An identical existing UID/resource is
-**Skipped**. Different content with an existing UID is **Conflicting** and is not
-overwritten. Multiple masters or repeated UIDs in separate input objects are
-rejected rather than guessed or discarded. Validation rejections are counted.
-No replacement or implicit merge is offered.
+Preview and actual results show 50 entries per page with whole-file counts. An
+identical existing UID/resource is **Skipped**. Different content with an existing
+UID is **Conflicting** and is preserved. Multiple masters or repeated valid UIDs in
+separate input objects are rejected rather than guessed or discarded. Unsupported
+and invalid items are reported. No replacement or implicit merge is offered.
 
-A preview is an opaque account/security-generation-bound token backed by a private
-server temporary file. One preview per account is retained for at most ten minutes;
-a new preview replaces the earlier one. Total staged files are capped at 32 MiB /
-32 previews per instance. Confirmation or cancellation deletes the staged file.
-Graceful shutdown cleans pending files; after a crash, operators must ensure
-ordinary temporary-file cleanup. Previews cannot survive a JVM restart or transfer
-to another instance; the default deployment runs one application instance.
+A preview uses an opaque account/security-generation-bound token. One preview per
+account is retained for ten minutes, with at most 32 previews/results per instance.
+Successful result pagination remains available for ten minutes after commit.
+A replacement is installed only after validation and staging succeed; a bad upload
+preserves the existing preview. **Review your latest import preview or results**
+returns to it from the portability page or a failed replacement upload. The link
+is shown only after current MFA and destination access checks. Retained report metadata has a separate 32 MiB
+aggregate bound. Expiration or cancellation removes the private data.
 
-Confirmation requires the checkbox, current account state and recent MFA again.
-The service takes existing DAV namespace/collection locks, rechecks write permission
-and reclassifies conflicts. Valid new series are written with create-only
-preconditions in one transaction. A database failure rolls them all back. Otherwise
-the results explicitly report imported, skipped, conflicting and rejected items;
-only the valid new subset is imported. Replaying a consumed or expired token fails.
-No invitation, outbound attachment fetch or alarm execution occurs.
+Confirmation requires the checkbox, current account state, recent MFA and current
+destination write permission again. The service takes the existing DAV
+namespace/collection locks, claims the preview exclusively and reclassifies
+conflicts. New valid series use create-only preconditions in one PostgreSQL
+transaction. Any database failure rolls back every write. A known rollback restores
+the preview for retry while it remains valid; follow the error page's review link.
+A successful commit consumes it before filesystem cleanup, so cleanup failure
+cannot permit replay. An indeterminate transaction outcome invalidates the preview;
+review the collection before uploading again. Successful results explicitly show
+imported, skipped, conflicting and rejected items. No invitation, outbound
+attachment fetch or alarm execution occurs.
+
+## Private temporary storage
+
+All portability and servlet multipart files live beneath an application-controlled
+private directory, defaulting to `${java.io.tmpdir}/busystack-portability`. Override
+`busystack.portability.directory` only with a dedicated directory owned by the
+application user with mode 0700; staged data files use 0600. This location must not
+be served by a web server. Paths and random filenames never derive from uploaded
+names or calendar data. Symbolic-link directories are refused. A process lock
+prevents two instances sharing the directory.
+
+Completion, cancellation, expiration and graceful shutdown attempt deletion.
+Failed deletion retains its storage reservation and is retried every thirty
+seconds. Pending previews are intentionally invalid after JVM restart. Startup
+removes only recognized application data/multipart orphan files under the locked
+private directory; it preserves unrelated files and refuses unexpected unsafe
+entries. A stopped standalone JAR cannot delete files: the next startup cleans
+crash remnants. Compose's `/tmp` tmpfs also disappears when the container stops.
+The deployment remains a single application instance.
 
 ## Processing and deployment limits
 
-Upload files are limited to 8 MiB, each resulting UID resource to 1 MiB, and items
-to 1,000. The existing depth/component/property/parameter bounds apply cumulatively
-across the input; retained resulting resource bytes are separately bounded to
-16 MiB to prevent timezone duplication exhausting memory. Two simultaneous
-portability requests are admitted; further requests receive 503 and Retry-After.
-Temporary disk use also remains subject to the deployment's private temp limit.
+| Budget | Bound |
+| --- | --- |
+| Individual input / export | 64 MiB |
+| UID series / exported resources | 10,000 |
+| Individual admitted DAV resource | 1 MiB (unchanged) |
+| Aggregate reconstructed import resources | 64 MiB |
+| On-disk parser index | 32 MiB |
+| Portability private files, including pending cleanup | 72 |
+| Concurrent portability requests | 2 |
+| Aggregate temporary reservations | 272 MiB |
+| Upload reservation before multipart parsing | 161 MiB (65 multipart + 64 input + 32 index) |
+| Other operation reservation | 64 MiB (including export or confirmation index) |
+| Parsing / transaction processing deadline | 600 seconds |
 
-The proxy must allow 9 MiB multipart requests **only** at `/portability/preview`
-(with its configured application prefix). Other DAV/form limits remain unchanged.
-The deployment examples and qualification proxy include this location. Do not
-raise DAV resource or authentication-body limits to enable multi-item imports.
-Temporary files, database snapshots and backups can contain private calendar data;
-protect host and database access as described in [operations](operations.md).
+The importer reads logical lines and top-level components incrementally and uses a
+binary disk index of original byte ranges. It reconstructs and admits one UID
+resource at a time, preserving recurrence order and each VCALENDAR's own metadata
+and timezone context. It never retains the whole upload plus all reconstructed
+resources in memory. Nesting is bounded to eight, logical lines to 1 MiB, and each
+reconstructed resource retains the existing parser limits (2,000 components,
+20,000 properties, 40,000 parameters) and recurrence/timezone validation bounds.
+The item, file, index and deadline bounds also limit total file-processing work.
+
+Capacity is reserved before multipart parsing or processing, transferred to
+retained files and released only after deletion. Two maximum uploads cannot run
+together. Retained previews may prevent an otherwise allowed operation: 503 with
+Retry-After means retry or cancel an unused preview. Exports complete under their
+reservation before sending success headers, never as truncated successful files.
+The 384 MiB Compose `/tmp` tmpfs leaves 112 MiB outside the portability ledger for
+operational headroom. The 1 GiB container uses a 40% JVM heap ceiling so tmpfs and
+native memory have room; this is a bounded configuration, not a capacity promise.
+A standalone JAR must provision at least 384 MiB free on its private staging
+filesystem, separately from PostgreSQL, backups and other processes.
+
+The proxy allows 65 MiB multipart requests **only** at `/portability/preview`
+(including an application prefix). Portability proxy request/response disk
+buffering is disabled and its response deadline is 660 seconds. Multipart bodies
+are rejected at other application routes before buffering. Ordinary DAV 1 MiB and
+authentication 64 KiB request limits remain unchanged. Supplied root/subpath and
+qualification proxy fixtures implement this policy. Protect staging, snapshots
+and backups as described in [operations](operations.md).
 
 Focused service/HTTPS tests and native fixtures exercise byte-preserving
 export → import → retrieve comparisons, UID/resource counts, recurrence, tasks,

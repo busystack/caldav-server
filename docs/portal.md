@@ -99,3 +99,10 @@ Provider outages/freshness retain the [existing identity policy](keycloak.md).
 
 Use **Import & Export** for validated, confirmed iCalendar migration. See
 [portability](portability.md) for conflict handling, limits and representation.
+
+Ordinary form errors return to the editable form, preserve nonsensitive values and
+associate fixed explanations with the affected controls. The focused validation
+summary links to those controls. Passwords and issued secrets are never restored.
+Duplicates return a conflict; stale forms require reloading the current state.
+Authentication, authorization, capacity and operational failures retain their
+separate error handling rather than masquerading as invalid field values.

@@ -35,12 +35,22 @@ public class ServletDeploymentConfiguration {
 
   @Bean
   org.springframework.boot.web.servlet.FilterRegistrationBean<PortabilityWorkFilter>
-      portabilityWork() {
+      portabilityWork(org.busystack.caldav.management.PortabilityStorage storage) {
     var registration =
         new org.springframework.boot.web.servlet.FilterRegistrationBean<>(
-            new PortabilityWorkFilter());
+            new PortabilityWorkFilter(storage));
     registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE + 2);
     return registration;
+  }
+
+  @Bean
+  jakarta.servlet.MultipartConfigElement multipartConfig(
+      org.busystack.caldav.management.PortabilityStorage storage) throws java.io.IOException {
+    return new jakarta.servlet.MultipartConfigElement(
+        storage.multipartDirectory().toString(),
+        org.busystack.caldav.management.PortabilityStorage.FILE_BYTES,
+        org.busystack.caldav.management.PortabilityStorage.UPLOAD_BYTES,
+        0);
   }
 
   @Bean

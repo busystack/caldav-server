@@ -42,8 +42,13 @@ binding/synchronization reconciliation remain authoritative. See [groups](groups
 ## Security audit and diagnostics
 
 **Security & Audit** filters retained fixed action/outcome metadata and exact
-account usernames in 50-row pages. It exposes no peer hashes, secrets, request
-bodies or calendar contents. The existing approximately 10,000-row / thirty-day
+account usernames in 50-row pages. Account and group administrative changes include opaque target UUIDs; membership
+changes also identify the affected account UUID. Internal atomic membership
+replacement records each actual addition/removal in a bounded batch; unchanged
+members do not produce membership events. The actor UUID remains available
+when its username no longer exists. Historical entries without targets are labelled
+explicitly. Collection events do not expose collection identifiers or metadata.
+It exposes no peer hashes, secrets, request bodies or calendar contents. The existing approximately 10,000-row / thirty-day
 retention remains. New account/profile, collection lifecycle/import and direct-share
 mutations use that same structured audit. Export reads do not add activity tracking.
 OAuth client registration remains administrator-controlled.

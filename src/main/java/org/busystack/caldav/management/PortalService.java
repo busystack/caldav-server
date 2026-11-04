@@ -201,7 +201,7 @@ public class PortalService {
     UUID actor = management.current(auth).id();
     validateMetadata(name, description, color);
     if (!Set.of("VEVENT", "VTODO").contains(component))
-      throw new IllegalArgumentException("Choose a calendar or task list");
+      throw FormValidation.field("component", "Choose a calendar or task list.");
     UUID id = calendars.createCollection(actor, name, component);
     var binding = dav.bindingFor(actor, id);
     dav.patch(actor, actor, binding.path(), null, properties(name, description, color), Set.of());
@@ -342,17 +342,20 @@ public class PortalService {
   }
 
   private static void validateMetadata(String name, String description, String color) {
-    if (name == null
-        || name.isBlank()
-        || name.length() > 200
-        || !XmlCharacters.valid(name)
-        || description == null
-        || description.length() > 8000
-        || !XmlCharacters.valid(description)
-        || color == null
-        || (!color.isEmpty() && !color.matches("#[a-fA-F0-9]{6}([a-fA-F0-9]{2})?")))
-      throw new IllegalArgumentException(
-          "Use a name of 1–200 characters, a description up to 8,000 characters and an optional hexadecimal colour");
+    new FormValidation.Checks()
+        .require(
+            "name",
+            name != null && !name.isBlank() && name.length() <= 200 && XmlCharacters.valid(name),
+            "Use a name of 1–200 characters.")
+        .require(
+            "description",
+            description != null && description.length() <= 8000 && XmlCharacters.valid(description),
+            "Use a description of at most 8,000 supported characters.")
+        .require(
+            "color",
+            color != null && (color.isEmpty() || color.matches("#[a-fA-F0-9]{6}([a-fA-F0-9]{2})?")),
+            "Use #RRGGBB or #RRGGBBAA, or leave the colour empty.")
+        .finish();
   }
 
   static void checkQuery(String query) {

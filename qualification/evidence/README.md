@@ -12,6 +12,15 @@ belong in CI artifacts or the external project audit archive.
   successful verification run/attempt, JAR checksum, registry manifest digest and
   deployment archive checksum. Local Docker IDs are not registry digests.
 
+## Corrective engineering receipts
+
+Local v0.2.0 corrective receipts live under `.qualification-runs/`, with a final
+`corrective-final-report.json` identifying the exact corrective commit, preserved
+qualification-file hashes, runtime artifact hashes, commands, counts and remaining
+gates. Generated evidence is not a release manifest. Consult
+[portability qualification](../portability/README.md) for the additional storage
+and HTTP regressions. Historical passing records do not qualify changed source.
+
 ## Historical records
 
 The detailed pre-cleanup records remain unchanged in

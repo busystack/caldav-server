@@ -70,6 +70,61 @@ class GroupServiceIT {
     calendar = calendars.createCollection(owner, "Shared calendar", "VEVENT");
   }
 
+  @Test
+  void replacementMembershipAuditIdentifiesEveryActualDeltaAndRollsBackWithMutation() {
+    UUID id = group("Audit delta", Set.of("bob"));
+    groups.update(auth(administrator, true), id, "Audit delta", Set.of("carol"));
+    groups.grant(auth(owner, true), calendar, id, "READ");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT account_id FROM security_audit WHERE target_id=? AND action='GROUP_SHARING_CHANGED'",
+                UUID.class,
+                id))
+        .isEqualTo(owner);
+    assertThat(
+            jdbc.queryForList(
+                "SELECT related_account_id FROM security_audit WHERE target_id=? AND action='GROUP_MEMBER_ADDED' ORDER BY id",
+                UUID.class,
+                id))
+        .containsExactly(bob, carol);
+    assertThat(
+            jdbc.queryForList(
+                "SELECT related_account_id FROM security_audit WHERE target_id=? AND action='GROUP_MEMBER_REMOVED'",
+                UUID.class,
+                id))
+        .containsExactly(bob);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM security_audit WHERE target_id=? AND action<>'GROUP_SHARING_CHANGED' AND (account_id<>? OR outcome<>'SUCCESS' OR target_type<>'GROUP' OR peer_hash IS NOT NULL)",
+                Long.class,
+                id,
+                administrator))
+        .isZero();
+    jdbc.execute(
+        "CREATE FUNCTION reject_membership_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action='GROUP_MEMBER_REMOVED' THEN RAISE EXCEPTION 'injected audit failure'; END IF; RETURN NEW; END $$");
+    jdbc.execute(
+        "CREATE TRIGGER reject_membership_audit BEFORE INSERT ON security_audit FOR EACH ROW EXECUTE FUNCTION reject_membership_audit()");
+    try {
+      assertThatThrownBy(
+              () -> groups.update(auth(administrator, true), id, "Must roll back", Set.of("bob")))
+          .isInstanceOf(org.springframework.dao.DataAccessException.class);
+      assertThat(groups.detail(auth(administrator, true), id).name()).isEqualTo("Audit delta");
+      assertThat(groups.members(auth(administrator, true), id, "", 0).rows())
+          .singleElement()
+          .extracting(GroupService.MemberView::account)
+          .isEqualTo(carol);
+      assertThat(
+              jdbc.queryForList(
+                  "SELECT related_account_id FROM security_audit WHERE target_id=? AND action='GROUP_MEMBER_ADDED' ORDER BY id",
+                  UUID.class,
+                  id))
+          .containsExactly(bob, carol);
+    } finally {
+      jdbc.execute("DROP TRIGGER reject_membership_audit ON security_audit");
+      jdbc.execute("DROP FUNCTION reject_membership_audit()");
+    }
+  }
+
   private Authentication auth(UUID id, boolean mfa) {
     var account = accounts.find(id);
     List<GrantedAuthority> authorities = new ArrayList<>();
@@ -98,6 +153,84 @@ class GroupServiceIT {
   private void denied(Runnable operation) {
     assertThatThrownBy(operation::run)
         .isInstanceOfAny(AccessDeniedException.class, StoreException.class);
+  }
+
+  @Test
+  void nameOnlyChangesPreserveBindingsPermissionsAndStableAndContinuationTokens() {
+    UUID group = group("Team", Set.of("bob", "carol"));
+    groups.grant(auth(owner, true), calendar, group, "WRITE");
+    dav.putResource(owner, calendar, "a.ics", event("a"), WriteCondition.create());
+    dav.putResource(owner, calendar, "b.ics", event("b"), WriteCondition.create());
+    String stable = calendars.currentSyncToken(bob, calendar);
+    String continuation = calendars.sync(carol, calendar, "", 1).token();
+    var bindings =
+        jdbc.queryForList(
+            "SELECT home_id,path,collection_id,display_name FROM dav_bindings WHERE collection_id=? ORDER BY home_id",
+            calendar);
+    groups.rename(auth(administrator, true), group, "Team", "Renamed");
+    assertThat(groups.detail(auth(administrator, true), group).name()).isEqualTo("Renamed");
+    assertThat(groups.detail(auth(administrator, true), group).members()).isEqualTo(2);
+    assertThat(calendars.currentSyncToken(bob, calendar)).isEqualTo(stable);
+    assertThat(calendars.sync(bob, calendar, stable, 10).changes()).isEmpty();
+    assertThat(calendars.sync(carol, calendar, continuation, 10).changes()).hasSize(1);
+    assertThat(
+            jdbc.queryForList(
+                "SELECT home_id,path,collection_id,display_name FROM dav_bindings WHERE collection_id=? ORDER BY home_id",
+                calendar))
+        .isEqualTo(bindings);
+    assertThat(dav.permission(bob, calendar)).isEqualTo("WRITE");
+    assertThat(dav.permission(carol, calendar)).isEqualTo("WRITE");
+    assertThat(calendars.get(bob, calendar, "a.ics").content()).isEqualTo(event("a"));
+    assertThatThrownBy(() -> groups.rename(auth(administrator, true), group, "Team", "Stale"))
+        .isInstanceOf(StoreException.class);
+    groups.update(auth(administrator, true), group, "Replacement name", Set.of("bob", "carol"));
+    assertThat(calendars.currentSyncToken(bob, calendar)).isEqualTo(stable);
+    groups.changeMember(auth(administrator, true), group, null, carol, false, true);
+    assertThat(calendars.currentSyncToken(bob, calendar)).isNotEqualTo(stable);
+    denied(() -> calendars.sync(bob, calendar, stable, 10));
+    denied(() -> calendars.get(carol, calendar, "a.ics"));
+    String afterRemoval = calendars.currentSyncToken(bob, calendar);
+    groups.changeMember(auth(administrator, true), group, "carol", null, true, true);
+    assertThat(calendars.currentSyncToken(bob, calendar)).isNotEqualTo(afterRemoval);
+    assertThat(calendars.get(carol, calendar, "a.ics").content()).isEqualTo(event("a"));
+  }
+
+  @Test
+  void simultaneousRenamesUseExpectedNameAndMembershipMutationRemainsSerialized() throws Exception {
+    UUID group = group("Team", Set.of("bob"));
+    groups.grant(auth(owner, true), calendar, group, "READ");
+    String token = calendars.currentSyncToken(bob, calendar);
+    try (var workers = java.util.concurrent.Executors.newFixedThreadPool(3)) {
+      var start = new java.util.concurrent.CountDownLatch(1);
+      var rename =
+          (java.util.concurrent.Callable<Boolean>)
+              () -> {
+                start.await();
+                try {
+                  groups.rename(
+                      auth(administrator, true), group, "Team", UUID.randomUUID().toString());
+                  return true;
+                } catch (StoreException stale) {
+                  assertThat(stale.kind()).isEqualTo(StoreException.Kind.PRECONDITION);
+                  return false;
+                }
+              };
+      var one = workers.submit(rename);
+      var two = workers.submit(rename);
+      var membership =
+          workers.submit(
+              () -> {
+                start.await();
+                groups.changeMember(auth(administrator, true), group, "carol", null, true, true);
+                return true;
+              });
+      start.countDown();
+      assertThat(java.util.List.of(one.get(), two.get())).containsExactlyInAnyOrder(true, false);
+      assertThat(membership.get()).isTrue();
+    }
+    assertThat(groups.detail(auth(administrator, true), group).members()).isEqualTo(2);
+    assertThat(dav.permission(carol, calendar)).isEqualTo("READ");
+    assertThat(calendars.currentSyncToken(bob, calendar)).isNotEqualTo(token);
   }
 
   @Test

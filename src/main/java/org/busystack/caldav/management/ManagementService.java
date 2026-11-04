@@ -130,9 +130,16 @@ public class ManagementService {
   public AccountService.IssuedCredential issue(Authentication auth, String label, int days) {
     RecentAuthentication.requireMfa(auth);
     if (days < 1 || days > 365)
-      throw new IllegalArgumentException("Expiry must be between 1 and 365 days");
-    return accounts.issueDavCredential(
-        requireAccount(auth).id(), label, Instant.now().plusSeconds(days * 86400L));
+      throw FormValidation.field("days", "Choose an expiration of 1–365 days.");
+    UUID actor = requireAccount(auth).id();
+    if (label == null
+        || label.isBlank()
+        || label.length() > 100
+        || !org.busystack.caldav.xml.XmlCharacters.valid(label)
+        || label.codePoints().anyMatch(Character::isISOControl))
+      throw FormValidation.field(
+          "label", "Use a credential label of 1–100 characters without control characters.");
+    return accounts.issueDavCredential(actor, label, Instant.now().plusSeconds(days * 86400L));
   }
 
   @Transactional
@@ -162,10 +169,11 @@ public class ManagementService {
     org.busystack.caldav.storage.DavMutationLock.shared(jdbc);
     RecentAuthentication.requireMfa(auth);
     if (!java.util.Set.of("READ", "WRITE", "REVOKE").contains(permission))
-      throw new IllegalArgumentException("Invalid sharing permission");
+      throw FormValidation.field(
+          "permission", "Choose read-only, read and write, or remove the grant.");
     var member = accounts.find(username);
     if (member == null || (!member.enabled() && !"REVOKE".equals(permission)))
-      throw new IllegalArgumentException("Unknown active account");
+      throw FormValidation.field("username", "Enter the exact username of an active account.");
     calendars.share(
         requireAccount(auth).id(),
         collection,

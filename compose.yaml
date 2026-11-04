@@ -53,7 +53,7 @@ services:
       - '127.0.0.1:${BUSYSTACK_HTTP_PORT:-8080}:8080'
     read_only: true
     tmpfs:
-      - /tmp:rw,nosuid,nodev,noexec,size=128m,uid=10001,gid=10001
+      - /tmp:rw,nosuid,nodev,noexec,size=384m,uid=10001,gid=10001
     cap_drop:
       - ALL
     security_opt:

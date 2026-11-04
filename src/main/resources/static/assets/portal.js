@@ -12,3 +12,12 @@ document.querySelectorAll('[data-copy]').forEach(button => {
     }
   });
 });
+
+const errorSummary = document.querySelector('[data-error-summary]');
+if (errorSummary) {
+  errorSummary.focus();
+  errorSummary.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', event => {
+    const field = document.getElementById(link.hash.slice(1));
+    if (field) { event.preventDefault(); field.closest('details')?.setAttribute('open', ''); field.focus(); }
+  }));
+}

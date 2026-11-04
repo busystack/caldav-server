@@ -21,18 +21,70 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
       PortabilityController.class
     })
 public class PortalErrors {
+  private final FormRecovery forms;
+
+  public PortalErrors(FormRecovery forms) {
+    this.forms = forms;
+  }
+
   @ExceptionHandler({
     IllegalArgumentException.class,
     StoreException.class,
     DataAccessException.class,
+    org.springframework.transaction.TransactionException.class,
     org.busystack.caldav.calendar.CalendarValidationException.class,
     org.springframework.web.bind.MissingServletRequestParameterException.class,
+    org.springframework.web.multipart.support.MissingServletRequestPartException.class,
     org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
     AccessDeniedException.class,
-    java.io.IOException.class
+    java.io.IOException.class,
+    PortabilityStorage.CapacityException.class
   })
   String failure(
-      Exception failure, HttpServletRequest request, HttpServletResponse response, Model model) {
+      Exception failure,
+      HttpServletRequest request,
+      HttpServletResponse response,
+      Model model,
+      org.springframework.security.core.Authentication auth) {
+    Map<String, String> errors = null;
+    if (failure instanceof FormValidation invalid) errors = invalid.errors();
+    else if (failure instanceof org.busystack.caldav.calendar.CalendarValidationException
+        && request.getServletPath().equals("/portability/preview"))
+      errors =
+          Map.of(
+              "file",
+              "Choose a well-formed iCalendar file within the supported parsing limits. Any previous valid preview is preserved.");
+    else if (failure
+        instanceof
+        org.springframework.web.multipart.support.MissingServletRequestPartException missing)
+      errors =
+          Map.of(missing.getRequestPartName(), "Choose an iCalendar file to validate and preview.");
+    else if (failure
+        instanceof org.springframework.web.bind.MissingServletRequestParameterException missing)
+      errors = Map.of(missing.getParameterName(), "Complete this field.");
+    else if (failure
+        instanceof
+        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException mismatch)
+      errors = Map.of(mismatch.getName(), "Choose a valid value for this field.");
+    if (errors != null && (errors.containsKey("expected") || errors.containsKey("state"))) {
+      errors = null;
+      failure = new StoreException(StoreException.Kind.PRECONDITION);
+    }
+    if (errors != null) {
+      try {
+        String view = forms.render(auth, request, model, errors);
+        if (view != null) {
+          response.setStatus(
+              failure instanceof FormValidation invalid && invalid.conflict() ? 409 : 400);
+          response.setHeader("Cache-Control", "no-store");
+          return view;
+        }
+      } catch (AccessDeniedException | StoreException | DataAccessException authorization) {
+        failure = authorization;
+      } catch (IllegalArgumentException invalidContext) {
+        /* Malformed resource identifiers use the safe generic response. */
+      }
+    }
     int status = 400;
     String title = "Check the submitted details";
     String message =
@@ -75,11 +127,23 @@ public class PortalErrors {
       title = "Conflicting details";
       message =
           "A name or identifier is already in use, or another request changed the resource. Review the current state and try again.";
-    } else if (failure instanceof DataAccessException || failure instanceof java.io.IOException) {
+    } else if (failure instanceof DataAccessException
+        || failure instanceof org.springframework.transaction.TransactionException
+        || failure instanceof java.io.IOException
+        || failure instanceof PortabilityStorage.CapacityException) {
       status = 503;
       title = "Temporarily unavailable";
       message =
           "The database operation could not complete. Try again after the operator checks database connectivity and service logs using the request identifier.";
+    }
+    if (failure instanceof java.io.IOException) {
+      message =
+          "Temporary calendar storage could not complete the operation. Return to the workflow and retry while the preview remains valid; the operator can check private storage and the request identifier.";
+    }
+    if (failure instanceof PortabilityStorage.CapacityException) {
+      response.setHeader("Retry-After", "5");
+      message =
+          "Temporary portability capacity is busy. Retry later or discard an unused preview. Existing data and previews are preserved.";
     }
     response.setStatus(status);
     response.setHeader("Cache-Control", "no-store");
@@ -102,6 +166,7 @@ public class PortalErrors {
       retry = path.replaceFirst("/members.*$", "").replaceFirst("/delete$", "");
     else if (path.equals("/admin/groups")) retry = path;
     else if (path.startsWith("/credentials")) retry = "/security/credentials";
+    else if (path.matches("/portability/import/[a-f0-9-]{36}")) retry = path;
     else if (path.startsWith("/portability")) retry = "/portability";
     else if (path.equals("/shares") || path.equals("/group-shares")) {
       try {

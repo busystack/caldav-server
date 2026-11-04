@@ -1,3 +1,4 @@
+import {qualifyImportProcessInterruption} from './portability-crash.mjs';
 import {qualifyPersonalPortal,qualifyPortalPresentation} from './portal.mjs';
 import {createCollection, openCollection, captureWorkflow} from './portal-helpers.mjs';
 import { chromium } from 'playwright';
@@ -69,6 +70,7 @@ try {
   if (process.env.BUSYSTACK_GNOME_ONLY === 'true') {
     console.log('NATIVE_CONNECTION_SETUP_ONLY_PASSED');
   } else {
+  if (process.env.BUSYSTACK_PORTABILITY_CRASH === 'true') await qualifyImportProcessInterruption(page,base,waitFor);
   if (process.env.BUSYSTACK_BROWSER_GROUPS === 'true') await qualifyGroups(page, base, privateValues);
   const administratorPage = page;
   let activeCdp = cdp;

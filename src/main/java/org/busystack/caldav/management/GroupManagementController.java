@@ -44,7 +44,8 @@ public class GroupManagementController {
   }
 
   @PostMapping("/admin/groups")
-  String create(Authentication auth, @RequestParam String name, RedirectAttributes flash) {
+  String create(
+      Authentication auth, @RequestParam(defaultValue = "") String name, RedirectAttributes flash) {
     UUID id = groups.create(auth, name, Set.of());
     flash.addFlashAttribute("notice", "Group created. Add members individually below.");
     return "redirect:/admin/groups/" + id;
@@ -55,7 +56,7 @@ public class GroupManagementController {
       Authentication auth,
       @PathVariable UUID id,
       @RequestParam String expected,
-      @RequestParam String name,
+      @RequestParam(defaultValue = "") String name,
       RedirectAttributes flash) {
     groups.rename(auth, id, expected, name);
     flash.addFlashAttribute("notice", "Group renamed.");
@@ -66,7 +67,7 @@ public class GroupManagementController {
   String add(
       Authentication auth,
       @PathVariable UUID id,
-      @RequestParam String username,
+      @RequestParam(defaultValue = "") String username,
       @RequestParam(defaultValue = "false") boolean confirmed,
       RedirectAttributes flash) {
     groups.changeMember(auth, id, username, null, true, confirmed);
@@ -108,7 +109,7 @@ public class GroupManagementController {
       Authentication auth,
       @RequestParam UUID collection,
       @RequestParam UUID group,
-      @RequestParam String permission,
+      @RequestParam(defaultValue = "") String permission,
       @RequestParam String expected,
       RedirectAttributes flash) {
     sharing.group(auth, collection, group, permission, expected);

@@ -18,6 +18,9 @@ import sys
 import tempfile
 import threading
 import time
+import ssl
+import urllib.request
+import xml.etree.ElementTree as ET
 from urllib.parse import unquote, urlsplit
 
 
@@ -111,7 +114,70 @@ def read_native_source(uid, root):
         assert all(value in content for value in ('DTSTART;TZID=Fixture/Fixed:20261102T090000',
                    'RECURRENCE-ID;TZID=Fixture/Fixed:20261103T090000', 'DTSTART;TZID=Fixture/Fixed:20261103T110000'))
         assert not api(sources, 'e_client_is_readonly', ctypes.c_int, pointer)(client), 'The owner calendar must remain writable in the native client'
+        fixture=json.loads((root/'client.json').read_text())
+        event_uid='gnome-native-'+secrets.token_hex(8)
+        def representation(summary):
+            return ('BEGIN:VEVENT\r\nUID:'+event_uid+'\r\nDTSTAMP:20261101T000000Z\r\n'
+                'DTSTART:20261102T130000Z\r\nDTEND:20261102T140000Z\r\nSUMMARY:'+summary+
+                '\r\nX-NATIVE-QUALIFICATION:preserve\r\nEND:VEVENT\r\n').encode()
+        def component(content):
+            value=api(ical,'i_cal_component_new_from_string',pointer,ctypes.c_char_p)(content)
+            assert value,'The native iCalendar parser must construct the write fixture'
+            retained.append(value)
+            return value
+        # Public EDS 3.56.2 API: E_CAL_OPERATION_FLAG_NONE=0, E_CAL_OBJ_MOD_ALL=7.
+        # Each API write is independently observed at the real HTTPS server, not merely in EDS cache.
+        authorization='Basic '+base64.b64encode((fixture['username']+':'+fixture['credential']).encode()).decode()
+        tls=ssl.create_default_context(cafile=str(root/'ca.pem'))
+        def request(address,method='GET',body=None):
+            parsed=urlsplit(address)
+            expected=urlsplit(fixture['address'])
+            assert (parsed.scheme,parsed.hostname,parsed.port)==(expected.scheme,expected.hostname,expected.port)
+            req=urllib.request.Request(address,data=body,method=method,headers={'Authorization':authorization,'Content-Type':'application/xml; charset=utf-8','Depth':'1'})
+            with urllib.request.urlopen(req,context=tls,timeout=10) as response:
+                data=response.read(1024*1024+1)
+                assert len(data)<=1024*1024
+                return response.status,data
+        def remote():
+            body=('<C:calendar-query xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:D="DAV:"><D:prop><D:getetag/></D:prop>'
+                '<C:filter><C:comp-filter name="VCALENDAR"><C:comp-filter name="VEVENT"><C:prop-filter name="UID">'
+                '<C:text-match collation="i;octet">'+event_uid+'</C:text-match></C:prop-filter></C:comp-filter></C:comp-filter></C:filter></C:calendar-query>').encode()
+            status,data=request(fixture['address'],'REPORT',body)
+            assert status==207
+            hrefs=[element.text for element in ET.fromstring(data).findall('.//{DAV:}response/{DAV:}href')]
+            if not hrefs:return None
+            assert len(hrefs)==1
+            from urllib.parse import urljoin
+            status,data=request(urljoin(fixture['address'],hrefs[0]))
+            assert status==200
+            return data.decode()
+        def observe(summary):
+            until=time.monotonic()+10
+            while time.monotonic()<until:
+                data=remote()
+                if data is not None and 'SUMMARY:'+summary in data:
+                    assert 'X-NATIVE-QUALIFICATION:preserve' in data and 'UID:'+event_uid in data
+                    return
+                time.sleep(.1)
+            raise AssertionError('Native EDS write was not observed over HTTPS')
+        returned_uid=pointer()
+        checked(api(calendars,'e_cal_client_create_object_sync',ctypes.c_int,pointer,pointer,ctypes.c_int,ctypes.POINTER(pointer),pointer,ctypes.POINTER(pointer)),
+            'create',client,component(representation('Native provider create')),0,ctypes.byref(returned_uid),cancellable)
+        try:assert returned_uid and ctypes.string_at(returned_uid).decode()==event_uid
+        finally:
+            if returned_uid:free(returned_uid)
+        observe('Native provider create')
+        checked(api(calendars,'e_cal_client_modify_object_sync',ctypes.c_int,pointer,pointer,ctypes.c_int,ctypes.c_int,pointer,ctypes.POINTER(pointer)),
+            'modify',client,component(representation('Native provider edit')),7,0,cancellable)
+        observe('Native provider edit')
+        checked(api(calendars,'e_cal_client_remove_object_sync',ctypes.c_int,pointer,ctypes.c_char_p,ctypes.c_char_p,ctypes.c_int,ctypes.c_int,pointer,ctypes.POINTER(pointer)),
+            'delete',client,event_uid.encode(),None,7,0,cancellable)
+        until=time.monotonic()+10
+        while remote() is not None:
+            assert time.monotonic()<until,'Native deletion must reach the HTTPS server'
+            time.sleep(.1)
         return {'uidSeries':2, 'eventComponents':3, 'recurrenceExceptions':1, 'writable':True,
+                'nativeCreateModifyDeleteVerifiedOverHttps':True,
                 'interface':'installed EDS public ECalClient API after native wizard provisioning'}
     finally:
         deadline.cancel()
@@ -469,7 +535,7 @@ def execute_child(root):
         report = {'status': 'passed', 'client': 'GNOME Calendar', 'version': fixture['gnomeVersion'],
                   'dataServerVersion': fixture['edsVersion'], 'mode': 'real native connection wizard in private home/DBus/X11 namespace',
                   'tls': 'normal verification with fixture CA only in private namespace',
-                  'steps': ['Manage Calendars', 'Add Calendar', 'trusted HTTPS discovery URL with username', 'Credentials User/Password', 'Connect', 'native discovery', 'Add Calendar', 'native backend password prompt', 'native event synchronization'],
+                  'steps': ['Manage Calendars', 'Add Calendar', 'trusted HTTPS discovery URL with username', 'Credentials User/Password', 'Connect', 'native discovery', 'Add Calendar', 'native backend password prompt', 'native event synchronization', 'EDS create/modify/delete independently verified over HTTPS'],
                   'nativeBackend': 'caldav', 'nativeColour': colour, 'synchronization':synchronization}
         (root / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
         snapshot('connected')

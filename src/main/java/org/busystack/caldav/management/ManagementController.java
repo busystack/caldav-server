@@ -31,8 +31,8 @@ public class ManagementController {
   @PostMapping("/collections")
   String createCollection(
       Authentication auth,
-      @RequestParam String name,
-      @RequestParam String component,
+      @RequestParam(defaultValue = "") String name,
+      @RequestParam(defaultValue = "") String component,
       @RequestParam(defaultValue = "") String description,
       @RequestParam(defaultValue = "") String color,
       RedirectAttributes flash) {
@@ -46,8 +46,8 @@ public class ManagementController {
   String share(
       Authentication auth,
       @RequestParam UUID collection,
-      @RequestParam String username,
-      @RequestParam String permission,
+      @RequestParam(defaultValue = "") String username,
+      @RequestParam(defaultValue = "") String permission,
       @RequestParam String expected,
       RedirectAttributes flash) {
     sharing.direct(auth, collection, username, permission, expected);
@@ -60,7 +60,7 @@ public class ManagementController {
   @PostMapping("/credentials")
   String issue(
       Authentication auth,
-      @RequestParam String label,
+      @RequestParam(defaultValue = "") String label,
       @RequestParam int days,
       Model model,
       jakarta.servlet.http.HttpServletResponse response) {

@@ -22,7 +22,18 @@ docker compose pull
 docker compose up -d --no-build --wait
 ```
 
-For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.4.1+1) and PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
+For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.5+8) and PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
+
+The portability directory defaults to `${java.io.tmpdir}/busystack-portability`,
+owned by the application user with mode 0700 (files 0600). Standalone operators
+must provide at least 384 MiB available temporary space and protect that directory
+from web serving and unrelated writers. Restart invalidates pending previews and
+cleans recognized orphan files under an exclusive instance lock; a stopped JAR
+cannot clean crash remnants until its next start. Compose provides a 384 MiB `/tmp`
+tmpfs and a 40% heap ceiling within the 1 GiB memory limit. The shared portability
+ledger reserves at most 272 MiB, including multipart buffers, retained previews,
+active exports and parser indexes; cleanup failures retain their reservations.
+See [portability](portability.md) for precise bounds and retry behavior.
 
 ## Developer build and verification
 
@@ -71,7 +82,7 @@ docker compose ps
 
 The base URL and issuer must be equal, canonical absolute URLs with no trailing slash, query, credentials, fragment, or percent-encoded path. Configuration is validated at startup. These are external addresses, not `http://application:8080` or `http://database:5432`. Loopback HTTP is accepted only with the explicit development switch `BUSYSTACK_ALLOW_INSECURE_LOCAL=true`; that setting does not make HTTP suitable for network credential use.
 
-The application runs as UID/GID 10001, with a read-only root filesystem, a bounded temporary directory, dropped Linux capabilities, and a 1 GiB container memory limit. That memory limit is a conservative engineering default, not a measured production capacity claim. PostgreSQL data is persisted at `/var/lib/postgresql`, the PostgreSQL 18 image's volume root. No database port is published. The application listener is published only on `127.@VERSION@`, port 8080 by default (`BUSYSTACK_HTTP_PORT` can change the host port).
+The application runs as UID/GID 10001, with a read-only root filesystem, a bounded temporary directory, dropped Linux capabilities, and a 1 GiB container memory limit. That memory limit is a conservative engineering default, not a measured production capacity claim. PostgreSQL data is persisted at `/var/lib/postgresql`, the PostgreSQL 18 image's volume root. No database port is published. The application listener is published only on `127.0.0.1`, port 8080 by default (`BUSYSTACK_HTTP_PORT` can change the host port).
 
 PostgreSQL administration uses a separate secret. Initialization creates a non-superuser `busystack` database owner for application migrations and runtime. Initialization scripts run only on an empty database volume. Replacing a password file does not rotate an already initialized PostgreSQL role; rotate the database role and secret together during controlled downtime.
 
@@ -79,7 +90,7 @@ Compose secret mounts supply `spring.datasource.password` through Spring's confi
 
 ## HTTPS and proxy paths
 
-Terminate TLS at a configured reverse proxy and allow its local connection to `127.@VERSION@:8080`. Deny public access to `/actuator/`; health probes are for local/container monitoring. Set request-size and timeout limits at the proxy as well as the application. Use valid certificates and clients' normal certificate validation.
+Terminate TLS at a configured reverse proxy and allow its local connection to `127.0.0.1:8080`. Deny public access to `/actuator/`; health probes are for local/container monitoring. Set request-size and timeout limits at the proxy as well as the application. Use valid certificates and clients' normal certificate validation.
 
 Put either location arrangement below inside your proxy's HTTPS virtual host, using its real certificate chain and private key. For example, the surrounding Nginx configuration is:
 
@@ -111,7 +122,7 @@ location / {
     client_max_body_size 1m;
     proxy_connect_timeout 5s;
     proxy_read_timeout 120s;
-    proxy_pass http://127.@VERSION@:8080;
+    proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
     proxy_set_header X-Forwarded-Host "";
@@ -130,7 +141,7 @@ location = /.well-known/caldav {
     return 308 https://calendar.example.org/calendar/dav/;
 }
 location = /.well-known/oauth-authorization-server/calendar {
-    proxy_pass http://127.@VERSION@:8080/calendar/.well-known/oauth-authorization-server;
+    proxy_pass http://127.0.0.1:8080/calendar/.well-known/oauth-authorization-server;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
     proxy_set_header X-Forwarded-Host "";
@@ -139,7 +150,7 @@ location = /.well-known/oauth-authorization-server/calendar {
 location ^~ /calendar/actuator/ { return 404; }
 location /calendar/ {
     client_max_body_size 1m;
-    proxy_pass http://127.@VERSION@:8080;
+    proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host calendar.example.org;
     proxy_set_header Forwarded "";
     proxy_set_header X-Forwarded-Host "";
@@ -195,7 +206,7 @@ the initial password securely, and let the user enroll their own factors. See
 No email service is required. The existing password, recent-factor, session,
 recovery and identity-provider policies remain unchanged.
 
-For portal imports, add a proxy location allowing a 9 MiB multipart request only
+For portal imports, add a proxy location allowing a 65 MiB multipart request only
 at `/portability/preview`, preserving any application prefix. The supplied
 `deployment/nginx-*.conf.example` files include it. DAV continues to use its existing
 1 MiB body limit. See [portability](portability.md) for bounded temporary storage,
@@ -235,7 +246,7 @@ The default accepts `Depth: 1` only with XML sync-level 1. Missing Depth and `De
 
 `/actuator/health/liveness` and `/actuator/health/readiness` return probe status without details. The Compose application health check calls readiness locally. Readiness includes the database check. Only health endpoints are exposed by Actuator; there is no public diagnostic dump.
 
-The database connection pool is bounded to 10 connections; connection acquisition times out after 10 seconds. Servlet form bodies are limited to 64 KiB, accepted calendar objects to 1 MiB in the persistence schema, and the container temporary filesystem to 128 MiB. DAV request bodies are streamed with a 1 MiB cap; compressed Content-Encoding is rejected with 415 rather than decompressed. The principal protocol/query limits are below; exceeding a budget returns an explicit failure rather than incomplete matching data. These are work bounds, not measured capacity guarantees.
+The database connection pool is bounded to 10 connections; connection acquisition times out after 10 seconds. Servlet form bodies are limited to 64 KiB, accepted calendar objects to 1 MiB in the persistence schema, and the container temporary filesystem to 384 MiB. DAV request bodies are streamed with a 1 MiB cap; compressed Content-Encoding is rejected with 415 rather than decompressed. The principal protocol/query limits are below; exceeding a budget returns an explicit failure rather than incomplete matching data. These are work bounds, not measured capacity guarantees.
 
 | Boundary | Current limit |
 | --- | --- |
@@ -292,7 +303,7 @@ install -d -m 700 /private/backups
 
 The script creates a consistent PostgreSQL custom-format archive and a SHA-256 checksum with private file permissions. It refuses to overwrite an existing archive. Retain the exact application version, Compose configuration, and secret material separately. Never publish backups as CI artifacts.
 
-Restore only to a newly initialized, isolated database. Stop every application instance first. The script accepts a complete, unique, successful migration history from V1 through at most V13; failed, missing, duplicate, gapped and future histories fail closed. It refuses a running application or any nonempty target database and never removes an existing volume or database:
+Restore only to a newly initialized, isolated database. Stop every application instance first. The script accepts a complete, unique, successful migration history from V1 through at most V14; failed, missing, duplicate, gapped and future histories fail closed. It refuses a running application or any nonempty target database and never removes an existing volume or database:
 
 ```sh
 docker compose stop application
@@ -301,7 +312,7 @@ docker compose stop application
 
 After loading an archive at schema versions 1 through 13, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. DAV bindings, folders, dead properties, sharing groups, group memberships/grants and the retired-principal identity registry remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
 
-Keep **all** application instances stopped while loading and invalidating restored state. For a supported older archive, including the reviewed V9 schema, the current image can then start with every account disabled to apply forward migrations; stop it again before controlled account recovery. This is an offline upgrade arrangement, not a rolling upgrade. Do not start another older application instance against the upgraded database. The required operations harness exercises both same-version restoration and V9 restoration followed by migration to V13.
+Keep **all** application instances stopped while loading and invalidating restored state. For a supported older archive, including the reviewed V9 schema, the current image can then start with every account disabled to apply forward migrations; stop it again before controlled account recovery. This is an offline upgrade arrangement, not a rolling upgrade. Do not start another older application instance against the upgraded database. The required operations harness exercises both same-version restoration and V9 restoration followed by migration to V14.
 
 After independently verifying a user's identity, use the controlled local recovery operation with an owner-only file containing a fresh password:
 
@@ -339,6 +350,6 @@ Take and verify a backup, retain the previous application artifact/configuration
 python3 scripts/build-image.py --compose up -d --no-build --no-deps --wait application
 ```
 
-Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version @VERSION@ uses migrations V1–V13 and introduces no migration during final release preparation.
+Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version @VERSION@ uses migrations V1–V14. V14 adds nullable opaque administrative audit targets and preserves historical entries; published migrations remain unchanged.
 
 The native Thunderbird and Python client results are scoped to their recorded versions and interoperability profile; see [client evidence](../qualification/clients/README.md). This Compose arrangement provides no high availability, automatic failover or measured user-capacity guarantee. The [executed workload record](performance.md) reports the actual host/image/dataset, end-to-end latency, sampled memory/CPU and PostgreSQL behavior; raw evidence is retained separately. It is one sequential client, not a user-capacity or concurrency guarantee.

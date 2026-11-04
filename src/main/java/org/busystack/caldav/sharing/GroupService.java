@@ -92,14 +92,14 @@ public class GroupService {
     requireGroup(group);
     validateName(name);
     uniqueName(name, group);
-    lockAffected(group);
     if (jdbc.update("UPDATE sharing_groups SET name=? WHERE id=? AND name=?", name, group, expected)
         != 1) throw new StoreException(StoreException.Kind.PRECONDITION);
-    reconcileAffected(group);
-    audit.record(
+    audit.targeted(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_UPDATED,
         org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
+        group,
         null);
   }
 
@@ -116,7 +116,8 @@ public class GroupService {
     UUID actor = administrator(auth);
     requireGroup(group);
     if (!confirmed)
-      throw new IllegalArgumentException("Confirm the effect on existing group sharing");
+      throw org.busystack.caldav.management.FormValidation.field(
+          "confirmed", "Confirm the effect on existing and future group access.");
     if (add) member = accounts(Set.of(username)).iterator().next();
     if (member == null) throw new IllegalArgumentException("An account is required");
     lockAffected(group);
@@ -147,11 +148,15 @@ public class GroupService {
     if (changed != 1) throw new StoreException(StoreException.Kind.PRECONDITION);
     reconcileAffected(group);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
-    audit.record(
+    audit.targeted(
         actor,
-        org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_UPDATED,
+        add
+            ? org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_MEMBER_ADDED
+            : org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_MEMBER_REMOVED,
         org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
-        null);
+        org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
+        group,
+        member);
   }
 
   public record Grant(
@@ -253,11 +258,14 @@ public class GroupService {
     for (UUID member : members)
       jdbc.update(
           "INSERT INTO sharing_group_members(group_id,account_id) VALUES (?,?)", id, member);
-    audit.record(
+    audit.targeted(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_CREATED,
         org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
+        id,
         null);
+    audit.membershipDelta(actor, id, Set.of(), members);
     return id;
   }
 
@@ -293,11 +301,14 @@ public class GroupService {
         jdbc.update(
             "INSERT INTO sharing_group_members(group_id,account_id) VALUES (?,?)", group, member);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
-    reconcileAffected(group);
-    audit.record(
+    if (!Set.copyOf(existing).equals(desired)) reconcileAffected(group);
+    audit.membershipDelta(actor, group, Set.copyOf(existing), desired);
+    audit.targeted(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_UPDATED,
         org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
+        group,
         null);
   }
 
@@ -315,10 +326,12 @@ public class GroupService {
     reconcileAffected(group);
     jdbc.update("DELETE FROM sharing_groups WHERE id=?", group);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
-    audit.record(
+    audit.targeted(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_DELETED,
         org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
+        group,
         null);
   }
 
@@ -340,17 +353,20 @@ public class GroupService {
           group);
     else {
       if (!Set.of("READ", "WRITE").contains(permission))
-        throw new IllegalArgumentException("Group permission must be READ, WRITE or REVOKE");
+        throw org.busystack.caldav.management.FormValidation.field(
+            "permission", "Choose read-only, read and write, or remove the group grant.");
       jdbc.update(
           "INSERT INTO collection_group_members(collection_id,group_id,permission) VALUES (?,?,?) ON CONFLICT(collection_id,group_id) DO UPDATE SET permission=EXCLUDED.permission",
           collection,
           group,
           permission);
     }
-    audit.record(
+    audit.targeted(
         actor,
         org.busystack.caldav.security.audit.SecurityAudit.Action.GROUP_SHARING_CHANGED,
         org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
+        group,
         null);
   }
 
@@ -375,7 +391,8 @@ public class GroupService {
           jdbc.queryForList(
               "SELECT id FROM accounts WHERE username=? AND enabled", UUID.class, username);
       if (found.size() != 1)
-        throw new IllegalArgumentException("Every group member must name an active account");
+        throw org.busystack.caldav.management.FormValidation.field(
+            "username", "Enter the exact username of an active account.");
       members.add(found.getFirst());
     }
     return Set.copyOf(members);
@@ -418,12 +435,15 @@ public class GroupService {
             Boolean.class,
             name,
             except,
-            except))) throw new IllegalArgumentException("Group name is already in use");
+            except)))
+      throw org.busystack.caldav.management.FormValidation.conflict(
+          "name", "This group name is already in use. Choose another name.");
   }
 
   private static void validateName(String name) {
     if (name == null || name.isBlank() || name.length() > 200 || !XmlCharacters.valid(name))
-      throw new IllegalArgumentException("Group name must contain 1–200 characters");
+      throw org.busystack.caldav.management.FormValidation.field(
+          "name", "Use a group name of 1–200 characters.");
   }
 
   private static void limit() {

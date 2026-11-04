@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Use the same immutable Temurin distribution as the application image. setup-java's
-# SemVer input cannot represent this four-part Java maintenance release exactly.
+# Extract the exact immutable Temurin distribution used by the application image.
 : "${RUNNER_TEMP:?RUNNER_TEMP must be set by the GitHub runner}"
 : "${GITHUB_ENV:?GITHUB_ENV must be set by the GitHub runner}"
 : "${GITHUB_PATH:?GITHUB_PATH must be set by the GitHub runner}"
-jdk_image='eclipse-temurin:25-jdk@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857'
+jdk_image='eclipse-temurin:25-jdk@sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507'
 jdk_directory=$(mktemp -d "${RUNNER_TEMP}/busystack-jdk.XXXXXXXX")
 jdk_container=''
 cleanup() {
@@ -30,10 +29,10 @@ jdk = Path(sys.argv[1])
 release = dict(line.split('=', 1) for line in (jdk / 'release').read_text().splitlines() if '=' in line)
 expected = {
     'IMPLEMENTOR': 'Eclipse Adoptium',
-    'IMPLEMENTOR_VERSION': 'Temurin-25.0.4.1+1',
-    'JAVA_VERSION': '25.0.4.1',
-    'JAVA_RUNTIME_VERSION': '25.0.4.1+1-LTS',
-    'SEMANTIC_VERSION': '25.0.4.1+1',
+    'IMPLEMENTOR_VERSION': 'Temurin-25.0.5+8',
+    'JAVA_VERSION': '25.0.5',
+    'JAVA_RUNTIME_VERSION': '25.0.5+8-LTS',
+    'SEMANTIC_VERSION': '25.0.5+8',
     'IMAGE_TYPE': 'JDK',
 }
 for name, value in expected.items():

@@ -1,13 +1,20 @@
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
-import {openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect,captureWorkflow} from './portal-helpers.mjs';
+import {openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect,captureWorkflow,expectFieldError} from './portal-helpers.mjs';
 
 export async function qualifyGroups(page,base,privateValues) {
   const prefix=prefixOf(base),member='browsergroupmember',password=randomBytes(32).toString('base64url');
   privateValues.push(password);
+  await page.goto(base+'/admin/accounts/new');
+  const accountForm=page.locator(`form[action="${prefix}/admin/accounts"]`);
+  await accountForm.locator('[name=username]').fill('invalid username'); await accountForm.locator('[name=displayName]').fill('Retain account label'); await accountForm.locator('[name=password]').fill(password);
+  await expectFieldError(page,accountForm,'username',400,'account-create');
+  assert.equal(await accountForm.locator('[name=displayName]').inputValue(),'Retain account label');
   const account=await provisionAccount(page,base,member,'Browser Group Member',password);
   const display='Group member <img src=x onerror=alert(1)>';
   const profile=page.locator(`form[action="${prefix}/admin/accounts/${account}/edit"]`);
+  await profile.locator('input[name=displayName]').fill('');
+  await expectFieldError(page,profile,'displayName',400,'account-edit');
   await profile.locator('input[name=displayName]').fill(display);
   await Promise.all([page.waitForURL(base+'/admin/accounts/'+account),profile.getByRole('button',{name:'Save display name',exact:true}).click()]);
   assert.equal(await page.getByRole('heading',{name:display,exact:true}).count(),1);
@@ -18,10 +25,14 @@ export async function qualifyGroups(page,base,privateValues) {
   assert.equal(await page.getByRole('link',{name:member,exact:true}).count(),1);
   await page.goto(base+'/admin/groups');
   const create=page.locator(`form[action="${prefix}/admin/groups"]`);
+  await create.locator('input[name=name]').fill('');
+  await expectFieldError(page,create,'name',400,'group-create');
   await create.locator('input[name=name]').fill('Browser sharing group');
   await Promise.all([page.waitForURL(/\/admin\/groups\/[a-f0-9-]{36}$/i),create.getByRole('button',{name:'Create group',exact:true}).click()]);
   const group=new URL(page.url()).pathname.split('/').at(-1);
   const add=page.locator(`form[action="${prefix}/admin/groups/${group}/members"]`);
+  await add.locator('input[name=username]').fill('missing-account');await add.locator('input[name=confirmed]').check();
+  await expectFieldError(page,add,'username',400,'member-add');
   await add.locator('input[name=username]').fill(member);await add.locator('input[name=confirmed]').check();
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),add.getByRole('button',{name:'Add member',exact:true}).click()]);
   const row=page.locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
@@ -31,6 +42,8 @@ export async function qualifyGroups(page,base,privateValues) {
   await add.locator('input[name=username]').fill(member);await add.locator('input[name=confirmed]').check();
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),add.getByRole('button',{name:'Add member',exact:true}).click()]);
   const rename=page.locator(`form[action="${prefix}/admin/groups/${group}"]`);
+  await rename.locator('input[name=name]').fill('');
+  await expectFieldError(page,rename,'name',400,'group-rename');
   await rename.locator('input[name=name]').fill('Browser group renamed');
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),rename.getByRole('button',{name:'Save group name',exact:true}).click()]);
   await page.getByRole('heading',{name:'Browser group renamed',exact:true}).waitFor();

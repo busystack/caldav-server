@@ -4,7 +4,7 @@ The versions below describe the maintained build and runtime inputs. Maven's app
 
 | Component | Selected version | Source and license |
 | --- | --- | --- |
-| Eclipse Temurin OpenJDK | 25.0.4.1+1, Java 25 LTS | [Adoptium releases](https://adoptium.net/temurin/releases/?version=25), [OpenJDK license](https://openjdk.org/legal/gplv2+ce.html): GPL-2.0 with Classpath Exception |
+| Eclipse Temurin OpenJDK | 25.0.5+8, Java 25 LTS | [Adoptium releases](https://adoptium.net/temurin/releases/?version=25), [OpenJDK license](https://openjdk.org/legal/gplv2+ce.html): GPL-2.0 with Classpath Exception |
 | Maven | 3.9.12 | [Maven release history](https://maven.apache.org/docs/history.html): Apache-2.0 |
 | Maven Wrapper | 3.3.4 | [Wrapper](https://maven.apache.org/wrapper/): Apache-2.0; distribution and SHA-256 pinned in `.mvn/wrapper/maven-wrapper.properties` |
 | Spring Boot | 4.1.2 | [Published parent](https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-parent/4.1.2/), [requirements](https://docs.spring.io/spring-boot/system-requirements.html): Apache-2.0 |
@@ -37,20 +37,20 @@ The Dockerfiles and Compose file use immutable registry digests, with descriptiv
 
 | Image | Digest |
 | --- | --- |
-| `eclipse-temurin:25-jdk` | `sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857` |
+| `eclipse-temurin:25-jdk` | `sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507` |
 | `mcr.microsoft.com/playwright:v1.61.1-noble` | `sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48` |
 | `nginx:1.30.6-alpine` | `sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951` |
 | `quay.io/keycloak/keycloak:26.8.1` | `sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b` |
 | `testcontainers/ryuk:0.14.0` | `sha256:7c1a8a9a47c780ed0f983770a662f80deb115d95cce3e2daa3d12115b8cd28f0` |
 | `postgres:18.6` | `sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6` |
 
-Residual qualification on 2026-10-29 found HIGH [CVE-2026-111497](https://ubuntu.com/security/notices/USN-8956-1) in the previous official Temurin image (`libbrotli1` 1.2.0-3build1). The refreshed official digest above supplies Ubuntu’s fixed 1.2.0-3ubuntu0.1 package while retaining **Temurin 25.0.4.1+1** and the identical Java executable SHA-256 `7380ce48ed5013735d2c8414db54adb8f981e7933ff594bd36f3baccddaafba3`. The application, CI JDK installer and optional Keycloak fixture use the same refreshed pin. No advisory suppression or third-party patch is applied; the failed scan and subsequent qualification are retained separately.
+Residual qualification on 2026-10-29 found HIGH [CVE-2026-111497](https://ubuntu.com/security/notices/USN-8956-1) in the previous official Temurin image (`libbrotli1` 1.2.0-3build1). That historical official digest supplied Ubuntu’s fixed 1.2.0-3ubuntu0.1 package while retaining **Temurin 25.0.4.1+1** and the identical Java executable SHA-256 `7380ce48ed5013735d2c8414db54adb8f981e7933ff594bd36f3baccddaafba3`. The corrective pass now selects the official [Temurin 25.0.5+8 maintenance release](https://github.com/adoptium/temurin25-binaries/releases/tag/jdk-25.0.5%2B8), following the [October 2026 Java security update](https://www.oracle.com/security-alerts/cpuoct2026.html). Its Java executable SHA-256 is `1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25`. The application, CI installer and optional Keycloak fixture share the new official pin. No advisory suppression or third-party patch is applied; the failed scan and subsequent qualification are retained separately.
 
 The supported developer build runs the Maven wrapper with the selected JDK and passes the verified JAR to Docker. The runtime image uses the same pinned Temurin release; no Maven builder image is needed.
 
 The Keycloak fixture copies the pinned official distribution onto the pinned Temurin JDK for a consistent test runtime. No Keycloak application code is changed. The production deployment does not contain Keycloak. Browser certificate tooling is pinned to Ubuntu `libnss3-tools=2:3.98-1ubuntu0.3`; generated certificates and trust databases exist only in disposable private fixture directories.
 
-CI installs the exact JDK from the pinned Temurin image through `scripts/install-ci-jdk.sh`, validates its release/runtime version and exports it for Maven. This avoids setup-java's SemVer rejection of the four-part 25.0.4.1 version without selecting another patch.
+CI installs the exact JDK from the pinned Temurin image through `scripts/install-ci-jdk.sh`, validates its release/runtime version and exports it for Maven. No JDK or third-party application code is patched.
 
 CI actions use immutable Git commit references in [ci.yml](../.github/workflows/ci.yml). Updating a digest or dependency is a reviewed repository change followed by the required suites; pins do not remove the need to apply security updates.
 

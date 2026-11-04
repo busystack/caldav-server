@@ -65,7 +65,9 @@ through Manage Calendars, Add Calendar, HTTPS address, credentials and discovery
 It verifies the durable native CalDAV source, normal native password prompting,
 and retrieval through the installed public ECalClient API: two UID series, three
 event components, one recurrence exception, preserved extensions and owner write
-permission. The password is entered through the GUI; it is never injected into the
+permission. The corrective fixture also creates, edits and deletes a native EDS
+event through the installed public ECalClient API and independently verifies each
+state through trusted HTTPS; this does not qualify the graphical event editor. The password is entered through the GUI; it is never injected into the
 EDS API. The connection URI comes directly from the portal's dedicated GNOME
 field and includes the username without a password. It uses a disposable home, private
 session/accessibility buses, keyring and namespace-only fixture CA trust. The

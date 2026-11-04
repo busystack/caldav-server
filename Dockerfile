@@ -1,5 +1,5 @@
 # Use python3 scripts/build-image.py to supply the verified Maven artifact.
-FROM eclipse-temurin:25-jdk@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857 AS runtime
+FROM eclipse-temurin:25-jdk@sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507 AS runtime
 ARG APPLICATION_VERSION
 ARG SOURCE_REVISION
 WORKDIR /opt/busystack
@@ -16,4 +16,4 @@ ENV SERVER_ADDRESS=0.0.0.0
 RUN groupadd --gid 10001 busystack && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin busystack && chown -R 10001:10001 /opt/busystack
 USER 10001:10001
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=70.0", "-Djava.io.tmpdir=/tmp", "-jar", "/opt/busystack/application.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=40.0", "-Djava.io.tmpdir=/tmp", "-jar", "/opt/busystack/application.jar"]

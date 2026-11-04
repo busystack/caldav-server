@@ -19,8 +19,8 @@ spring:
     clean-disabled: true
   servlet:
     multipart:
-      max-file-size: 8MB
-      max-request-size: 9MB
+      max-file-size: 64MB
+      max-request-size: 65MB
       file-size-threshold: 0
   mvc:
     log-request-details: false
@@ -55,6 +55,7 @@ server:
         http-only: true
         same-site: lax
   tomcat:
+    max-part-count: 4
     max-http-form-post-size: 64KB
     max-swallow-size: 1MB
     connection-timeout: 10s

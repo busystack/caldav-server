@@ -21,7 +21,15 @@ public class AdministrationService {
       boolean enabled,
       boolean external) {}
 
-  public record AuditEntry(Instant time, String action, String outcome, String username) {}
+  public record AuditEntry(
+      Instant time,
+      String action,
+      String outcome,
+      String username,
+      UUID actor,
+      String targetType,
+      UUID targetId,
+      UUID relatedAccount) {}
 
   private final ManagementService management;
   private final AccountService accounts;
@@ -80,11 +88,23 @@ public class AdministrationService {
   @Transactional
   public UUID create(Authentication auth, String username, String displayName, String password) {
     management.requireAdministrator(auth);
-    UUID id = accounts.provision(username, displayName, password, false);
-    audit.record(
+    FormValidation.account(username, displayName, password);
+    if (accounts.find(username) != null)
+      throw FormValidation.conflict(
+          "username", "This username is already in use. Choose another username.");
+    UUID id;
+    try {
+      id = accounts.provision(username, displayName, password, false);
+    } catch (org.springframework.dao.DuplicateKeyException duplicate) {
+      throw FormValidation.conflict(
+          "username", "This username is already in use. Choose another username.");
+    }
+    audit.targeted(
         management.current(auth).id(),
         SecurityAudit.Action.ACCOUNT_CREATED,
         SecurityAudit.Outcome.SUCCESS,
+        SecurityAudit.TargetType.ACCOUNT,
+        id,
         null);
     return id;
   }
@@ -93,11 +113,16 @@ public class AdministrationService {
   public void edit(Authentication auth, UUID id, String expected, String displayName) {
     management.requireAdministrator(auth);
     account(auth, id);
+    if (!FormValidation.displayName(displayName))
+      throw FormValidation.field(
+          "displayName", "Use a display name of 1–200 characters without control characters.");
     accounts.updateDisplayName(id, expected, displayName);
-    audit.record(
+    audit.targeted(
         management.current(auth).id(),
         SecurityAudit.Action.ACCOUNT_PROFILE_UPDATED,
         SecurityAudit.Outcome.SUCCESS,
+        SecurityAudit.TargetType.ACCOUNT,
+        id,
         null);
   }
 
@@ -109,7 +134,13 @@ public class AdministrationService {
       throw new IllegalArgumentException("Confirm disabling this account and revoking its access");
     UUID actor = management.current(auth).id();
     accounts.disable(id);
-    audit.record(actor, SecurityAudit.Action.ACCOUNT_DISABLED, SecurityAudit.Outcome.SUCCESS, null);
+    audit.targeted(
+        actor,
+        SecurityAudit.Action.ACCOUNT_DISABLED,
+        SecurityAudit.Outcome.SUCCESS,
+        SecurityAudit.TargetType.ACCOUNT,
+        id,
+        null);
   }
 
   public PortalPage<AuditEntry> audit(
@@ -120,13 +151,17 @@ public class AdministrationService {
     if (!outcome.isEmpty()) SecurityAudit.Outcome.valueOf(outcome);
     return PortalPage.of(
         jdbc.query(
-            "SELECT s.occurred_at,s.action,s.outcome,a.username FROM security_audit s LEFT JOIN accounts a ON a.id=s.account_id WHERE (?='' OR s.action=?) AND (?='' OR s.outcome=?) AND (?='' OR a.username=?) ORDER BY s.id DESC LIMIT 51 OFFSET ?",
+            "SELECT s.occurred_at,s.action,s.outcome,a.username,s.account_id,s.target_type,s.target_id,s.related_account_id FROM security_audit s LEFT JOIN accounts a ON a.id=s.account_id WHERE (?='' OR s.action=?) AND (?='' OR s.outcome=?) AND (?='' OR a.username=?) ORDER BY s.id DESC LIMIT 51 OFFSET ?",
             (rs, row) ->
                 new AuditEntry(
                     rs.getTimestamp(1).toInstant(),
                     rs.getString(2),
                     rs.getString(3),
-                    rs.getString(4)),
+                    rs.getString(4),
+                    rs.getObject(5, UUID.class),
+                    rs.getString(6),
+                    rs.getObject(7, UUID.class),
+                    rs.getObject(8, UUID.class)),
             action,
             action,
             outcome,

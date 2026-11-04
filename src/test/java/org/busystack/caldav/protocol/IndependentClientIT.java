@@ -147,7 +147,7 @@ class IndependentClientIT {
                   .isFalse();
               Files.copy(download.path(), privateDirectory.resolve(name + ".ics"));
             } finally {
-              Files.deleteIfExists(download.path());
+              download.close();
             }
           }
           Files.createFile(privateDirectory.resolve("export-complete"));

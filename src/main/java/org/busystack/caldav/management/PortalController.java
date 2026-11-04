@@ -47,7 +47,7 @@ public class PortalController {
       Authentication auth,
       @PathVariable UUID id,
       @RequestParam String state,
-      @RequestParam String name,
+      @RequestParam(defaultValue = "") String name,
       @RequestParam(defaultValue = "") String description,
       @RequestParam(defaultValue = "") String color,
       RedirectAttributes flash) {

@@ -6,6 +6,8 @@ A collection owner opens **Manage sharing** on the collection detail page to gra
 
 The sharing dropdown exposes group names and identifiers. DAV membership metadata is limited to members, owners of collections granted to the group, and administrators. Group administration, owned grants and effective calendar permissions are checked in the services as well as the HTTP layer. Mutations require current account state and recent MFA; browser forms retain CSRF protection.
 
+Renaming changes only group metadata under the existing mutation lock and stale-name check; it preserves bindings, effective permissions and stable/continuation synchronization tokens.
+
 Membership/grant changes reconcile shared collection bindings and change affected collection synchronization generations. A client with an invalidated stable or continuation token must perform an initial synchronization again; continuation state cannot retain access after account disabling or permission revocation. Removing group access preserves any access separately granted to the same account. Backup/restoration retains groups, grants, memberships and retired principal identifiers; operators must review these restored permissions before re-enabling accounts.
 
 The directory supports at most 1,000 groups, at most 1,000 accounts per group and 10,000 recorded group memberships in total. Group creation/replacement checks these existing admission bounds before accepting changes. No separate grant-count ceiling makes accepted sharing states impossible to maintain: a group may be granted many collections and an owner may have more than 10,000 group grants.

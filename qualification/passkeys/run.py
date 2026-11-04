@@ -73,6 +73,7 @@ def main():
     parser.add_argument("--oidc", action="store_true", help="Also qualify a real Keycloak login across distinct reserved test sites")
     parser.add_argument("--restore", action="store_true", help="Qualify actual HTTPS authentication, content and sync after restoring an older database")
     parser.add_argument("--groups", action="store_true", help="Require the V9 group-management and owner-sharing browser workflow")
+    parser.add_argument("--portability-crash", action="store_true", help="Kill the owned application during an actual import transaction and verify rollback/restart/fresh import")
     parser.add_argument("--gnome", action="store_true", help="Also drive the installed GNOME connection wizard in an isolated home/DBus/private Xvfb session")
     parser.add_argument("--gnome-only", action="store_true", help="Target only real MFA, portal collection/credential setup and the native GNOME connection wizard")
     parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
@@ -83,7 +84,7 @@ def main():
     parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
     args = parser.parse_args()
     if args.gnome_only:
-        if args.groups or args.oidc or args.restore or args.workload or args.clients or args.strict_sync_depth:
+        if args.groups or args.oidc or args.restore or args.workload or args.clients or args.strict_sync_depth or args.portability_crash:
             parser.error("--gnome-only is a separate targeted setup profile; run full browser/security profiles independently")
         args.gnome = True
     if args.gnome and args.oidc:
@@ -216,6 +217,8 @@ def main():
                 browser_command += ["--env", "BUSYSTACK_BROWSER_CAPACITY=true"]
             if args.groups:
                 browser_command += ["--env", "BUSYSTACK_BROWSER_GROUPS=true"]
+            if args.portability_crash:
+                browser_command += ["--env", "BUSYSTACK_PORTABILITY_CRASH=true"]
             if args.gnome:
                 gnome_exchange = directory / "gnome-client.json"
                 gnome_exchange.touch(mode=0o600)
@@ -261,7 +264,30 @@ def main():
                     line = raw.decode(errors="replace")
                     print(line.replace(password, "[redacted]"), flush=True)
                     signals.add(line)
-                    if line == "READY_GNOME" and args.gnome:
+                    if line == "READY_PORTABILITY_CRASH_ARM" and args.portability_crash:
+                        operations.sql(environment, "CREATE FUNCTION qualification_import_pause() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.uid='interrupted-b' THEN PERFORM pg_sleep(30); END IF; RETURN NEW; END $$; CREATE TRIGGER qualification_import_pause BEFORE INSERT ON calendar_resources FOR EACH ROW EXECUTE FUNCTION qualification_import_pause();")
+                        browser.stdin.write(b"PORTABILITY_CRASH_ARMED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_PORTABILITY_CRASH_REQUESTED" and args.portability_crash:
+                        stop = time.monotonic() + 45
+                        while operations.sql(environment, "SELECT count(*) FROM pg_stat_activity WHERE wait_event='PgSleep' AND query LIKE 'INSERT INTO calendar_resources%';") != "1":
+                            if time.monotonic() > stop:
+                                raise RuntimeError("The real import did not reach the second-write interruption checkpoint")
+                            threading.Event().wait(.25)
+                        operations.compose(environment, "kill", "--signal", "SIGKILL", "application")
+                        # DDL waits for the interrupted backend to release its transaction locks.
+                        operations.sql(environment, "DROP TRIGGER qualification_import_pause ON calendar_resources; DROP FUNCTION qualification_import_pause();")
+                        assert operations.sql(environment, "SELECT count(*) FROM calendar_resources WHERE uid IN ('interrupted-a','interrupted-b');") == "0"
+                        operations.compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
+                        ready(base, directory / "ca.pem", args.proxy)
+                        browser.stdin.write(b"PORTABILITY_CRASH_RESTARTED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_PORTABILITY_CRASH_VERIFY" and args.portability_crash:
+                        assert operations.sql(environment, "SELECT count(*) FROM calendar_resources WHERE uid IN ('interrupted-a','interrupted-b');") == "2"
+                        (evidence / "portability-process-interruption.json").write_text(json.dumps({"imageId": args.application_image, "interruptedAt": "PostgreSQL second resource insert; first write was uncommitted", "signal": "SIGKILL", "resourcesAfterRollback": 0, "resourcesAfterFreshImport": 2, "pendingPreviewInvalidAfterRestart": True}, indent=2) + "\n")
+                        browser.stdin.write(b"PORTABILITY_CRASH_VERIFIED\n")
+                        browser.stdin.flush()
+                    elif line == "READY_GNOME" and args.gnome:
                         gnome_fixture = json.loads(gnome_exchange.read_text())
                         gnome_fixture["ca"] = str(directory / "ca.pem")
                         gnome_fixture["displayImage"] = args.browser_image
@@ -324,6 +350,8 @@ def main():
                 assert "CROSS_SITE_ORGANIZATION_PLUS_PASSKEY_AND_NONADMIN_PROVISIONING_PASSED" in signals
             if args.groups:
                 assert "BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED" in signals
+            if args.portability_crash:
+                assert "PORTABILITY_PROCESS_INTERRUPTION_ROLLBACK_RESTART_AND_FRESH_IMPORT_PASSED" in signals
             if args.restore:
                 assert "HTTPS_RESTORE_OLD_ACCESS_REJECTED_FRESH_MFA_DAV_OAUTH_CONTENT_AND_SYNC_PASSED" in signals
                 assert "HTTPS_RESTORE_SHARED_RECIPIENT_FRESH_MFA_READ_WRITE_DENIAL_AND_REVOCATION_PASSED" in signals
