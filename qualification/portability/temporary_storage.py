@@ -40,6 +40,16 @@ def ready(base, process):
     raise RuntimeError('Standalone JAR readiness deadline exceeded')
 
 
+def memory_failure_probe(java_home, directory):
+    """Actual bounded HotSpot allocation failure, rather than a manually thrown Error."""
+    source = directory / 'HeapExhaustionProbe.java'
+    source.write_text('public final class HeapExhaustionProbe { public static void main(String[] args) { var retained = new java.util.ArrayList<byte[]>(); for (;;) retained.add(new byte[1024 * 1024]); } }\n')
+    subprocess.run([str(java_home.resolve() / 'bin/javac'), '-d', str(directory), str(source)], check=True, capture_output=True, timeout=30)
+    result = subprocess.run([str(java_home.resolve() / 'bin/java'), '-Xmx16m', '-XX:+ExitOnOutOfMemoryError', '-cp', str(directory), 'HeapExhaustionProbe'], capture_output=True, text=True, timeout=30)
+    assert result.returncode == 3, 'The selected JVM must terminate on actual allocation failure'
+    return {'exitCode': result.returncode, 'heapLimitBytes': 16 * 1024 * 1024, 'policy': '-XX:+ExitOnOutOfMemoryError', 'actualAllocationFailure': True}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application-image', required=True)
@@ -72,6 +82,7 @@ def main():
             application = operations.compose(env, 'ps', '--quiet', 'application')
             state = json.loads(operations.execute(['docker', 'inspect', application], env))[0]
             assert state['HostConfig']['ReadonlyRootfs']
+            assert '-XX:+ExitOnOutOfMemoryError' in state['Config']['Entrypoint']
             assert '/tmp' in state['HostConfig']['Tmpfs']
             blocks, block_size = map(int, operations.compose(env, 'exec', '-T', 'application', 'stat', '-f', '-c', '%b %S', '/tmp').split())
             assert blocks * block_size == 384 * 1024 * 1024
@@ -93,7 +104,7 @@ def main():
                            SPRING_DATASOURCE_URL='jdbc:postgresql://' + database + '/busystack',
                            SPRING_DATASOURCE_USERNAME='busystack', SERVER_PORT=str(port), SERVER_ADDRESS='127.0.0.1',
                            BUSYSTACK_PUBLIC_BASE_URL=f'https://localhost:{port}', BUSYSTACK_ISSUER=f'https://localhost:{port}')
-            command = [str(args.java_home.resolve() / 'bin/java'), '-Xmx256m', '-Djava.io.tmpdir=' + str(temp), '-jar', str(args.jar.resolve())]
+            command = [str(args.java_home.resolve() / 'bin/java'), '-Xmx256m', '-XX:+ExitOnOutOfMemoryError', '-Djava.io.tmpdir=' + str(temp), '-jar', str(args.jar.resolve())]
             with (root / 'standalone.log').open('wb') as log:
                 process = subprocess.Popen(command, env=jar_env, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
                 ready(f'http://127.0.0.1:{port}', process)
@@ -111,6 +122,10 @@ def main():
                 process.kill()
                 assert process.wait(timeout=30) == -9
                 assert orphan.exists() and multipart.exists(), 'Standalone remnants remain until application startup'
+                probe_directory = root / 'memory-probe'
+                probe_directory.mkdir(mode=0o700)
+                memory_probe = memory_failure_probe(args.java_home, probe_directory)
+                assert orphan.exists() and multipart.exists()
                 process = subprocess.Popen(command, env=jar_env, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
                 ready(f'http://127.0.0.1:{port}', process)
                 assert not orphan.exists() and not multipart.exists()
@@ -121,7 +136,7 @@ def main():
                           composeReadOnly=True, composeTmpfsBytes=384 * 1024 * 1024,
                           composeForcedTerminationClean=True, standaloneForcedTerminationRemnantsObserved=True,
                           standaloneStartupOrphansRemoved=True, unrelatedFilePreserved=True,
-                          directoryMode='0700', seededFileMode='0600', gracefulShutdown=True,
+                          directoryMode='0700', seededFileMode='0600', gracefulShutdown=True, memoryFailureProbe=memory_probe,
                           scope='Real packaged startup/shutdown; seeded crash remnants. HTTP imports and transaction interruption are separate tests.')
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(result, indent=2) + '\n')

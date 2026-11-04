@@ -95,6 +95,12 @@ private directory; it preserves unrelated files and refuses unexpected unsafe
 entries. A stopped standalone JAR cannot delete files: the next startup cleans
 crash remnants. Compose's `/tmp` tmpfs also disappears when the container stops.
 The deployment remains a single application instance.
+The supported container and standalone launch commands use
+`-XX:+ExitOnOutOfMemoryError`: actual allocation failure terminates the JVM rather
+than leaving a live process with partially established in-memory work state.
+Compose restarts it; a standalone operator restarts the JAR. Pending previews
+then become invalid and startup cleanup applies. Ordinary database rollback
+continues to preserve a valid preview for retry without restarting.
 
 ## Processing and deployment limits
 

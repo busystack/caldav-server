@@ -22,7 +22,7 @@ docker compose pull
 docker compose up -d --no-build --wait
 ```
 
-For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.5+8) and PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
+For the JAR alternative, download and checksum `caldav-server-@VERSION@.jar`, use Java 25 (selected Temurin 25.0.5+8), launch with `-XX:+ExitOnOutOfMemoryError`, and use PostgreSQL 18.6 with a dedicated non-superuser owner role, file-backed Spring config-tree credentials, loopback HTTP and an HTTPS reverse proxy. Substitute its absolute downloaded path for `target/caldav-server-@VERSION@.jar` in command examples below. No native service manager or database installer is supplied.
 
 The portability directory defaults to `${java.io.tmpdir}/busystack-portability`,
 owned by the application user with mode 0700 (files 0600). Standalone operators
@@ -34,6 +34,14 @@ tmpfs and a 40% heap ceiling within the 1 GiB memory limit. The shared portabili
 ledger reserves at most 272 MiB, including multipart buffers, retained previews,
 active exports and parser indexes; cleanup failures retain their reservations.
 See [portability](portability.md) for precise bounds and retry behavior.
+
+The supported launch policy terminates the JVM on a real allocation failure using
+Java's `-XX:+ExitOnOutOfMemoryError`. This prevents a damaged live process from
+retaining unusable in-memory reservations or confirmation claims. Compose restarts
+the application; standalone operators must restart the JAR. PostgreSQL still
+controls transaction commit/rollback, pending preview tokens are invalid after
+restart, and recognized private-file remnants are cleaned at startup. A stopped
+standalone JAR cannot remove those files before its next start.
 
 ## Developer build and verification
 
@@ -165,7 +173,7 @@ The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.h
 There is no default administrator password or unauthenticated setup endpoint. The local bootstrap command requires an empty account database, a private owner-only password file, and `--spring.main.web-application-type=none`. Use the executable JAR with database configuration supplied securely through environment/configuration:
 
 ```sh
-java -jar target/caldav-server-@VERSION@.jar \
+java -XX:+ExitOnOutOfMemoryError -jar target/caldav-server-@VERSION@.jar \
   --spring.main.web-application-type=none \
   --busystack.bootstrap=true \
   --busystack.bootstrap-username=administrator \

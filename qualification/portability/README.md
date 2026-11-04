@@ -51,3 +51,12 @@ verifies the old preview is invalid and a fresh import commits exactly two items
 The fixture removes its trigger/function and writes an image-bound interruption
 receipt. No production endpoint, authentication bypass or durable preview recovery
 is added. This differs from merely seeding orphan files for startup cleanup.
+
+The storage fixture also verifies the supported fatal allocation-failure policy:
+its own tiny Java program really exhausts a 16 MiB heap and must terminate with
+exit code 3 under the same `-XX:+ExitOnOutOfMemoryError` option used by the image
+and standalone command. This is a passing positive control only when that exit
+is observed. The subsequent standalone startup removes the recognized private
+remnants. Actual in-flight transaction interruption is verified separately by
+`--portability-crash`; the memory probe does not claim to reproduce a full portal
+import under artificial heap pressure.
