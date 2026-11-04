@@ -219,6 +219,8 @@ at `/portability/preview`, preserving any application prefix. The supplied
 `deployment/nginx-*.conf.example` files include it. DAV continues to use its existing
 1 MiB body limit. See [portability](portability.md) for bounded temporary storage,
 preview expiry, transactional writes and export format.
+Retain the examples' exact `/portability` location as well as the processing
+prefix; it preserves the portal entry URI and its canonical login redirect.
 
 ## Client access and sync compatibility
 

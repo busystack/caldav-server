@@ -69,10 +69,12 @@ def verify(base, ca):
     assert status == 200 and json.loads(body)["issuer"] == base
     status, headers, _ = call(base, headers=forged)
     assert status == 308 and headers["Location"] == base + "/"
-    status, headers, _ = call(base + "/security/passkeys", headers={**forged, "Accept": "text/html"})
-    target = urllib.parse.urlsplit(headers.get("Location", ""))
-    assert status == 302 and (target.scheme, target.netloc, target.path) == (public.scheme, public.netloc, public.path + "/login"), f"Expected configured browser login redirect; status={status}, location={headers.get('Location')}"
-    assert urllib.parse.parse_qs(target.query) in ({}, {"factor": ["required"]}) and not target.fragment
+    for path in ("/security/passkeys", "/portability", "/portability?destination=11111111-1111-4111-8111-111111111111"):
+        status, headers, _ = call(base + path, headers={**forged, "Accept": "text/html"})
+        target = urllib.parse.urlsplit(headers.get("Location", ""))
+        assert status == 302 and (target.scheme, target.netloc, target.path) == (public.scheme, public.netloc, public.path + "/login"), f"Expected configured browser login redirect for {path}; status={status}, location={headers.get('Location')}"
+        assert urllib.parse.parse_qs(target.query) in ({}, {"factor": ["required"]}) and not target.fragment
+    print("PROXY_PORTABILITY_BASE_ROUTE_CANONICAL_LOCATION_PASSED", flush=True)
     for path in ("/actuator", "/actuator/health", public.path + "/actuator", public.path + "/actuator/health/readiness"):
         assert call(origin + path)[0] == 404
     for method in ("OPTIONS", "PROPFIND", "PROPPATCH", "REPORT", "MKCALENDAR", "MKCOL", "GET", "HEAD", "PUT", "DELETE", "COPY", "MOVE", "ACL"):

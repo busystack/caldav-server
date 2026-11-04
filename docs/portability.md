@@ -151,6 +151,9 @@ are rejected at other application routes before buffering. Ordinary DAV 1 MiB an
 authentication 64 KiB request limits remain unchanged. Supplied root/subpath and
 qualification proxy fixtures implement this policy. Protect staging, snapshots
 and backups as described in [operations](operations.md).
+Keep the exact `/portability` entry location alongside the processing prefix,
+including any application subpath. It forwards the portal URI unchanged and lets
+the application's configured public origin govern login redirects.
 
 Focused service/HTTPS tests and native fixtures exercise byte-preserving
 export → import → retrieve comparisons, UID/resource counts, recurrence, tasks,
