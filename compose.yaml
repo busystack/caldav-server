@@ -81,6 +81,8 @@ services:
     profiles: [operator]
     extends:
       service: application
+    command: [--spring.main.web-application-type=none, --spring.main.banner-mode=off, --logging.level.root=OFF]
+    ports: !override []
     restart: "no"
     # Operator output must never enter the deployment's container log driver.
     logging:

@@ -129,7 +129,8 @@ try {
   const user=await userContext.newPage();await virtual(userContext,user);
   await user.goto(base+'/connections?client=thunderbird');
   await signIn(user,'demo-user');await enroll(user);await verify(user);
-  check(user.url()===base+'/connections?client=thunderbird','Primary/session rotation preserves the intended application workflow');
+  const continued=new URL(user.url());
+  check(continued.origin===new URL(base).origin && continued.pathname===prefix+'/connections' && continued.searchParams.get('client')==='thunderbird', 'Primary/session rotation preserves the intended application workflow; observed path='+continued.pathname+' query keys='+[...continued.searchParams.keys()].join(','));
   await user.goto(base+'/');await shot(user,'11-user-onboarding');
   check(await user.getByRole('link',{name:'Server administration',exact:true}).count()===0,'No administrator UI for ordinary user');
   check((await user.locator('main').innerText()).includes('shared'),'Shared collections offered in onboarding');

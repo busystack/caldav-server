@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "status": "pending",
   "qualificationKind": "local-unpublished",
-  "jarSha256": "3c22bf48baa67399383672782b27059329eb720fb94f525c30231cfe6ebeb5b6",
+  "jarSha256": "776a5eeb571c1e105e0a74f3707064e5a7d23e8d5bdc93093416ddb5d927c301",
   "runtimeInputs": {
     "Dockerfile": "2963b09f0c074104d9584d4f417368418ac947bcc2f3b4c00b61de10a04682da",
-    "compose.yaml": "7d8e3c0e235de2b6da48595a1291c00d312d1a2c652a89b208f9189a0c21184b"
+    "compose.yaml": "843834fdeab4dbe73e1243e4b87fb6d51f5d5b669b4e15de53bea4aa62b48901"
   },
-  "runtimeVerificationCommit": "f25b9c520cbe6a8c5562c4ccf22df4c4e5f5cff1",
+  "runtimeVerificationCommit": "01760f7baa03275267b8aea9a360ddce2669fba9",
   "clients": {
     "thunderbird-system-vancouver": {
       "status": "pending"
@@ -26,5 +26,19 @@
     "This record does not claim a published release or a successful CI run.",
     "P0 automated/browser/native-client results and historical graphical release-matrix evidence are recorded separately.",
     "The existing release publisher must continue to reject a pending receipt."
-  ]
+  ],
+  "p0": {
+    "status": "passed",
+    "assertions": 48,
+    "screenshots": 20,
+    "playwright": "1.61.1",
+    "chromium": "149.0.7827.55",
+    "manualFirefoxBitwarden": "pending",
+    "realClientVersions": {
+      "python-caldav": "3.6.0",
+      "Thunderbird": "159.0"
+    },
+    "realClientsStatus": "passed",
+    "qualificationLog": ".qualification-runs/p0/browser-final-root2.log"
+  }
 }
