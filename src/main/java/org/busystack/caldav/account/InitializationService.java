@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InitializationService {
   private final JdbcTemplate jdbc;
   private final AccountService accounts;
+  private final SecureRandom entropy = new SecureRandom();
 
   public InitializationService(JdbcTemplate jdbc, AccountService accounts) {
     this.jdbc = jdbc;
@@ -36,7 +37,7 @@ public class InitializationService {
     if (!available())
       throw new IllegalStateException("Administrator initialization is unavailable");
     byte[] random = new byte[32];
-    new SecureRandom().nextBytes(random);
+    entropy.nextBytes(random);
     String code = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
     jdbc.update(
         "UPDATE installation_state SET code_verifier=?,expires_at=?,failed_attempts=0 WHERE id=1",
