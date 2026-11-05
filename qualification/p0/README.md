@@ -40,8 +40,14 @@ Its metadata does not invent a CI run or a published release:
 python3 qualification/p0/package.py --image busystack-caldav:p0-local --output target/p0-local-package
 python3 qualification/p0/run.py --application-image busystack-caldav:p0-local \
   --deployment-directory target/p0-local-package/caldav-server-0.2.0-deploy \
-  --output target/qualification/p0-package
+  --proxy --output target/qualification/p0-package
 ```
+
+The proxy profile uses the guide's complete `up -d --no-build --wait
+--wait-timeout 240` command and both production health checks. Run it again with
+`--context-path /team` to check the packaged subpath example. The default
+administrator activity is **Manage users**; `--administrator-activity personal`
+also exercises **Set up my calendar** before continuing the same complete journey.
 
 For final manual acceptance, prepare a separate fresh project using the extracted
 package. The following starts an isolated Nginx HTTPS deployment using the package's

@@ -83,7 +83,12 @@ try {
   await page.getByRole('link',{name:'Verify your passkey',exact:true}).click();await shot(page,'07-verify-passkey');
   await verify(page);await page.getByRole('heading',{name:'Welcome to BusyStack',exact:true}).waitFor();
   await shot(page,'08-administrator-welcome');
-  await page.getByRole('button',{name:'Manage users',exact:true}).click();await shot(page,'09-manage-users');
+  if(process.env.BUSYSTACK_ADMINISTRATOR_ACTIVITY==='personal') {
+    await page.getByRole('button',{name:'Set up my calendar',exact:true}).click();
+    check(new URL(page.url()).pathname===prefix+'/collections','Personal administrator choice opens collections');
+    await page.goto(base+'/admin/accounts');
+  } else await page.getByRole('button',{name:'Manage users',exact:true}).click();
+  await shot(page,'09-manage-users');
   await page.goto(base+'/admin/accounts/new');await shot(page,'10-create-user');
   await provisionAccount(page,base,'demo-user','Demo User',password);
   const calendar=await createCollection(page,base,'Demo calendar','VEVENT');

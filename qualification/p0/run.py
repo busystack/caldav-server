@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--client-python',default=str(ROOT/'.client-venv/bin/python'))
     parser.add_argument('--thunderbird-binary',default=str(ROOT/'.client-tools/thunderbird/thunderbird'))
     parser.add_argument('--proxy',action='store_true',help='Use the package HTTPS proxy example, preserving root or /team paths')
+    parser.add_argument('--administrator-activity',choices=('personal','users'),default='users')
     parser.add_argument('--output',type=Path,default=ROOT/'target/qualification/p0')
     args=parser.parse_args(); args.output.mkdir(parents=True,exist_ok=True)
     operations.ROOT=args.deployment_directory.resolve()
@@ -61,9 +62,14 @@ def main():
             assert configuration['services']['initialization']['logging']['driver']=='none'
             assert configuration['services']['application'].get('logging',{}).get('driver')!='none'
             if args.proxy: operations.compose(environment,'pull','--policy','missing')
-            operations.compose(environment,'up','-d','--no-build','--wait','--wait-timeout','120','database')
-            operations.compose(environment,'up','-d','--no-build','application')
-            if args.proxy: operations.compose(environment,'up','-d','--no-build','--wait','--wait-timeout','240','reverse-proxy')
+            if args.proxy:
+                # Exercise the guide's complete startup command, including both
+                # production health checks and the fixture's supplied HTTPS proxy.
+                operations.compose(environment,'up','-d','--no-build','--wait','--wait-timeout','240')
+                operations.compose(environment,'ps')
+            else:
+                operations.compose(environment,'up','-d','--no-build','--wait','--wait-timeout','120','database')
+                operations.compose(environment,'up','-d','--no-build','application')
             established.ready(base,fixture/'ca.pem',args.proxy)
             print('P0_HTTPS_READY',flush=True)
             print('P0_LOCAL_ISSUANCE',flush=True)
@@ -73,6 +79,7 @@ def main():
             issued=fixture/'issued-password';issued.touch(mode=0o600)
             command=['docker','run','--rm','--network','host','--volume',str(fixture/'ca.pem')+':/fixture/ca.pem:ro','--volume',str(fixture/'password')+':/fixture/password:ro','--volume',str(code)+':/fixture/initialization-code:ro','--volume',str(issued)+':/fixture/issued-password:rw','--volume',str(args.output.resolve())+':/evidence','--volume',str(ROOT/'qualification/p0/browser.mjs')+':/qualification/passkeys.mjs:ro','--volume',str(ROOT/'qualification/passkeys/portal-helpers.mjs')+':/qualification/portal-helpers.mjs:ro','--env','BUSYSTACK_BROWSER_CA_FILE=/fixture/ca.pem','--env','BUSYSTACK_BROWSER_URL='+base,args.browser_image]
             print('P0_BROWSER_START',flush=True)
+            command[-1:-1]=['--env','BUSYSTACK_ADMINISTRATOR_ACTIVITY='+args.administrator_activity]
             subprocess.run(command,check=True,timeout=600)
             if args.clients:
                 client_environment=os.environ.copy()
