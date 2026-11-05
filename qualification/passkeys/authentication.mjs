@@ -20,6 +20,6 @@ export async function assertRejectedPasskey(page,base) {
     options.challenge=decode(options.challenge);for(const c of options.allowCredentials||[])c.id=decode(c.id);
     const credential=await navigator.credentials.get({publicKey:options}),r=credential.response;
     return (await call('/login/webauthn',{id:credential.id,rawId:encode(credential.rawId),type:credential.type,response:{authenticatorData:encode(r.authenticatorData),clientDataJSON:encode(r.clientDataJSON),signature:encode(r.signature),userHandle:r.userHandle?encode(r.userHandle):null},clientExtensionResults:credential.getClientExtensionResults(),authenticatorAttachment:credential.authenticatorAttachment})).status;
-  },new URL(base).pathname);
+  },new URL(base).pathname.replace(/\/$/,''));
   assert.equal(status,401,'Revoked or disabled passkey authentication must fail');
 }
