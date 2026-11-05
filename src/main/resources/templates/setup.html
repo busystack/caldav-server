@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Set up BusyStack')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
+<h1>Set up BusyStack</h1>
+<p>Your server is running. Create its first administrator account to begin.</p>
+<p>To protect this server, you need an initialization code obtained through local operator access. From the extracted deployment directory, run the documented command:</p>
+<pre><code>bash scripts/initialize.sh</code></pre>
+<p>The code expires after 15 minutes. Only the operator can issue a replacement. See the included <strong>Getting Started</strong> guide, chapter 6.</p>
+<a class="button" th:href="@{/setup/administrator}">Create administrator account</a>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

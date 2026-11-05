@@ -32,6 +32,7 @@ public final class SessionEpochFilter extends OncePerRequestFilter {
         SecurityContextHolder.clearContext();
         var session = request.getSession(false);
         if (session != null) session.invalidate();
+        response.setHeader("X-BusyStack-Auth-State", "session-ended");
         response.sendError(403, "Account session has ended");
         return;
       }

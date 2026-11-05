@@ -33,9 +33,13 @@
 <th:block th:fragment="feedback">
   <div th:if="${fieldErrors != null}" class="notice error-summary" role="alert" tabindex="-1" data-error-summary aria-labelledby="error-summary-heading"><h2 id="error-summary-heading">Check the submitted details</h2><p>Correct the fields below and submit the form again.</p><ul><li th:each="e : ${fieldErrors}"><a th:href="${'#' + errorFormKey + '-' + e.key}" th:text="${e.value}"></a></li></ul></div>
   <p th:if="${notice != null}" th:text="${notice}" class="notice success" role="status"></p>
-  <div th:if="${viewer != null and !mfaCurrent}" class="notice"><strong>Security verification needed.</strong> Portal downloads and sensitive changes require primary sign-in and a passkey verified within ten minutes. <a th:href="@{/login}">Verify sign-in</a> or <a th:href="@{/security/passkeys}">set up a passkey</a>.</div>
+  <div th:if="${viewer != null and !mfaCurrent and (portalPath.startsWith('/security') or portalPath.startsWith('/credentials') or portalPath.startsWith('/admin') or portalPath == '/collections/new' or portalPath.startsWith('/portability'))}" class="notice">
+    <th:block th:if="${!primaryCurrent}">Sign in again before continuing. <a th:href="@{/auth/continue(next=${authenticationNext})}">Sign in</a>.</th:block>
+    <th:block th:if="${primaryCurrent and hasPasskeys == false}">Secure your account before making changes. <a th:href="@{/auth/continue(next=${authenticationNext})}">Create passkey</a>.</th:block>
+    <th:block th:if="${primaryCurrent and hasPasskeys == true}">Your passkey verification is needed for changes on this page. <a th:href="@{/auth/continue(next=${authenticationNext})}">Verify passkey</a>.</th:block>
+  </div>
 </th:block>
-<nav th:fragment="securityNav" aria-label="Security settings" class="security-nav"><a th:href="@{/security}">Security overview</a><a th:href="@{/security/passkeys}">Passkeys</a><a th:href="@{/security/credentials}">DAV credentials</a><a th:href="@{/security/sessions}">Sessions</a><a th:href="@{/security/recovery}">Recovery</a><a th:href="@{/oauth-grants}">OAuth grants</a></nav>
+<nav th:fragment="securityNav" aria-label="Security settings" class="security-nav"><a th:href="@{/security}">Security overview</a><a th:href="@{/security/passkeys}">Passkeys</a><a th:href="@{/security/credentials}">Application passwords</a><a th:href="@{/security/sessions}">Sessions</a><a th:href="@{/security/recovery}">Recovery</a><a th:href="@{/oauth-grants}">OAuth grants</a></nav>
 <time class="timestamp" th:fragment="timestamp(value, fallback)" th:datetime="${value}" th:text="${value == null ? fallback : #temporals.format(value, 'uuuu-MM-dd HH:mm', 'UTC') + ' UTC'}"></time>
 <footer th:fragment="footer"><span>BusyStack · Your server. Your data.</span><span>Calendar and task contents are managed in your CalDAV applications.</span><p id="copy-status" role="status" aria-live="polite"></p></footer>
 <nav th:fragment="pagination(base, page)" aria-label="Pagination" class="pagination">

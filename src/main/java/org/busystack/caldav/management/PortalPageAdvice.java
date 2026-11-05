@@ -23,6 +23,11 @@ public class PortalPageAdvice {
     String path = request.getServletPath();
     if (path.equals("/dav") || path.startsWith("/dav/") || path.startsWith("/.well-known/")) return;
     model.addAttribute("portalPath", path);
+    model.addAttribute(
+        "authenticationNext",
+        request.getContextPath()
+            + path
+            + (request.getQueryString() == null ? "" : "?" + request.getQueryString()));
     model.addAttribute("administrationArea", path.startsWith("/admin"));
     model.addAttribute("viewer", null);
     model.addAttribute("primaryCurrent", RecentAuthentication.primaryCurrent(auth));
@@ -31,6 +36,7 @@ public class PortalPageAdvice {
       try {
         model.addAttribute("viewer", management.current(auth));
         model.addAttribute("externallyManaged", management.externallyManaged(auth));
+        model.addAttribute("hasPasskeys", management.hasPasskeys(auth));
       } catch (org.springframework.security.access.AccessDeniedException
           | org.springframework.dao.DataAccessException unavailable) {
         // Safe error layouts remain renderable after account revocation or a database outage.

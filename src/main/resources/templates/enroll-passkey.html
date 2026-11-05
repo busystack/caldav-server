@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · BusyStack</title>
+<meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}">
+<script th:src="@{/assets/security.js}" defer></script><link rel="stylesheet" th:href="@{/assets/account.css}"><script th:src="@{/assets/portal.js}" defer></script></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
+<div id="enrollment-stage"><h1>Secure your account</h1><p>BusyStack requires a passkey for additional verification when managing calendars, application passwords and security.</p><p>Your browser or a supported password manager may offer to save the passkey. Follow its instructions to create one for this account.</p><button type="button" id="register-passkey" th:attr="data-context=@{/}">Create passkey</button></div>
+<div id="registration-success" hidden><h1>Passkey created</h1><p>Your passkey was saved successfully. Verify it to complete sign-in. Creating a passkey does not complete verification.</p><a class="button" th:href="@{/auth/continue}">Verify your passkey</a></div>
+<p><a th:href="@{/auth/continue}">Check account status</a> if you completed this step in another tab.</p>
+<p id="security-status" role="status" aria-live="polite"></p></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

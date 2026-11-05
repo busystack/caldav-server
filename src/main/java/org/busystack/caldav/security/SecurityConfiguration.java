@@ -145,6 +145,7 @@ public class SecurityConfiguration {
       org.busystack.caldav.security.passkey.CeremonyStore ceremonies,
       org.busystack.caldav.security.session.SessionSecurity sessions,
       org.busystack.caldav.security.throttle.LoginThrottleService throttle,
+      AuthenticationJourney journey,
       org.springframework.beans.factory.ObjectProvider<
               org.busystack.caldav.security.oidc.OidcLoginSupport>
           upstreamUsers,
@@ -158,6 +159,8 @@ public class SecurityConfiguration {
                         "/.well-known/caldav",
                         "/assets/**",
                         "/login",
+                        "/setup",
+                        "/setup/administrator",
                         "/login/webauthn",
                         "/oauth2/authorization/**",
                         "/login/oauth2/code/**",
@@ -171,7 +174,8 @@ public class SecurityConfiguration {
                     .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
-        .formLogin(login -> login.loginPage("/login").permitAll())
+        .formLogin(
+            login -> login.loginPage("/login").successHandler(journey::primarySuccess).permitAll())
         // This endpoint only returns a configured 308; it has no cookie-authenticated mutation.
         .csrf(csrf -> csrf.ignoringRequestMatchers("/.well-known/caldav"))
         .logout(logout -> logout.invalidateHttpSession(true).deleteCookies("JSESSIONID"))
@@ -195,11 +199,11 @@ public class SecurityConfiguration {
         UserDetailsService.class,
         org.busystack.caldav.security.oidc.OidcConfiguration.passkeyUsers(accounts));
     org.busystack.caldav.security.passkey.PasskeyConfiguration.configure(
-        http, deployment, passkeyUsers, ceremonies);
+        http, deployment, passkeyUsers, ceremonies, journey);
     var upstream = upstreamUsers.getIfAvailable();
     if (upstream != null)
       org.busystack.caldav.security.oidc.OidcConfiguration.configure(
-          http, upstreamRegistrations.getObject(), upstream);
+          http, upstreamRegistrations.getObject(), upstream, journey);
     return http.build();
   }
 }

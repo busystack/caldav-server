@@ -22,9 +22,7 @@ cp .env.example .env
 
 Edit `.env` with the actual HTTPS URL/issuer and private absolute secret paths.
 Create distinct database secrets as shown in `docs/operations.md` (private parent
-directory mode 0700, database files readable by container UIDs). Do not put secrets
-in `.env`, command lines or the archive. Keep the administrator bootstrap file
-owner-only. Then, from this extracted directory:
+directory mode 0700, database files readable by container UIDs). Do not put secrets in `.env`, command lines or the archive. Then, from this extracted directory:
 
 ```sh
 docker compose config --quiet
@@ -40,12 +38,19 @@ the hostname and certificate paths. Validate the proxy configuration before
 reload. Do not expose the database or application HTTP port to the network.
 For a subpath, set both URLs to the same `/calendar` suffix and preserve that path.
 
-Follow the included `docs/operations.md` for the exact local administrator
-bootstrap command, first HTTPS sign-in, passkey enrollment and MFA, first user,
-event/task collections and named DAV credential. Connect the real client to the
-account page's displayed HTTPS CalDAV address using its named credential.
-The primary account password is not the DAV password. See the included account,
-OAuth and optional external-identity guides for those workflows.
+Follow the complete illustrated [Getting Started guide](docs/GETTING_STARTED.md).
+After HTTPS is configured, a fresh server shows **Set up BusyStack**. Issue its
+15-minute, single-use code locally from this deployment directory:
+
+```sh
+bash scripts/initialize.sh
+```
+
+Choose **Create administrator account**, enter the code and choose your username
+and password in the browser. Setup does not sign you in. Sign in normally, create
+your first passkey, then verify it. Follow the guide for recovery codes, personal
+calendars or account administration, and application passwords/client setup.
+The account password is not the DAV application password.
 
 ## Updates, backup, restoration and removal
 

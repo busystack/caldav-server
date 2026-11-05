@@ -1,5 +1,7 @@
 # BusyStack CalDAV Server
 
+Start with the illustrated [Getting Started guide](docs/GETTING_STARTED.md) for installation, protected administrator setup, account security and CalDAV client connection.
+
 A self-hosted CalDAV server for calendars and tasks, with PostgreSQL persistence
 and built-in account administration. It supports local accounts and optional
 OpenID Connect login through an existing identity provider.

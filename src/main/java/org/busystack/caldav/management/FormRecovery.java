@@ -79,6 +79,10 @@ public final class FormRecovery {
       model.addAttribute("groupChoices", groups.choices(auth));
       view = "collection-sharing";
     } else if (path.equals("/credentials")) {
+      model.addAttribute(
+          "client",
+          PortalController.client(
+              Objects.requireNonNullElse(request.getParameter("client"), "generic")));
       model.addAttribute("credentialPage", portal.credentials(auth, 0));
       view = "credentials";
     } else if (path.equals("/portability/preview")) {

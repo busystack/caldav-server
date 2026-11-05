@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Set up BusyStack')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
+<h1>Create administrator account</h1>
+<p>Enter the operator-issued code. Choose a username and a password with at least 14 characters and at most 72 UTF-8 bytes.</p>
+<div th:if="${errors != null}" class="notice error" role="alert">Check the highlighted fields. Passwords and initialization codes must be entered again.</div>
+<form method="post" th:action="@{/setup/administrator}"><label for="code">Initialization code</label><input id="code" name="code" type="password" autocomplete="off" required   th:attr="aria-invalid=${errors != null and errors.containsKey('code') ? 'true' : null},aria-describedby=${errors != null and errors.containsKey('code') ? 'code-error' : null}">
+<p class="field-error" id="code-error" th:if="${errors != null and errors.containsKey('code')}" th:text="${errors['code']}"></p>
+<label for="username">Administrator username</label><input id="username" name="username" type="text" autocomplete="username" required maxlength="64" th:value="${username}" th:attr="aria-invalid=${errors != null and errors.containsKey('username') ? 'true' : null},aria-describedby=${errors != null and errors.containsKey('username') ? 'username-error' : null}">
+<p class="field-error" id="username-error" th:if="${errors != null and errors.containsKey('username')}" th:text="${errors['username']}"></p>
+<label for="password">Administrator password</label><input id="password" name="password" type="password" autocomplete="new-password" required   th:attr="aria-invalid=${errors != null and errors.containsKey('password') ? 'true' : null},aria-describedby=${errors != null and errors.containsKey('password') ? 'password-error' : null}">
+<p class="field-error" id="password-error" th:if="${errors != null and errors.containsKey('password')}" th:text="${errors['password']}"></p>
+<label for="confirmation">Confirm password</label><input id="confirmation" name="confirmation" type="password" autocomplete="new-password" required   th:attr="aria-invalid=${errors != null and errors.containsKey('confirmation') ? 'true' : null},aria-describedby=${errors != null and errors.containsKey('confirmation') ? 'confirmation-error' : null}">
+<p class="field-error" id="confirmation-error" th:if="${errors != null and errors.containsKey('confirmation')}" th:text="${errors['confirmation']}"></p>
+<button>Create administrator account</button></form>
+<p>Expired or unavailable code? Run <code>bash scripts/initialize.sh</code> again locally. Each replacement invalidates the previous code; repeated unsuccessful attempts also require a replacement.</p>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

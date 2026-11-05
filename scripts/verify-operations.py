@@ -346,9 +346,9 @@ COMMIT;
                 compose(restored, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
                 checks(restored)
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
-                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14"
+                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
                 compose(restored, "stop", "application")
-                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V14_PASSED", flush=True)
+                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V15_PASSED", flush=True)
             result = json.loads(
                 sql(
                     restored,
@@ -462,7 +462,7 @@ def negative_restores(source, private, projects):
     restore_history = "DELETE FROM flyway_schema_history; INSERT INTO flyway_schema_history SELECT * FROM json_populate_recordset(NULL::flyway_schema_history,'" + escaped + "'::json);"
     appended = "INSERT INTO flyway_schema_history(installed_rank,version,description,type,script,checksum,installed_by,execution_time,success) SELECT max(installed_rank)+1,{version},'Deliberate negative fixture','SQL','negative.sql',0,'busystack',0,true FROM flyway_schema_history;"
     cases = [
-        ("future", appended.format(version="'15'"), "supports schema versions 1 through 14"),
+        ("future", appended.format(version="'16'"), "supports schema versions 1 through 15"),
         ("failed", "UPDATE flyway_schema_history SET success=false WHERE version='13';", "Failed migration history"),
         ("gap", "DELETE FROM flyway_schema_history WHERE version='6';", "Gap in migration history"),
         ("duplicate", appended.format(version="'13'"), "Duplicate migration versions"),

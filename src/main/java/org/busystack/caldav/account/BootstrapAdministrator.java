@@ -33,7 +33,11 @@ public class BootstrapAdministrator implements ApplicationRunner {
     if (!"none".equals(environment.getProperty("spring.main.web-application-type")))
       throw new IllegalArgumentException(
           "Bootstrap requires --spring.main.web-application-type=none");
-    jdbc.execute("LOCK TABLE accounts IN EXCLUSIVE MODE");
+    jdbc.queryForObject("SELECT id FROM installation_state WHERE id=1 FOR UPDATE", Integer.class);
+    if (Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT initialized FROM installation_state WHERE id=1", Boolean.class)))
+      throw new IllegalStateException("Bootstrap is unavailable after initialization");
     if (jdbc.queryForObject("SELECT count(*) FROM accounts", Long.class) != 0)
       throw new IllegalStateException("Bootstrap is permitted only on an empty account database");
     String username = environment.getRequiredProperty("busystack.bootstrap-username");

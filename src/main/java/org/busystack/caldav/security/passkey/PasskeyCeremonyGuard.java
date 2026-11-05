@@ -42,9 +42,18 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
         if (users.hasCredentials(authentication.getName()))
           RecentAuthentication.requireMfa(authentication);
       } catch (AccessDeniedException ex) {
-        if ("GET".equals(request.getMethod()))
+        if ("GET".equals(request.getMethod())) {
+          new org.springframework.security.web.savedrequest.HttpSessionRequestCache()
+              .saveRequest(request, response);
           response.sendRedirect(request.getContextPath() + "/login?factor=required");
-        else response.sendError(403, "Recent authentication is required");
+        } else {
+          response.setHeader(
+              "X-BusyStack-Auth-State",
+              RecentAuthentication.primaryCurrent(authentication)
+                  ? "verification-required"
+                  : "primary-required");
+          response.sendError(403, "Recent authentication is required");
+        }
         return;
       }
     }
@@ -73,6 +82,7 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
       if (session == null
           || !(challenge instanceof String hash)
           || !ceremonies.consume(session.getId(), purpose, hash)) {
+        response.setHeader("X-BusyStack-Auth-State", "challenge-expired");
         response.sendError(
             path.equals("/login/webauthn") ? 401 : 400, "Challenge expired or already used");
         return;
@@ -114,6 +124,7 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
       // The configured registration filter has no failure handler. Its supported RP operation
       // has already unwound (including transaction rollback) before this boundary is reached.
       if (!post || !path.equals("/webauthn/register") || response.isCommitted()) throw ex;
+      response.setHeader("X-BusyStack-Auth-State", "registration-rejected");
       response.sendError(400, "Invalid passkey registration");
     }
   }

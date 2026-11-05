@@ -94,7 +94,12 @@ public class PortalController {
   }
 
   @GetMapping("/connections")
-  String connections(Authentication auth, @RequestParam(defaultValue = "0") int page, Model model) {
+  String connections(
+      Authentication auth,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(required = false) String client,
+      Model model) {
+    if (client != null) model.addAttribute("client", client(client));
     model.addAttribute("collectionPage", portal.collections(auth, "all", "", page));
     return "connections";
   }
@@ -106,8 +111,19 @@ public class PortalController {
   }
 
   @GetMapping("/security/credentials")
-  String credentials(Authentication auth, @RequestParam(defaultValue = "0") int page, Model model) {
+  String credentials(
+      Authentication auth,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "generic") String client,
+      Model model) {
+    model.addAttribute("client", client(client));
     model.addAttribute("credentialPage", portal.credentials(auth, page));
     return "credentials";
+  }
+
+  static String client(String client) {
+    return java.util.Set.of("thunderbird", "gnome", "generic").contains(client)
+        ? client
+        : "generic";
   }
 }

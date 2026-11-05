@@ -64,6 +64,33 @@ public class ManagementService {
     return accounts.isExternallyManaged(requireAccount(auth).id());
   }
 
+  public boolean hasPasskeys(Authentication auth) {
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM user_credentials c JOIN user_entities u ON u.id=c.user_entity_user_id JOIN accounts a ON a.id=u.account_id WHERE a.username=?)",
+            Boolean.class,
+            auth.getName()));
+  }
+
+  public boolean administratorWelcome(Authentication auth) {
+    var account = requireAccount(auth);
+    return account.administrator()
+        && Boolean.TRUE.equals(
+            jdbc.queryForObject(
+                "SELECT initial_administrator=? AND welcome_completed_at IS NULL FROM installation_state WHERE id=1",
+                Boolean.class,
+                account.id()));
+  }
+
+  @Transactional
+  public void completeWelcome(Authentication auth) {
+    RecentAuthentication.requireMfa(auth);
+    var account = requireAccount(auth);
+    jdbc.update(
+        "UPDATE installation_state SET welcome_completed_at=now() WHERE initial_administrator=? AND welcome_completed_at IS NULL",
+        account.id());
+  }
+
   public List<CalendarStore.Collection> collections(Authentication auth) {
     return calendars.collections(requireAccount(auth).id());
   }

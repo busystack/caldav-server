@@ -7,8 +7,7 @@ provider, email service or vendor account.
 ## First sign-in
 
 Open your operator's configured HTTPS address. Verify your local password, or use
-the configured organization sign-in. Enroll your first passkey under **Security →
-Passkeys**, then verify that passkey to complete MFA. Registration alone does not
+the configured organization sign-in. After primary sign-in, **Secure your account** guides first enrollment. Create the passkey, then choose **Verify your passkey** to complete MFA. Returning users verify the existing passkey. Registration alone does not
 complete authentication. Sensitive changes require primary sign-in and passkey
 verification within ten minutes. The overview and security pages explain which
 step is needed. Renew both factors for the same account when they expire.
@@ -56,8 +55,7 @@ clients must perform initial synchronization when a token is rejected.
 
 ## Connect an application
 
-Open **Connections**, then issue a named credential under **Security → DAV
-credentials**. Copy its once-shown secret directly into the application's password
+Open **Connections**, select the application, then create an application password under **Security → Application passwords**. Copy its once-shown secret directly into the application's password
 settings. The account password is not the DAV password. Secrets cannot be retrieved
 later. Credential labels, creation/expiration and active/expired/revoked status are
 available without displaying verifiers. To replace one, issue a replacement,

@@ -1,15 +1,16 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · BusyStack</title>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · BusyStack</title>
 <meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}">
 <script th:src="@{/assets/security.js}" defer></script><link rel="stylesheet" th:href="@{/assets/account.css}"><script th:src="@{/assets/portal.js}" defer></script></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page"><th:block th:replace="~{fragments/layout :: feedback}"></th:block><h1>Sign in to BusyStack</h1>
-<p>Complete primary sign-in, then verify your passkey for the same account. Portal downloads and sensitive changes require both factors within ten minutes.</p><p th:if="${viewer != null}">Signed in as <strong th:text="${viewer.username}"></strong>. <span th:text="${mfaCurrent ? 'Both authentication factors are current.' : primaryCurrent ? 'Primary sign-in is current. Verify your passkey next.' : 'Renew primary sign-in, then verify your passkey.'}"></span></p><p th:if="${param.password}" role="status">Password changed and prior access revoked. Sign in with your new password, then verify your existing passkey.</p>
-<p th:if="${param.recovered}" role="status">Recovery completed. Prior passkeys and client access were revoked. Sign in again and enroll a new passkey.</p><p th:if="${param.session}" role="status">Browser session ended. Sign in again to continue.</p><p th:if="${param.error}">Sign in failed. Check your account details.</p>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
+<h1>Sign in to BusyStack</h1><p>Enter your account details to continue.</p>
+<p th:if="${viewer != null}">Your primary sign-in has expired. Sign in again to continue.</p>
+<p th:if="${param.password}" role="status">Password changed. Sign in with your new password.</p>
+<p th:if="${param.recovered}" role="status">Recovery completed. Sign in again, then create a new passkey.</p>
+<p th:if="${param.session}" role="status">Your browser session ended. Sign in again.</p>
+<p th:if="${param.error}" class="notice error" role="alert">Sign in failed. Check your account details. If your account was disabled, contact your administrator.</p>
 <p th:if="${oidcEnabled}"><a th:href="@{/oauth2/authorization/upstream}">Sign in with your organization's identity provider</a></p>
-<h2>1. Primary sign-in</h2><p th:if="${viewer != null and externallyManaged}">Use your organization identity provider. Local-password sign-in is unavailable for this account.</p><form th:unless="${viewer != null and externallyManaged}" th:action="@{/login}" method="post"><p><label>Username <input name="username" autocomplete="username" required></label></p><p><label>Password <input name="password" type="password" autocomplete="current-password" required></label></p><button type="submit">Verify password</button></form>
-<h2>2. Verify your passkey</h2><button type="button" id="authenticate-passkey" th:attr="data-context=@{/}">Verify passkey</button>
-<p id="security-status" role="status" aria-live="polite"></p>
-<p>After verifying your password, <a th:href="@{/security/passkeys}">enroll your first passkey</a>. For a lost passkey, use an offline recovery code after primary sign-in at <a th:href="@{/security/recovery}">account recovery</a>. If you also lost primary sign-in, contact your operator for the documented recovery procedure.</p>
-<p><a th:href="@{/}">Account management</a></p>
-</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>
+<p th:if="${viewer != null and externallyManaged}">Your organization manages sign-in. Use the identity provider link above.</p>
+<form th:unless="${viewer != null and externallyManaged}" th:action="@{/login}" method="post"><label for="username">Username</label><input id="username" name="username" autocomplete="username" required autofocus><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form>
+<p>Forgot your sign-in details? Contact your deployment operator for controlled account recovery.</p>
+<p id="security-status" role="status" aria-live="polite"></p></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

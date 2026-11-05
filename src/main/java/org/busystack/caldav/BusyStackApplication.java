@@ -17,6 +17,7 @@ public class BusyStackApplication {
               long operations =
                   java.util.stream.Stream.of(
                           "busystack.bootstrap",
+                          "busystack.issue-initialization-code",
                           "busystack.recover-account",
                           "busystack.recover-external-account")
                       .filter(name -> environment.getProperty(name, Boolean.class, false))

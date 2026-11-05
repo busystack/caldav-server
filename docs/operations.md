@@ -178,9 +178,36 @@ location /calendar/ {
 
 The metadata URL follows [RFC 8414 §3](https://www.rfc-editor.org/rfc/rfc8414.html#section-3): the well-known segment is inserted before the issuer's path. The Spring application's local metadata endpoint remains inside its servlet context. Use literal configured authority/prefix values in these mappings. The embedded TLS security suite exercises a servlet subpath. The final packaged image passed actual pinned Nginx `/team`, root TLS, cross-site Keycloak and local/federated HTTPS restoration profiles with normal test-CA validation; see [exact image/evidence scope](https://github.com/busystack/caldav-server/blob/f3ba60d360117c44b3dfeb6dc9848778a98ef06a/qualification/evidence/README.md). Later protocol/schema changes require corresponding artifact reruns.
 
+## Protected browser initialization
+
+Use [Getting Started](GETTING_STARTED.md) as the canonical installation and user
+sequence. After startup and HTTPS verification, open the configured URL. On a new
+database the dedicated setup screen directs the local operator to run:
+
+```sh
+bash scripts/initialize.sh
+```
+
+Run from the extracted deployment directory against its healthy database. Only
+that one-off local command prints a 256-bit random code. The database stores a
+purpose-separated SHA-256 verifier for 15 minutes. Each issuance replaces the
+previous code; five invalid attempts invalidate it. The browser form uses CSRF,
+no-store and no-referrer. The code is never supplied in a URL. Initialization
+locks a singleton database row and uses AccountService transactionally. V15
+permanently closes setup when any account is inserted, including offline bootstrap
+and allowlisted federation. Existing accounts, including disabled ones, seed the
+closed latch on upgrade. Restore invalidates pending codes and preserves closure.
+The first-administrator welcome dismissal is retained only in that installation
+record; ordinary-user progress comes from existing resource/security state.
+
+After browser creation, use normal sign-in, first-passkey enrollment, then a
+separate assertion. Registration never grants WebAuthn authentication authority.
+The ten-minute policy and management guards are unchanged. A dedicated verification
+page avoids refreshing directly into a guarded management page after registration.
+
 ## Local administrator bootstrap
 
-There is no default administrator password or unauthenticated setup endpoint. The local bootstrap command requires an empty account database, a private owner-only password file, and `--spring.main.web-application-type=none`. Use the executable JAR with database configuration supplied securely through environment/configuration:
+There is no default administrator password. The official installation uses protected browser setup above; the established offline bootstrap below remains available for controlled operator use only on an untouched empty database. The local bootstrap command requires an empty account database, a private owner-only password file, and `--spring.main.web-application-type=none`. Use the executable JAR with database configuration supplied securely through environment/configuration:
 
 ```sh
 umask 077
@@ -315,7 +342,7 @@ Keep history intact under the supported default. Any future operator pruning int
 
 The database contains account/principal mappings, ownership, memberships, calendar representations, revisions, history, DAV credential verifiers, and the implemented OAuth persistence tables. Back up it and the deployment configuration/secret files. Store encrypted backups outside the server, control access, and periodically test restoration. The selected OAuth access-token model uses opaque reference tokens, so it does not require a JWT signing-key file. Any future cryptographic material must be added to the recovery contract before functionality relying on it is released.
 
-From the checkout with the same Compose configuration environment:
+From the extracted deployment directory with the same Compose project and configuration:
 
 ```sh
 install -d -m 700 /private/backups
@@ -324,16 +351,16 @@ install -d -m 700 /private/backups
 
 The script creates a consistent PostgreSQL custom-format archive and a SHA-256 checksum with private file permissions. It refuses to overwrite an existing archive. Retain the exact application version, Compose configuration, and secret material separately. Never publish backups as CI artifacts.
 
-Restore only to a newly initialized, isolated database. Stop every application instance first. The script accepts a complete, unique, successful migration history from V1 through at most V14; failed, missing, duplicate, gapped and future histories fail closed. It refuses a running application or any nonempty target database and never removes an existing volume or database:
+Restore only to a newly initialized, isolated database. Stop every application instance first. The script accepts a complete, unique, successful migration history from V1 through at most V15; failed, missing, duplicate, gapped and future histories fail closed. It refuses a running application or any nonempty target database and never removes an existing volume or database:
 
 ```sh
 docker compose stop application
 ./scripts/restore.sh /private/backups/caldav-2026-10-27.dump
 ```
 
-After loading an archive at schema versions 1 through 13, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. DAV bindings, folders, dead properties, sharing groups, group memberships/grants and the retired-principal identity registry remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
+After loading an archive at schema versions 1 through 15, restoration disables all accounts, changes the durable `system_state.recovery_epoch`, deletes all restored DAV credentials, passkeys and OAuth authorizations/consents, and revokes refresh-token families. It also deletes JDBC browser sessions, single-use recovery codes, WebAuthn ceremony records and login-throttle state, rotates every account security epoch and records the restore in the security audit. It preserves external issuer/subject mappings but expires their upstream-authentication timestamps. Sync tokens include the changed epoch; pre-restore tokens must be rejected. Disabling restored accounts and removing restored credentials/grants prevents passwords or credentials changed/revoked after the backup from silently becoming valid again. DAV bindings, folders, dead properties, sharing groups, group memberships/grants and the retired-principal identity registry remain authoritative data and are retained. Registered OAuth clients remain registered, but users must authorize fresh grants. If loading or invalidation fails, leave the application stopped and investigate. This script refuses later migrations until the recovery policy is updated for new persisted security state.
 
-Keep **all** application instances stopped while loading and invalidating restored state. For a supported older archive, including the reviewed V9 schema, the current image can then start with every account disabled to apply forward migrations; stop it again before controlled account recovery. This is an offline upgrade arrangement, not a rolling upgrade. Do not start another older application instance against the upgraded database. The required operations harness exercises both same-version restoration and V9 restoration followed by migration to V14.
+Keep **all** application instances stopped while loading and invalidating restored state. For a supported older archive, including the reviewed V9 schema, the current image can then start with every account disabled to apply forward migrations; stop it again before controlled account recovery. This is an offline upgrade arrangement, not a rolling upgrade. Do not start another older application instance against the upgraded database. The required operations harness exercises both same-version restoration and V9 restoration followed by migration to V15.
 
 After independently verifying a user's identity, use the controlled local recovery operation with an owner-only file containing a fresh password:
 
@@ -371,6 +398,6 @@ Take and verify a backup, retain the previous application artifact/configuration
 python3 scripts/build-image.py --compose up -d --no-build --no-deps --wait application
 ```
 
-Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version @VERSION@ uses migrations V1–V14. V14 adds nullable opaque administrative audit targets and preserves historical entries; published migrations remain unchanged.
+Keep the same Compose project, secret paths and public URL. Inspect startup/migration status and verify discovery, an existing resource and synchronization before reopening access. Flyway applies versioned migrations and validates their checksums at startup; production schema auto-mutation is not enabled. Migrations are forward-only unless a particular migration has a separately tested reversal. Rolling back a JAR does not safely roll back a database schema. Version @VERSION@ uses migrations V1–V15. V14 adds nullable opaque administrative audit targets; V15 adds protected installation state and invalidates outstanding initialization codes during restore; published migrations remain unchanged.
 
 The native Thunderbird and Python client results are scoped to their recorded versions and interoperability profile; see [client evidence](../qualification/clients/README.md). This Compose arrangement provides no high availability, automatic failover or measured user-capacity guarantee. The [executed workload record](performance.md) reports the actual host/image/dataset, end-to-end latency, sampled memory/CPU and PostgreSQL behavior; raw evidence is retained separately. It is one sequential client, not a user-capacity or concurrency guarantee.

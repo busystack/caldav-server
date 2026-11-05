@@ -71,7 +71,8 @@ public class PasskeyConfiguration {
       HttpSecurity http,
       DeploymentProperties properties,
       AccountPasskeyUsers users,
-      CeremonyStore ceremonies) {
+      CeremonyStore ceremonies,
+      org.busystack.caldav.security.AuthenticationJourney journey) {
     var base = properties.publicBaseUrl();
     http.webAuthn(
         web -> {
@@ -84,6 +85,7 @@ public class PasskeyConfiguration {
                 @Override
                 public <O extends WebAuthnAuthenticationFilter> O postProcess(O filter) {
                   filter.setSessionAuthenticationStrategy(new SessionFixationProtectionStrategy());
+                  filter.setAuthenticationSuccessHandler(journey::passkeySuccess);
                   return filter;
                 }
               });

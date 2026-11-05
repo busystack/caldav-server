@@ -25,7 +25,23 @@ public class ManagementController {
     model.addAttribute("account", management.current(auth));
     model.addAttribute("setup", portal.setup(auth));
     model.addAttribute("recentCollections", portal.collections(auth, "all", "", 0));
+    if (management.administratorWelcome(auth)) {
+      if (!org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth))
+        return "redirect:/auth/continue";
+      return "administrator-welcome";
+    }
     return "dashboard";
+  }
+
+  @PostMapping("/welcome")
+  String welcome(Authentication auth, @RequestParam String activity) {
+    if (!java.util.Set.of("personal", "users").contains(activity))
+      throw new IllegalArgumentException("Choose an activity");
+    if (activity.equals("users")) management.requireAdministrator(auth);
+    management.completeWelcome(auth);
+    return activity.equals("users")
+        ? "redirect:/admin/accounts"
+        : "redirect:/collections?scope=all";
   }
 
   @PostMapping("/collections")
@@ -62,10 +78,14 @@ public class ManagementController {
       Authentication auth,
       @RequestParam(defaultValue = "") String label,
       @RequestParam int days,
+      @RequestParam(defaultValue = "generic") String client,
       Model model,
       jakarta.servlet.http.HttpServletResponse response) {
+    model.addAttribute("client", PortalController.client(client));
+    model.addAttribute("label", label);
     model.addAttribute("credential", management.issue(auth, label, days));
     response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Referrer-Policy", "no-referrer");
     return "issued-credential";
   }
 

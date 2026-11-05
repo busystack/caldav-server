@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 @Configuration
 public class OidcConfiguration {
@@ -40,7 +39,10 @@ public class OidcConfiguration {
   }
 
   public static void configure(
-      HttpSecurity http, ClientRegistrationRepository registrations, OidcLoginSupport users)
+      HttpSecurity http,
+      ClientRegistrationRepository registrations,
+      OidcLoginSupport users,
+      org.busystack.caldav.security.AuthenticationJourney journey)
       throws Exception {
     var resolver =
         new DefaultOAuth2AuthorizationRequestResolver(registrations, "/oauth2/authorization");
@@ -54,7 +56,6 @@ public class OidcConfiguration {
               });
         });
     var repository = new HttpSessionOAuth2AuthorizedClientRepository();
-    var success = new SavedRequestAwareAuthenticationSuccessHandler();
     http.oauth2Login(
         login ->
             login
@@ -71,7 +72,7 @@ public class OidcConfiguration {
                       // tokens.
                       repository.removeAuthorizedClient(
                           "upstream", authentication, request, response);
-                      success.onAuthenticationSuccess(request, response, authentication);
+                      journey.primarySuccess(request, response, authentication);
                     }));
   }
 

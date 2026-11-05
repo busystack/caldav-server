@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · BusyStack</title>
+<meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}">
+<script th:src="@{/assets/security.js}" defer></script><link rel="stylesheet" th:href="@{/assets/account.css}"><script th:src="@{/assets/portal.js}" defer></script></head>
+<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
+<h1>Authentication successful</h1><p>Your primary sign-in and passkey verification are current.</p><a class="button" th:href="${destination}">Continue</a>
+<p id="security-status" role="status" aria-live="polite"></p></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

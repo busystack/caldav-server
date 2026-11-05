@@ -74,7 +74,7 @@ def fixture(version='0.1.0'):
         root.mkdir()
         git(root, 'init', '--quiet', '--initial-branch=main')
         paths = ['pom.xml', 'Dockerfile', 'compose.yaml', 'LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES',
-                 'scripts/init-db.sh', 'scripts/backup.sh', 'scripts/restore.sh', *bundle.OPERATOR_DOCUMENTS]
+                 'scripts/init-db.sh', 'scripts/backup.sh', 'scripts/restore.sh', 'scripts/initialize.sh', *bundle.OPERATOR_DOCUMENTS, *bundle.SCREENSHOTS]
         for base in ('deployment', 'licenses', 'src/main/resources/META-INF/licenses'):
             paths.extend(str(p.relative_to(ROOT)) for p in (ROOT / base).rglob('*') if p.is_file())
         for name in paths:

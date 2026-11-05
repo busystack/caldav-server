@@ -60,8 +60,7 @@ accepted without current primary authentication and the correct internal account
 An externally managed account retains its verified issuer/subject mapping. Recovery
 does not create a local password or bypass upstream account restrictions. If the
 primary credential is also lost, use the controlled administrator-assisted local
-operation documented in [operations](operations.md); the public server does not
-provide a first-run or password-reset takeover endpoint.
+operation documented in [operations](operations.md); the public server offers only operator-code-protected first initialization, with no password-reset takeover endpoint.
 
 ## Password changes and upgrades
 

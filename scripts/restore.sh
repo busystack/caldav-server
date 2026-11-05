@@ -39,8 +39,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version='1' AND success) THEN
     RAISE EXCEPTION 'Missing V1 migration history; leave application stopped';
   END IF;
-  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14')) THEN
-    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 14 only; leave application stopped and update recovery procedure';
+  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15')) THEN
+    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 15 only; leave application stopped and update recovery procedure';
   END IF;
   IF EXISTS (SELECT version FROM flyway_schema_history WHERE version IS NOT NULL GROUP BY version HAVING count(*) <> 1) THEN
     RAISE EXCEPTION 'Duplicate migration versions; leave application stopped';
@@ -51,6 +51,11 @@ BEGIN
   END IF;
   IF to_regclass('public.sync_continuations') IS NOT NULL THEN
     DELETE FROM sync_continuations;
+  END IF;
+  IF to_regclass('public.installation_state') IS NOT NULL THEN
+    UPDATE installation_state SET code_verifier=NULL,expires_at=NULL,failed_attempts=0,
+      initialized=initialized OR EXISTS(SELECT 1 FROM accounts),
+      welcome_completed_at=CASE WHEN initialized THEN now() ELSE welcome_completed_at END;
   END IF;
   UPDATE system_state SET recovery_epoch = gen_random_uuid();
   GET DIAGNOSTICS affected = ROW_COUNT;

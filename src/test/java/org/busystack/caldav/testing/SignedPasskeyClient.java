@@ -98,6 +98,10 @@ public final class SignedPasskeyClient implements AutoCloseable {
 
   public String csrf(HttpClient browser, String path) throws Exception {
     var response = get(browser, path);
+    if (path.equals("/login")
+        && response.statusCode() == 302
+        && response.headers().firstValue("Location").orElse("").endsWith("/auth/continue"))
+      response = get(browser, "/auth/continue");
     assertThat(response.statusCode()).as(path).isEqualTo(200);
     return csrf(response.body());
   }

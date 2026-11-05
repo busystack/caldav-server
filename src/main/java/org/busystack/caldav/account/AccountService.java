@@ -70,8 +70,7 @@ public class AccountService {
   public UUID provision(
       String username, String displayName, String password, boolean administrator) {
     validatePassword(password);
-    if (username == null
-        || !username.matches("[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}")
+    if (!validUsername(username)
         || displayName == null
         || displayName.isBlank()
         || displayName.codePointCount(0, displayName.length()) > 200
@@ -91,6 +90,10 @@ public class AccountService {
 
   private static void validatePassword(String password) {
     org.busystack.caldav.security.password.PasswordPolicy.validate(password);
+  }
+
+  public static boolean validUsername(String username) {
+    return username != null && username.matches("[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}");
   }
 
   /** Operator-only recovery entry point. No controller exposes this operation. */

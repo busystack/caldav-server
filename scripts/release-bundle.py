@@ -7,6 +7,7 @@ import importlib.util
 import io
 import json
 import os
+import posixpath
 from pathlib import Path
 import re
 import shutil
@@ -18,6 +19,10 @@ import release_version as versions
 
 ROOT = Path(__file__).resolve().parents[1]
 OPERATOR_DOCUMENTS = (
+    'docs/GETTING_STARTED.md',
+    'docs/portal.md',
+    'docs/administration.md',
+    'docs/portability.md',
     'docs/operations.md',
     'docs/account-security.md',
     'docs/calendar-semantics.md',
@@ -31,6 +36,27 @@ OPERATOR_DOCUMENTS = (
     'docs/versions.md',
     'docs/adr/0004-resumable-synchronization.md',
 )
+SCREENSHOTS = tuple(f'docs/images/getting-started/{number:02d}-{name}.png' for number, name in enumerate((
+    'initial-setup', 'create-administrator', 'setup-complete', 'sign-in', 'create-passkey',
+    'passkey-created', 'verify-passkey', 'administrator-welcome', 'manage-users', 'create-user',
+    'user-onboarding', 'calendars', 'connect-application', 'create-application-password',
+    'password-created', 'client-configuration', 'security', 'recovery', 'sharing', 'import-export'), 1))
+
+
+def validate_guide(files):
+    """Missing illustrations or broken local guide links fail artifact validation."""
+    guide = 'docs/GETTING_STARTED.md'
+    text = files[guide].decode()
+    for name in SCREENSHOTS:
+        assert name in files, 'Missing guide screenshot: ' + name
+        assert files[name].startswith(b'\x89PNG\r\n\x1a\n'), 'Invalid guide PNG: ' + name
+    for target in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', text):
+        if target.startswith(('https://', 'http://', '#', 'mailto:')):
+            continue
+        path = posixpath.normpath(posixpath.join('docs', target.split('#')[0]))
+        assert path in files, 'Broken guide reference: ' + target
+    for name in SCREENSHOTS:
+        assert name.removeprefix('docs/') in text, 'Unreferenced guide screenshot: ' + name
 spec = importlib.util.spec_from_file_location('candidate', ROOT / 'scripts/release-candidate.py')
 candidate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(candidate)
@@ -72,10 +98,15 @@ def build(source, digest, output):
         return data.replace(b'@VERSION@', version.encode()) if render else data
     for name in qualified.under('deployment'):
         files[name.removeprefix('deployment/')] = content(name, render=True)
-    for name in ('init-db.sh', 'backup.sh', 'restore.sh'):
+    for name in ('init-db.sh', 'backup.sh', 'restore.sh', 'initialize.sh'):
         files['scripts/' + name] = content('scripts/' + name)
     for name in (*OPERATOR_DOCUMENTS, f'docs/releases/{version}.md'):
         files[name] = content(name, render=True)
+    for name in SCREENSHOTS:
+        files[name] = content(name)
+    for name in ('nginx-root.conf.example', 'nginx-subpath.conf.example'):
+        files['deployment/' + name] = content('deployment/' + name, render=True)
+    validate_guide(files)
     receipt = versions.receipt_path(version)
     files[receipt] = content(receipt)
     notices = {name: content(name) for name in ('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES')}
@@ -147,6 +178,7 @@ def validate_assets(directory, version=None, source_sha=None):
         contents = {p.name.removeprefix(prefix): archive.extractfile(p).read() for p in members}
         assert len(contents) == len(members), 'Duplicate deployment entries'
     assert {name: hashlib.sha256(data).hexdigest() for name, data in contents.items()} == manifest['deploymentFiles'], 'Deployment content mismatch'
+    validate_guide(contents)
     assert 'build:' not in contents['compose.yaml'].decode() and manifest['container']['image'].encode() in contents['compose.yaml']
     with tarfile.open(directory / 'notices.tar.gz') as archive:
         for member in archive:
