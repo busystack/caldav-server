@@ -519,6 +519,10 @@ security generation and revokes existing independent access.
 
 Users choose organizational sign-in, then the same local passkey enrollment or
 verification appropriate to actual account state. They do not configure Keycloak.
+Organization sign-in requests fresh provider authentication (`prompt=login`,
+`max_age=0`) and requires a recent verified authentication time. The ten-minute
+primary-sign-in and passkey policy still applies to sensitive portal operations;
+complete a fresh provider sign-in when primary authentication expires.
 Provider tokens are not DAV passwords. BusyStack discards upstream access/refresh
 tokens after login and uses its own application-access mechanisms.
 
