@@ -1,8 +1,9 @@
 # v0.2.0 P0 engineering report
 
-Final qualification of the V16 group-plan correction is in progress. Completed
-results below currently describe the earlier V15 artifact until the corrected
-runtime's full rerun replaces them. No release-readiness claim is made.
+Implementation and complete local automated qualification passed. The final runtime
+has 685 passing Maven tests, zero SpotBugs findings, and successful packaged,
+browser, real-Keycloak and native-client profiles. Firefox/Bitwarden acceptance
+and public release qualification remain separate conditions below.
 
 ## Repository and preservation
 
@@ -33,6 +34,9 @@ Local development commits (the final report/evidence commit is identified by rep
 * `42bc581bbfd5ef27ee51c24a4422fb18b52dbdf0`: Qualify the documented startup command and both administrator choices
 * `161fc2aa2c3a296fd44b347f308df543890f0a05`: Expect fresh passkey enrollment after restored-account primary sign-in
 * `b01333a1866e9292a17f801e17922a2ae4930566`: Explain organizational sign-in freshness in the canonical guide
+* `358a1ed2903d8d51622ecad00de6c973c9a94375`: Bound cached group reconciliation plans without extending mutation deadlines
+* `7c8f36b8676b10186822432ecaa20a098e8c8144`: Record green V16 verification and final production-image screenshots
+* `40176d20800c7d0a75f692f15a0d782cfcf6d5c5`: Record final packaged, browser and native-client qualification evidence
 
 ## Implemented behavior
 
@@ -85,30 +89,40 @@ POST pages navigate with GET when restored; authentication does not replay POSTs
 ## Qualified runtime and deployment identities
 
 The final application runtime is built from
-`01760f7baa03275267b8aea9a360ddce2669fba9`. Subsequent commits change qualification
+`358a1ed2903d8d51622ecad00de6c973c9a94375`. Subsequent commits change qualification
 and documentation only; packaging compares every main/runtime input with that
 image revision before accepting it.
 
-* Production JAR SHA-256: `776a5eeb571c1e105e0a74f3707064e5a7d23e8d5bdc93093416ddb5d927c301`.
-* Local application image/index: `sha256:a34edc9b3883709bdeba81a0b085d2adc9bdfe3cfebcfd8747c95452643403fb`.
-* Final illustrated deployment archive source: `b01333a1866e9292a17f801e17922a2ae4930566`.
-* Final archive SHA-256: `44b20c932a25325f459bc931f3ca9332e010c17c68fd3b58c0872db1eb464ab1`.
+* Production JAR SHA-256: `ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62`.
+* Local application image/index: `sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699`.
+* Delivery archive source: `40176d20800c7d0a75f692f15a0d782cfcf6d5c5`.
+* Delivery archive SHA-256: `af932106d114655593dbff909b9315faaa66185444e3b235cef8d217e2e612d9`.
 
 The six production-format local assets contain real checksums, source inputs,
 deployment-file hashes, embedded SBOM and notices. Their metadata explicitly says
 **local-unpublished** and invents no CI run or registry publication. The shared
 production validator accepts them; the public publisher still requires its normal
-CI and client-matrix evidence. A repeat of the earlier package at `7844358`
+CI and client-matrix evidence. Both the earlier `7844358` package and the final `40176d2` delivery package
 reproduced all six assets byte for byte. The complete package additionally includes
 the supporting documents' relative-link targets and validates every packaged
 Markdown link, beyond the canonical guide's twenty required PNGs.
 
-The complete archive passed fresh initialization and the 48-assertion P0 browser
-journey at both root and `/team` using its actual Nginx examples, with normal test-CA
-TLS validation. Each installation also passed python-caldav 3.6.0 and the real
-Thunderbird 159.0 native provider using a browser-issued application password.
-Both started from empty databases with no pre-created administrator. These are
-local package tests; anonymous download/pull of a public 0.2.0 release is not claimed.
+The full eight-profile packaged matrix used archive source
+`7c8f36b8676b10186822432ecaa20a098e8c8144`, SHA-256
+`99100b1f9e30ef9910f74b34e9afb0487ce0dcf650cb8898f220368c143d7473`.
+Root installation passed 49 assertions; `/team` passed 48. Each passed real
+python-caldav 3.6.0 and Thunderbird 159.0 native-provider correctness checks using
+a browser-issued application password. The source-image capture separately
+passed 49 assertions and produced the twenty final guide images.
+
+The delivery archive updates only `SOURCE.json` and the qualification receipt.
+Every other deployment file, including Compose, scripts, guide and images, is
+byte-identical to the archive that passed the full matrix. All six delivery assets reproduced byte for byte. Its separate clean HTTPS
+installation exited 0 with 49 browser assertions and both independent clients
+passing. Source and extracted-package validation passed for the guide, all twenty
+PNGs, and every relative Markdown link in the archive. No source compilation is
+used inside an installation. These are unpublished local-package tests, not
+anonymous download/pull of a public release.
 
 ## Security design
 
@@ -170,7 +184,10 @@ The second full attempt was deliberately stopped after this already-fatal error,
 before its long portal suite: exit 143, 424 unit tests passed, 229 integration tests
 completed with this single error. It is not a successful complete run. The earlier
 full attempt completed 261 integration tests with the six documented failures.
-Final corrected-artifact results must supersede these attempts below.
+The corrected full run at `358a1ed` passed all 685 tests. Its complete group suite
+measured add/remove/re-add/delete at 2120/980/2346/1070 ms and verified that the
+caller's planning preference was restored. The diagnostic plans and measurements
+are retained in [group-plan evidence](../qualification/evidence/releases/0.2.0/group-plan/result.json).
 
 ## Investigation of passkey/credential state
 
@@ -201,21 +218,26 @@ Executed results (all rows marked passed exited 0):
 
 | Check | Result and scope |
 | --- | --- |
-| Final complete Maven verification | Running; counts/exit status will be recorded after completion |
-| Corrected focused integration gate | 36 integration tests passed: initialization 8, large-group maintenance 1, signed WebAuthn HTTP 8, real Keycloak 5, OIDC boundaries 4, security boundaries 6, portal 4. That invocation subsequently failed SpotBugs on one-use `SecureRandom`; corrected below. |
-| Initialization/static-analysis correction | 2 unit and 8 integration tests passed; SpotBugs 0 findings; complete targeted `verify` exited 0 |
-| Release-tool tests | 33 passed, including guide/image/relative-supporting-link failure cases; publication transports mocked |
-| Existing qualification fixture unit tests | 14 passed |
-| Fresh P0 journey, embedded HTTPS | 48 assertions; 20 screenshots; Python CalDAV and Thunderbird 159.0 passed |
-| Archive `fac5e63`, root Nginx HTTPS | 48 assertions, 20 screenshots, Python CalDAV and Thunderbird 159.0 passed |
-| Same archive, `/team` Nginx HTTPS | 48 assertions, 20 screenshots, both independent clients passed |
-| Final archive `b01333a`, documented startup and personal administrator choice | 49 assertions; 20 screenshots; normal production health checks and local initialization command |
-| Existing root browser regression | Passed enrollment/assertion, recovery, OAuth, sharing, process-kill import rollback, restart and disabled-account denial |
-| Existing proxy + restore + clients | Passed actual backup/restore, old-session/DAV/Bearer/refresh/sync rejection, fresh MFA, byte-exact audit fixtures, shared READ/WRITE boundaries, revocation and both independent clients |
+| Complete Maven `clean verify`, source `358a1ed` | Exit 0; 424 unit + 261 integration tests, no failures/errors/skips; SpotBugs 0; 41:50 elapsed |
+| Focused V16 correction gate | Exit 0; 2 unit + 24 integration tests, including the entire 16-test group suite and 8-test initialization suite; SpotBugs 0 |
+| Release-tool tests | 33 passed; missing guide/image/supporting-link cases included; publisher transports mocked |
+| Qualification fixture unit tests | 14 passed; provided pre-existing fixture edits preserved |
+| Final production-image P0 capture | 49 assertions, 20 real screenshots; Python CalDAV 3.6.0 and native Thunderbird 159.0 passed |
+| Packaged root, personal administrator activity | 49 assertions, 20 screenshots, both independent clients passed |
+| Packaged `/team`, manage-users activity | 48 assertions, 20 screenshots, both independent clients passed |
+| Root browser regression | Passed real enrollment/assertion, recovery, OAuth, sharing, process-kill import rollback, restart and disabled-account denial |
+| Proxy + restore + clients | Passed actual backup/restore, old-session/DAV/Bearer/refresh/sync rejection, fresh MFA, byte-exact audit fixtures, shared READ/WRITE boundaries, revocation and both clients |
 | Real cross-site Keycloak + restore | Passed provider password login, local passkeys, nonadministrator provisioning despite upstream role, local-password denial, recovery, restoration, sharing and disabled-account denial |
-| GNOME Calendar 50.0-1 / EDS 3.56.2-8 | Passed actual connection wizard, normal private-CA TLS, event synchronization and EDS create/modify/delete independently observed over HTTPS |
-| Packaged operations | Passed corrective V14 image replacement and V9 restore/forward migration, V15 closure, backup/checksum, non-root/read-only runtime, controlled local/external recovery and all malformed-history safeguards |
-| Distribution integrity | Passed image/JAR identity, dependency integrity and notices/license inspection; 112 runtime components |
+| GNOME Calendar 50.0-1 / EDS 3.56.2-8 | Passed actual connection wizard, normal private-CA TLS, event synchronization and native EDS create/modify/delete independently observed over HTTPS |
+| Packaged operations | Passed corrective V14 image replacement and V9 restore/forward migration to V16, initialization closure, backup/checksum, non-root/read-only runtime, controlled local/external recovery and every malformed-history safeguard |
+| Distribution integrity | Passed exact image/JAR, dependency integrity and license/notices inspection; 112 runtime components |
+
+Exact matrix command arrays, exit codes, timestamps, log digests, client versions,
+artifact identities and screenshot hashes are in the committed
+[P0 result record](../qualification/evidence/releases/0.2.0/p0-results.json).
+All eight final matrix commands exited 0. The metadata-only delivery successor
+also passed its own fresh installation. Local raw logs use the `v16-` prefix
+under `.qualification-runs/p0/`; Maven uses `full-maven-v16.log/json`.
 
 The two administrator activities were exercised on separate fresh deployments.
 Ordinary-user coverage includes an existing shared collection without forced
@@ -250,16 +272,24 @@ existing pinned distributions. Browser evidence uses Playwright 1.61.1 /
 Chromium 149.0.7827.55 with a CTAP2 virtual authenticator. That does not qualify
 Firefox/Bitwarden, synced-provider behavior generally or physical authenticators.
 
-Two earlier long runs were interrupted by host restarts. They are not counted as
-successful complete verification. The current full run exposed a V14-upgrade
-fixture search-path error, OIDC fixtures that omitted the newly required initial
-local administrator, and an existing 10,001-collection group deadline failure.
-Fixture corrections preserve the production initialization gate and published
-migrations; the group deadline remains unchanged and the isolated large-group case
-passed. The final complete rerun is recorded separately. Two browser fixture
-corrections removed a root-path network-reference URL and an obsolete dashboard
-expectation after restored primary sign-in; both affected profiles subsequently
-passed without a production authentication change.
+Two earlier runs were interrupted by host restarts and are not counted as successful
+verification. The first completed full run (`f25b9c5`) exited 1 with 424 passing
+unit tests and 261 integration tests containing one failure and five errors. It
+exposed V14-fixture search-path handling, OIDC fixtures without the now-required
+initial administrator, and the group-plan timeout. Fixture corrections preserved
+the initialization gate and published migrations. A subsequent targeted run passed
+36 integration tests but failed SpotBugs for one-use `SecureRandom`; retaining the
+entropy source fixed that finding. The next full attempt (`b01333a`) was stopped
+with exit 143 after the reproduced group timeout (229 completed integration tests,
+one error). V16 fixes that demonstrated production defect; the final full run is
+green. Two browser fixture corrections removed a root-path network-reference URL
+and an obsolete post-recovery dashboard expectation; affected final profiles passed.
+
+The `NotAllowedError` cancellation presentation check uses an injected browser API
+error; it does not claim a person cancelled a native password-manager dialog.
+Actual enrollment/assertion use Chromium's virtual CTAP2 authenticator. The lost
+registration-response check interrupts a real committed HTTP response, then verifies
+authoritative reconciliation and the continuing requirement for an assertion.
 
 ## Packaged and manual acceptance
 
@@ -279,16 +309,114 @@ image reference in the generated release package, without source compilation in
 the installation. The local cache replaces the unavailable publication step; no
 authentication exception or test-only runtime mode is used.
 
-Anonymous public
-release download/pull acceptance requires published assets and is separate from
+Anonymous public release download/pull acceptance requires published assets and is separate from
 local pre-publication qualification; publication is explicitly outside authorization.
 
-Firefox/Bitwarden acceptance remains pending until the user performs it in an
-isolated profile and reports the behavior. The prepared procedure covers initial
-setup, administrator creation, primary sign-in, Bitwarden registration, separate
-verification, a protected operation, application-password issuance, sign-out and
-returning-user verification. No existing Firefox profile or Bitwarden vault is
-modified and no password-manager credential is registered automatically.
+## Documentation deliverables and acceptance
+
+* Canonical guide: [docs/GETTING_STARTED.md](GETTING_STARTED.md), nineteen chapters
+  covering the complete operator, administrator and ordinary-user journey.
+* Screenshots: `docs/images/getting-started/`, twenty PNGs captured from runtime
+  `358a1ed` with production CSS/JavaScript at a 1280×900 browser viewport. The
+  one-time secret blocks in images 15 and 18 are deterministically masked.
+* Release payload: `INSTALL.md`, the complete guide, all twenty referenced PNGs,
+  and supporting operator documents and relative-link targets.
+* Validation: source and extracted-guide references passed; every relative
+  Markdown link in the package resolves. Missing guides/images/targets fail the
+  automated release-tool tests. All six final assets reproduced byte for byte.
+* Installation acceptance: isolated empty Compose databases, normal trusted test-CA
+  HTTPS, browser-only initial administrator creation, first/returning authentication,
+  both administrator choices, ordinary shared-user onboarding, application-password
+  issuance and working real CalDAV clients. Root passed 49 assertions, `/team` 48;
+  the delivery archive's independent clean root installation passed 49 again.
+
+The tested delivery assets are retained locally in
+`.qualification-runs/p0/package-v16-delivery/assets/`; the extracted deployment is
+its sibling `caldav-server-0.2.0-deploy/`. This is an unpublished qualification
+artifact. The official publication and immutable-image distribution controls remain
+in force; no external release was created.
+
+## Manual Firefox/Bitwarden acceptance — prepared, pending
+
+The isolated delivery-package deployment is ready at **https://localhost:49681**.
+Preparation exited 0; SQL inspection confirmed zero accounts, `initialized=false`,
+and no code verifier. No existing Firefox profile, Bitwarden vault or host trust
+store was modified. No administrator or password-manager credential was prepared.
+
+Use a **new Firefox profile** (for example through `about:profiles`). Import only
+this disposable CA into that profile's certificate authorities and trust it for
+websites; do not bypass certificate validation:
+
+```text
+/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0-manual-v16/ca.pem
+```
+
+CA SHA-256 fingerprint:
+`38:01:75:12:D9:02:97:E1:83:02:38:A4:4C:C3:2E:9B:54:F8:7E:24:ED:26:69:3E:C7:92:4D:AF:FD:72:8F:78`.
+The server certificate expires **2026-11-07 12:57:11 UTC**. Install/configure
+Bitwarden in that isolated profile yourself. The agent has not accessed your vault.
+
+Perform and record these steps, keeping passwords, codes and tokens private:
+
+1. Open the HTTPS URL and confirm **Set up BusyStack**.
+2. From the local installation directory below, issue a code and create a synthetic
+   administrator in the browser with a fresh password you choose.
+3. Sign in normally with that account.
+4. Choose **Create passkey** and save it through Bitwarden's normal interface.
+5. Choose **Verify your passkey**, complete the assertion, then **Continue**.
+6. Choose **Set up my calendar** and create a disposable collection as a protected operation.
+7. Create an application password and check its one-time display/copy/expiry information.
+8. Sign out.
+9. Sign in again with the same administrator.
+10. Verify the existing Bitwarden passkey again; another enrollment should not be required.
+
+The exact initialization command is:
+
+```sh
+cd /home/albert/Projects/busystack/caldav-server/.qualification-runs/p0-manual-v16/install
+bash scripts/initialize.sh
+```
+
+Record actual Firefox/Bitwarden versions, completed steps and any prompt/cancellation
+behavior. Do not send authentication secrets. Until the user performs the test,
+its result remains **pending**; Chromium virtual-authenticator results are separate.
+Bitwarden behavior does not establish hardware-backed user presence.
+
+The fixture remains running for acceptance. When finished, remove only this owned
+project and its disposable database, from the same installation directory:
+
+```sh
+docker compose down --volumes --remove-orphans
+```
+
+This cleanup is destructive to **this test project's data**. It does not remove
+an existing Firefox profile or Bitwarden item. If the certificate expires, prepare
+a new fixture with `qualification/p0/manual.py` and a new output directory; follow
+its new CA/address rather than bypassing TLS validation.
+
+## Remaining acceptance and scope
+
+No known functional P0 defect remains in the qualified paths. The user's real
+Firefox/Bitwarden procedure is pending. Anonymous public release download/pull
+was not executed because this work is unpublished and publication is not authorized.
+The existing four graphical release-matrix profiles remain pending for the new
+executable; native Thunderbird and GNOME wizard/backend checks do not substitute
+for every graphical editor/timezone profile. The publisher's gate remains strict.
+These conditions prevent a public release-readiness claim.
+
 
 No complete WCAG conformance, independent security assessment, physical-authenticator
 qualification or public release readiness is claimed.
+
+## Final repository state
+
+All implementation, guide, screenshot and evidence changes are committed locally
+on `release/v0.2.0`; the final report/evidence commit is repository HEAD, also
+identified in the completion message. Runtime qualification is bound to `358a1ed`,
+the full-matrix package to `7c8f36b`, and the delivery package to `40176d2`.
+The final signoff changes report/evidence only. The only remaining working-tree
+modifications are the three original qualification files listed at the start;
+their hashes and their absence from development commits were checked again.
+No additional application branch, worktree or checkout, dependency, third-party
+software modification, push, merge, Git tag, release publication or public
+production deployment was introduced.

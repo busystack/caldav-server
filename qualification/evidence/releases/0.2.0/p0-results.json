@@ -1,5 +1,123 @@
 {
   "branch": "release/v0.2.0",
+  "deliveryArchive": {
+    "allOtherDeploymentFilesByteIdentical": true,
+    "freshBrowser": {
+      "assertions": 49,
+      "base": "https://localhost:56239",
+      "chromium": "149.0.7827.55",
+      "manualFirefoxBitwarden": "pending",
+      "playwright": "1.61.1",
+      "screenshots": 20,
+      "status": "passed"
+    },
+    "freshClients": {
+      "clients": [
+        {
+          "client": "python-caldav",
+          "icalendar": "7.3.0",
+          "operations": [
+            "principal and home discovery",
+            "calendar and VTODO collection creation",
+            "Unicode event CRUD",
+            "unknown-property round trip",
+            "event time-range query",
+            "server recurrence expansion",
+            "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+            "EXDATE exclusion in server expansion",
+            "undated task CRUD and completion",
+            "initial and incremental synchronization",
+            "resource and collection deletion"
+          ],
+          "status": "passed",
+          "syncConfiguration": {
+            "allowSyncDepthOne": true,
+            "configurationInput": "setting omitted; packaged application default",
+            "depthOneWithOtherSyncLevelStatus": 400,
+            "observedDepthStatus": {
+              "0": 207,
+              "1": 207,
+              "missing": 207
+            },
+            "verifiedBy": "actual authenticated REPORTs to this collection"
+          },
+          "syncFallbackDisabled": true,
+          "version": "3.6.0"
+        },
+        {
+          "client": "Thunderbird",
+          "crossClient": {
+            "excludedOccurrences": 1,
+            "icalendar": "7.3.0",
+            "nativeDetachedExceptions": 1,
+            "nativeRecurrenceInstances": 3,
+            "python-caldav": "3.6.0",
+            "sameResources": 4
+          },
+          "driver": "3.7.1",
+          "mode": "isolated headless native desktop CalDAV provider",
+          "nativeAppleCalendarColor": "#126A5E",
+          "nativePortalExportItems": "not executed in this profile",
+          "operations": [
+            "server discovery by native provider",
+            "recurring event CRUD",
+            "Unicode and unknown-property round trip",
+            "alarm preservation without execution",
+            "undated VTODO CRUD and completion",
+            "same-object Thunderbird to Python to Thunderbird to Python edits",
+            "cross-client recurrence, alarm, extension and completion timestamp preservation",
+            "same-resource detached exception identity/time/title edits in both clients",
+            "EXDATE exclusion verified by native occurrence expansion",
+            "all-day DATE and exclusive end preservation across both clients",
+            "floating DATE-TIME preservation across both clients",
+            "native refresh and deletion synchronization"
+          ],
+          "status": "passed",
+          "syncConfiguration": {
+            "allowSyncDepthOne": true,
+            "configurationInput": "setting omitted; packaged application default",
+            "depthOneWithOtherSyncLevelStatus": 400,
+            "observedDepthStatus": {
+              "0": 207,
+              "1": 207,
+              "missing": 207
+            },
+            "verifiedBy": "actual authenticated REPORTs to this collection"
+          },
+          "version": "159.0"
+        }
+      ],
+      "credentialOrigin": "application password issued after protected browser initialization and real virtual-authenticator MFA",
+      "image": "busystack-caldav:p0-v16"
+    },
+    "freshInstallationCommand": [
+      "python3",
+      "qualification/p0/run.py",
+      "--application-image",
+      "busystack-caldav:p0-v16",
+      "--browser-image",
+      "busystack-passkey-browser:p0",
+      "--deployment-directory",
+      ".qualification-runs/p0/package-v16-delivery/caldav-server-0.2.0-deploy",
+      "--proxy",
+      "--administrator-activity",
+      "personal",
+      "--clients",
+      "--thunderbird-binary",
+      "/home/albert/Projects/busystack/caldav-server/.client-tools/thunderbird159/thunderbird/thunderbird",
+      "--output",
+      ".qualification-runs/p0/v16-delivery-install"
+    ],
+    "freshInstallationExitCode": 0,
+    "freshInstallationLogSha256": "089ab4685d786a14079b84725af571807ec16ed99b3f70c5812643c55513ca5c",
+    "matrixArchivePayloadDifferences": [
+      "SOURCE.json",
+      "qualification/evidence/releases/0.2.0/verification.json"
+    ],
+    "reproducibleAssets": 6,
+    "sha256": "af932106d114655593dbff909b9315faaa66185444e3b235cef8d217e2e612d9",
+    "sourceCommit": "40176d20800c7d0a75f692f15a0d782cfcf6d5c5"
+  },
   "distribution": {
     "image": {
       "id": "sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
@@ -666,10 +784,36 @@
     }
   },
   "historicalGraphicalReleaseMatrix": "pending; native-provider/wizard results do not qualify every graphical editor profile",
+  "imageBuildCommand": {
+    "command": [
+      "python3",
+      "qualification/p0/build.py",
+      "--image",
+      "busystack-caldav:p0-v16"
+    ],
+    "exitCode": 0
+  },
   "imageDescriptorDigest": "sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
   "imageId": "sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
   "jarSha256": "ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62",
-  "manualFirefoxBitwarden": "pending user acceptance",
+  "manualFirefoxBitwarden": {
+    "actualUserTestStatus": "pending",
+    "ca": "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0-manual-v16/ca.pem",
+    "caSha256Fingerprint": "38:01:75:12:D9:02:97:E1:83:02:38:A4:4C:C3:2E:9B:54:F8:7E:24:ED:26:69:3E:C7:92:4D:AF:FD:72:8F:78",
+    "certificateExpiresUtc": "2026-11-07T12:57:11Z",
+    "cleanup": "docker compose down --volumes --remove-orphans",
+    "directory": "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0-manual-v16/install",
+    "initializationCommand": "bash scripts/initialize.sh",
+    "noAccountCreated": true,
+    "preparationExitCode": 0,
+    "status": "ready-manual-acceptance-pending",
+    "url": "https://localhost:49681",
+    "verifiedInitialState": {
+      "accounts": 0,
+      "codeVerifierIsNull": true,
+      "initialized": false
+    }
+  },
   "maven": {
     "command": [
       "./mvnw",
@@ -1170,6 +1314,25 @@
   "recordedAt": "2026-11-05T12:49:20.160503+00:00",
   "runtimeCommit": "358a1ed2903d8d51622ecad00de6c973c9a94375",
   "schemaVersion": 1,
+  "sourceCaptureCommand": {
+    "command": [
+      "python3",
+      "qualification/p0/run.py",
+      "--application-image",
+      "busystack-caldav:p0-v16",
+      "--browser-image",
+      "busystack-passkey-browser:p0",
+      "--proxy",
+      "--administrator-activity",
+      "personal",
+      "--clients",
+      "--thunderbird-binary",
+      "/home/albert/Projects/busystack/caldav-server/.client-tools/thunderbird159/thunderbird/thunderbird",
+      "--output",
+      "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/v16-capture"
+    ],
+    "exitCode": 0
+  },
   "startingCommit": "3f74590cd8d22341ae1a496af41377a8521733fa",
   "thirdPartySoftwareModified": false,
   "toolTests": {
