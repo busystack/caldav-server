@@ -106,7 +106,7 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await page.locator('input[name=password]').fill(password);
     await Promise.all([page.waitForURL(url => accountLocation(url, base)),
       page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
-    await page.getByRole('heading', {name: /^Welcome,/}).waitFor();
+    await page.getByRole('heading', {name: 'Secure your account', exact: true}).waitFor();
   }
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');
