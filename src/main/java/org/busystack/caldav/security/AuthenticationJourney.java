@@ -12,7 +12,9 @@ import org.springframework.stereotype.Component;
 /** Continuations are application paths, never request-host-derived absolute redirects. */
 @Component
 public class AuthenticationJourney {
-  private static final String DESTINATION = "BUSYSTACK_CONTINUATION";
+  // Spring's new-session strategy retains security attributes while discarding
+  // ordinary application state. This contains only a validated local GET path.
+  private static final String DESTINATION = "SPRING_SECURITY_BUSYSTACK_CONTINUATION";
   private final String prefix;
   private final HttpSessionRequestCache cache = new HttpSessionRequestCache();
 

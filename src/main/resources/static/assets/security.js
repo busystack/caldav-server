@@ -114,5 +114,4 @@
     status.textContent = 'Passkey removed. Checking current account state…';
     window.location.assign(base + 'auth/continue?next=' + encodeURIComponent(new URL(base, location.href).pathname + 'security/passkeys'));
   });
-  window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
 })();

@@ -43,4 +43,16 @@ document.querySelectorAll('form[data-single-submit]').forEach(form => {
     form.setAttribute('aria-busy', 'true');
   });
 });
-window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
+window.addEventListener('pageshow', event => {
+  if (!event.persisted) return;
+  const destination = new URL(window.location.href);
+  const stylesheet = document.querySelector('link[href$="/assets/account.css"]');
+  const prefix = stylesheet ? new URL(stylesheet.href).pathname.slice(0, -'/assets/account.css'.length) : '';
+  if (destination.pathname === prefix + '/credentials') {
+    destination.pathname = prefix + '/security/credentials'; destination.search = '';
+  } else if (destination.pathname.startsWith(prefix + '/security/recovery/')) {
+    destination.pathname = prefix + '/security/recovery'; destination.search = '';
+  }
+  // Navigate with GET; reloading a historical POST could reissue a one-time secret.
+  window.location.replace(destination.href);
+});
