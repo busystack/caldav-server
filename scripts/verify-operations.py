@@ -407,6 +407,8 @@ COMMIT;
             if has_sessions:
                 assert sql(restored, "SELECT (SELECT count(*) FROM spring_session)+(SELECT count(*) FROM spring_session_attributes)+(SELECT count(*) FROM account_recovery_codes)+(SELECT count(*) FROM webauthn_ceremonies)+(SELECT count(*) FROM login_throttle);") == "0"
                 assert sql(restored, "SELECT security_epoch FROM accounts WHERE username='opsadmin';") != account_generation
+            assert sql(restored, "SELECT initialized AND code_verifier IS NULL FROM installation_state WHERE id=1;") == "t"
+            print("OPERATIONS_RESTORED_INITIALIZATION_REMAINS_CLOSED", flush=True)
             compose(
                 restored,
                 "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}",

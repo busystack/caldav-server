@@ -22,8 +22,8 @@ changes. Organization accounts use the configured closed allowlist or protected
 user identity linking. Provider roles do not grant application administration.
 
 Disabling requires explicit confirmation, invalidates sessions and independently
-issued client access, and retains stored data/membership. There is no browser
-reactivation, password reset or administrator creation. Use controlled offline
+issued client access, and retains stored data/membership. After the protected first-administrator setup, there is no browser
+reactivation, password reset or further administrator creation. Use controlled offline
 [bootstrap/recovery](operations.md) after independent identity verification.
 
 ## Groups

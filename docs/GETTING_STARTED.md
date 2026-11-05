@@ -144,7 +144,7 @@ proxy at that port. Never use a production project's volume for a trial or resto
 
 ```sh
 docker compose config --quiet
-docker compose pull
+docker compose pull --policy missing
 docker compose up -d --no-build --wait --wait-timeout 240
 docker compose ps
 ```
@@ -550,7 +550,7 @@ release directory:
 
 ```sh
 docker compose config --quiet
-docker compose pull
+docker compose pull --policy missing
 docker compose up -d --no-build --wait database
 bash scripts/restore.sh /private/backups/busystack-before-update.dump
 ```
@@ -626,7 +626,7 @@ one validate, pull and start:
 
 ```sh
 docker compose config --quiet
-docker compose pull
+docker compose pull --policy missing
 docker compose up -d --no-build --wait --wait-timeout 240
 docker compose ps
 ```

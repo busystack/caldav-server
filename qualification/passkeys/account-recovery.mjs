@@ -1,3 +1,4 @@
+import {verifyPasskey,assertRejectedPasskey} from './authentication.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {call, json} from './transport.mjs';
@@ -17,7 +18,7 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
       const password = readFileSync(process.env.BUSYSTACK_BROWSER_PASSWORD_FILE, 'utf8').trimEnd();
       await page.locator('input[name=username]').fill(username);
       await page.locator('input[name=password]').fill(password);
-      await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+      await Promise.all([page.waitForURL(base + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
     }
   }
   const device = await issueDavCredential(page, base, privateValues, 'Recovery-code reset device', username);
@@ -67,8 +68,7 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   assert.equal(refresh.status, 400);
   assert.equal(json(refresh).error, 'invalid_grant');
   await cdp.send('WebAuthn.setAutomaticPresenceSimulation', {authenticatorId, enabled: true});
-  await page.getByRole('button', {name: 'Verify passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: '(401)'}).waitFor();
+  await assertRejectedPasskey(page,base);
   await cdp.send('WebAuthn.clearCredentials', {authenticatorId});
   await primary();
   await page.goto(base + '/security/recovery');
@@ -78,8 +78,8 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
     && response.url() === base + '/security/recovery/use'), page.getByRole('button', {name: 'Use code and reset account access', exact: true}).click()]);
   assert.equal(replay.status(), 403, 'A consumed recovery code must not be reusable');
   await page.goto(base + '/security/passkeys');
-  await page.getByRole('button', {name: 'Register passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
+  await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
+  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await verifyPasskey(page,base);
   console.log('BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED');
 }

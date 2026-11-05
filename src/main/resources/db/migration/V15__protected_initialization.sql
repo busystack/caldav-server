@@ -19,7 +19,7 @@ VALUES (1, EXISTS(SELECT 1 FROM accounts));
 CREATE FUNCTION close_initialization() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     UPDATE installation_state SET initialized=true, code_verifier=NULL, expires_at=NULL
-    WHERE id=1;
+    WHERE id=1 AND NOT initialized;
     RETURN NEW;
 END;
 $$;

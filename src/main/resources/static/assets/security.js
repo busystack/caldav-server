@@ -40,6 +40,7 @@
   function explain(error) {
     if (error.name === 'NotAllowedError') return 'The passkey interaction did not complete. It may have been cancelled, timed out, or no available passkey was selected. Try again when ready.';
     if (error.name === 'InvalidStateError') return 'This authenticator may already have a passkey for this account. Check account status before creating another.';
+    if (error.name === 'NotReadableError') return 'The authenticator could not be accessed. Check that your passkey provider or device is available, then try again.';
     if (error.name === 'NotSupportedError') return 'This browser or authenticator cannot complete the requested passkey operation. Try a supported browser or passkey provider.';
     if (error.name === 'SecurityError') return 'Passkeys require the configured secure BusyStack address. Check the HTTPS hostname with your operator.';
     if (error.name === 'AbortError') return 'The passkey interaction was interrupted. Try again when ready.';

@@ -59,6 +59,12 @@ class InitializationIT {
   @Test
   void freshHttpsSetupRequiresCodeAndCsrfAndNeverEchoesSecrets() throws Exception {
     var browser = http.browser();
+    assertThat(
+            http.get(browser, "/oauth2/authorization/upstream")
+                .headers()
+                .firstValue("Location")
+                .orElseThrow())
+        .endsWith("/setup");
     assertThat(http.get(browser, "/login").headers().firstValue("Location").orElseThrow())
         .endsWith("/setup");
     var page = http.get(browser, "/setup");
@@ -241,6 +247,59 @@ class InitializationIT {
     assertThat(issued.statusCode()).isEqualTo(200);
     assertThat(issued.body())
         .contains("Application password created", "Synthetic GNOME", "client=gnome");
+  }
+
+  @Test
+  void failedAccountWriteRollsBackConsumptionAndThePermanentLatch() {
+    String code = setup.issueCode();
+    jdbc.execute(
+        "CREATE FUNCTION reject_initialization_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Deliberate account write failure'; END $$");
+    jdbc.execute(
+        "CREATE TRIGGER reject_initialization_fixture BEFORE INSERT ON accounts FOR EACH ROW EXECUTE FUNCTION reject_initialization_fixture()");
+    try {
+      assertThatThrownBy(() -> setup.initialize(code, "rollback-admin", PASSWORD, PASSWORD))
+          .isInstanceOf(org.springframework.dao.DataAccessException.class);
+      assertThat(setup.available()).isTrue();
+    } finally {
+      jdbc.execute("DROP TRIGGER reject_initialization_fixture ON accounts");
+      jdbc.execute("DROP FUNCTION reject_initialization_fixture()");
+    }
+    assertThat(setup.initialize(code, "rollback-admin", PASSWORD, PASSWORD)).isEmpty();
+  }
+
+  @Test
+  void upgradingAnExistingDisabledAdministratorClosesSetup() {
+    jdbc.execute("CREATE SCHEMA initialization_upgrade");
+    try {
+      var source = jdbc.getDataSource();
+      org.flywaydb.core.Flyway.configure()
+          .dataSource(source)
+          .defaultSchema("initialization_upgrade")
+          .schemas("initialization_upgrade")
+          .target("14")
+          .load()
+          .migrate();
+      jdbc.update(
+          "INSERT INTO initialization_upgrade.accounts(id,username,display_name,password_hash,administrator,enabled) VALUES (gen_random_uuid(),'legacy-admin','Legacy administrator','non-authenticating-fixture',true,false)");
+      org.flywaydb.core.Flyway.configure()
+          .dataSource(source)
+          .defaultSchema("initialization_upgrade")
+          .schemas("initialization_upgrade")
+          .load()
+          .migrate();
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT initialized FROM initialization_upgrade.installation_state",
+                  Boolean.class))
+          .isTrue();
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM initialization_upgrade.accounts WHERE NOT enabled",
+                  Integer.class))
+          .isEqualTo(1);
+    } finally {
+      jdbc.execute("DROP SCHEMA initialization_upgrade CASCADE");
+    }
   }
 
   @Test

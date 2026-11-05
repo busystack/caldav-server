@@ -26,7 +26,7 @@ directory mode 0700, database files readable by container UIDs). Do not put secr
 
 ```sh
 docker compose config --quiet
-docker compose pull
+docker compose pull --policy missing
 docker compose up -d --no-build --wait
 docker compose ps
 ```

@@ -257,7 +257,7 @@ class SecurityBoundaryIT {
                 .POST(HttpRequest.BodyPublishers.ofString(body)));
     assertThat(authenticated.statusCode()).isEqualTo(302);
     assertThat(authenticated.headers().firstValue("Location").orElseThrow())
-        .startsWith("https://calendar.example/team/admin")
+        .startsWith("https://calendar.example/team/auth/continue")
         .doesNotContain("attacker.invalid");
   }
 }

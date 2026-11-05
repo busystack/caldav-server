@@ -146,6 +146,7 @@ public class SecurityConfiguration {
       org.busystack.caldav.security.session.SessionSecurity sessions,
       org.busystack.caldav.security.throttle.LoginThrottleService throttle,
       AuthenticationJourney journey,
+      org.busystack.caldav.account.InitializationService initialization,
       org.springframework.beans.factory.ObjectProvider<
               org.busystack.caldav.security.oidc.OidcLoginSupport>
           upstreamUsers,
@@ -186,6 +187,9 @@ public class SecurityConfiguration {
                     csp ->
                         csp.policyDirectives(
                             "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'")));
+    http.addFilterBefore(
+        new org.busystack.caldav.account.InitializationGateFilter(initialization),
+        org.springframework.security.web.authentication.logout.LogoutFilter.class);
     http.addFilterBefore(
         new ActiveAccountFilter(accounts),
         org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

@@ -1,3 +1,4 @@
+import {verifyPasskey,assertRejectedPasskey} from './authentication.mjs';
 import {openCollection,provisionAccount,grantDirect,revokeDirect} from './portal-helpers.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
@@ -61,10 +62,10 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await page.locator('input[name=username]').fill(username);
     await page.locator('input[name=password]').fill(primaryPassword);
     await Promise.all([page.waitForURL(url => accountLocation(url, base)),
-      page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+      page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   }
   await page.goto(base + '/login');
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
+  await verifyPasskey(page,base);
   assert.notEqual((await page.context().cookies()).find(value => value.name === 'JSESSIONID')?.value, oldCookie);
   console.log('HTTPS_RECOVERY_RECENT_PRIMARY_AND_WEBAUTHN_REAUTHENTICATION_PASSED');
   await page.goto(base + '/security/credentials');
@@ -85,8 +86,7 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   await page.goto(base + '/');
   await page.waitForURL(url => url.pathname === prefix + '/login');
   assert.notEqual((await page.context().cookies()).find(value => value.name === 'JSESSIONID')?.value, oldCookie);
-  await page.getByRole('button', {name: 'Verify passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: '(401)'}).waitFor();
+  await assertRejectedPasskey(page,base);
   await cdp.send('WebAuthn.clearCredentials', {authenticatorId});
   await page.goto(base + '/login');
   const oldPasswordFile = federated ? process.env.BUSYSTACK_UPSTREAM_PASSWORD_FILE : process.env.BUSYSTACK_BROWSER_PASSWORD_FILE;
@@ -95,7 +95,7 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   await page.locator('input[name=username]').fill(username);
   await page.locator('input[name=password]').fill(oldPassword);
   await Promise.all([page.waitForURL(url => url.pathname === prefix + '/login' && url.searchParams.has('error')),
-    page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+    page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   if (federated) {
     await page.context().clearCookies({domain: /(^|\.)idp\.identity\.test$/});
     await organizationPrimary(page, base, privateValues, true);
@@ -105,14 +105,14 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await page.locator('input[name=username]').fill(username);
     await page.locator('input[name=password]').fill(password);
     await Promise.all([page.waitForURL(url => accountLocation(url, base)),
-      page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+      page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
     await page.getByRole('heading', {name: /^Welcome,/}).waitFor();
   }
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');
-  await page.getByRole('button', {name: 'Register passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
+  await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
+  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await verifyPasskey(page,base);
   const fresh = await issueDavCredential(page, base, privateValues, 'Recovered device', username);
   await qualifyOAuth(page, base, privateValues, administratorPage,
     {clientId: grant.clientId, clientName: 'Browser Native Restore', existingClient: true});
@@ -132,12 +132,12 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await readerPage.goto(base + '/login');
     await readerPage.locator('input[name=username]').fill(readerUsername);
     await readerPage.locator('input[name=password]').fill(readerPassword);
-    await Promise.all([readerPage.waitForURL(base + '/'), readerPage.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+    await Promise.all([readerPage.waitForURL(base + '/auth/continue'), readerPage.getByRole('button', {name: 'Sign in', exact: true}).click()]);
     await primaryCannotMutate(readerPage, base);
     await readerPage.goto(base + '/security/passkeys');
-    await readerPage.getByRole('button', {name: 'Register passkey', exact: true}).click();
-    await readerPage.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
-    await Promise.all([readerPage.waitForURL(base + '/'), readerPage.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
+    await readerPage.getByRole('button', {name: 'Create passkey', exact: true}).click();
+    await readerPage.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+    await verifyPasskey(readerPage,base);
     await openCollection(readerPage,base,collectionName);
     readerCredential = await issueDavCredential(readerPage, base, privateValues, 'Recovered shared read device', readerUsername);
   } finally {

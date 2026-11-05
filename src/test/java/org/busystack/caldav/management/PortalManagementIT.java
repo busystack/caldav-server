@@ -1324,7 +1324,7 @@ class PortalManagementIT {
             "/collections/" + collection,
             "/collections/" + collection + "/delete",
             "/collections/" + collection + "/sharing",
-            "/connections",
+            "/connections?client=gnome",
             "/security",
             "/security/credentials",
             "/portability",
@@ -1333,7 +1333,7 @@ class PortalManagementIT {
             "/security/sessions",
             "/oauth-grants",
             "/security/passkeys",
-            "/login")) {
+            "/auth/continue")) {
       var response = get(browser, path);
       assertThat(response.statusCode()).as(path).isEqualTo(200);
       assertThat(response.body())
@@ -1341,7 +1341,7 @@ class PortalManagementIT {
           .contains("/team/assets/account.css")
           .doesNotContain(hostile);
       assertThat(response.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
-      if (path.equals("/connections")) {
+      if (path.equals("/connections?client=gnome")) {
         assertThat(response.body())
             .contains("id=\"gnome-address\"", "value=\"https://portal-owner@localhost/team/dav/\"");
       }

@@ -96,7 +96,7 @@ export async function qualifyGroups(page,base,privateValues) {
     await disabledPage.goto(base+'/login');
     await disabledPage.locator('input[name=username]').fill(member);
     await disabledPage.locator('input[name=password]').fill(password);
-    await Promise.all([disabledPage.waitForURL(base+'/login?error'),disabledPage.getByRole('button',{name:'Verify password',exact:true}).click()]);
+    await Promise.all([disabledPage.waitForURL(base+'/login?error'),disabledPage.getByRole('button',{name:'Sign in',exact:true}).click()]);
   } finally {await disabledContext.close();}
   console.log('BROWSER_ACCOUNT_PROFILE_SEARCH_DISABLE_AND_EFFECTIVE_DIRECT_GROUP_ACCESS_PASSED');
   console.log('BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED');

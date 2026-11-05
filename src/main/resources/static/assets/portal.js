@@ -32,3 +32,15 @@ window.addEventListener('pagehide', () => {
   const secret = document.getElementById('issued-secret');
   if (secret) secret.textContent = 'This password is no longer displayed. Create a replacement if needed.';
 });
+
+document.querySelectorAll('form[data-single-submit]').forEach(form => {
+  let submitted = false;
+  form.addEventListener('submit', event => {
+    if (submitted) { event.preventDefault(); return; }
+    submitted = true;
+    const button = form.querySelector('button[type="submit"], button:not([type])');
+    if (button) { button.disabled = true; button.textContent = 'Creating application password…'; }
+    form.setAttribute('aria-busy', 'true');
+  });
+});
+window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });

@@ -18,7 +18,7 @@ cd caldav-server-@VERSION@-deploy
 cp .env.example .env
 # Edit .env and create private secrets using the instructions below.
 docker compose config --quiet
-docker compose pull
+docker compose pull --policy missing
 docker compose up -d --no-build --wait
 ```
 

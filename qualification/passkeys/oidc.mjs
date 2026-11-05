@@ -1,3 +1,4 @@
+import {verifyPasskey,assertRejectedPasskey} from './authentication.mjs';
 import {createCollection} from './portal-helpers.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -5,7 +6,7 @@ import {readFileSync} from 'node:fs';
 export function accountLocation(url, base) {
   const publicUrl = new URL(base);
   const prefix = publicUrl.pathname.replace(/\/$/, '');
-  return url.origin === publicUrl.origin && url.pathname === prefix + '/' && !url.hash
+  return url.origin === publicUrl.origin && url.pathname === prefix + '/auth/continue' && !url.hash
     && (url.search === '' || (url.searchParams.size === 1 && url.searchParams.get('continue') === ''));
 }
 
@@ -14,7 +15,7 @@ export async function organizationPrimary(page, base, privateValues, requirePass
   privateValues.push(password);
   await page.goto(base + '/login');
   await page.getByRole('link', {name: "Sign in with your organization's identity provider", exact: true}).click();
-  const dashboard = page.getByRole('heading', {name: /^Welcome,/});
+  const dashboard = page.getByRole('heading', {name: /^(Secure your account|Verify your passkey|Authentication successful)$/});
   let destination;
   try {
     destination = await Promise.race([
@@ -45,7 +46,7 @@ export async function organizationPrimary(page, base, privateValues, requirePass
   }
   await page.waitForURL(url => accountLocation(url, base));
   await dashboard.waitFor();
-  await page.getByText(process.env.BUSYSTACK_FEDERATED_USERNAME, {exact: true}).first().waitFor();
+  assert.ok(await page.locator('form[action$="/logout"]').count(),'Provider login retains authenticated logout and CSRF');
   const cookie = (await page.context().cookies()).find(value => value.name === 'JSESSIONID');
   assert.ok(cookie && cookie.secure && cookie.httpOnly && cookie.sameSite === 'Lax', 'Cross-site OIDC callback must retain a protected Lax session');
 }
@@ -77,9 +78,9 @@ export async function newFederatedUser(browser, base, privateValues) {
   await organizationPrimary(page, base, privateValues, true);
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');
-  await page.getByRole('button', {name: 'Register passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
+  await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
+  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await verifyPasskey(page,base);
   const prefix = new URL(base).pathname.replace(/\/$/, '');
   await createCollection(page,base,'Federated browser-qualified tasks','VTODO');
   assert.equal(await page.getByText('Browser-qualified tasks', {exact: true}).count(), 0, 'An organization user must not discover the local administrator collection');
@@ -91,11 +92,11 @@ export async function newFederatedUser(browser, base, privateValues) {
   const upstreamPassword = readFileSync(process.env.BUSYSTACK_UPSTREAM_PASSWORD_FILE, 'utf8').trimEnd();
   await page.locator('input[name=password]').fill(upstreamPassword);
   await Promise.all([page.waitForURL(url => url.pathname === prefix + '/login' && url.searchParams.has('error')),
-    page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+    page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   await organizationPrimary(page, base, privateValues);
   await primaryCannotMutate(page, base);
   await page.goto(base + '/login');
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
+  await verifyPasskey(page,base);
   console.log('FEDERATED_LOCAL_PASSWORD_FALLBACK_DENIED');
   console.log('CROSS_SITE_ORGANIZATION_PLUS_PASSKEY_AND_NONADMIN_PROVISIONING_PASSED');
   return {context, page, cdp, authenticatorId: authenticator.authenticatorId};

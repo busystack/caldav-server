@@ -606,5 +606,24 @@ class PublicationGateTest(unittest.TestCase):
                 integrity.inspect(jar, lock)
 
 
+class GuideIntegrityTest(unittest.TestCase):
+    def test_missing_guide_missing_screenshot_and_broken_link_fail_validation(self):
+        files = {str(p.relative_to(ROOT)): p.read_bytes()
+                 for base in ('docs', 'deployment') for p in (ROOT / base).rglob('*') if p.is_file()}
+        bundle.validate_guide(files)
+        without_guide = files.copy()
+        without_guide.pop('docs/GETTING_STARTED.md')
+        with self.assertRaises(KeyError):
+            bundle.validate_guide(without_guide)
+        without_image = files.copy()
+        without_image.pop(bundle.SCREENSHOTS[0])
+        with self.assertRaisesRegex(AssertionError, 'Missing guide screenshot'):
+            bundle.validate_guide(without_image)
+        broken = files.copy()
+        broken['docs/GETTING_STARTED.md'] += b'\n[Missing supporting document](missing-guide.md)\n'
+        with self.assertRaisesRegex(AssertionError, 'Broken guide reference'):
+            bundle.validate_guide(broken)
+
+
 if __name__ == '__main__':
     unittest.main()

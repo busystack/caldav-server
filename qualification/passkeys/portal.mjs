@@ -59,7 +59,7 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await captureWorkflow(page,'import-results');
   assert.equal(await page.getByRole('cell',{name:'Imported',exact:true}).count(),2);
   await page.goto(base+'/security/credentials');
-  const credential=page.locator('form').filter({has:page.getByRole('button',{name:'Issue credential',exact:true})});
+  const credential=page.locator('form').filter({has:page.getByRole('button',{name:'Create application password',exact:true})});
   await credential.locator('[name=label]').fill('Retain device'); await credential.locator('[name=days]').fill('366');
   await expectFieldError(page,credential,'days',400,'credential-create');
   assert.equal(await credential.locator('[name=label]').inputValue(),'Retain device');
@@ -118,7 +118,7 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await Promise.all([page.waitForURL(base+'/collections'),page.getByRole('button',{name:'Delete collection permanently',exact:true}).click()]);
   assert.ok([403,404].includes((await call(base,new URL(destinationAddress).pathname.slice(prefixOf(base).length),{method:'PROPFIND',headers:{Authorization:'Basic '+device.encoded,Depth:'0'},body:'<D:propfind xmlns:D="DAV:"><D:allprop/></D:propfind>'})).status));
   console.log('PORTAL_COLLECTION_METADATA_IMPORT_EXPORT_ROUNDTRIP_CONFLICTS_AND_CONFIRMED_DELETE_PASSED '+suffix);
-  await page.goto(base+'/connections');
+  await page.goto(base+'/connections?client=gnome');
   const serverAddress=await page.locator('#server-address').inputValue();
   const gnomeAddress=await page.locator('#gnome-address').inputValue();
   return {id,address:originalAddress,serverAddress,gnomeAddress,device,name:name+' renamed'};
@@ -165,7 +165,7 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
       }
     }
     await page.setViewportSize({width:1280,height:900});
-    await page.goto(base+'/connections');
+    await page.goto(base+'/connections?client=gnome');
     await page.getByRole('button',{name:'Copy server',exact:true}).focus();
     assert.ok(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle!=='none'));
     await page.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:new URL(base).origin});

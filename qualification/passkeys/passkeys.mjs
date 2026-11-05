@@ -1,3 +1,4 @@
+import {verifyPasskey,assertRejectedPasskey} from './authentication.mjs';
 import {qualifyImportProcessInterruption} from './portability-crash.mjs';
 import {qualifyPersonalPortal,qualifyPortalPresentation} from './portal.mjs';
 import {createCollection, openCollection, captureWorkflow} from './portal-helpers.mjs';
@@ -38,7 +39,7 @@ try {
   assert.equal(await page.locator('meta[name=csrf-token]').count(), 1);
   await page.locator('input[name=username]').fill(process.env.BUSYSTACK_BROWSER_USERNAME);
   await page.locator('input[name=password]').fill(password);
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+  await Promise.all([page.waitForURL(base + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   const passwordSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
   assert.ok(passwordSession);
   privateValues.push(passwordSession);
@@ -51,9 +52,9 @@ try {
   }, prefix + '/collections');
   assert.equal(passwordOnly, 403, 'Password alone must not authorize account mutations');
   await page.goto(base + '/security/passkeys');
-  await page.getByRole('button', {name: 'Register passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey registered.'}).waitFor();
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey to complete MFA', exact: true}).click()]);
+  await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
+  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await verifyPasskey(page,base);
   const mfaSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
   if (mfaSession) privateValues.push(mfaSession);
   assert.ok(mfaSession && mfaSession !== passwordSession, 'Passkey authentication must rotate session ID');
@@ -111,15 +112,16 @@ try {
     await organizationPrimary(page, base, privateValues);
     await primaryCannotMutate(page, base);
   } else {
+  await signOut(page,base);
   await page.goto(base + '/login');
   await page.locator('input[name=username]').fill(process.env.BUSYSTACK_BROWSER_USERNAME);
   const currentPassword = process.env.BUSYSTACK_BROWSER_RESTORE === 'true' ? readFileSync(process.env.BUSYSTACK_BROWSER_RECOVERY_PASSWORD_FILE, 'utf8').trimEnd() : password;
   privateValues.push(currentPassword);
   await page.locator('input[name=password]').fill(currentPassword);
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify password', exact: true}).click()]);
+  await Promise.all([page.waitForURL(base + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   }
   await page.goto(base + '/login');
-  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', {name: 'Verify passkey', exact: true}).click()]);
+  await verifyPasskey(page,base);
   await openCollection(page,base,collectionName);
   console.log('PERSISTED_PASSKEY_AFTER_RESTART_PASSED');
   console.log('READY_DISABLE');
@@ -128,8 +130,7 @@ try {
   assert.equal(disabled.status(), 403);
   // Existing sessions and independent passkey authentication must both reject disabled users.
   await page.goto(base + '/login');
-  await page.getByRole('button', {name: 'Verify passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: '(401)'}).waitFor();
+  await assertRejectedPasskey(page,base);
   console.log('DISABLED_SESSION_AND_PASSKEY_PASSED');
   }
 } catch (error) {

@@ -9,9 +9,9 @@ export async function issueDavCredential(page, base, privateValues, label, usern
   await form.locator('input[name=label]').fill(label);
   await form.locator('input[name=days]').fill('1');
   const [response] = await Promise.all([page.waitForResponse(value => value.request().method() === 'POST' && value.url() === base + '/credentials'),
-    form.getByRole('button', {name: 'Issue credential', exact: true}).click()]);
+    form.getByRole('button', {name: 'Create application password', exact: true}).click()]);
   assert.ok((response.headers()['cache-control'] || '').includes('no-store'));
-  await page.getByRole('heading', {name: 'New DAV credential', exact: true}).waitFor();
+  await page.getByRole('heading', {name: 'Application password created', exact: true}).waitFor();
   const credential = await page.locator('code').innerText();
   assert.equal(credential.length, 80);
   const encoded = Buffer.from(username + ':' + credential).toString('base64');

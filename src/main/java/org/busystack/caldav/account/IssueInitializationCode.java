@@ -10,13 +10,19 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "busystack.issue-initialization-code", havingValue = "true")
 public class IssueInitializationCode implements ApplicationRunner {
   private final InitializationService initialization;
+  private final org.springframework.core.env.Environment environment;
 
-  public IssueInitializationCode(InitializationService initialization) {
+  public IssueInitializationCode(
+      InitializationService initialization, org.springframework.core.env.Environment environment) {
     this.initialization = initialization;
+    this.environment = environment;
   }
 
   @Override
   public void run(ApplicationArguments args) {
+    if (!"none".equals(environment.getProperty("spring.main.web-application-type")))
+      throw new IllegalArgumentException(
+          "Initialization code issuance requires an offline process");
     String code = initialization.issueCode(); // Transaction commits before disclosure.
     System.out.println("Initialization code (single use, valid for 15 minutes):");
     System.out.println(code);

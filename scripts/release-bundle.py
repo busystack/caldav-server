@@ -90,34 +90,7 @@ def build(source, digest, output):
     assert 'build:' not in compose and 'BUSYSTACK_BUILD_' not in compose and image in compose
     identity = {**record, 'registryDigest': digest, 'image': image}
     identity.pop('files')
-    files = {'compose.yaml': compose.encode(), 'SOURCE.json': (json.dumps(identity, indent=2, sort_keys=True) + '\n').encode()}
-    used = {'compose.yaml'}
-    def content(name, render=False):
-        used.add(name)
-        data = qualified.read(name)
-        return data.replace(b'@VERSION@', version.encode()) if render else data
-    for name in qualified.under('deployment'):
-        files[name.removeprefix('deployment/')] = content(name, render=True)
-    for name in ('init-db.sh', 'backup.sh', 'restore.sh', 'initialize.sh'):
-        files['scripts/' + name] = content('scripts/' + name)
-    for name in (*OPERATOR_DOCUMENTS, f'docs/releases/{version}.md'):
-        files[name] = content(name, render=True)
-    for name in SCREENSHOTS:
-        files[name] = content(name)
-    for name in ('nginx-root.conf.example', 'nginx-subpath.conf.example'):
-        files['deployment/' + name] = content('deployment/' + name, render=True)
-    validate_guide(files)
-    receipt = versions.receipt_path(version)
-    files[receipt] = content(receipt)
-    notices = {name: content(name) for name in ('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES')}
-    for base in ('licenses', 'src/main/resources/META-INF/licenses'):
-        for name in qualified.under(base):
-            destination = 'licenses/' + name.removeprefix(base + '/')
-            data = content(name)
-            assert destination not in notices or notices[destination] == data, 'Conflicting license input'
-            notices[destination] = data
-    notices['runtime-dependency-inventory.json'] = (Path(source) / 'sbom.cdx.json').read_bytes()
-    files.update(notices)
+    files, used, notices = deployment_files(qualified, version, compose, identity, Path(source) / 'sbom.cdx.json')
     bundle_name = f'caldav-server-{version}-deploy.tar.gz'
     (output / bundle_name).write_bytes(tar_bytes(files, f'caldav-server-{version}-deploy/'))
     (output / 'notices.tar.gz').write_bytes(tar_bytes(notices))
@@ -149,6 +122,39 @@ def build(source, digest, output):
     sums = {**assets, 'release-manifest.json': candidate.sha256(output / 'release-manifest.json')}
     (output / 'SHA256SUMS').write_text(''.join(f'{digest}  {name}\n' for name, digest in sorted(sums.items())))
     return manifest
+
+
+def deployment_files(qualified, version, compose, identity, sbom):
+    """Shared production payload selection; identity is supplied by the caller."""
+    files = {'compose.yaml': compose.encode(), 'SOURCE.json': (json.dumps(identity, indent=2, sort_keys=True) + '\n').encode()}
+    used = {'compose.yaml'}
+    def content(name, render=False):
+        used.add(name)
+        data = qualified.read(name)
+        return data.replace(b'@VERSION@', version.encode()) if render else data
+    for name in qualified.under('deployment'):
+        files[name.removeprefix('deployment/')] = content(name, render=True)
+    for name in ('init-db.sh', 'backup.sh', 'restore.sh', 'initialize.sh'):
+        files['scripts/' + name] = content('scripts/' + name)
+    for name in (*OPERATOR_DOCUMENTS, f'docs/releases/{version}.md'):
+        files[name] = content(name, render=True)
+    for name in SCREENSHOTS:
+        files[name] = content(name)
+    for name in ('nginx-root.conf.example', 'nginx-subpath.conf.example'):
+        files['deployment/' + name] = content('deployment/' + name, render=True)
+    validate_guide(files)
+    receipt = versions.receipt_path(version)
+    files[receipt] = content(receipt)
+    notices = {name: content(name) for name in ('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES')}
+    for base in ('licenses', 'src/main/resources/META-INF/licenses'):
+        for name in qualified.under(base):
+            destination = 'licenses/' + name.removeprefix(base + '/')
+            data = content(name)
+            assert destination not in notices or notices[destination] == data, 'Conflicting license input'
+            notices[destination] = data
+    notices['runtime-dependency-inventory.json'] = Path(sbom).read_bytes()
+    files.update(notices)
+    return files, used, notices
 
 
 def validate_assets(directory, version=None, source_sha=None):
