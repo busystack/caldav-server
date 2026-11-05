@@ -333,9 +333,9 @@ COMMIT;
                 upgraded_history = json.loads(sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;"))
                 previous_history = json.loads(baseline_history)
                 assert upgraded_history[:len(previous_history)] == previous_history
-                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 16)]
+                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 17)]
                 assert sql(environment, "SELECT initialized FROM installation_state WHERE id=1;") == "t"
-                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15", flush=True)
+                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15_V16", flush=True)
             compose(environment, "restart", "application")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
@@ -358,9 +358,9 @@ COMMIT;
                 compose(restored, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
                 checks(restored)
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
-                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
+                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"
                 compose(restored, "stop", "application")
-                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V15_PASSED", flush=True)
+                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V16_PASSED", flush=True)
             result = json.loads(
                 sql(
                     restored,
@@ -476,7 +476,7 @@ def negative_restores(source, private, projects):
     restore_history = "DELETE FROM flyway_schema_history; INSERT INTO flyway_schema_history SELECT * FROM json_populate_recordset(NULL::flyway_schema_history,'" + escaped + "'::json);"
     appended = "INSERT INTO flyway_schema_history(installed_rank,version,description,type,script,checksum,installed_by,execution_time,success) SELECT max(installed_rank)+1,{version},'Deliberate negative fixture','SQL','negative.sql',0,'busystack',0,true FROM flyway_schema_history;"
     cases = [
-        ("future", appended.format(version="'16'"), "supports schema versions 1 through 15"),
+        ("future", appended.format(version="'17'"), "supports schema versions 1 through 16"),
         ("failed", "UPDATE flyway_schema_history SET success=false WHERE version='13';", "Failed migration history"),
         ("gap", "DELETE FROM flyway_schema_history WHERE version='6';", "Gap in migration history"),
         ("duplicate", appended.format(version="'13'"), "Duplicate migration versions"),

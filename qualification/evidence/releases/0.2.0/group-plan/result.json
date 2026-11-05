@@ -1,0 +1,36 @@
+{
+  "qualificationKind": "local-unpublished",
+  "baselineRuntimeCommit": "01760f7baa03275267b8aea9a360ddce2669fba9",
+  "dataset": {
+    "additionalCollections": 10001,
+    "membershipBindingsAfterCorrection": 10001
+  },
+  "baseline": {
+    "cachedGenericPlanEstimatedRows": 1,
+    "diagnosticDeadlineSeconds": 10,
+    "sqlState": "57014",
+    "coldPlan": "hash joins; completed within ten seconds"
+  },
+  "corrected": {
+    "functionSetting": "enable_nestloop=off",
+    "scope": "only dav_reconcile_group_memberships(uuid)",
+    "callerSettingRestoredByPostgreSQL": true,
+    "existingServiceTransactionDeadlineSeconds": 30,
+    "milliseconds": 2657.378
+  },
+  "migration": {
+    "file": "src/main/resources/db/migration/V16__bounded_group_join_plans.sql",
+    "sha256": "ceced2d692a76740beca0b3388850cd83c5b697d8ee68e8d42321c2f1bf5e28c"
+  },
+  "fullGroupSuiteCapacityMilliseconds": {
+    "add": 2001,
+    "remove": 910,
+    "readd": 2093,
+    "delete": 967
+  },
+  "notes": [
+    "SQL-only reproduction is plan evidence, not authentication or authorization evidence.",
+    "The existing full group integration suite separately verifies permissions, rollback and membership effects.",
+    "Before and after plans show the cached generic INSERT retaining its original estimates across bulk growth; the corrected execution follows a function-local planning change."
+  ]
+}

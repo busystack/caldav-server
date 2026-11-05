@@ -552,6 +552,15 @@ class GroupServiceIT {
     new org.springframework.transaction.support.TransactionTemplate(transactions)
         .executeWithoutResult(
             status -> {
+              // Cache the reconciliation plan while the tables are still small. The
+              // same pooled connection can later see a bulk membership expansion.
+              jdbc.execute("ANALYZE dav_bindings");
+              jdbc.execute("SET LOCAL plan_cache_mode=force_generic_plan");
+              String callerJoinPreference =
+                  jdbc.queryForObject("SHOW enable_nestloop", String.class);
+              jdbc.query("SELECT dav_reconcile_group_memberships(?)", rs -> {}, group);
+              assertThat(jdbc.queryForObject("SHOW enable_nestloop", String.class))
+                  .isEqualTo(callerJoinPreference);
               jdbc.query("SELECT set_config('busystack.defer_dav_bindings','on',true)", rs -> {});
               jdbc.update(
                   "INSERT INTO collections(id,owner_id,name,component) SELECT gen_random_uuid(),?,'span-'||n,'VEVENT' FROM generate_series(1,10001) n",

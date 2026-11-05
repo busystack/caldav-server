@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "status": "pending",
   "qualificationKind": "local-unpublished",
-  "jarSha256": "776a5eeb571c1e105e0a74f3707064e5a7d23e8d5bdc93093416ddb5d927c301",
+  "jarSha256": "ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62",
   "runtimeInputs": {
     "Dockerfile": "2963b09f0c074104d9584d4f417368418ac947bcc2f3b4c00b61de10a04682da",
     "compose.yaml": "843834fdeab4dbe73e1243e4b87fb6d51f5d5b669b4e15de53bea4aa62b48901"
   },
-  "runtimeVerificationCommit": "01760f7baa03275267b8aea9a360ddce2669fba9",
+  "runtimeVerificationCommit": null,
   "clients": {
     "thunderbird-system-vancouver": {
       "status": "pending"
@@ -27,18 +27,26 @@
     "P0 automated/browser/native-client results and historical graphical release-matrix evidence are recorded separately.",
     "The existing release publisher must continue to reject a pending receipt."
   ],
+  "previousRuntimeQualification": {
+    "runtimeCommit": "01760f7baa03275267b8aea9a360ddce2669fba9",
+    "jarSha256": "776a5eeb571c1e105e0a74f3707064e5a7d23e8d5bdc93093416ddb5d927c301",
+    "p0": {
+      "status": "passed",
+      "assertions": 48,
+      "screenshots": 20,
+      "playwright": "1.61.1",
+      "chromium": "149.0.7827.55",
+      "manualFirefoxBitwarden": "pending",
+      "realClientVersions": {
+        "python-caldav": "3.6.0",
+        "Thunderbird": "159.0"
+      },
+      "realClientsStatus": "passed",
+      "qualificationLog": ".qualification-runs/p0/browser-final-root2.log"
+    }
+  },
   "p0": {
-    "status": "passed",
-    "assertions": 48,
-    "screenshots": 20,
-    "playwright": "1.61.1",
-    "chromium": "149.0.7827.55",
-    "manualFirefoxBitwarden": "pending",
-    "realClientVersions": {
-      "python-caldav": "3.6.0",
-      "Thunderbird": "159.0"
-    },
-    "realClientsStatus": "passed",
-    "qualificationLog": ".qualification-runs/p0/browser-final-root2.log"
+    "status": "pending",
+    "reason": "Final artifact qualification after the demonstrated group-plan correction in V16"
   }
 }

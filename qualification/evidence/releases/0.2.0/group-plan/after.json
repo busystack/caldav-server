@@ -1,0 +1,392 @@
+[
+  {
+    "Plan": {
+      "Node Type": "ModifyTable",
+      "Operation": "Insert",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Relation Name": "dav_bindings",
+      "Alias": "dav_bindings",
+      "Startup Cost": 16.11,
+      "Total Cost": 17.29,
+      "Plan Rows": 0,
+      "Plan Width": 0,
+      "Disabled": false,
+      "Plans": [
+        {
+          "Node Type": "Nested Loop",
+          "Parent Relationship": "InitPlan",
+          "Subplan Name": "CTE affected",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Join Type": "Inner",
+          "Startup Cost": 0.0,
+          "Total Cost": 1.02,
+          "Plan Rows": 1,
+          "Plan Width": 32,
+          "Disabled": false,
+          "Inner Unique": true,
+          "Join Filter": "(c_1.id = grant_row.collection_id)",
+          "Plans": [
+            {
+              "Node Type": "Seq Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Relation Name": "collections",
+              "Alias": "c_1",
+              "Startup Cost": 0.0,
+              "Total Cost": 1.01,
+              "Plan Rows": 1,
+              "Plan Width": 32,
+              "Disabled": false
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Parent Relationship": "Inner",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Relation Name": "collection_group_members",
+              "Alias": "grant_row",
+              "Startup Cost": 0.0,
+              "Total Cost": 0.0,
+              "Plan Rows": 1,
+              "Plan Width": 16,
+              "Disabled": false,
+              "Filter": "(group_id = $1)"
+            }
+          ]
+        },
+        {
+          "Node Type": "Unique",
+          "Parent Relationship": "InitPlan",
+          "Subplan Name": "CTE effective",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 12.84,
+          "Total Cost": 12.88,
+          "Plan Rows": 5,
+          "Plan Width": 32,
+          "Disabled": false,
+          "Plans": [
+            {
+              "Node Type": "Sort",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 12.84,
+              "Total Cost": 12.85,
+              "Plan Rows": 5,
+              "Plan Width": 32,
+              "Disabled": false,
+              "Sort Key": [
+                "direct.collection_id",
+                "direct.account_id"
+              ],
+              "Plans": [
+                {
+                  "Node Type": "Append",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 4.18,
+                  "Total Cost": 12.78,
+                  "Plan Rows": 5,
+                  "Plan Width": 32,
+                  "Disabled": false,
+                  "Subplans Removed": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "Nested Loop",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Inner",
+                      "Startup Cost": 4.18,
+                      "Total Cost": 12.71,
+                      "Plan Rows": 4,
+                      "Plan Width": 32,
+                      "Disabled": false,
+                      "Inner Unique": false,
+                      "Plans": [
+                        {
+                          "Node Type": "CTE Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "CTE Name": "affected",
+                          "Alias": "a",
+                          "Startup Cost": 0.0,
+                          "Total Cost": 0.02,
+                          "Plan Rows": 1,
+                          "Plan Width": 32,
+                          "Disabled": false
+                        },
+                        {
+                          "Node Type": "Bitmap Heap Scan",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Relation Name": "collection_members",
+                          "Alias": "direct",
+                          "Startup Cost": 4.18,
+                          "Total Cost": 12.65,
+                          "Plan Rows": 4,
+                          "Plan Width": 32,
+                          "Disabled": false,
+                          "Recheck Cond": "(collection_id = a.id)",
+                          "Filter": "(account_id <> a.owner_id)",
+                          "Plans": [
+                            {
+                              "Node Type": "Bitmap Index Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Index Name": "collection_members_pkey",
+                              "Startup Cost": 0.0,
+                              "Total Cost": 4.18,
+                              "Plan Rows": 4,
+                              "Plan Width": 0,
+                              "Disabled": false,
+                              "Index Cond": "(collection_id = a.id)"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Nested Loop",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Inner",
+                      "Startup Cost": 0.0,
+                      "Total Cost": 0.05,
+                      "Plan Rows": 1,
+                      "Plan Width": 32,
+                      "Disabled": false,
+                      "Inner Unique": false,
+                      "Join Filter": "((member.account_id <> a_1.owner_id) AND (granted.group_id = member.group_id))",
+                      "Plans": [
+                        {
+                          "Node Type": "Nested Loop",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Join Type": "Inner",
+                          "Startup Cost": 0.0,
+                          "Total Cost": 0.03,
+                          "Plan Rows": 1,
+                          "Plan Width": 48,
+                          "Disabled": false,
+                          "Inner Unique": false,
+                          "Join Filter": "(granted.collection_id = a_1.id)",
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "CTE Name": "affected",
+                              "Alias": "a_1",
+                              "Startup Cost": 0.0,
+                              "Total Cost": 0.02,
+                              "Plan Rows": 1,
+                              "Plan Width": 32,
+                              "Disabled": false
+                            },
+                            {
+                              "Node Type": "Seq Scan",
+                              "Parent Relationship": "Inner",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Relation Name": "collection_group_members",
+                              "Alias": "granted",
+                              "Startup Cost": 0.0,
+                              "Total Cost": 0.0,
+                              "Plan Rows": 1,
+                              "Plan Width": 32,
+                              "Disabled": false
+                            }
+                          ]
+                        },
+                        {
+                          "Node Type": "Seq Scan",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Relation Name": "sharing_group_members",
+                          "Alias": "member",
+                          "Startup Cost": 0.0,
+                          "Total Cost": 0.0,
+                          "Plan Rows": 1,
+                          "Plan Width": 32,
+                          "Disabled": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Node Type": "SetOp",
+          "Strategy": "Hashed",
+          "Parent Relationship": "InitPlan",
+          "Subplan Name": "CTE missing",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Command": "Except",
+          "Startup Cost": 1.17,
+          "Total Cost": 1.19,
+          "Plan Rows": 5,
+          "Plan Width": 32,
+          "Disabled": false,
+          "Plans": [
+            {
+              "Node Type": "CTE Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "CTE Name": "effective",
+              "Alias": "e",
+              "Startup Cost": 0.0,
+              "Total Cost": 0.1,
+              "Plan Rows": 5,
+              "Plan Width": 32,
+              "Disabled": false
+            },
+            {
+              "Node Type": "Nested Loop",
+              "Parent Relationship": "Inner",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Join Type": "Inner",
+              "Startup Cost": 0.0,
+              "Total Cost": 1.04,
+              "Plan Rows": 1,
+              "Plan Width": 32,
+              "Disabled": false,
+              "Inner Unique": false,
+              "Join Filter": "(a_2.id = b.collection_id)",
+              "Plans": [
+                {
+                  "Node Type": "Seq Scan",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Relation Name": "dav_bindings",
+                  "Alias": "b",
+                  "Startup Cost": 0.0,
+                  "Total Cost": 1.01,
+                  "Plan Rows": 1,
+                  "Plan Width": 32,
+                  "Disabled": false
+                },
+                {
+                  "Node Type": "CTE Scan",
+                  "Parent Relationship": "Inner",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "CTE Name": "affected",
+                  "Alias": "a_2",
+                  "Startup Cost": 0.0,
+                  "Total Cost": 0.02,
+                  "Plan Rows": 1,
+                  "Plan Width": 16,
+                  "Disabled": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Node Type": "Nested Loop",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Join Type": "Left",
+          "Startup Cost": 1.02,
+          "Total Cost": 2.2,
+          "Plan Rows": 1,
+          "Plan Width": 69,
+          "Disabled": false,
+          "Inner Unique": true,
+          "Join Filter": "((occupied.home_id = m.account_id) AND (occupied.path = (c.id)::text))",
+          "Plans": [
+            {
+              "Node Type": "Hash Join",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Join Type": "Inner",
+              "Startup Cost": 1.02,
+              "Total Cost": 1.15,
+              "Plan Rows": 1,
+              "Plan Width": 37,
+              "Disabled": false,
+              "Inner Unique": true,
+              "Hash Cond": "(m.collection_id = c.id)",
+              "Plans": [
+                {
+                  "Node Type": "CTE Scan",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "CTE Name": "missing",
+                  "Alias": "m",
+                  "Startup Cost": 0.0,
+                  "Total Cost": 0.1,
+                  "Plan Rows": 5,
+                  "Plan Width": 32,
+                  "Disabled": false
+                },
+                {
+                  "Node Type": "Hash",
+                  "Parent Relationship": "Inner",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 1.01,
+                  "Total Cost": 1.01,
+                  "Plan Rows": 1,
+                  "Plan Width": 21,
+                  "Disabled": false,
+                  "Plans": [
+                    {
+                      "Node Type": "Seq Scan",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Relation Name": "collections",
+                      "Alias": "c",
+                      "Startup Cost": 0.0,
+                      "Total Cost": 1.01,
+                      "Plan Rows": 1,
+                      "Plan Width": 21,
+                      "Disabled": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Seq Scan",
+              "Parent Relationship": "Inner",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Relation Name": "dav_bindings",
+              "Alias": "occupied",
+              "Startup Cost": 0.0,
+              "Total Cost": 1.01,
+              "Plan Rows": 1,
+              "Plan Width": 53,
+              "Disabled": false
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

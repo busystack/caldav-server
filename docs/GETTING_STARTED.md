@@ -563,7 +563,7 @@ bash scripts/restore.sh /private/backups/busystack-before-update.dump
 ```
 
 The script checks the checksum, refuses a running application/nonempty target,
-and accepts complete successful histories from V1 through V15. It preserves data,
+and accepts complete successful histories from V1 through V16. It preserves data,
 ownership, shares and identity mappings, disables every account, changes recovery
 and account epochs, removes restored sessions/passkeys/recovery codes/DAV credentials
 and OAuth grants, revokes refresh families, and invalidates outstanding initialization
@@ -639,7 +639,8 @@ docker compose ps
 ```
 
 Flyway validates published migration checksums and applies forward migrations.
-This implementation adds V15 protected setup state after V1–V14. Existing accounts,
+This implementation adds V15 protected setup state after V1–V14 and V16 to bound
+cached group-reconciliation plans without changing authorization or deadlines. Existing accounts,
 including disabled ones, close initialization on upgrade. Verify HTTPS, normal
 returning-user sign-in, an existing calendar/task, sharing and synchronization.
 Keep the previous artifact and backup for a controlled recovery plan; changing an
@@ -692,7 +693,7 @@ to make an error disappear.
 | Import preview expired after restart | Preview tokens are temporary and do not survive restart. | Check destination if an outcome was uncertain, upload again, review and confirm the new preview. |
 | Backup refuses to overwrite | Archive or `.sha256` already exists. | Choose a new private filename. Preserve the earlier backup. |
 | Restore refuses running/nonempty target | Safety checks protect existing data. | Stop all application instances and use a separately configured empty database/project. Never remove production data to satisfy the check. |
-| Restore reports unsupported/failed/gapped history | Archive history is outside reviewed schema V1–V15 or invalid. | Keep application stopped; use the matching reviewed recovery procedure and original archive. Do not suppress the check. |
+| Restore reports unsupported/failed/gapped history | Archive history is outside reviewed schema V1–V16 or invalid. | Keep application stopped; use the matching reviewed recovery procedure and original archive. Do not suppress the check. |
 | Restored accounts cannot sign in | Restore deliberately disables accounts and revokes credentials. | Independently verify each user and run the documented local/external recovery command, then re-enroll factors. |
 
 For deeper reference: [operations](operations.md), [portal](portal.md),
