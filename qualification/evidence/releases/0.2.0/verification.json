@@ -76,6 +76,24 @@
       },
       "spotBugsFindings": 0
     },
-    "packagedMatrix": "pending final archived-artifact rerun"
+    "packagedMatrix": {
+      "status": "passed",
+      "profiles": [
+        "package-root",
+        "package-team",
+        "browser-root",
+        "browser-proxy",
+        "browser-oidc",
+        "gnome",
+        "operations",
+        "distribution"
+      ]
+    },
+    "nativeGnome": {
+      "status": "passed",
+      "version": "50.0-1",
+      "dataServerVersion": "3.56.2-8",
+      "scope": "real native connection wizard in private home/DBus/X11 namespace"
+    }
   }
 }

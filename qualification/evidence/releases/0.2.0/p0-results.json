@@ -1,0 +1,1206 @@
+{
+  "branch": "release/v0.2.0",
+  "distribution": {
+    "image": {
+      "id": "sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
+      "jarSha256": "ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62",
+      "jdkLegalDirectory": "/opt/java/openjdk/legal",
+      "labels": {
+        "org.opencontainers.image.created": "2026-10-25T10:26:07.538865+00:00",
+        "org.opencontainers.image.description": "Independent calendar and task server",
+        "org.opencontainers.image.licenses": "Apache-2.0",
+        "org.opencontainers.image.revision": "358a1ed2903d8d51622ecad00de6c973c9a94375",
+        "org.opencontainers.image.source": "https://github.com/busystack/caldav-server",
+        "org.opencontainers.image.title": "BusyStack CalDAV Server",
+        "org.opencontainers.image.version": "0.2.0"
+      },
+      "osLicenseDirectory": "/usr/share/doc"
+    },
+    "jarSha256": "ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62",
+    "nestedArtifacts": [
+      {
+        "artifact": "HdrHistogram-2.2.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "ba550515c77c9e6f8b6a400381eacd3c47569297f8f27884801a95dff5309483"
+        }
+      },
+      {
+        "artifact": "HikariCP-7.0.2.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "accessors-smart-2.6.0.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "asm-9.7.1.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "attoparser-2.0.7.RELEASE.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE.txt": "02ab16ab9bbb0d360481ffb8158745fafddd43a38cd74cf469acae7bd287f4bd"
+        }
+      },
+      {
+        "artifact": "checker-qual-3.55.1.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "e90eaa08dea089df10f2bf7f9dba63a5f6237c01562c4741e2e86773e78582d5"
+        }
+      },
+      {
+        "artifact": "classmate-1.7.3.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "7d8d549eb31995fe67822c860acc7ac3dd958a03a5a71aef4069033e7df72d94",
+          "META-INF/NOTICE": "1a8c67aaade274bc7bf06a7044571ab280d59fe3686941b6499b2176a072ea6d"
+        }
+      },
+      {
+        "artifact": "commons-codec-1.21.0.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+          "META-INF/NOTICE.txt": "d82503df1b65173afe535a2f753d27c25377f7f6e9d0b19b4665af617df14750"
+        }
+      },
+      {
+        "artifact": "commons-lang3-3.20.0.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+          "META-INF/NOTICE.txt": "64bc8696af3f6c770521412b85d3a733fa44b2ef5b0f4bd739e0c4d02eca492a"
+        }
+      },
+      {
+        "artifact": "commons-logging-1.3.6.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+          "META-INF/NOTICE.txt": "d649e220dd0497197a266b7d7304a009d06bcefce3141fa6ff4f2ceddb438237"
+        }
+      },
+      {
+        "artifact": "content-type-2.3.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "flyway-core-12.4.0.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "6707b7b3ba3220ab64a81a5ab869ffecc3a6a023e9488ea08b897471b069c078",
+          "org/flywaydb/core/extensibility/LicenseGuard.class": "d9b3046e245a9e6cdb74decc14afbb83544e5f4014de75635292c7f693f5cdd4"
+        }
+      },
+      {
+        "artifact": "flyway-database-postgresql-12.4.0.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "hibernate-validator-9.1.5.Final.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      },
+      {
+        "artifact": "ical4j-4.4.0.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "jackson-annotations-2.21.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "612b14bc77c944ce229cbba0d14919162cfea8ed802cbf06a8e865e032d03201"
+        }
+      },
+      {
+        "artifact": "jackson-core-3.1.7.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "a8eb9ab6d21e719ba217c6367621a7ab5baa3d38df896ef258a9754a6b97527d"
+        }
+      },
+      {
+        "artifact": "jackson-databind-3.1.7.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "d3fa47349b4ba4a3763bf635b930f8877073aa3915a3f3e45fe4b1842fc60302"
+        }
+      },
+      {
+        "artifact": "jackson-dataformat-cbor-3.1.7.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "3b7ec3d73de1ac4eee9af17fd70239e8c226209713b7bc761821e5384acf0a9d",
+          "META-INF/NOTICE": "5828ffe74ea0ee4bf896654026f05fed1ead1d22acd577cc1eec9be0bc0de1ed"
+        }
+      },
+      {
+        "artifact": "jakarta.annotation-api-3.0.0.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.md": "6e1f002892b81cbe0647019b150c8a056efc1add565671a4f8af629b6cd2cc7b",
+          "META-INF/NOTICE.md": "20bf986a153cc3095639379c99ef0a5a3bf99ac4895429920d380414a3eecf08"
+        }
+      },
+      {
+        "artifact": "jakarta.validation-api-3.1.1.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "jboss-logging-3.6.3.Final.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "jcip-annotations-1.0-1.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "json-smart-2.6.0.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "jspecify-1.0.1.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "jul-to-slf4j-2.0.20.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "4e7f90c86ab51278228bce153122f1d8df30149d13ce9ef524c8444a84c32dcc"
+        }
+      },
+      {
+        "artifact": "lang-tag-1.7.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "log4j-api-2.25.5.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "0b23e26a6260c82e2608899128a81a0c82e81f15d708779d0639227f6a2f801f"
+        }
+      },
+      {
+        "artifact": "log4j-to-slf4j-2.25.5.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "0ccd7e8250b33edc64612733af1b614c40eec22505446b6faec1c7a40cbeda95"
+        }
+      },
+      {
+        "artifact": "logback-classic-1.5.38.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "logback-core-1.5.38.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "micrometer-commons-1.17.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+          "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+        }
+      },
+      {
+        "artifact": "micrometer-core-1.17.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+          "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+        }
+      },
+      {
+        "artifact": "micrometer-jakarta9-1.17.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+          "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+        }
+      },
+      {
+        "artifact": "micrometer-observation-1.17.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3",
+          "META-INF/NOTICE": "df207ca1a2ea3794caf112d7c1f024c87b4ddfe91d3f243977ad1d3cd085d538"
+        }
+      },
+      {
+        "artifact": "nimbus-jose-jwt-10.9.1.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "oauth2-oidc-sdk-11.38.2.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "postgresql-42.7.14.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "08bb580d3cb8f9a4a05f008466a294fdb019e0e177d03a035d46f1eb94077de5",
+          "META-INF/licenses/com.ongres.scram/scram-client-3.2/META-INF/LICENSE": "7c89807167a03a92d2fbfc936aff4f87d8ce31434637381c89e38282c8c99198",
+          "META-INF/licenses/com.ongres.scram/scram-common-3.2/META-INF/LICENSE": "7c89807167a03a92d2fbfc936aff4f87d8ce31434637381c89e38282c8c99198",
+          "META-INF/licenses/com.ongres.stringprep/saslprep-2.2/META-INF/LICENSE": "5c49fc155ebccd206277e0d1f424aadbf365f0a9ccfb54d400d728a375d523f9",
+          "META-INF/licenses/com.ongres.stringprep/stringprep-2.2/META-INF/LICENSE": "5c49fc155ebccd206277e0d1f424aadbf365f0a9ccfb54d400d728a375d523f9"
+        }
+      },
+      {
+        "artifact": "slf4j-api-2.0.20.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "6632f550c207be8d7d6b5e87f5d7b905bee218d18392d531df457bf60bec1447"
+        }
+      },
+      {
+        "artifact": "snakeyaml-2.6.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "spring-aop-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-beans-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-boot-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-actuator-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-actuator-autoconfigure-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-autoconfigure-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-flyway-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-health-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-http-converter-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-jackson-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-jarmode-tools-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-jdbc-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-micrometer-metrics-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-micrometer-observation-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-persistence-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-security-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-security-oauth2-authorization-server-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-security-oauth2-client-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-security-oauth2-resource-server-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-servlet-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-session-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-session-jdbc-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-sql-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-thymeleaf-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-tomcat-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-transaction-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-validation-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-web-server-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-boot-webmvc-4.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628",
+          "META-INF/NOTICE.txt": "33ed49a8e57825e3497d5e4ad4ad67815dec123fadff99ffee9705bd1564deca"
+        }
+      },
+      {
+        "artifact": "spring-context-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-core-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-expression-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-jdbc-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-security-config-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-core-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-crypto-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-oauth2-authorization-server-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-oauth2-client-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-oauth2-core-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-oauth2-jose-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-oauth2-resource-server-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-web-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-security-webauthn-7.1.2.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "7200000367e0e8b47822d563a5ddd2dd3a97cc05b32bd7dbcc7b4eeb92b76628"
+        }
+      },
+      {
+        "artifact": "spring-session-core-4.1.1.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe"
+        }
+      },
+      {
+        "artifact": "spring-session-jdbc-4.1.1.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe"
+        }
+      },
+      {
+        "artifact": "spring-tx-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-web-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "spring-webmvc-7.0.10.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/license.txt": "222dd5e84501f80ca9e334f843659471001c40762073efc29f351e2d53e57e38",
+          "META-INF/notice.txt": "dd0c7dcb434e06953bcf6677e8b67922f09bf79f1b477cd16868da59b68b928b"
+        }
+      },
+      {
+        "artifact": "threeten-extra-1.8.0.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "ff3c303a06b9007bf90c7c2c2acac3afdd2af2b504fad21e8b27c9605e1fbcd4"
+        }
+      },
+      {
+        "artifact": "thymeleaf-3.1.5.RELEASE.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      },
+      {
+        "artifact": "thymeleaf-spring6-3.1.5.RELEASE.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE.txt": "c940b6d5fba859e2773fb9568f6b3c328a396684b65dae023fb3f38ee5b0f3b3"
+        }
+      },
+      {
+        "artifact": "tomcat-embed-core-11.0.27.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "8c39166d578175fb936229613e48de47d9e494b8c7c2fda6da717a1be29c8724",
+          "META-INF/NOTICE": "234d3234bb332895157270092fa2a11e80aa0b3d70d59e13de0eed4c2adb1790"
+        }
+      },
+      {
+        "artifact": "tomcat-embed-el-11.0.27.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "0317acaa42a5e48bec061cf009cb5c8b4b8ff845f3c6ba548f67c5c22c29fc96"
+        }
+      },
+      {
+        "artifact": "tomcat-embed-websocket-11.0.27.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE": "0317acaa42a5e48bec061cf009cb5c8b4b8ff845f3c6ba548f67c5c22c29fc96"
+        }
+      },
+      {
+        "artifact": "unbescape-1.1.6.RELEASE.jar",
+        "deliveredLicenseAndNoticeFiles": {
+          "META-INF/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "META-INF/NOTICE.txt": "df671a4abf4562cff42b0aacd7cf95461d7cee9df15e984eb838531031063d41"
+        }
+      },
+      {
+        "artifact": "webauthn4j-core-0.31.10.RELEASE.jar",
+        "deliveredLicenseAndNoticeFiles": {}
+      }
+    ],
+    "projectLicense": [
+      {
+        "license": {
+          "id": "Apache-2.0"
+        }
+      }
+    ],
+    "projectVersion": "0.2.0",
+    "recordedAt": "2026-11-05T12:48:38.196514+00:00",
+    "runtimeComponents": 112,
+    "sourceArchiveSha256": "fe08f7f410822b143d95d6e177bc741528c4617e55a23495b560dcb821109450",
+    "sourceRevision": "358a1ed2903d8d51622ecad00de6c973c9a94375",
+    "status": "passed"
+  },
+  "documentation": {
+    "captureRuntimeCommit": "358a1ed2903d8d51622ecad00de6c973c9a94375",
+    "chapters": 19,
+    "guide": "docs/GETTING_STARTED.md",
+    "guideSha256": "9d1d9b7e1c00c0fc837f95fe5fda1e6fc7452ea377972df7961f6a4e339550ac",
+    "redacted": [
+      "15-password-created.png",
+      "18-recovery.png"
+    ],
+    "screenshots": {
+      "01-initial-setup.png": "c48654c33e52ad17d32540fff70ab203bab01ad726c09c0f63a1a12c68fc7f6f",
+      "02-create-administrator.png": "11d1fb6ff71e92d7edf2b597aa7442635141d9fdb9c03a63062e22f409b84f60",
+      "03-setup-complete.png": "ddb03f84a8103fc01f03d1e64e53a71b03b1a30f590f44cf1382073b82118414",
+      "04-sign-in.png": "9b6771fe3d8cbfaf8e826e1b1dc9c27bac4865e769234a76ddd9fcea127af358",
+      "05-create-passkey.png": "d224c3f67e7e9c5582e168216d14a89f989b1efb0e0d403dbb94c327767fc694",
+      "06-passkey-created.png": "2d0d173f2be1797f6451692220b75faef4780c54a0830b646b30b904a97a1cd6",
+      "07-verify-passkey.png": "470ad3d7bf81c5e7600cd22fd96ddee9bb42615199758350eb265eb119c7ee25",
+      "08-administrator-welcome.png": "b50ef6d937414682863352eae79de2efc68a84f5de690cad0ba8ba7c3ff05099",
+      "09-manage-users.png": "c51f946a29b07145a9b93f00fbc52298d55628ddf1a8850e9a11040fde156230",
+      "10-create-user.png": "093661891fb4cf38f64abff18bbd10a6ba0e5cca0420fba9d89ee2603b37b430",
+      "11-user-onboarding.png": "e0f4472f0441e8927443d78fb8bf52d4599bec96599251286bcafa871e2309d1",
+      "12-calendars.png": "61597809c588b456b88a582af3510ebe81d2828a54afca1fba3d2a9a01eea283",
+      "13-connect-application.png": "ad068af4542b46854fbee07ad79e6b09c4bb71d8a03b35f8ac2c58caab9825b5",
+      "14-create-application-password.png": "cde675b5e8bd78a8cbb569ecf11ad020cf37f497d2764811536dbf09d8a3aebd",
+      "15-password-created.png": "de4e0b31d0285546ebecb4ad331324f43bdfbf35c3c870b040517bfe9c54e7a4",
+      "16-client-configuration.png": "47200bb88bdb54e549178669305a1e999dc19db32c2ea50e802c19935d4881ae",
+      "17-security.png": "8c3d94824ee6201be6ad641544951b12c02a31b3460f69e423f6e124ce7d9269",
+      "18-recovery.png": "35805a4129620080250f1f7caa859d8189351a2b9b1a8e3b4e5f8a8573fd2373",
+      "19-sharing.png": "341e6064ba870ae53ffb57319efc93ad25528c6fdb8bc7b9a3ddef9fc46aef0a",
+      "20-import-export.png": "97e617f164d26a135c2c9312eeb320f7a0ab44fd34db4236781deeadee6d3bc6"
+    }
+  },
+  "historicalGraphicalReleaseMatrix": "pending; native-provider/wizard results do not qualify every graphical editor profile",
+  "imageDescriptorDigest": "sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
+  "imageId": "sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
+  "jarSha256": "ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62",
+  "manualFirefoxBitwarden": "pending user acceptance",
+  "maven": {
+    "command": [
+      "./mvnw",
+      "-B",
+      "-ntp",
+      "clean",
+      "verify"
+    ],
+    "exitCode": 0,
+    "failsafe-reports": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 261
+    },
+    "finishedAt": "2026-11-05T11:58:31.138071+00:00",
+    "jarSha256": "ce7b72f10ed342129d8b60b319b78ea091d9a03f20f029120e29eb6cf304ea62",
+    "sourceCommit": "358a1ed2903d8d51622ecad00de6c973c9a94375",
+    "startedAt": "2026-11-05T11:16:36.342034+00:00",
+    "surefire-reports": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 424
+    }
+  },
+  "mavenLogSha256": "40f6471cb8396c9a83af6e3a1cb1059e289783c0a9335f94af5263fb953822a0",
+  "nativeGnome": {
+    "client": "GNOME Calendar",
+    "dataServerVersion": "3.56.2-8",
+    "mode": "real native connection wizard in private home/DBus/X11 namespace",
+    "nativeBackend": "caldav",
+    "nativeColour": "#126A5EFF",
+    "status": "passed",
+    "steps": [
+      "Manage Calendars",
+      "Add Calendar",
+      "trusted HTTPS discovery URL with username",
+      "Credentials User/Password",
+      "Connect",
+      "native discovery",
+      "Add Calendar",
+      "native backend password prompt",
+      "native event synchronization",
+      "EDS create/modify/delete independently verified over HTTPS"
+    ],
+    "synchronization": {
+      "eventComponents": 3,
+      "interface": "installed EDS public ECalClient API after native wizard provisioning",
+      "nativeCreateModifyDeleteVerifiedOverHttps": true,
+      "recurrenceExceptions": 1,
+      "uidSeries": 2,
+      "writable": true
+    },
+    "tls": "normal verification with fixture CA only in private namespace",
+    "version": "50.0-1"
+  },
+  "newApplicationBranchOrWorktree": false,
+  "newDependencies": false,
+  "packagedMatrix": [
+    {
+      "command": [
+        "python3",
+        "qualification/p0/run.py",
+        "--application-image",
+        "busystack-caldav:p0-v16",
+        "--browser-image",
+        "busystack-passkey-browser:p0",
+        "--deployment-directory",
+        "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/package-v16-final/caldav-server-0.2.0-deploy",
+        "--proxy",
+        "--clients",
+        "--thunderbird-binary",
+        "/home/albert/Projects/busystack/caldav-server/.client-tools/thunderbird159/thunderbird/thunderbird",
+        "--administrator-activity",
+        "personal",
+        "--output",
+        "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/v16-package-root"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:06:41.504489+00:00",
+      "logSha256": "089ab4685d786a14079b84725af571807ec16ed99b3f70c5812643c55513ca5c",
+      "name": "package-root",
+      "started": "2026-11-05T12:04:14.491922+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/p0/run.py",
+        "--application-image",
+        "busystack-caldav:p0-v16",
+        "--browser-image",
+        "busystack-passkey-browser:p0",
+        "--deployment-directory",
+        "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/package-v16-final/caldav-server-0.2.0-deploy",
+        "--proxy",
+        "--clients",
+        "--thunderbird-binary",
+        "/home/albert/Projects/busystack/caldav-server/.client-tools/thunderbird159/thunderbird/thunderbird",
+        "--context-path",
+        "/team",
+        "--output",
+        "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/v16-package-team"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:09:08.994592+00:00",
+      "logSha256": "20be9903394a434ff5c8daf840d0706f4756df56767d7ad35c76f9d9b765c91a",
+      "name": "package-team",
+      "started": "2026-11-05T12:06:41.505461+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:p0-v16",
+        "--browser-image",
+        "busystack-passkey-browser:p0",
+        "--groups",
+        "--portability-crash"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:14:18.085958+00:00",
+      "logSha256": "c82f264e952ca8a8fa6e93e85c11202c531343b3a5b9a98a51db223fa576eadc",
+      "name": "browser-root",
+      "started": "2026-11-05T12:09:08.995756+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:p0-v16",
+        "--browser-image",
+        "busystack-passkey-browser:p0",
+        "--proxy",
+        "--groups",
+        "--restore",
+        "--clients",
+        "--thunderbird-binary",
+        "/home/albert/Projects/busystack/caldav-server/.client-tools/thunderbird159/thunderbird/thunderbird"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:21:42.954725+00:00",
+      "logSha256": "6bc91b3c7927fc29efb47c1f753eaebca0dfefa25f897778a24b4753d3324c63",
+      "name": "browser-proxy",
+      "started": "2026-11-05T12:14:18.087133+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:p0-v16",
+        "--browser-image",
+        "busystack-passkey-browser:p0",
+        "--oidc",
+        "--groups",
+        "--restore"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:32:51.483126+00:00",
+      "logSha256": "256196a731f7175daac9ea6316bad4451299b8fdb6a84c27e8802e2b1ebf23ca",
+      "name": "browser-oidc",
+      "started": "2026-11-05T12:21:42.956083+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "qualification/passkeys/run.py",
+        "--application-image",
+        "busystack-caldav:p0-v16",
+        "--browser-image",
+        "busystack-passkey-browser:p0",
+        "--gnome-only"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:36:17.773782+00:00",
+      "logSha256": "e1b7a35a5843d3189f8125585313631d67258895fb1194d22a152f5c4b871430",
+      "name": "gnome",
+      "started": "2026-11-05T12:32:51.484367+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "-c",
+        "import importlib.util,sys;from pathlib import Path;s=importlib.util.spec_from_file_location('ops','scripts/verify-operations.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.ROOT=Path(sys.argv[1]);sys.argv=['verify-operations','--image','busystack-caldav:p0-v16','--baseline-image','busystack-caldav:corrective-3f74590cd8d2'];m.main()",
+        "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/package-v16-final/caldav-server-0.2.0-deploy"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:48:38.002152+00:00",
+      "logSha256": "5d364f0a331730e38adfbf9a0385ae8adc8ad26c36c535d3a6be6ebb162b00e6",
+      "name": "operations",
+      "started": "2026-11-05T12:36:17.775238+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/verify-distribution.py",
+        "--image",
+        "busystack-caldav:p0-v16",
+        "--revision",
+        "358a1ed2903d8d51622ecad00de6c973c9a94375",
+        "--output",
+        "/home/albert/Projects/busystack/caldav-server/.qualification-runs/p0/v16-evidence/distribution.json"
+      ],
+      "exitCode": 0,
+      "finished": "2026-11-05T12:49:02.929091+00:00",
+      "logSha256": "b04e2caf854439ee88d7a5bf09d99555379602e63000f55c2b109baf8c475b33",
+      "name": "distribution",
+      "started": "2026-11-05T12:48:38.003446+00:00"
+    }
+  ],
+  "preservedUncommittedQualificationPaths": [
+    "qualification/passkeys/README.md",
+    "qualification/passkeys/recovery.py",
+    "qualification/passkeys/test_recovery_refresh.py"
+  ],
+  "profiles": {
+    "capture": {
+      "browser": {
+        "assertions": 49,
+        "base": "https://localhost:47151",
+        "chromium": "149.0.7827.55",
+        "manualFirefoxBitwarden": "pending",
+        "playwright": "1.61.1",
+        "screenshots": 20,
+        "status": "passed"
+      },
+      "clients": {
+        "clients": [
+          {
+            "client": "python-caldav",
+            "icalendar": "7.3.0",
+            "operations": [
+              "principal and home discovery",
+              "calendar and VTODO collection creation",
+              "Unicode event CRUD",
+              "unknown-property round trip",
+              "event time-range query",
+              "server recurrence expansion",
+              "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+              "EXDATE exclusion in server expansion",
+              "undated task CRUD and completion",
+              "initial and incremental synchronization",
+              "resource and collection deletion"
+            ],
+            "status": "passed",
+            "syncConfiguration": {
+              "allowSyncDepthOne": true,
+              "configurationInput": "setting omitted; packaged application default",
+              "depthOneWithOtherSyncLevelStatus": 400,
+              "observedDepthStatus": {
+                "0": 207,
+                "1": 207,
+                "missing": 207
+              },
+              "verifiedBy": "actual authenticated REPORTs to this collection"
+            },
+            "syncFallbackDisabled": true,
+            "version": "3.6.0"
+          },
+          {
+            "client": "Thunderbird",
+            "crossClient": {
+              "excludedOccurrences": 1,
+              "icalendar": "7.3.0",
+              "nativeDetachedExceptions": 1,
+              "nativeRecurrenceInstances": 3,
+              "python-caldav": "3.6.0",
+              "sameResources": 4
+            },
+            "driver": "3.7.1",
+            "mode": "isolated headless native desktop CalDAV provider",
+            "nativeAppleCalendarColor": "#126A5E",
+            "nativePortalExportItems": "not executed in this profile",
+            "operations": [
+              "server discovery by native provider",
+              "recurring event CRUD",
+              "Unicode and unknown-property round trip",
+              "alarm preservation without execution",
+              "undated VTODO CRUD and completion",
+              "same-object Thunderbird to Python to Thunderbird to Python edits",
+              "cross-client recurrence, alarm, extension and completion timestamp preservation",
+              "same-resource detached exception identity/time/title edits in both clients",
+              "EXDATE exclusion verified by native occurrence expansion",
+              "all-day DATE and exclusive end preservation across both clients",
+              "floating DATE-TIME preservation across both clients",
+              "native refresh and deletion synchronization"
+            ],
+            "status": "passed",
+            "syncConfiguration": {
+              "allowSyncDepthOne": true,
+              "configurationInput": "setting omitted; packaged application default",
+              "depthOneWithOtherSyncLevelStatus": 400,
+              "observedDepthStatus": {
+                "0": 207,
+                "1": 207,
+                "missing": 207
+              },
+              "verifiedBy": "actual authenticated REPORTs to this collection"
+            },
+            "version": "159.0"
+          }
+        ],
+        "credentialOrigin": "application password issued after protected browser initialization and real virtual-authenticator MFA",
+        "image": "busystack-caldav:p0-v16"
+      }
+    },
+    "packagedRoot": {
+      "browser": {
+        "assertions": 49,
+        "base": "https://localhost:56503",
+        "chromium": "149.0.7827.55",
+        "manualFirefoxBitwarden": "pending",
+        "playwright": "1.61.1",
+        "screenshots": 20,
+        "status": "passed"
+      },
+      "clients": {
+        "clients": [
+          {
+            "client": "python-caldav",
+            "icalendar": "7.3.0",
+            "operations": [
+              "principal and home discovery",
+              "calendar and VTODO collection creation",
+              "Unicode event CRUD",
+              "unknown-property round trip",
+              "event time-range query",
+              "server recurrence expansion",
+              "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+              "EXDATE exclusion in server expansion",
+              "undated task CRUD and completion",
+              "initial and incremental synchronization",
+              "resource and collection deletion"
+            ],
+            "status": "passed",
+            "syncConfiguration": {
+              "allowSyncDepthOne": true,
+              "configurationInput": "setting omitted; packaged application default",
+              "depthOneWithOtherSyncLevelStatus": 400,
+              "observedDepthStatus": {
+                "0": 207,
+                "1": 207,
+                "missing": 207
+              },
+              "verifiedBy": "actual authenticated REPORTs to this collection"
+            },
+            "syncFallbackDisabled": true,
+            "version": "3.6.0"
+          },
+          {
+            "client": "Thunderbird",
+            "crossClient": {
+              "excludedOccurrences": 1,
+              "icalendar": "7.3.0",
+              "nativeDetachedExceptions": 1,
+              "nativeRecurrenceInstances": 3,
+              "python-caldav": "3.6.0",
+              "sameResources": 4
+            },
+            "driver": "3.7.1",
+            "mode": "isolated headless native desktop CalDAV provider",
+            "nativeAppleCalendarColor": "#126A5E",
+            "nativePortalExportItems": "not executed in this profile",
+            "operations": [
+              "server discovery by native provider",
+              "recurring event CRUD",
+              "Unicode and unknown-property round trip",
+              "alarm preservation without execution",
+              "undated VTODO CRUD and completion",
+              "same-object Thunderbird to Python to Thunderbird to Python edits",
+              "cross-client recurrence, alarm, extension and completion timestamp preservation",
+              "same-resource detached exception identity/time/title edits in both clients",
+              "EXDATE exclusion verified by native occurrence expansion",
+              "all-day DATE and exclusive end preservation across both clients",
+              "floating DATE-TIME preservation across both clients",
+              "native refresh and deletion synchronization"
+            ],
+            "status": "passed",
+            "syncConfiguration": {
+              "allowSyncDepthOne": true,
+              "configurationInput": "setting omitted; packaged application default",
+              "depthOneWithOtherSyncLevelStatus": 400,
+              "observedDepthStatus": {
+                "0": 207,
+                "1": 207,
+                "missing": 207
+              },
+              "verifiedBy": "actual authenticated REPORTs to this collection"
+            },
+            "version": "159.0"
+          }
+        ],
+        "credentialOrigin": "application password issued after protected browser initialization and real virtual-authenticator MFA",
+        "image": "busystack-caldav:p0-v16"
+      }
+    },
+    "packagedSubpath": {
+      "browser": {
+        "assertions": 48,
+        "base": "https://localhost:38345/team",
+        "chromium": "149.0.7827.55",
+        "manualFirefoxBitwarden": "pending",
+        "playwright": "1.61.1",
+        "screenshots": 20,
+        "status": "passed"
+      },
+      "clients": {
+        "clients": [
+          {
+            "client": "python-caldav",
+            "icalendar": "7.3.0",
+            "operations": [
+              "principal and home discovery",
+              "calendar and VTODO collection creation",
+              "Unicode event CRUD",
+              "unknown-property round trip",
+              "event time-range query",
+              "server recurrence expansion",
+              "same-resource detached exception CRUD and RECURRENCE-ID preservation",
+              "EXDATE exclusion in server expansion",
+              "undated task CRUD and completion",
+              "initial and incremental synchronization",
+              "resource and collection deletion"
+            ],
+            "status": "passed",
+            "syncConfiguration": {
+              "allowSyncDepthOne": true,
+              "configurationInput": "setting omitted; packaged application default",
+              "depthOneWithOtherSyncLevelStatus": 400,
+              "observedDepthStatus": {
+                "0": 207,
+                "1": 207,
+                "missing": 207
+              },
+              "verifiedBy": "actual authenticated REPORTs to this collection"
+            },
+            "syncFallbackDisabled": true,
+            "version": "3.6.0"
+          },
+          {
+            "client": "Thunderbird",
+            "crossClient": {
+              "excludedOccurrences": 1,
+              "icalendar": "7.3.0",
+              "nativeDetachedExceptions": 1,
+              "nativeRecurrenceInstances": 3,
+              "python-caldav": "3.6.0",
+              "sameResources": 4
+            },
+            "driver": "3.7.1",
+            "mode": "isolated headless native desktop CalDAV provider",
+            "nativeAppleCalendarColor": "#126A5E",
+            "nativePortalExportItems": "not executed in this profile",
+            "operations": [
+              "server discovery by native provider",
+              "recurring event CRUD",
+              "Unicode and unknown-property round trip",
+              "alarm preservation without execution",
+              "undated VTODO CRUD and completion",
+              "same-object Thunderbird to Python to Thunderbird to Python edits",
+              "cross-client recurrence, alarm, extension and completion timestamp preservation",
+              "same-resource detached exception identity/time/title edits in both clients",
+              "EXDATE exclusion verified by native occurrence expansion",
+              "all-day DATE and exclusive end preservation across both clients",
+              "floating DATE-TIME preservation across both clients",
+              "native refresh and deletion synchronization"
+            ],
+            "status": "passed",
+            "syncConfiguration": {
+              "allowSyncDepthOne": true,
+              "configurationInput": "setting omitted; packaged application default",
+              "depthOneWithOtherSyncLevelStatus": 400,
+              "observedDepthStatus": {
+                "0": 207,
+                "1": 207,
+                "missing": 207
+              },
+              "verifiedBy": "actual authenticated REPORTs to this collection"
+            },
+            "version": "159.0"
+          }
+        ],
+        "credentialOrigin": "application password issued after protected browser initialization and real virtual-authenticator MFA",
+        "image": "busystack-caldav:p0-v16"
+      }
+    }
+  },
+  "publicAnonymousDownloadAndPull": "not executed; this work is unpublished and publication is not authorized",
+  "qualificationKind": "local-unpublished",
+  "qualifiedArchive": {
+    "image": "ghcr.io/busystack/caldav-server:0.2.0@sha256:7d3a07b372ec3ffa161b3ef2aa33c1564d524652c88ae011d1b4956629ee5699",
+    "sha256": "99100b1f9e30ef9910f74b34e9afb0487ce0dcf650cb8898f220368c143d7473",
+    "sourceCommit": "7c8f36b8676b10186822432ecaa20a098e8c8144"
+  },
+  "recordedAt": "2026-11-05T12:49:20.160503+00:00",
+  "runtimeCommit": "358a1ed2903d8d51622ecad00de6c973c9a94375",
+  "schemaVersion": 1,
+  "startingCommit": "3f74590cd8d22341ae1a496af41377a8521733fa",
+  "thirdPartySoftwareModified": false,
+  "toolTests": {
+    "fixtureTools": {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "qualification/passkeys",
+        "-p",
+        "test_*.py"
+      ],
+      "exitCode": 0,
+      "logSha256": "1379b5aab71c9ca77a2459d403f8e21a6a675292c107441a36fcb878175421f4",
+      "tests": 14
+    },
+    "releaseTools": {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "qualification/release",
+        "-v"
+      ],
+      "exitCode": 0,
+      "logSha256": "4f77622923734430ef0e1a3d7b01a4cfdf9711de69f5452fc23f5df58f7f3df6",
+      "tests": 33
+    }
+  }
+}
