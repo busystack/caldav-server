@@ -35,6 +35,27 @@ OPERATOR_DOCUMENTS = (
     'docs/third-party-licenses.md',
     'docs/versions.md',
     'docs/adr/0004-resumable-synchronization.md',
+    'docs/adr/0001-protocol-engine.md',
+    'docs/adr/0002-native-oauth-refresh.md',
+    'docs/conformance.md',
+    'docs/ical4j-parser-patch.md',
+    'docs/ical4j-timezone-patch.md',
+    'docs/security-verification.md',
+    'docs/standards-corrections.md',
+    'docs/standards-review.md',
+    'investigation/oauth/README.md',
+    'investigation/protocol/src/test/java/org/busystack/caldav/investigation/BedeworkHttpTest.java',
+    'qualification/clients/README.md',
+    'qualification/evidence/README.md',
+    'qualification/evidence/releases/0.0.1/summary.json',
+    'qualification/evidence/releases/0.1.0/README.md',
+    'qualification/evidence/releases/0.1.0/verification.json',
+    'qualification/keycloak/Dockerfile',
+    'qualification/passkeys/README.md',
+    'qualification/portability/README.md',
+    'qualification/security/README.md',
+    'pom.xml',
+    '.github/workflows/ci.yml',
 )
 SCREENSHOTS = tuple(f'docs/images/getting-started/{number:02d}-{name}.png' for number, name in enumerate((
     'initial-setup', 'create-administrator', 'setup-complete', 'sign-in', 'create-passkey',
@@ -57,6 +78,18 @@ def validate_guide(files):
         assert path in files, 'Broken guide reference: ' + target
     for name in SCREENSHOTS:
         assert name.removeprefix('docs/') in text, 'Unreferenced guide screenshot: ' + name
+
+
+def validate_document_links(files):
+    """Supporting documents must remain usable in a source-free installation."""
+    for name, data in files.items():
+        if not name.endswith('.md'):
+            continue
+        for target in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', data.decode()):
+            if target.startswith(('https://', 'http://', '#', 'mailto:')):
+                continue
+            path = posixpath.normpath(posixpath.join(posixpath.dirname(name), target.split('#')[0]))
+            assert path in files, 'Broken deployment document reference: ' + name + ': ' + target
 spec = importlib.util.spec_from_file_location('candidate', ROOT / 'scripts/release-candidate.py')
 candidate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(candidate)
@@ -154,6 +187,7 @@ def deployment_files(qualified, version, compose, identity, sbom):
             notices[destination] = data
     notices['runtime-dependency-inventory.json'] = Path(sbom).read_bytes()
     files.update(notices)
+    validate_document_links(files)
     return files, used, notices
 
 
@@ -185,6 +219,7 @@ def validate_assets(directory, version=None, source_sha=None):
         assert len(contents) == len(members), 'Duplicate deployment entries'
     assert {name: hashlib.sha256(data).hexdigest() for name, data in contents.items()} == manifest['deploymentFiles'], 'Deployment content mismatch'
     validate_guide(contents)
+    validate_document_links(contents)
     assert 'build:' not in contents['compose.yaml'].decode() and manifest['container']['image'].encode() in contents['compose.yaml']
     with tarfile.open(directory / 'notices.tar.gz') as archive:
         for member in archive:

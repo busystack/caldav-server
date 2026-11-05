@@ -607,6 +607,14 @@ class PublicationGateTest(unittest.TestCase):
 
 
 class GuideIntegrityTest(unittest.TestCase):
+    def test_supporting_document_links_require_their_packaged_targets(self):
+        files = {'docs/operations.md': b'[Security](account-security.md)',
+                 'docs/account-security.md': b'Security instructions'}
+        bundle.validate_document_links(files)
+        files.pop('docs/account-security.md')
+        with self.assertRaisesRegex(AssertionError, 'Broken deployment document reference'):
+            bundle.validate_document_links(files)
+
     def test_missing_guide_missing_screenshot_and_broken_link_fail_validation(self):
         files = {str(p.relative_to(ROOT)): p.read_bytes()
                  for base in ('docs', 'deployment') for p in (ROOT / base).rglob('*') if p.is_file()}
