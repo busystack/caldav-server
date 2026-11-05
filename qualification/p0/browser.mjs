@@ -13,6 +13,7 @@ const check=(condition,message)=>{assert.ok(condition,message); assertions++;};
 async function virtual(context,page) {
   const cdp=await context.newCDPSession(page);await cdp.send('WebAuthn.enable');
   await cdp.send('WebAuthn.addVirtualAuthenticator',{options:{protocol:'ctap2',transport:'internal',hasResidentKey:true,hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true}});
+  return cdp;
 }
 async function shot(page,name,mask=[]) {
   await page.screenshot({path:output+'/'+name+'.png',fullPage:true,mask,maskColor:'#172b38'});
@@ -48,7 +49,7 @@ async function mutate(page,path,values) {
 try {
   const context=await browser.newContext({viewport:{width:1280,height:900},colorScheme:'light'});
   await context.grantPermissions(['clipboard-read','clipboard-write']);
-  const page=await context.newPage(); await virtual(context,page);
+  const page=await context.newPage(); const cdp=await virtual(context,page);
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   const remoteAssets=[];page.on('request',request=>{if(new URL(request.url()).origin!==new URL(base).origin)remoteAssets.push(request.resourceType());});
   await page.goto(base+'/'); await page.getByRole('heading',{name:'Set up BusyStack',exact:true}).waitFor();
@@ -68,7 +69,15 @@ try {
   await page.getByRole('button',{name:'Create passkey',exact:true}).click();
   await page.locator('#security-status').filter({hasText:'may have been cancelled'}).waitFor();
   await page.evaluate(()=>{navigator.credentials.create=window.savedCreate;});
-  await enroll(page);await shot(page,'06-passkey-created');
+  let lostRegistrationResponse=false;
+  await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*webauthn/register',requestStage:'Response'}]});
+  cdp.on('Fetch.requestPaused',async event=>{
+    if(event.responseStatusCode===200){lostRegistrationResponse=true;await cdp.send('Fetch.failRequest',{requestId:event.requestId,errorReason:'Failed'});}
+    else await cdp.send('Fetch.continueResponse',{requestId:event.requestId});
+  });
+  await enroll(page);await cdp.send('Fetch.disable');
+  check(lostRegistrationResponse,'A real committed registration with a lost response is reconciled');
+  await shot(page,'06-passkey-created');
   check(!(await page.locator('main').innerText()).includes('No passkeys are enrolled.'),'Registration clears stale empty state');
   check(await mutate(page,'/credentials',{label:'Denied registration only',days:'1'})===403,'Registration alone: issuance denied');
   await page.getByRole('link',{name:'Verify your passkey',exact:true}).click();await shot(page,'07-verify-passkey');
@@ -82,20 +91,35 @@ try {
   await page.goto(base+'/collections');await shot(page,'12-calendars');
   await grantDirect(page,base,calendar,'demo-user','READ');await shot(page,'19-sharing');
   await page.goto(base+'/security');await shot(page,'17-security');
-  await page.goto(base+'/security/recovery');await shot(page,'18-recovery');
+  await page.goto(base+'/security/recovery');
   await page.getByRole('button',{name:'Generate ten codes',exact:true}).click();
-  check((await page.locator('main').innerText()).includes('recovery'),'Protected recovery-code generation responds');
+  await page.getByRole('heading',{name:'Save your recovery codes',exact:true}).waitFor();
+  await shot(page,'18-recovery',[page.locator('main ol')]);
+  check(await page.locator('main ol code').count()===10,'Protected recovery workflow issues ten one-time codes');
   await page.goto(base+'/connections');await shot(page,'13-connect-application');
   await page.getByRole('link',{name:'GNOME Calendar',exact:true}).click();await shot(page,'16-client-configuration');
+  check(await page.locator('#server-address').inputValue()===base+'/dav/','Configured root/subpath server address is correct');
+  await page.getByRole('button',{name:'Copy username',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Username copied.'}).waitFor();
+  check(await page.evaluate(()=>navigator.clipboard.readText())==='demo-admin','Username copied accurately');
+  await page.getByRole('button',{name:'Copy server',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Server address copied.'}).waitFor();
+  check(await page.evaluate(()=>navigator.clipboard.readText())===base+'/dav/','Server address copied accurately');
   await page.getByRole('link',{name:'Create application password',exact:true}).click();await shot(page,'14-create-application-password');
   await page.locator('[name=label]').fill('GNOME on demo laptop');
   await page.getByRole('button',{name:'Create application password',exact:true}).click();
   await page.getByRole('heading',{name:'Application password created',exact:true}).waitFor();
   const secret=await page.locator('#issued-secret').innerText();privateValues.push(secret);
+  writeFileSync('/fixture/issued-password',secret,{mode:0o600});
   await shot(page,'15-password-created',[page.locator('main dd').filter({has:page.locator('#issued-secret')})]);
   await page.getByRole('button',{name:'Copy password',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Password copied.'}).waitFor();
   check(await page.evaluate(()=>navigator.clipboard.readText())===secret,'Clipboard contains issued password');
+  await page.evaluate(()=>{window.savedClipboard=navigator.clipboard.writeText.bind(navigator.clipboard);navigator.clipboard.writeText=async()=>{throw new DOMException('Denied','NotAllowedError');};});
+  await page.getByRole('button',{name:'Copy password',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Copy failed.'}).waitFor();
+  check(await page.getByRole('button',{name:'Copy password',exact:true}).evaluate(button=>document.activeElement===button),'Clipboard failure keeps keyboard focus at the action');
+  await page.evaluate(()=>{navigator.clipboard.writeText=window.savedClipboard;});
   check(await mutate(page,'/credentials',{label:'MFA verified',days:'1'})===200,'Completed MFA: issuance succeeds');
   await page.getByRole('link',{name:'Continue to application setup',exact:true}).click();
   check(page.url().includes('client=gnome'),'Selected client preserved through issuance');
@@ -103,7 +127,10 @@ try {
   await page.goto(base+'/portability');await shot(page,'20-import-export');
   const userContext=await browser.newContext({viewport:{width:1280,height:900},colorScheme:'light'});
   const user=await userContext.newPage();await virtual(userContext,user);
-  await signIn(user,'demo-user');await enroll(user);await verify(user);await shot(user,'11-user-onboarding');
+  await user.goto(base+'/connections?client=thunderbird');
+  await signIn(user,'demo-user');await enroll(user);await verify(user);
+  check(user.url()===base+'/connections?client=thunderbird','Primary/session rotation preserves the intended application workflow');
+  await user.goto(base+'/');await shot(user,'11-user-onboarding');
   check(await user.getByRole('link',{name:'Server administration',exact:true}).count()===0,'No administrator UI for ordinary user');
   check((await user.locator('main').innerText()).includes('shared'),'Shared collections offered in onboarding');
   check(!(await user.locator('main').innerText()).includes('Create a calendar or task list'),'Shared recipient not forced to create collection');

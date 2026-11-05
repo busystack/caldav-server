@@ -76,7 +76,7 @@ and private secrets when no longer needed. Keep backups under your retention pol
 ## JAR alternative
 
 Download `caldav-server-@VERSION@.jar` and verify its SHA-256. Use official Java 25
-(the selected qualified runtime is Temurin 25.0.4.1+1) and PostgreSQL 18.6. Configure
+(the selected qualified runtime is Temurin 25.0.5+8) and PostgreSQL 18.6. Configure
 an application-owned PostgreSQL database/role, file-backed Spring config-tree
 secrets, equal canonical HTTPS public URL and issuer, and loopback listener.
 Use the operations guide's bootstrap/recovery commands with the downloaded JAR

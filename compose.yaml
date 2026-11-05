@@ -77,6 +77,15 @@ services:
       start_period: 60s
       retries: 5
 
+  initialization:
+    profiles: [operator]
+    extends:
+      service: application
+    restart: "no"
+    # Operator output must never enter the deployment's container log driver.
+    logging:
+      driver: none
+
 volumes:
   database:
 

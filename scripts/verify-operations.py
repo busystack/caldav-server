@@ -214,22 +214,30 @@ def verify(args, initial_version):
         try:
             projects.append(environment.copy())
             compose(environment, "up", "-d", "--wait", "--wait-timeout", "120", "database")
-            compose(
-                environment,
-                "run",
-                "--rm",
-                "--no-deps",
-                "--user",
-                f"{os.getuid()}:{os.getgid()}",
-                "--volume",
-                f"{private / 'bootstrap-password'}:/bootstrap-password:ro",
-                "application",
-                "--spring.main.web-application-type=none",
-                "--busystack.bootstrap=true",
-                "--busystack.bootstrap-username=opsadmin",
-                "--busystack.bootstrap-password-file=/bootstrap-password",
-                *([] if initial_version is None else ["--spring.flyway.target=" + initial_version]),
-            )
+            if initial_version is not None:
+                # Create an historical schema, not a current initializer against missing
+                # future security tables. This is explicitly a database fixture.
+                compose(environment, "run", "--rm", "--no-deps", "application",
+                    "--spring.main.web-application-type=none", "--spring.flyway.target=" + initial_version)
+                sql(environment, "INSERT INTO accounts(id,username,display_name,password_hash,administrator) VALUES (gen_random_uuid(),'opsadmin','Operations Administrator','qualification-unusable-verifier',true);")
+                print("OPERATIONS_V9_SCHEMA_ONLY_FIXTURE_NO_CURRENT_BOOTSTRAP", flush=True)
+            else:
+                compose(
+                    environment,
+                    "run",
+                    "--rm",
+                    "--no-deps",
+                    "--user",
+                    f"{os.getuid()}:{os.getgid()}",
+                    "--volume",
+                    f"{private / 'bootstrap-password'}:/bootstrap-password:ro",
+                    "application",
+                    "--spring.main.web-application-type=none",
+                    "--busystack.bootstrap=true",
+                    "--busystack.bootstrap-username=opsadmin",
+                    "--busystack.bootstrap-password-file=/bootstrap-password",
+                    *([] if initial_version is None else ["--spring.flyway.target=" + initial_version]),
+                )
             print("OPERATIONS_SCHEMA_VERSIONS=" + sql(environment, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;"), flush=True)
             content = (
                 "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
@@ -322,8 +330,12 @@ COMMIT;
                 actual = execute(["docker", "inspect", "--format", "{{.Image}}", compose(environment, "ps", "--quiet", "application")], environment)
                 assert actual == args.image
                 assert sql(environment, "SELECT encode(content,'hex') || etag FROM calendar_resources ORDER BY collection_id,name;") == baseline_data
-                assert sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;") == baseline_history
-                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_MIGRATION_HISTORY", flush=True)
+                upgraded_history = json.loads(sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;"))
+                previous_history = json.loads(baseline_history)
+                assert upgraded_history[:len(previous_history)] == previous_history
+                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 16)]
+                assert sql(environment, "SELECT initialized FROM installation_state WHERE id=1;") == "t"
+                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15", flush=True)
             compose(environment, "restart", "application")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)

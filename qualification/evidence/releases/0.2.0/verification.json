@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "status": "pending",
+  "qualificationKind": "local-unpublished",
+  "jarSha256": "3c22bf48baa67399383672782b27059329eb720fb94f525c30231cfe6ebeb5b6",
+  "runtimeInputs": {
+    "Dockerfile": "2963b09f0c074104d9584d4f417368418ac947bcc2f3b4c00b61de10a04682da",
+    "compose.yaml": "7d8e3c0e235de2b6da48595a1291c00d312d1a2c652a89b208f9189a0c21184b"
+  },
+  "runtimeVerificationCommit": "f25b9c520cbe6a8c5562c4ccf22df4c4e5f5cff1",
+  "clients": {
+    "thunderbird-system-vancouver": {
+      "status": "pending"
+    },
+    "thunderbird-explicit-vancouver": {
+      "status": "pending"
+    },
+    "thunderbird-explicit-berlin": {
+      "status": "pending"
+    },
+    "gnome-vancouver": {
+      "status": "pending"
+    }
+  },
+  "notes": [
+    "This record does not claim a published release or a successful CI run.",
+    "P0 automated/browser/native-client results and historical graphical release-matrix evidence are recorded separately.",
+    "The existing release publisher must continue to reject a pending receipt."
+  ]
+}

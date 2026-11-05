@@ -110,6 +110,12 @@ class OidcBoundaryIT {
   @BeforeEach
   void clear() {
     org.busystack.caldav.testing.FixtureDatabase.clearAccounts(jdbc);
+    // Federation follows the required local administrator initialization.
+    accounts.provision(
+        "oidc-fixture-admin",
+        "OIDC fixture administrator",
+        "OIDC fixture bootstrap password",
+        true);
     PROVIDER.mode = "correct";
   }
 

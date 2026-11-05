@@ -165,7 +165,11 @@ public class PortalErrors {
     else if (path.startsWith("/admin/groups/"))
       retry = path.replaceFirst("/members.*$", "").replaceFirst("/delete$", "");
     else if (path.equals("/admin/groups")) retry = path;
-    else if (path.startsWith("/credentials")) retry = "/security/credentials";
+    else if (path.startsWith("/credentials"))
+      retry =
+          "/security/credentials?client="
+              + PortalController.client(
+                  java.util.Objects.requireNonNullElse(request.getParameter("client"), "generic"));
     else if (path.matches("/portability/import/[a-f0-9-]{36}")) retry = path;
     else if (path.startsWith("/portability")) retry = "/portability";
     else if (path.equals("/shares") || path.equals("/group-shares")) {
@@ -180,6 +184,7 @@ public class PortalErrors {
       }
     }
     model.addAttribute("retryPath", retry);
+    model.addAttribute("authenticationRetry", request.getContextPath() + retry);
     return "portal-error";
   }
 }

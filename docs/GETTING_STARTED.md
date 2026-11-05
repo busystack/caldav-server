@@ -449,7 +449,10 @@ passkeys are removed, enroll/verify another before the next verification is need
 Use controlled recovery if you cannot. Password changes and recovery invalidate
 sessions/security generations and revoke independently issued access.
 
-![Recovery-code workflow without disclosed codes](images/getting-started/18-recovery.png)
+![One-time recovery-code workflow with the code block redacted](images/getting-started/18-recovery.png)
+
+The real one-time code block is deterministically redacted in this screenshot.
+Save your actual codes privately before leaving that screen.
 
 After recent MFA, recovery generates ten high-entropy one-use codes, shown once,
 expiring after one year. Save them privately offline. Generating a replacement set

@@ -279,8 +279,15 @@ class InitializationIT {
           .target("14")
           .load()
           .migrate();
-      jdbc.update(
-          "INSERT INTO initialization_upgrade.accounts(id,username,display_name,password_hash,administrator,enabled) VALUES (gen_random_uuid(),'legacy-admin','Legacy administrator','non-authenticating-fixture',true,false)");
+      new org.springframework.transaction.support.TransactionTemplate(
+              new org.springframework.jdbc.datasource.DataSourceTransactionManager(source))
+          .executeWithoutResult(
+              status -> {
+                // Published trigger bodies resolve unqualified names in the caller's schema.
+                jdbc.execute("SET LOCAL search_path TO initialization_upgrade,public");
+                jdbc.update(
+                    "INSERT INTO initialization_upgrade.accounts(id,username,display_name,password_hash,administrator,enabled) VALUES (gen_random_uuid(),'legacy-admin','Legacy administrator','non-authenticating-fixture',true,false)");
+              });
       org.flywaydb.core.Flyway.configure()
           .dataSource(source)
           .defaultSchema("initialization_upgrade")

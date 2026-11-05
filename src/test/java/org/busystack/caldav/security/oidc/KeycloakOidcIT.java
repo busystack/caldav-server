@@ -167,6 +167,12 @@ class KeycloakOidcIT {
   @BeforeEach
   void reset() {
     org.busystack.caldav.testing.FixtureDatabase.clearAccounts(jdbc);
+    // Federation follows the required local administrator initialization.
+    accounts.provision(
+        "oidc-fixture-admin",
+        "OIDC fixture administrator",
+        "OIDC fixture bootstrap password",
+        true);
     if (registrations.findById("fixture-client") == null)
       registrations.save(
           org.springframework.security.oauth2.server.authorization.client.RegisteredClient.withId(

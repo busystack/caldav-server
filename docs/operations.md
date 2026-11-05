@@ -189,7 +189,9 @@ bash scripts/initialize.sh
 ```
 
 Run from the extracted deployment directory against its healthy database. Only
-that one-off local command prints a 256-bit random code. The database stores a
+that one-off local command prints a 256-bit random code. Its operator-profile
+container disables the Docker log driver so the code cannot be retained in
+container logs; normal application logging is unchanged. The database stores a
 purpose-separated SHA-256 verifier for 15 minutes. Each issuance replaces the
 previous code; five invalid attempts invalidate it. The browser form uses CSRF,
 no-store and no-referrer. The code is never supplied in a URL. Initialization
