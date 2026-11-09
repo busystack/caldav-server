@@ -8,6 +8,8 @@ import net.fortuna.ical4j.model.parameter.*;
 import org.busystack.caldav.calendar.query.*;
 import org.busystack.caldav.calendar.query.CalendarFilter.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class CalendarParameterSemanticsTest {
   private CalendarContent.Parsed parsed(String parameters) {
@@ -138,6 +140,34 @@ class CalendarParameterSemanticsTest {
     assertThatThrownBy(
             () -> parsed("X-LIST=" + String.join(",", java.util.Collections.nCopies(1001, "x"))))
         .isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"RSVP=MAYBE", "RSVP=", "LANGUAGE=en_US", "LANGUAGE="})
+  void invalidKnownParameterValuesAreRejectedBeforeModelCoercion(String parameter) {
+    assertThatThrownBy(() -> parsed(parameter)).isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "RSVP=true",
+        "RSVP=FALSE",
+        "LANGUAGE=en-US",
+        "LANGUAGE=zh-Hant-TW",
+        "LANGUAGE=i-klingon",
+        "LANGUAGE=x-private"
+      })
+  void validBooleanAndLanguageParametersRemainPreserved(String parameter) {
+    var parsed = parsed(parameter);
+    var original = parsed.calendar().getComponents().getFirst().getRequiredProperty("ATTENDEE");
+    var copied =
+        parsed.calendar().copy().getComponents().getFirst().getRequiredProperty("ATTENDEE");
+    String name = parameter.substring(0, parameter.indexOf('='));
+    assertThat(copied.getRequiredParameter(name).getValue())
+        .isEqualTo(original.getRequiredParameter(name).getValue());
+    assertThat(original.getRequiredParameter(name).getValue())
+        .isEqualToIgnoringCase(parameter.substring(parameter.indexOf('=') + 1));
   }
 
   private boolean matchesParameter(CalendarContent.Parsed parsed, String name, String text) {

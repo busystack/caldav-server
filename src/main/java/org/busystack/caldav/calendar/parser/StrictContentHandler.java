@@ -210,6 +210,22 @@ public final class StrictContentHandler extends DefaultContentHandler
           QueryException.Kind.INVALID_DATA,
           "TZID is not permitted on timezone observance properties");
     var values = rawValues.stream().map(Rfc6868::value).toList();
+    if (name.equals(Parameter.RSVP)
+        && values.stream()
+            .anyMatch(v -> !v.equalsIgnoreCase("TRUE") && !v.equalsIgnoreCase("FALSE")))
+      throw new QueryException(QueryException.Kind.INVALID_DATA, "Invalid RSVP boolean");
+    if (name.equals(Parameter.LANGUAGE)) {
+      try {
+        for (String value : values) {
+          if (value.isEmpty()) throw new IllformedLocaleException("Empty language tag");
+          // Validate BCP47 syntax through the supported JDK API. Do not replace
+          // the original spelling, grandfathered form or property parameters.
+          new Locale.Builder().setLanguageTag(value);
+        }
+      } catch (IllformedLocaleException error) {
+        throw new QueryException(QueryException.Kind.INVALID_DATA, "Invalid LANGUAGE tag");
+      }
+    }
     Parameter parameter;
     if (name.equals(Parameter.MEMBER)
         || name.equals(Parameter.DELEGATED_FROM)

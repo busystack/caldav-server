@@ -419,6 +419,42 @@ class DavHttpIT {
   }
 
   @Test
+  void invalidBooleanAndLanguageParametersDoNotChangeResourceOrSyncState() throws Exception {
+    String calendar = create("parameter-atomicity", "VEVENT");
+    UUID collection = datedCollection("parameter-atomicity");
+    for (String parameter : List.of("RSVP=MAYBE", "LANGUAGE=en_US")) {
+      String name = parameter.substring(0, parameter.indexOf('='));
+      String resource = calendar + name + ".ics";
+      String valid = event("parameter-" + name, "Preserved");
+      String invalid =
+          valid.replace(
+              "END:VEVENT",
+              "ATTENDEE;" + parameter + ":mailto:synthetic@example.invalid\r\nEND:VEVENT");
+      var empty = admissionHistoryState(collection);
+      var creation =
+          send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-None-Match", "*");
+      assertThat(creation.statusCode()).isEqualTo(403);
+      assertThat(DavXml.child(xml(creation), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      assertThat(send("GET", resource, "").statusCode()).isEqualTo(404);
+      assertThat(admissionHistoryState(collection)).isEqualTo(empty);
+      assertThat(send("PUT", resource, valid, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      var before = send("GET", resource, "");
+      String etag = before.headers().firstValue("ETag").orElseThrow();
+      String token = currentCollectionToken(calendar);
+      var state = admissionHistoryState(collection);
+      var replacement =
+          send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-Match", etag);
+      assertThat(replacement.statusCode()).isEqualTo(403);
+      assertThat(DavXml.child(xml(replacement), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      var after = send("GET", resource, "");
+      assertThat(after.body()).isEqualTo(valid);
+      assertThat(after.headers().firstValue("ETag")).hasValue(etag);
+      assertThat(admissionHistoryState(collection)).isEqualTo(state);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+    }
+  }
+
+  @Test
   void propertyUpdateIsAtomicAndUnknownXmlPropertiesRemainNamespaced() throws Exception {
     String calendar = create("events", "VEVENT");
     var failed =
