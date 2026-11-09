@@ -309,7 +309,8 @@ class CalendarAuditCorrectionsTest {
 
   @Test
   void floatingAndAbsoluteDateTimesUseTheReportsTimezoneRatherThanAGuessedWriteZone() {
-    var parsed = parse("VEVENT", "DTSTART:20261027T100000\r\nDTEND:20261027T140000Z\r\n");
+    var parsed = parse("VEVENT", "DTSTART:20261027T100000\r\nDTEND:20261027T140000\r\n");
+    var absolute = parse("VEVENT", "DTSTART:20261027T100000Z\r\nDTEND:20261027T140000Z\r\n");
     var filter =
         component(
             "VCALENDAR",
@@ -327,6 +328,9 @@ class CalendarAuditCorrectionsTest {
             new CalendarQuery(QueryLimits.defaults())
                 .matches(parsed, filter, ZoneOffset.ofHours(2)))
         .isTrue();
+    for (var zone : List.of(ZoneOffset.UTC, ZoneOffset.ofHours(2)))
+      assertThat(new CalendarQuery(QueryLimits.defaults()).matches(absolute, filter, zone))
+          .isFalse();
   }
 
   @ParameterizedTest

@@ -419,6 +419,53 @@ class DavHttpIT {
   }
 
   @Test
+  void mixedFloatingDateFormsFailBeforeCreationOrConditionalReplacement() throws Exception {
+    for (String field : List.of("DTEND", "DUE", "RECURRENCE-ID")) {
+      String kind = field.equals("DUE") ? "VTODO" : "VEVENT";
+      String calendar = create("date-form-" + field, kind);
+      UUID collection = datedCollection("date-form-" + field);
+      for (boolean floatingStart : List.of(true, false)) {
+        String resource = calendar + floatingStart + ".ics";
+        String valid =
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Date form regression//EN\r\nBEGIN:"
+                + kind
+                + "\r\nUID:form-"
+                + field
+                + floatingStart
+                + "\r\nDTSTAMP:20261109T000000Z\r\nDTSTART:20261109T090000Z\r\n"
+                + field
+                + ":20261109T100000Z\r\nEND:"
+                + kind
+                + "\r\nEND:VCALENDAR\r\n";
+        String invalid =
+            floatingStart
+                ? valid.replace("DTSTART:20261109T090000Z", "DTSTART:20261109T090000")
+                : valid.replace(field + ":20261109T100000Z", field + ":20261109T100000");
+        var empty = admissionHistoryState(collection);
+        var create =
+            send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-None-Match", "*");
+        assertThat(create.statusCode()).isEqualTo(403);
+        assertThat(DavXml.child(xml(create), DavXml.CAL, "valid-calendar-data")).isNotNull();
+        assertThat(send("GET", resource, "").statusCode()).isEqualTo(404);
+        assertThat(admissionHistoryState(collection)).isEqualTo(empty);
+        assertThat(send("PUT", resource, valid, "If-None-Match", "*").statusCode()).isEqualTo(201);
+        String etag = send("GET", resource, "").headers().firstValue("ETag").orElseThrow();
+        String token = currentCollectionToken(calendar);
+        var state = admissionHistoryState(collection);
+        var replace =
+            send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-Match", etag);
+        assertThat(replace.statusCode()).isEqualTo(403);
+        assertThat(DavXml.child(xml(replace), DavXml.CAL, "valid-calendar-data")).isNotNull();
+        var after = send("GET", resource, "");
+        assertThat(after.body()).isEqualTo(valid);
+        assertThat(after.headers().firstValue("ETag")).hasValue(etag);
+        assertThat(admissionHistoryState(collection)).isEqualTo(state);
+        assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+      }
+    }
+  }
+
+  @Test
   void invalidKnownParametersDoNotChangeResourceOrSyncState() throws Exception {
     String calendar = create("parameter-atomicity", "VEVENT");
     UUID collection = datedCollection("parameter-atomicity");

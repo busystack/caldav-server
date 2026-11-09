@@ -37,6 +37,7 @@ public final class CalendarConstraints {
       if (duration != null && (end != null || event && start == null)) invalid();
       if (end != null && start != null) {
         sameType(start, end);
+        sameLocalForm(start, end);
         if (compare(start, end) >= 0) invalid();
       }
       if (duration != null) {
@@ -45,7 +46,10 @@ public final class CalendarConstraints {
         if (start instanceof LocalDate && value.toUpperCase(Locale.ROOT).contains("T")) invalid();
       }
       Temporal id = TemporalSupport.date(component, Property.RECURRENCE_ID);
-      if (id != null && start != null) sameType(start, id);
+      if (id != null && start != null) {
+        sameType(start, id);
+        sameLocalForm(start, id);
+      }
       for (String name : List.of(Property.RDATE, Property.EXDATE))
         for (var property : component.getProperties(name)) {
           if (property instanceof RDate<?> date && date.getPeriods().isPresent()) {
@@ -208,6 +212,12 @@ public final class CalendarConstraints {
 
   private static void sameType(Temporal first, Temporal second) {
     if ((first instanceof LocalDate) != (second instanceof LocalDate)) invalid();
+  }
+
+  private static void sameLocalForm(Temporal first, Temporal second) {
+    // RFC 5545 §§3.8.2.2–3,3.8.4.4: the plain local (floating)
+    // form is required if and only if DTSTART uses that form.
+    if ((first instanceof LocalDateTime) != (second instanceof LocalDateTime)) invalid();
   }
 
   /** Floating and absolute DATE-TIMEs cannot be ordered without collection timezone context. */

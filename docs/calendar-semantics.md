@@ -36,3 +36,8 @@ Normative references: [RFC 4791](https://www.rfc-editor.org/rfc/rfc4791.html), p
 Attendee participation and identity parameters remain valid on events/tasks, but
 RFC5545 §3.8.4.1 prohibits them on VALARM delivery addresses. Plain addresses and
 unknown extension parameters remain accepted; no alarm delivery engine is added.
+
+DTEND, DUE and RECURRENCE-ID retain the floating local form if and only if the
+related DTSTART is floating (RFC5545 §§3.8.2.2–3,3.8.4.4). A report timezone
+interprets valid floating pairs; it does not make mixed floating/absolute pairs
+valid. RDATE/EXDATE and observance UNTIL keep their separate existing rules.
