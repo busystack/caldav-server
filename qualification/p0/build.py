@@ -4,9 +4,17 @@
 The official release builder still requires a completely clean tree. This local helper
 checks every runtime/build input against HEAD and records that distinction explicitly.
 """
-import argparse,hashlib,importlib.util,json,shutil,subprocess,zipfile
+import argparse,hashlib,importlib.util,json,re,shutil,subprocess,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
+
+def descriptor_digest(config):
+    """A classic local Docker image need not have an OCI descriptor/registry digest."""
+    descriptor=config.get('Descriptor')
+    if descriptor is None:return None
+    digest=descriptor.get('digest') if isinstance(descriptor,dict) else None
+    assert isinstance(digest,str) and re.fullmatch(r'sha256:[0-9a-f]{64}',digest),'Invalid OCI descriptor digest'
+    return digest
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--image',required=True);args=parser.parse_args()
@@ -29,6 +37,6 @@ def main():
     (inputs/'version').write_text(version+'\n');(inputs/'revision').write_text(revision+'\n');(inputs/'SHA256SUMS').write_text(checksum+'  application.jar\n')
     subprocess.run(['docker','build','--platform','linux/amd64','--build-arg','APPLICATION_VERSION='+version,'--build-arg','SOURCE_REVISION='+revision,'--tag',args.image,str(context)],check=True)
     config=builder.identity(args.image,version,revision,checksum)
-    proof={'qualificationKind':'local-unpublished','sourceCommit':revision,'imageId':config['Id'],'descriptorDigest':config['Descriptor']['digest'],'jarSha256':checksum,'runtimeInputs':{name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in names},'uncommittedQualificationPaths':[line[3:] for line in dirty]}
+    proof={'qualificationKind':'local-unpublished','sourceCommit':revision,'imageId':config['Id'],'descriptorDigest':descriptor_digest(config),'jarSha256':checksum,'runtimeInputs':{name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in names},'uncommittedQualificationPaths':[line[3:] for line in dirty]}
     (ROOT/'target/p0-image-inputs.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n');print(json.dumps({k:v for k,v in proof.items() if k!='runtimeInputs'},indent=2))
 if __name__=='__main__':main()
