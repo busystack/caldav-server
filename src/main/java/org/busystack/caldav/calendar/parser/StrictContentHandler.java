@@ -69,12 +69,14 @@ public final class StrictContentHandler extends DefaultContentHandler
                   new ArrayList<>(new DefaultPropertyFactorySupplier().get());
               factories.removeIf(factory -> factory.supports(Property.CLASS));
               factories.removeIf(factory -> factory.supports(Property.STATUS));
+              factories.removeIf(factory -> factory.supports(Property.PARTICIPANT_TYPE));
               factories.addFirst(new ClassificationFactory());
               factories.addFirst(new TaskFactory.StatusFactory());
               factories.addFirst(new TaskFactory.EstimatedDurationFactory());
               factories.addFirst(new net.fortuna.ical4j.model.property.TaskMode.Factory());
               factories.addFirst(new net.fortuna.ical4j.model.property.Reason.Factory());
               factories.addFirst(new TaskFactory.SubstateFactory());
+              factories.addFirst(new ParticipantTypeFactory());
               return factories;
             });
   }
