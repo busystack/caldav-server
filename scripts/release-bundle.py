@@ -191,7 +191,24 @@ def deployment_files(qualified, version, compose, identity, sbom):
     return files, used, notices
 
 
-def validate_assets(directory, version=None, source_sha=None):
+def validate_container_identity(manifest, selected, *, allow_local_unpublished=False):
+    container = manifest['container']
+    digest = container['registryManifestDigest']
+    if digest is None and allow_local_unpublished:
+        # Only the explicitly unpublished qualification helper may bind an archive
+        # to a real immutable local image ID. This is never a registry identity.
+        assert manifest.get('qualificationKind') == 'local-unpublished'
+        assert manifest['verification'] == {'status':'local-unpublished','run':None,'attempt':None,'url':None}
+        assert container.get('published') is False
+        image_id = container['localTestedImageId']
+        assert isinstance(image_id, str) and re.fullmatch(r'sha256:[0-9a-f]{64}', image_id)
+        assert container['image'] == image_id
+    else:
+        assert isinstance(digest, str) and re.fullmatch(r'sha256:[0-9a-f]{64}', digest)
+        assert container['image'] == f'ghcr.io/{candidate.REPOSITORY}:{selected}@{digest}'
+
+
+def validate_assets(directory, version=None, source_sha=None, *, allow_local_unpublished=False):
     directory = Path(directory)
     manifest = json.loads((directory / 'release-manifest.json').read_text())
     selected = versions.stable(manifest['version'])
@@ -208,9 +225,7 @@ def validate_assets(directory, version=None, source_sha=None):
     assert manifest['deployment'] == {'name': versions.deployment_name(selected), 'sha256': sums[versions.deployment_name(selected)]}
     _, sbom = candidate.builder.inspect_jar(directory / versions.jar_name(selected), selected)
     assert sbom == (directory / 'sbom.cdx.json').read_bytes()
-    digest = manifest['container']['registryManifestDigest']
-    assert re.fullmatch(r'sha256:[0-9a-f]{64}', digest)
-    assert manifest['container']['image'] == f'ghcr.io/{candidate.REPOSITORY}:{selected}@{digest}'
+    validate_container_identity(manifest, selected, allow_local_unpublished=allow_local_unpublished)
     with tarfile.open(directory / versions.deployment_name(selected)) as archive:
         prefix = 'caldav-server-' + selected + '-deploy/'
         members = archive.getmembers()

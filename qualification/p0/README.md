@@ -34,7 +34,10 @@ Firefox/Bitwarden acceptance.
 file-selection and deterministic archive functions as `scripts/release-bundle.py`.
 It validates all guide links and twenty PNGs, verifies source/runtime equivalence
 and the exact container JAR checksum, and records actual image/source identities.
-Its metadata does not invent a CI run or a published release:
+Its metadata does not invent a CI run or a published release. When Docker has no
+OCI descriptor, the local archive uses the verified immutable image ID and records
+a null registry digest. Only this explicit unpublished mode accepts that identity;
+public release validation still requires a registry manifest digest:
 
 ```sh
 python3 qualification/p0/package.py --image busystack-caldav:p0-local --output target/p0-local-package

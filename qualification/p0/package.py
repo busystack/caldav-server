@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'scripts'))
 import release_source,release_version
 spec=importlib.util.spec_from_file_location('bundle',ROOT/'scripts/release-bundle.py');bundle=importlib.util.module_from_spec(spec);spec.loader.exec_module(bundle)
+spec=importlib.util.spec_from_file_location('local_builder',Path(__file__).with_name('build.py'));local_builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(local_builder)
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -12,11 +13,12 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--image',required=True);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip();source=release_source.Snapshot(revision,ROOT);version=source.version
     config=json.loads(subprocess.check_output(['docker','image','inspect',args.image],text=True))[0]
-    manifest_digest=config['Descriptor']['digest'];repository='ghcr.io/'+release_version.REPOSITORY
+    manifest_digest=local_builder.descriptor_digest(config);repository='ghcr.io/'+release_version.REPOSITORY
     # An owned local alias exercises the official image-reference shape without a push.
-    alias=repository+':p0-local-'+revision[:12]
-    subprocess.run(['docker','image','tag',args.image,alias],check=True)
-    image=repository+':'+version+'@'+manifest_digest
+    if manifest_digest is not None:
+        alias=repository+':p0-local-'+revision[:12]
+        subprocess.run(['docker','image','tag',args.image,alias],check=True)
+    image=repository+':'+version+'@'+manifest_digest if manifest_digest is not None else config['Id']
     resolved=json.loads(subprocess.check_output(['docker','image','inspect',image],text=True))[0]
     assert resolved['Id']==config['Id'],'Local canonical digest must resolve to the tested image'
     runtime=config['Config']['Labels']['org.opencontainers.image.revision']
@@ -45,7 +47,7 @@ def main():
     manifest_file=assets/'release-manifest.json';manifest_file.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
     sums={**asset_hashes,'release-manifest.json':digest(manifest_file)}
     (assets/'SHA256SUMS').write_text(''.join(sha+'  '+name+'\n' for name,sha in sorted(sums.items())))
-    bundle.validate_assets(assets,version,revision)
+    bundle.validate_assets(assets,version,revision,allow_local_unpublished=True)
     with tarfile.open(archive) as packed:packed.extractall(args.output,filter='data')
     extracted=args.output/f'caldav-server-{version}-deploy'
     bundle.validate_guide({str(p.relative_to(extracted)):p.read_bytes() for p in extracted.rglob('*') if p.is_file()})
