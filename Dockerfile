@@ -1,5 +1,13 @@
 # Use python3 scripts/build-image.py to supply the verified Maven artifact.
 FROM eclipse-temurin:25-jdk@sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507 AS runtime
+# CVE-2026-109518: retain the pinned JDK/base, upgrade only the official APT
+# packages from a dated, signed Ubuntu snapshot. Retries=0 is the vendor's
+# invocation-scoped mitigation while the old APT performs its own upgrade.
+RUN apt-get -o Acquire::Retries=0 update --snapshot 20261109T000000Z \
+ && apt-get -o Acquire::Retries=0 install --snapshot 20261109T000000Z --yes --only-upgrade --no-install-recommends --no-remove apt=3.2.1ubuntu0.1 libapt-pkg7.0=3.2.1ubuntu0.1 \
+ && test "$(dpkg-query -W -f='${Version}' apt)" = 3.2.1ubuntu0.1 \
+ && test "$(dpkg-query -W -f='${Version}' libapt-pkg7.0)" = 3.2.1ubuntu0.1 \
+ && rm -rf /var/lib/apt/lists/*
 ARG APPLICATION_VERSION
 ARG SOURCE_REVISION
 WORKDIR /opt/busystack

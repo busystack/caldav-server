@@ -700,3 +700,14 @@ For deeper reference: [operations](operations.md), [portal](portal.md),
 [administration](administration.md), [passkeys](passkeys-and-mfa.md),
 [account security](account-security.md), [Keycloak](keycloak.md),
 [OAuth](oauth.md), [groups](groups.md), and [portability](portability.md).
+
+### Reproducible container APT security correction
+
+The container retains the exact immutable Temurin25 JDK base pin. Its first-party
+Dockerfile upgrades only `apt` and `libapt-pkg7.0` to the official Ubuntu26.04
+`3.2.1ubuntu0.1` fix for CVE-2026-109518, using signed snapshot
+`20261109T000000Z` and exact package versions. Package signature/hash validation
+remains enabled. `Acquire::Retries=0` applies only to those build invocations,
+following Ubuntu's bootstrap mitigation; it does not change runtime APT policy.
+No host package is changed. Replacing the approved base/JDK pin remains a separate
+review decision; this security layer does not replace it.
