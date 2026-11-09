@@ -8,7 +8,11 @@ start or due timestamp. Accepted source bytes remain authoritative for these tas
 The first-party parser registers task/status factories through official iCal4j
 interfaces and retains original property and alarm validation. It also registers
 the upstream task metadata models (ESTIMATED-DURATION, TASK-MODE, REASON, SUBSTATE
-and VSTATUS), with first-party structural checks for VSTATUS. Storage and
+and VSTATUS), with first-party structural checks for VSTATUS. REASON requires
+an absolute URI in VSTATUS or PARTICIPANT; SUBSTATE requires a token in VSTATUS.
+PARTICIPANT permits at most one REASON and PERCENT-COMPLETE. Unknown property
+parameters remain opaque; those property rules are not imposed on similarly
+named unregistered parameters. Storage and
 preservation of these fields does not implement automatic task execution.
 
 The [independent-audit correction record](standards-corrections.md) supersedes the earlier blanket validation claims. The later IV-CAL-01 follow-up checks original BYDAY ordinals, RFC duration alternatives and the exact ASCII initial calendar structure before typed normalization. Shared duration checks include relative triggers and duration-ended periods; valid ASCII structural case and the supported leading BOM affect only the derived reader, never authoritative bytes. `CalendarConstraints` enforces component and cross-property requirements at the write boundary, and `RecurrenceRuleSyntax` checks original RRULE parts before library normalization can discard duplicates. No event series is expanded for write validation. The parsing input adapter unfolds octets before strict UTF-8 decoding, including folds inside a multibyte character, and canonicalizes only structural identifier spelling in a derived reader. Already-valid input octets, case-sensitive identifiers and values remain unchanged. The default [local observance UNTIL input exception](observance-until-compatibility.md) runs before strict validation and makes corrected bytes authoritative for that narrow case; disabling it restores rejection. These corrections do not modify the upstream-derived parser or timezone-builder sources.

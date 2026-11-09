@@ -70,6 +70,17 @@ public final class CalendarConstraints {
       }
       if (name.equals("TASK-MODE") && (!task || !property.getValue().matches("[A-Za-z0-9-]+")))
         invalid();
+      // RFC 10051 §§8,10.2–3: these registered properties have defined
+      // placement and syntax even though the upstream validators are empty.
+      if (name.equals("REASON")
+          && (!Set.of("VSTATUS", "PARTICIPANT").contains(component.getName())
+              || !java.net
+                  .URI
+                  .create(lexical.getOrDefault(property, property.getValue()))
+                  .isAbsolute())) invalid();
+      if (name.equals("SUBSTATE")
+          && (!component.getName().equals("VSTATUS")
+              || !property.getValue().matches("[A-Za-z0-9-]+"))) invalid();
       // RFC 5545 §3.8.4.1 forbids participation/identity parameters on
       // alarm and free/busy attendees; a plain alarm delivery address is valid.
       if (Property.ATTENDEE.equals(name)
@@ -107,6 +118,9 @@ public final class CalendarConstraints {
       }
     }
     if (component.getName().equals(Component.VALARM)) alarm(component, parent, lexical);
+    if (component.getName().equals("PARTICIPANT"))
+      for (String name : List.of("REASON", Property.PERCENT_COMPLETE))
+        if (component.getProperties(name).size() > 1) invalid();
     if (component.getName().equals("VSTATUS")) {
       if (parent == null
           || parent.getProperties(Property.STATUS).size() != 1

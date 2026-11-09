@@ -166,7 +166,13 @@ class DavHttpIT {
               + status
               + "\r\nSUMMARY:First\r\n"
               + "ESTIMATED-DURATION:PT30M\r\nTASK-MODE:CLIENT\r\n"
-              + "X-PRESERVE;X-PARAM=exact:café 日本語\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+              + "X-PRESERVE;X-PARAM=exact:café 日本語\r\n"
+              + "BEGIN:VSTATUS\r\nSTATUS:"
+              + status
+              + "\r\nREASON:urn:example:reason\r\nSUBSTATE:X-WAIT\r\nEND:VSTATUS\r\n"
+              + "BEGIN:PARTICIPANT\r\nUID:participant\r\nPARTICIPANT-TYPE:ACTIVE\r\n"
+              + "REASON:https://example.invalid/reason\r\nPERCENT-COMPLETE:25\r\nEND:PARTICIPANT\r\n"
+              + "END:VTODO\r\nEND:VCALENDAR\r\n";
       var created =
           send("PUT", member, original, "Content-Type", "text/calendar", "If-None-Match", "*");
       assertThat(created.statusCode()).isEqualTo(201);
@@ -241,6 +247,49 @@ class DavHttpIT {
           .isEqualTo(403);
       assertThat(send("GET", member, "").body()).isEqualTo(edited);
       assertThat(send("GET", member, "").headers().firstValue("ETag")).contains(current);
+    }
+  }
+
+  @Test
+  void invalidCurrentTaskMetadataCannotChangeStoredBytesOrSyncState() throws Exception {
+    String calendar = create("task-metadata-atomicity", "VTODO");
+    UUID collection = datedCollection("task-metadata-atomicity");
+    int index = 0;
+    for (String fields :
+        List.of(
+            "BEGIN:VSTATUS\r\nSTATUS:FAILED\r\nREASON:relative-reason\r\nEND:VSTATUS\r\n",
+            "BEGIN:VSTATUS\r\nSTATUS:FAILED\r\nSUBSTATE:NOT A TOKEN\r\nEND:VSTATUS\r\n",
+            "REASON:urn:example:reason\r\n",
+            "SUBSTATE:ERROR\r\n",
+            "BEGIN:PARTICIPANT\r\nUID:p\r\nPARTICIPANT-TYPE:ACTIVE\r\n"
+                + "REASON:urn:reason:first\r\nREASON:urn:reason:second\r\nEND:PARTICIPANT\r\n",
+            "BEGIN:PARTICIPANT\r\nUID:p\r\nPARTICIPANT-TYPE:ACTIVE\r\n"
+                + "PERCENT-COMPLETE:10\r\nPERCENT-COMPLETE:20\r\nEND:PARTICIPANT\r\n")) {
+      String resource = calendar + index++ + ".ics";
+      String valid =
+          "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Metadata atomicity//EN\r\n"
+              + "BEGIN:VTODO\r\nUID:metadata-"
+              + index
+              + "\r\nDTSTAMP:20261109T000000Z\r\n"
+              + "STATUS:FAILED\r\nDURATION:PT1H\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+      String invalid = valid.replace("END:VTODO", fields + "END:VTODO");
+      var empty = admissionHistoryState(collection);
+      assertThat(send("PUT", resource, invalid, "If-None-Match", "*").statusCode()).isEqualTo(403);
+      assertThat(send("GET", resource, "").statusCode()).isEqualTo(404);
+      assertThat(admissionHistoryState(collection)).isEqualTo(empty);
+      assertThat(send("PUT", resource, valid, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      var before = send("GET", resource, "");
+      String etag = before.headers().firstValue("ETag").orElseThrow();
+      String token = currentCollectionToken(calendar);
+      var state = admissionHistoryState(collection);
+      var rejected = send("PUT", resource, invalid, "If-Match", etag);
+      assertThat(rejected.statusCode()).isEqualTo(403);
+      assertThat(DavXml.child(xml(rejected), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      var after = send("GET", resource, "");
+      assertThat(after.body()).isEqualTo(valid);
+      assertThat(after.headers().firstValue("ETag")).hasValue(etag);
+      assertThat(admissionHistoryState(collection)).isEqualTo(state);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(token);
     }
   }
 
