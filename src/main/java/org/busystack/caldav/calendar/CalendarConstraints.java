@@ -33,7 +33,8 @@ public final class CalendarConstraints {
     if (event || task) {
       Temporal end = TemporalSupport.date(component, event ? Property.DTEND : Property.DUE);
       Property duration = component.getProperty(Property.DURATION).orElse(null);
-      if (duration != null && (end != null || start == null)) invalid();
+      // RFC 10051 §11.1 permits duration-only tasks; events still require DTSTART.
+      if (duration != null && (end != null || event && start == null)) invalid();
       if (end != null && start != null) {
         sameType(start, end);
         if (compare(start, end) >= 0) invalid();
@@ -59,7 +60,16 @@ public final class CalendarConstraints {
     }
     for (var property : component.getProperties()) {
       String name = property.getName();
-      if (Set.of(Property.COMPLETED, Property.PERCENT_COMPLETE).contains(name) && !task) invalid();
+      if (name.equals("ESTIMATED-DURATION")) {
+        if (!task) invalid();
+        positiveDuration(lexical.getOrDefault(property, property.getValue()));
+      }
+      if (name.equals("TASK-MODE") && (!task || !property.getValue().matches("[A-Za-z0-9-]+")))
+        invalid();
+      if (Property.COMPLETED.equals(name) && !task) invalid();
+      if (Property.PERCENT_COMPLETE.equals(name)
+          && !task
+          && !component.getName().equals("PARTICIPANT")) invalid();
       if (Set.of(Property.ACTION, Property.TRIGGER, Property.REPEAT).contains(name)
           && !component.getName().equals(Component.VALARM)) invalid();
       if (property instanceof Geo geo
@@ -77,6 +87,16 @@ public final class CalendarConstraints {
       }
     }
     if (component.getName().equals(Component.VALARM)) alarm(component, parent, lexical);
+    if (component.getName().equals("VSTATUS")) {
+      if (parent == null
+          || parent.getProperties(Property.STATUS).size() != 1
+          || component.getProperties(Property.STATUS).size() != 1) invalid();
+      for (String name :
+          List.of(Property.DESCRIPTION, Property.DTSTAMP, "REASON", "SUBSTATE", Property.SUMMARY))
+        if (component.getProperties(name).size() > 1) invalid();
+      // The official VStatus model has no validators yet; validate its original properties.
+      for (var property : component.getProperties()) if (property.validate().hasErrors()) invalid();
+    }
     if (component instanceof ComponentContainer<?> children)
       for (Component child : children.getComponents()) validate(child, component, lexical);
   }

@@ -12,6 +12,8 @@ class Corpus:
         "valid-lowercase-delimiters.ics", "valid-rfc9073-location.ics",
         "valid-rfc9074-alarm.ics", "valid-rfc9253-relationship.ics",
         "valid-text-list.ics", "valid-unknown-x-properties.ics",
+        # The unchanged historical fixture is valid since RFC 10051 §11.1.
+        "invalid-todo-no-start-duration.ics",
     )
     # Independently derived from the unchanged captured uploads by UTC = local - TZOFFSETFROM.
     # These are fixed expected digests, not a second runtime repair used to prepare requests.
@@ -58,6 +60,20 @@ class Corpus:
             status, headers, raw = self.call(encoded, path)
             assert status == 200 and raw == content, name
             self.resources[path] = {"content": content, "etag": headers["ETag"], "component": component}
+        for status in ("PENDING", "FAILED"):
+            # Current task data must survive the same packaged database restore,
+            # immutable history and synchronization checks as the original corpus.
+            content = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Task restore regression//EN\r\n"
+                "BEGIN:VTODO\r\nUID:restore-task-" + status.lower() + "\r\n"
+                "DTSTAMP:20261108T000000Z\r\nSTATUS:" + status + "\r\nDURATION:PT1H\r\n"
+                "ESTIMATED-DURATION:PT30M\r\nTASK-MODE:CLIENT\r\nX-RESTORE-TASK:preserved\r\n"
+                "END:VTODO\r\nEND:VCALENDAR\r\n").encode()
+            path = self.collections["VTODO"]["path"] + "current-task-" + status.lower() + ".ics"
+            assert self.call(encoded, path, "PUT", content,
+                **{"Content-Type": "text/calendar", "If-None-Match": "*"})[0] == 201
+            code, headers, raw = self.call(encoded, path)
+            assert code == 200 and raw == content
+            self.resources[path] = {"content": content, "etag": headers["ETag"], "component": "VTODO"}
         for zone, (original_digest, corrected_digest) in self.OBSERVANCE_UPLOADS.items():
             name = "thunderbird159-" + zone + ".ics"
             original = (self.fixture.parent / "observance-until" / name).read_bytes()
@@ -73,6 +89,8 @@ class Corpus:
             self.resources[path] = {"content": corrected, "etag": headers["ETag"], "component": "VEVENT"}
         # The invalid originals are rejection controls, never silently introduced into this dump.
         for fixture in sorted(self.fixture.glob("invalid-*.ics")):
+            if fixture.name in self.VALID:
+                continue  # Accepted and independently read back above, never dropped from coverage.
             content = fixture.read_bytes()
             component = "VTODO" if b"BEGIN:VTODO" in content else "VEVENT"
             collection = self.collections[component]
@@ -111,7 +129,8 @@ class Corpus:
         self.verify_owner(encoded)
         self.database_snapshot = self.database_state(environment)
         print("HTTPS_AUDIT_CORPUS_CREATED=" + json.dumps({
-            "acceptedOriginals": len(self.VALID), "rejectedOriginals": 9,
+            "acceptedOriginals": len(self.VALID), "rejectedOriginals": 8,
+            "rfc10051DurationOnlyStatuses": ["PENDING", "FAILED"],
             "repairedObservanceUploads": len(self.OBSERVANCE_UPLOADS),
             "contentSha256": {Path(path).name: hashlib.sha256(value["content"]).hexdigest()
                 for path, value in self.resources.items()},

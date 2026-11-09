@@ -29,6 +29,35 @@ class CalendarInterchangeTest {
   @org.junit.jupiter.api.io.TempDir java.nio.file.Path temporary;
 
   @Test
+  void currentTaskDataSurvivesImportAndExportFraming() {
+    for (String status : java.util.List.of("PENDING", "FAILED", "NEEDS-ACTION")) {
+      byte[] resource =
+          bytes(
+              object(
+                  "BEGIN:VTODO\nUID:current-"
+                      + status
+                      + "\nDTSTAMP:20261108T000000Z\n"
+                      + "DURATION:PT1H\nSTATUS:"
+                      + status
+                      + "\nESTIMATED-DURATION:PT30M\nTASK-MODE:CLIENT\n"
+                      + "X-KEEP;X-PARAM=opaque:café 日本語\nEND:VTODO\n"));
+      var items = read(resource, "VTODO");
+      assertThat(items).hasSize(1);
+      assertThat(items.getFirst().rejection()).isEmpty();
+      assertThat(items.getFirst().content()).isEqualTo(resource);
+      var parts = CalendarInterchange.exportParts(resource);
+      var output = new java.io.ByteArrayOutputStream();
+      output.writeBytes(parts.header());
+      output.writeBytes(parts.zones());
+      output.writeBytes(parts.items());
+      output.writeBytes(parts.closing());
+      assertThat(output.toByteArray()).isEqualTo(resource);
+      assertThat(CalendarContent.parse(output.toByteArray(), "VTODO").calendar().toString())
+          .contains("STATUS:" + status);
+    }
+  }
+
+  @Test
   void exportContextsKeepDifferentCalendarClosingBytesDistinct() {
     byte[] crlf = bytes(object(event("closing")));
     var fingerprints = new java.util.HashSet<String>();

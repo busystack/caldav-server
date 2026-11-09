@@ -79,7 +79,7 @@ class CalendarAuditAtomicityIT {
   }
 
   @Test
-  void allNineOriginalInvalidInputsLeaveCreationReplacementHistoryAndTokensUntouched()
+  void originalInputsStillInvalidUnderRfc10051LeaveCreationReplacementHistoryAndTokensUntouched()
       throws Exception {
     for (String name :
         List.of(
@@ -90,8 +90,7 @@ class CalendarAuditAtomicityIT {
             "invalid-rule-count-and-until.ics",
             "invalid-rule-repeat-count.ics",
             "invalid-rule-repeat-freq.ics",
-            "invalid-rule-until-type.ics",
-            "invalid-todo-no-start-duration.ics")) {
+            "invalid-rule-until-type.ics")) {
       byte[] invalid = fixture(name);
       String text = new String(invalid, StandardCharsets.UTF_8);
       String uid =

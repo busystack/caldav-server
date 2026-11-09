@@ -54,12 +54,27 @@ public final class StrictContentHandler extends DefaultContentHandler
 
   private static ContentHandlerContext context() {
     return new ContentHandlerContext()
+        .withComponentFactorySupplier(
+            () -> {
+              List<ComponentFactory<?>> factories =
+                  new ArrayList<>(new DefaultComponentFactorySupplier().get());
+              factories.removeIf(factory -> factory.supports(Component.VTODO));
+              factories.addFirst(new TaskFactory());
+              factories.addFirst(new net.fortuna.ical4j.model.component.VStatus.Factory());
+              return factories;
+            })
         .withPropertyFactorySupplier(
             () -> {
               List<PropertyFactory<?>> factories =
                   new ArrayList<>(new DefaultPropertyFactorySupplier().get());
               factories.removeIf(factory -> factory.supports(Property.CLASS));
+              factories.removeIf(factory -> factory.supports(Property.STATUS));
               factories.addFirst(new ClassificationFactory());
+              factories.addFirst(new TaskFactory.StatusFactory());
+              factories.addFirst(new TaskFactory.EstimatedDurationFactory());
+              factories.addFirst(new net.fortuna.ical4j.model.property.TaskMode.Factory());
+              factories.addFirst(new net.fortuna.ical4j.model.property.Reason.Factory());
+              factories.addFirst(new TaskFactory.SubstateFactory());
               return factories;
             });
   }
@@ -79,7 +94,8 @@ public final class StrictContentHandler extends DefaultContentHandler
         || Property.EXRULE.equals(currentProperty)
         || declared.equals("RECUR"))
       org.busystack.caldav.calendar.RecurrenceRuleSyntax.validate(value);
-    if (Set.of(Property.DURATION, "REFRESH-INTERVAL").contains(currentProperty)
+    if (Set.of(Property.DURATION, "REFRESH-INTERVAL", "ESTIMATED-DURATION")
+            .contains(currentProperty)
         || Property.TRIGGER.equals(currentProperty) && !declared.equals("DATE-TIME"))
       org.busystack.caldav.calendar.DurationSyntax.validate(value);
     else if (declared.equals("DURATION"))

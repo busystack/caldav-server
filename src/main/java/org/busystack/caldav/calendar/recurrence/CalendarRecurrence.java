@@ -33,7 +33,10 @@ public final class CalendarRecurrence {
       if (!TimeRangeMatcher.matches(occurrence, range, timezone.zoneId())) continue;
       reserveOutput(parsed, occurrence.component());
       var copy = CalendarReports.componentCopy(parsed, occurrence.component());
-      copy.removeAll(RRULE, RDATE, EXDATE, EXRULE, RECURRENCE_ID, DURATION);
+      copy.removeAll(RRULE, RDATE, EXDATE, EXRULE, RECURRENCE_ID);
+      // Only replace a duration with its derived end when there is an actual anchor.
+      // RFC 10051 duration-only tasks remain undated, including in expanded reports.
+      if (occurrence.dates().containsKey(DTSTART)) copy.removeAll(DURATION);
       for (var field : occurrence.dates().entrySet()) {
         if (field.getKey().equals(RECURRENCE_ID)) continue;
         Temporal value = reportValue(field.getValue());

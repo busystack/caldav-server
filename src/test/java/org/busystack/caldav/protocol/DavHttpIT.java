@@ -153,6 +153,98 @@ class DavHttpIT {
   }
 
   @Test
+  void rfc10051TasksRoundTripThroughReportsSyncAndConditionalWrites() throws Exception {
+    for (String status : List.of("PENDING", "FAILED", "NEEDS-ACTION")) {
+      String collection = create("current-" + status.toLowerCase(), "VTODO");
+      String member = collection + "task.ics";
+      String original =
+          "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Current tasks//EN\r\n"
+              + "BEGIN:VTODO\r\nUID:current-"
+              + status
+              + "\r\nDTSTAMP:20261108T000000Z\r\n"
+              + "DURATION:PT1H\r\nSTATUS:"
+              + status
+              + "\r\nSUMMARY:First\r\n"
+              + "ESTIMATED-DURATION:PT30M\r\nTASK-MODE:CLIENT\r\n"
+              + "X-PRESERVE;X-PARAM=exact:café 日本語\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+      var created =
+          send("PUT", member, original, "Content-Type", "text/calendar", "If-None-Match", "*");
+      assertThat(created.statusCode()).isEqualTo(201);
+      String etag = created.headers().firstValue("ETag").orElseThrow();
+      assertThat(send("GET", member, "").body()).isEqualTo(original);
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT content FROM calendar_resources WHERE name='task.ics' AND uid=?",
+                  byte[].class,
+                  "current-" + status))
+          .isEqualTo(original.getBytes(StandardCharsets.UTF_8));
+      String select =
+          "<C:calendar-multiget xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:prop><D:getetag/><C:calendar-data/></D:prop><D:href>/team/dav"
+              + member
+              + "</D:href></C:calendar-multiget>";
+      var multiget = send("REPORT", collection, select);
+      assertThat(multiget.statusCode()).isEqualTo(207);
+      assertThat(text(multiget, "urn:ietf:params:xml:ns:caldav", "calendar-data"))
+          .isEqualTo(original);
+      var queried =
+          send(
+              "REPORT",
+              collection,
+              query(
+                  "<C:comp-filter name='VTODO'><C:time-range start='20300101T000000Z' end='20300102T000000Z'/></C:comp-filter>"),
+              "Depth",
+              "1");
+      assertThat(queried.statusCode()).isEqualTo(207);
+      assertThat(text(queried, "urn:ietf:params:xml:ns:caldav", "calendar-data"))
+          .isEqualTo(original);
+      String syncBody =
+          sync("", 100)
+              .replace(
+                  "<D:getetag/>",
+                  "<D:getetag/><C:calendar-data xmlns:C='urn:ietf:params:xml:ns:caldav'/>");
+      var initial = send("REPORT", collection, syncBody, "Depth", "0");
+      assertThat(initial.statusCode()).isEqualTo(207);
+      assertThat(text(initial, "urn:ietf:params:xml:ns:caldav", "calendar-data"))
+          .isEqualTo(original);
+      String token = text(initial, "DAV:", "sync-token");
+      String edited = original.replace("SUMMARY:First", "SUMMARY:Independent edit");
+      assertThat(
+              send("PUT", member, edited, "Content-Type", "text/calendar", "If-Match", etag)
+                  .statusCode())
+          .isEqualTo(204);
+      var incremental =
+          send(
+              "REPORT",
+              collection,
+              syncBody.replace(
+                  "<D:sync-token></D:sync-token>", "<D:sync-token>" + token + "</D:sync-token>"),
+              "Depth",
+              "0");
+      assertThat(incremental.statusCode()).isEqualTo(207);
+      assertThat(text(incremental, "urn:ietf:params:xml:ns:caldav", "calendar-data"))
+          .isEqualTo(edited);
+      assertThat(
+              send("PUT", member, original, "Content-Type", "text/calendar", "If-Match", etag)
+                  .statusCode())
+          .isEqualTo(412);
+      String current = send("GET", member, "").headers().firstValue("ETag").orElseThrow();
+      assertThat(
+              send(
+                      "PUT",
+                      member,
+                      edited.replace("STATUS:" + status, "STATUS:BOGUS"),
+                      "Content-Type",
+                      "text/calendar",
+                      "If-Match",
+                      current)
+                  .statusCode())
+          .isEqualTo(403);
+      assertThat(send("GET", member, "").body()).isEqualTo(edited);
+      assertThat(send("GET", member, "").headers().firstValue("ETag")).contains(current);
+    }
+  }
+
+  @Test
   void discoveryUsesStablePrincipalAndRealComponentCapabilities() throws Exception {
     var root =
         send(

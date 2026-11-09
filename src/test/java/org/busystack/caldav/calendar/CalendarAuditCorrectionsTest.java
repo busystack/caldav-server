@@ -162,8 +162,7 @@ class CalendarAuditCorrectionsTest {
         "invalid-rule-count-and-until.ics",
         "invalid-rule-repeat-count.ics",
         "invalid-rule-repeat-freq.ics",
-        "invalid-rule-until-type.ics",
-        "invalid-todo-no-start-duration.ics"
+        "invalid-rule-until-type.ics"
       })
   void originalInvalidFixturesFailAtTheWriteBoundary(String name) throws Exception {
     byte[] bytes = fixture(name), before = bytes.clone();
@@ -174,6 +173,17 @@ class CalendarAuditCorrectionsTest {
             error ->
                 assertThat(error.reason())
                     .isEqualTo(CalendarValidationException.Reason.INVALID_DATA));
+    assertThat(bytes).isEqualTo(before);
+  }
+
+  @Test
+  void historicalDurationOnlyTaskIsValidUnderRfc10051() throws Exception {
+    // Preserve the original fixture and its historical name; §11.1 changes its validity.
+    byte[] bytes = fixture("invalid-todo-no-start-duration.ics"), before = bytes.clone();
+    var task = CalendarContent.parse(bytes, "VTODO").calendar().getComponents().getFirst();
+    assertThat(task.getRequiredProperty("DURATION").getValue()).isEqualTo("PT1H");
+    assertThat(task.getProperty("DTSTART")).isEmpty();
+    assertThat(task.getProperty("DUE")).isEmpty();
     assertThat(bytes).isEqualTo(before);
   }
 
