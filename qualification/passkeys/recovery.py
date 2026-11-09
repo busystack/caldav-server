@@ -1,6 +1,7 @@
 """Real HTTPS recovery checkpoint; state and credentials stay in the private fixture directory."""
 
 import hashlib
+from html.parser import HTMLParser
 import json
 import time
 import urllib.error
@@ -87,9 +88,7 @@ class Checkpoint:
         # Use the supported public-client refresh flow after long measurements; never extend token policy.
         self.refresh_retained_grant()
         # The dump must contain a demonstrably live authenticated session, not an expired cookie.
-        cookie=self.saved['snapshotCookie']
-        status,_,body=self.request('/', headers={'Cookie':'JSESSIONID='+cookie})
-        assert status==200 and b'BusyStack account' in body, 'Snapshot browser session must be valid at backup'
+        self.verify_snapshot_session()
         print('HTTPS_RECOVERY_LIVE_SNAPSHOT_SESSION_VERIFIED',flush=True)
         # Benchmarking must not turn the revoked-credential proof into an accidental expiry test.
         assert self.request(self.resource_path, headers=basic)[0] == 200, 'Snapshot DAV credential expired before backup'
@@ -97,6 +96,30 @@ class Checkpoint:
         self.archive = self.directory / 'https-recovery.dump'
         self.operations.execute(['./scripts/backup.sh', str(self.archive)], environment)
         print('HTTPS_RECOVERY_SNAPSHOT_WITH_VALID_DAV_OAUTH_AND_SYNC_CREATED', flush=True)
+
+    def verify_snapshot_session(self):
+        """Prove the current authenticated account page, independent of obsolete page copy."""
+        class AccountPage(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text, self.logout, self.csrf, self.in_logout = [], False, False, False
+            def handle_data(self, value):
+                self.text.append(value.strip())
+            def handle_starttag(self, tag, attributes):
+                attributes = dict(attributes)
+                if tag == 'form':
+                    self.in_logout = (attributes.get('method', '').lower() == 'post'
+                        and urllib.parse.urlsplit(attributes.get('action', '')).path == logout)
+                    self.logout |= self.in_logout
+                if tag == 'input' and self.in_logout:
+                    self.csrf |= attributes.get('name') == '_csrf' and bool(attributes.get('value'))
+            def handle_endtag(self, tag):
+                if tag == 'form': self.in_logout = False
+        logout = urllib.parse.urlsplit(self.base).path.rstrip('/') + '/logout'
+        status, _, body = self.request('/', headers={'Cookie':'JSESSIONID='+self.saved['snapshotCookie']})
+        page = AccountPage()
+        page.feed(body.decode('utf-8'))
+        assert status == 200 and self.saved['username'] in page.text and page.logout and page.csrf, 'Snapshot browser session must identify its authenticated account and protected logout form at backup'
 
     def refresh_retained_grant(self):
         old=self.saved['grant']

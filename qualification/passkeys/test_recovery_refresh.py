@@ -44,3 +44,21 @@ class RecoveryRefreshTest(unittest.TestCase):
         with self.assertRaises(AssertionError): self.checkpoint.refresh_retained_grant()
         self.assertEqual(self.checkpoint.saved['grant']['accessExpiresAt'],0)
         self.assertFalse(self.checkpoint.exchange.exists())
+
+    def test_current_account_page_proves_live_snapshot_without_historical_heading(self):
+        self.checkpoint.base='https://localhost:1234/team'
+        self.checkpoint.saved.update(username='snapshot-user')
+        body=b'<main><h1>Welcome</h1><span>snapshot-user</span></main><form method="post" action="/team/logout"><input name="_csrf" value="synthetic-csrf"><button>Sign out</button></form>'
+        self.checkpoint.request=lambda *args,**kwargs:(200,{},body)
+        self.checkpoint.verify_snapshot_session()
+
+    def test_redirect_wrong_account_public_or_unprotected_page_cannot_prove_snapshot(self):
+        self.checkpoint.base='https://localhost:1234/team'
+        self.checkpoint.saved.update(username='snapshot-user')
+        valid=b'<span>snapshot-user</span><form method="post" action="/team/logout"><input name="_csrf" value="synthetic-csrf"></form>'
+        for status,body in ((302,valid),(200,valid.replace(b'snapshot-user',b'other-user')),
+                (200,b'BusyStack account snapshot-user'),(200,valid.replace(b'value="synthetic-csrf"',b'value=""')),
+                (200,valid.replace(b'/team/logout',b'/logout'))):
+            with self.subTest(status=status,body=body):
+                self.checkpoint.request=lambda *args,**kwargs:(status,{},body)
+                with self.assertRaises(AssertionError):self.checkpoint.verify_snapshot_session()
