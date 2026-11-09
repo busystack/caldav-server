@@ -15,6 +15,14 @@ parameters remain opaque; those property rules are not imposed on similarly
 named unregistered parameters. Storage and
 preservation of these fields does not implement automatic task execution.
 
+Known URI/CAL-ADDRESS values and their defined address/URI parameters require an
+absolute URI (RFC5545 §§3.3.3,3.3.13). Text identifiers, binary attachments and
+untyped unknown extensions retain their own rules. REQUEST-STATUS uses its defined
+two- or three-level numeric code and escaped text fields. Calendar-data timezone
+validation uses an application factory retaining upstream required fields and
+property validation while allowing repeated TZNAMEs under RFC5545 §3.6.5. It does
+not apply the upstream iTIP-only singleton-name rule to stored calendar data.
+
 The [independent-audit correction record](standards-corrections.md) supersedes the earlier blanket validation claims. The later IV-CAL-01 follow-up checks original BYDAY ordinals, RFC duration alternatives and the exact ASCII initial calendar structure before typed normalization. Shared duration checks include relative triggers and duration-ended periods; valid ASCII structural case and the supported leading BOM affect only the derived reader, never authoritative bytes. `CalendarConstraints` enforces component and cross-property requirements at the write boundary, and `RecurrenceRuleSyntax` checks original RRULE parts before library normalization can discard duplicates. No event series is expanded for write validation. The parsing input adapter unfolds octets before strict UTF-8 decoding, including folds inside a multibyte character, and canonicalizes only structural identifier spelling in a derived reader. Already-valid input octets, case-sensitive identifiers and values remain unchanged. The default [local observance UNTIL input exception](observance-until-compatibility.md) runs before strict validation and makes corrected bytes authoritative for that narrow case; disabling it restores rejection. These corrections do not modify the upstream-derived parser or timezone-builder sources.
 
 `ObservanceZoneRules` constructs chronological rules from the submitted observances. Finite eras and explicit dates determine the final regime; an unbounded annual tail is admitted only after checking its ordering and offset continuity across the Gregorian cycle. Today's active STANDARD/DAYLIGHT pair is not used to select future rules. Unproven complex shapes retain explicit coverage limits and fail beyond coverage instead of returning guessed instants. List-TEXT filters use decoded values once, while URI and other non-TEXT properties retain their own representation.

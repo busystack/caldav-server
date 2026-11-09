@@ -61,6 +61,8 @@ public final class StrictContentHandler extends DefaultContentHandler
               factories.removeIf(factory -> factory.supports(Component.VTODO));
               factories.addFirst(new TaskFactory());
               factories.addFirst(new net.fortuna.ical4j.model.component.VStatus.Factory());
+              factories.removeIf(factory -> factory.supports(Component.VTIMEZONE));
+              factories.addFirst(new CalendarTimezoneFactory());
               return factories;
             })
         .withPropertyFactorySupplier(
@@ -92,6 +94,19 @@ public final class StrictContentHandler extends DefaultContentHandler
   @Override
   public void propertyValue(String value) {
     String declared = currentParameters.getOrDefault(Parameter.VALUE, "").toUpperCase(Locale.ROOT);
+    if (declared.equals("URI")
+        || declared.equals("CAL-ADDRESS")
+        || Set.of(
+                Property.ATTENDEE,
+                Property.ORGANIZER,
+                Property.URL,
+                Property.TZURL,
+                "CALENDAR-ADDRESS",
+                "REASON")
+            .contains(currentProperty)
+        || Property.ATTACH.equals(currentProperty) && !declared.equals("BINARY")) uri(value);
+    if (Property.REQUEST_STATUS.equals(currentProperty))
+      org.busystack.caldav.calendar.CalendarTextValues.requestStatus(value);
     if (Property.RRULE.equals(currentProperty)
         || Property.EXRULE.equals(currentProperty)
         || declared.equals("RECUR"))
@@ -210,6 +225,14 @@ public final class StrictContentHandler extends DefaultContentHandler
           QueryException.Kind.INVALID_DATA,
           "TZID is not permitted on timezone observance properties");
     var values = rawValues.stream().map(Rfc6868::value).toList();
+    if (Set.of(
+            Parameter.ALTREP,
+            Parameter.DIR,
+            Parameter.SENT_BY,
+            Parameter.MEMBER,
+            Parameter.DELEGATED_FROM,
+            Parameter.DELEGATED_TO)
+        .contains(name)) values.forEach(StrictContentHandler::uri);
     if (name.equals(Parameter.RSVP)
         && values.stream()
             .anyMatch(v -> !v.equalsIgnoreCase("TRUE") && !v.equalsIgnoreCase("FALSE")))
@@ -275,5 +298,15 @@ public final class StrictContentHandler extends DefaultContentHandler
         throw new QueryException(
             QueryException.Kind.INVALID_DATA, "Invalid calendar parameter name");
     }
+  }
+
+  private static void uri(String value) {
+    try {
+      if (new URI(value).isAbsolute()) return;
+    } catch (java.net.URISyntaxException invalid) {
+      // Report only a fixed diagnostic; submitted values may contain private data.
+    }
+    throw new org.busystack.caldav.calendar.CalendarValidationException(
+        org.busystack.caldav.calendar.CalendarValidationException.Reason.INVALID_DATA);
   }
 }

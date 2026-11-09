@@ -294,6 +294,79 @@ class DavHttpIT {
   }
 
   @Test
+  void uriAndStructuredStatusFailuresAreAtomicAndRepeatedTimezoneNamesRoundTrip() throws Exception {
+    String calendar = create("core-syntax", "VEVENT");
+    UUID collection = datedCollection("core-syntax");
+    int index = 0;
+    for (String field :
+        List.of(
+            "URL:relative",
+            "ATTENDEE:relative",
+            "ORGANIZER:relative",
+            "ATTACH:relative",
+            "ATTENDEE;MEMBER=\"relative\":mailto:a@example.invalid",
+            "DESCRIPTION;ALTREP=\"relative\":Text",
+            "X-URI;VALUE=URI:relative",
+            "REQUEST-STATUS:2;Success",
+            "REQUEST-STATUS:2.0")) {
+      String resource = calendar + index++ + ".ics";
+      String valid = event("core-syntax-" + index, "Preserved");
+      String invalid = valid.replace("END:VEVENT", field + "\r\nEND:VEVENT");
+      var empty = admissionHistoryState(collection);
+      assertThat(send("PUT", resource, invalid, "If-None-Match", "*").statusCode()).isEqualTo(403);
+      assertThat(send("GET", resource, "").statusCode()).isEqualTo(404);
+      assertThat(admissionHistoryState(collection)).isEqualTo(empty);
+      assertThat(send("PUT", resource, valid, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      String etag = send("GET", resource, "").headers().firstValue("ETag").orElseThrow();
+      String token = currentCollectionToken(calendar);
+      var state = admissionHistoryState(collection);
+      var rejected = send("PUT", resource, invalid, "If-Match", etag);
+      assertThat(rejected.statusCode()).isEqualTo(403);
+      assertThat(DavXml.child(xml(rejected), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      var after = send("GET", resource, "");
+      assertThat(after.body()).isEqualTo(valid);
+      assertThat(after.headers().firstValue("ETag")).hasValue(etag);
+      assertThat(admissionHistoryState(collection)).isEqualTo(state);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+    }
+    String names = "TZNAME;LANGUAGE=en:Fixed\r\nTZNAME;LANGUAGE=de:Fest\r\n";
+    String body =
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Timezone names//EN\r\n"
+            + "BEGIN:VTIMEZONE\r\nTZID:Qualification/Fixed\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\n"
+            + "TZOFFSETFROM:+0200\r\nTZOFFSETTO:+0200\r\n"
+            + names
+            + "END:STANDARD\r\nEND:VTIMEZONE\r\n"
+            + "BEGIN:VEVENT\r\nUID:timezone-names\r\nDTSTAMP:20261109T000000Z\r\n"
+            + "DTSTART;TZID=Qualification/Fixed:20261109T090000\r\nDURATION:PT1H\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    String resource = calendar + "timezone.ics";
+    assertThat(send("PUT", resource, body, "If-None-Match", "*").statusCode()).isEqualTo(201);
+    assertThat(send("GET", resource, "").body()).isEqualTo(body);
+    var result =
+        send(
+            "REPORT",
+            calendar,
+            query(
+                "<C:comp-filter name='VEVENT'><C:prop-filter name='UID'><C:text-match>timezone-names</C:text-match></C:prop-filter></C:comp-filter>"),
+            "Depth",
+            "1");
+    assertThat(result.statusCode()).isEqualTo(207);
+    assertThat(text(result, DavXml.CAL, "calendar-data")).isEqualTo(body);
+    var expanded =
+        send(
+            "REPORT",
+            calendar,
+            query("<C:comp-filter name='VEVENT'/>")
+                .replace(
+                    "<C:calendar-data/>",
+                    "<C:calendar-data><C:expand start='20261109T060000Z' end='20261109T080000Z'/></C:calendar-data>"),
+            "Depth",
+            "1");
+    assertThat(expanded.statusCode()).isEqualTo(207);
+    assertThat(expanded.body()).contains("DTSTART:20261109T070000Z");
+    assertThat(send("GET", resource, "").body()).isEqualTo(body);
+  }
+
+  @Test
   void discoveryUsesStablePrincipalAndRealComponentCapabilities() throws Exception {
     var root =
         send(

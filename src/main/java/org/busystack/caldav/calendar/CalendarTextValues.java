@@ -44,6 +44,25 @@ public final class CalendarTextValues {
     return List.copyOf(values);
   }
 
+  /** RFC 5545 §3.8.8.3: code;description[;extension], with ordinary TEXT escaping. */
+  public static void requestStatus(String lexical) {
+    List<String> parts = new ArrayList<>();
+    int start = 0;
+    for (int index = 0; index < lexical.length(); index++) {
+      char value = lexical.charAt(index);
+      if (value == '\\') index++;
+      else if (value == ';') {
+        parts.add(lexical.substring(start, index));
+        start = index + 1;
+      }
+    }
+    parts.add(lexical.substring(start));
+    if (parts.size() < 2
+        || parts.size() > 3
+        || !parts.getFirst().matches("[0-9]+\\.[0-9]+(?:\\.[0-9]+)?")) invalid();
+    for (String part : parts.subList(1, parts.size())) scalar(part);
+  }
+
   private static void invalid() {
     throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_DATA);
   }
