@@ -32,3 +32,7 @@ Input is limited to 1 MiB, with separate component/property/parameter/nesting bo
 Evidence: `CalendarAuditCorrectionsTest`, `CalendarAuditAtomicityIT`, `CalendarSemanticsTest`, `CalendarFreeBusySourcesTest`, `CalendarParameterSemanticsTest`, `CalendarEdgeSemanticsTest`, `CalendarTextProfileTest`, `CalendarExpansionSemanticsTest`, `CalendarTimezoneRdateTest`, `CalendarTimezoneCoverageTest`, `CalendarDuplicateRecurrenceTest`, `CalendarTimezoneRequirementTest`, `CalendarDataProjectionTest`, and `ThunderbirdCalendarFixturesTest`. The Thunderbird fixtures preserve real native-provider output from qualification; their provenance is in `src/test/resources/calendar/clients/README.md`. HTTP/client evidence is maintained separately in the conformance and interoperability matrices.
 
 Normative references: [RFC 4791](https://www.rfc-editor.org/rfc/rfc4791.html), particularly sections 7.3, 7.5, 7.10 and 9.9; [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html), particularly sections 3.3.6, 3.8.4.4 and 3.8.5.3; [RFC 6868](https://www.rfc-editor.org/rfc/rfc6868.html). The official unmodified parser and narrowly scoped application-owned parameter adapter are documented in `ical4j-parser-patch.md`; former copied implementations remain only in Git history.
+
+Attendee participation and identity parameters remain valid on events/tasks, but
+RFC5545 §3.8.4.1 prohibits them on VALARM delivery addresses. Plain addresses and
+unknown extension parameters remain accepted; no alarm delivery engine is added.

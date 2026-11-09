@@ -170,6 +170,45 @@ class CalendarParameterSemanticsTest {
         .isEqualToIgnoringCase(parameter.substring(parameter.indexOf('=') + 1));
   }
 
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "CUTYPE=INDIVIDUAL",
+        "MEMBER=\"mailto:group@example.invalid\"",
+        "ROLE=REQ-PARTICIPANT",
+        "PARTSTAT=ACCEPTED",
+        "RSVP=TRUE",
+        "DELEGATED-TO=\"mailto:other@example.invalid\"",
+        "DELEGATED-FROM=\"mailto:other@example.invalid\"",
+        "SENT-BY=\"mailto:agent@example.invalid\"",
+        "CN=Synthetic",
+        "DIR=\"https://example.invalid/directory\""
+      })
+  void alarmAttendeesDoNotAcquireEventParticipationParameters(String parameter) {
+    assertThatThrownBy(
+            () ->
+                CalendarSemanticsTest.parse(
+                    "VEVENT", "DTSTART:20261109T090000Z\r\n" + emailAlarm(";" + parameter)))
+        .isInstanceOf(CalendarValidationException.class);
+    assertThatCode(() -> parsed(parameter)).doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", ";X-KEEP=opaque", ";LANGUAGE=en"})
+  void plainAndExtendedAlarmDeliveryAddressesRemainValid(String parameters) {
+    var parsed =
+        CalendarSemanticsTest.parse(
+            "VEVENT", "DTSTART:20261109T090000Z\r\n" + emailAlarm(parameters));
+    assertThat(parsed.calendar().copy().toString())
+        .contains("ATTENDEE" + parameters + ":mailto:synthetic@example.invalid");
+  }
+
+  private static String emailAlarm(String parameters) {
+    return "BEGIN:VALARM\r\nACTION:EMAIL\r\nDESCRIPTION:Synthetic reminder\r\nSUMMARY:Synthetic alarm\r\nTRIGGER:-PT5M\r\nATTENDEE"
+        + parameters
+        + ":mailto:synthetic@example.invalid\r\nEND:VALARM\r\n";
+  }
+
   private boolean matchesParameter(CalendarContent.Parsed parsed, String name, String text) {
     var property =
         new PropertyFilter(

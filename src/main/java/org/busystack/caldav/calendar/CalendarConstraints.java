@@ -66,6 +66,22 @@ public final class CalendarConstraints {
       }
       if (name.equals("TASK-MODE") && (!task || !property.getValue().matches("[A-Za-z0-9-]+")))
         invalid();
+      // RFC 5545 §3.8.4.1 forbids participation/identity parameters on
+      // alarm and free/busy attendees; a plain alarm delivery address is valid.
+      if (Property.ATTENDEE.equals(name)
+          && Set.of(Component.VALARM, Component.VFREEBUSY).contains(component.getName()))
+        for (String parameter :
+            List.of(
+                "CUTYPE",
+                "MEMBER",
+                "ROLE",
+                "PARTSTAT",
+                "RSVP",
+                "DELEGATED-TO",
+                "DELEGATED-FROM",
+                "SENT-BY",
+                "CN",
+                "DIR")) if (property.getParameter(parameter).isPresent()) invalid();
       if (Property.COMPLETED.equals(name) && !task) invalid();
       if (Property.PERCENT_COMPLETE.equals(name)
           && !task

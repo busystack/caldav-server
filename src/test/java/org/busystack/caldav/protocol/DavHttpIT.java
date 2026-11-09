@@ -419,17 +419,22 @@ class DavHttpIT {
   }
 
   @Test
-  void invalidBooleanAndLanguageParametersDoNotChangeResourceOrSyncState() throws Exception {
+  void invalidKnownParametersDoNotChangeResourceOrSyncState() throws Exception {
     String calendar = create("parameter-atomicity", "VEVENT");
     UUID collection = datedCollection("parameter-atomicity");
-    for (String parameter : List.of("RSVP=MAYBE", "LANGUAGE=en_US")) {
-      String name = parameter.substring(0, parameter.indexOf('='));
+    for (String parameter : List.of("RSVP=MAYBE", "LANGUAGE=en_US", "ALARM-CN", "ALARM-RSVP")) {
+      String name =
+          parameter.contains("=") ? parameter.substring(0, parameter.indexOf('=')) : parameter;
       String resource = calendar + name + ".ics";
       String valid = event("parameter-" + name, "Preserved");
       String invalid =
           valid.replace(
               "END:VEVENT",
-              "ATTENDEE;" + parameter + ":mailto:synthetic@example.invalid\r\nEND:VEVENT");
+              parameter.startsWith("ALARM-")
+                  ? "BEGIN:VALARM\r\nACTION:EMAIL\r\nDESCRIPTION:Synthetic reminder\r\nSUMMARY:Alarm\r\nTRIGGER:-PT5M\r\nATTENDEE;"
+                      + (parameter.equals("ALARM-CN") ? "CN=Synthetic" : "RSVP=TRUE")
+                      + ":mailto:synthetic@example.invalid\r\nEND:VALARM\r\nEND:VEVENT"
+                  : "ATTENDEE;" + parameter + ":mailto:synthetic@example.invalid\r\nEND:VEVENT");
       var empty = admissionHistoryState(collection);
       var creation =
           send("PUT", resource, invalid, "Content-Type", "text/calendar", "If-None-Match", "*");
