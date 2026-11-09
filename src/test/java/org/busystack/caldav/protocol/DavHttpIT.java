@@ -308,7 +308,13 @@ class DavHttpIT {
             "DESCRIPTION;ALTREP=\"relative\":Text",
             "X-URI;VALUE=URI:relative",
             "REQUEST-STATUS:2;Success",
-            "REQUEST-STATUS:2.0")) {
+            "REQUEST-STATUS:2.0",
+            "ATTENDEE;CUTYPE=BAD VALUE:mailto:a@example.invalid",
+            "ATTENDEE;ROLE=BAD VALUE:mailto:a@example.invalid",
+            "ATTENDEE;PARTSTAT=BAD VALUE:mailto:a@example.invalid",
+            "RELATED-TO;RELTYPE=BAD VALUE:other",
+            "X-OPAQUE;VALUE=BAD VALUE:opaque",
+            "RECURRENCE-ID;RANGE=THISANDPRIOR:20261109T090000Z")) {
       String resource = calendar + index++ + ".ics";
       String valid = event("core-syntax-" + index, "Preserved");
       String invalid = valid.replace("END:VEVENT", field + "\r\nEND:VEVENT");

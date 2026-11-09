@@ -143,6 +143,60 @@ class CalendarParameterSemanticsTest {
   }
 
   @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "CUTYPE=BAD VALUE",
+        "ROLE=BAD VALUE",
+        "PARTSTAT=BAD VALUE",
+        "RELTYPE=BAD VALUE",
+        "VALUE=BAD VALUE",
+        "CUTYPE=",
+        "ROLE=",
+        "PARTSTAT=",
+        "RELTYPE=",
+        "VALUE="
+      })
+  void openParameterVocabulariesStillRequireTokens(String parameter) {
+    assertThatThrownBy(() -> tokenParameter(parameter)).isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "CUTYPE=X-ROBOT",
+        "ROLE=FUTURE-ROLE",
+        "PARTSTAT=X-FUTURE",
+        "RELTYPE=FINISHTOSTART",
+        "VALUE=X-FUTURE"
+      })
+  void openParameterVocabulariesPreserveFutureTokens(String parameter) {
+    assertThatCode(() -> tokenParameter(parameter)).doesNotThrowAnyException();
+  }
+
+  private CalendarContent.Parsed tokenParameter(String parameter) {
+    if (parameter.startsWith("VALUE="))
+      return CalendarSemanticsTest.parse(
+          "VEVENT", "DTSTART:20261109T090000Z\r\nX-OPAQUE;" + parameter + ":opaque\r\n");
+    if (parameter.startsWith("RELTYPE="))
+      return CalendarSemanticsTest.parse(
+          "VEVENT", "DTSTART:20261109T090000Z\r\nRELATED-TO;" + parameter + ":other\r\n");
+    return parsed(parameter);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"THISANDPRIOR", "X-FUTURE", "", "BAD VALUE"})
+  void recurrenceRangeUsesOnlyTheCurrentStandardValue(String range) {
+    assertThatThrownBy(
+            () ->
+                CalendarSemanticsTest.parse(
+                    "VEVENT",
+                    "DTSTART:20261109T090000Z\r\nRECURRENCE-ID;RANGE="
+                        + range
+                        + ":20261109T090000Z\r\n"))
+        .isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
   @ValueSource(strings = {"RSVP=MAYBE", "RSVP=", "LANGUAGE=en_US", "LANGUAGE="})
   void invalidKnownParameterValuesAreRejectedBeforeModelCoercion(String parameter) {
     assertThatThrownBy(() -> parsed(parameter)).isInstanceOf(RuntimeException.class);

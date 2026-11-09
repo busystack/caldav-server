@@ -226,6 +226,19 @@ public final class StrictContentHandler extends DefaultContentHandler
           "TZID is not permitted on timezone observance properties");
     var values = rawValues.stream().map(Rfc6868::value).toList();
     if (Set.of(
+                Parameter.CUTYPE,
+                Parameter.ROLE,
+                Parameter.PARTSTAT,
+                Parameter.RELTYPE,
+                Parameter.VALUE)
+            .contains(name)
+        && values.stream().anyMatch(value -> !value.matches("[A-Za-z0-9-]+")))
+      throw new QueryException(
+          QueryException.Kind.INVALID_DATA, "Invalid calendar parameter token");
+    if (name.equals(Parameter.RANGE)
+        && values.stream().anyMatch(value -> !value.equalsIgnoreCase("THISANDFUTURE")))
+      throw new QueryException(QueryException.Kind.INVALID_DATA, "Invalid recurrence range");
+    if (Set.of(
             Parameter.ALTREP,
             Parameter.DIR,
             Parameter.SENT_BY,
