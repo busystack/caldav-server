@@ -35,11 +35,15 @@ public final class CalendarConstraints {
       Property duration = component.getProperty(Property.DURATION).orElse(null);
       // RFC 10051 §11.1 permits duration-only tasks; events still require DTSTART.
       if (duration != null && (end != null || event && start == null)) invalid();
-      if (end != null && start != null) {
-        sameType(start, end);
-        sameLocalForm(start, end);
-        if (compare(start, end) >= 0) invalid();
-      }
+      if (start != null)
+        // §3.8.2.2 applies to every DTEND; §3.6.1 does not give it the
+        // singleton restriction used for the preceding property group.
+        for (var property : component.getProperties(event ? Property.DTEND : Property.DUE)) {
+          Temporal value = ((DateProperty<?>) property).getDate();
+          sameType(start, value);
+          sameLocalForm(start, value);
+          if (compare(start, value) >= 0) invalid();
+        }
       if (duration != null) {
         String value = lexical.getOrDefault(duration, duration.getValue());
         positiveDuration(value);

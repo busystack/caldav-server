@@ -63,3 +63,19 @@ Known RSVP values are checked before model construction so invalid booleans cann
 be coerced into FALSE. LANGUAGE values are checked for BCP47 syntax through the
 supported JDK Locale.Builder API, including valid private-use and grandfathered
 forms. Validation does not rewrite accepted source spelling or query parameters.
+
+### Closure of CAL-R022, CAL-R037 and CAL-R050
+
+The completion qualification adds clause-derived positive/negative TIME and
+ATTACH tests, same-resource HTTP readback/report/update controls, and tests of
+all supplied DTEND values. TIME applies to explicitly declared extension values;
+it does not require a time-only event feature. ATTACH's current defined alternatives
+are URI and BINARY; generic unknown-type preservation does not introduce new
+allowable types for that defined property. Unknown extension-property data and
+unknown attachment parameters remain preserved.
+
+RFC 5545 §§3.6.1 and3.8.2.2 contain no explicit DTEND singleton requirement for
+VEVENT. No applicable verified erratum adds one. Independent implementation
+behavior is comparative evidence, not a normative rule. The previous duplicate
+DTEND rejection hypothesis must remain visible as a non-normative hypothesis,
+while the actual per-value mandatory constraints are independently tested.

@@ -72,6 +72,8 @@ public final class StrictContentHandler extends DefaultContentHandler
               factories.removeIf(factory -> factory.supports(Property.CLASS));
               factories.removeIf(factory -> factory.supports(Property.STATUS));
               factories.removeIf(factory -> factory.supports(Property.PARTICIPANT_TYPE));
+              factories.removeIf(factory -> factory.supports(Property.ATTACH));
+              factories.addFirst(new AttachmentFactory());
               factories.addFirst(new ClassificationFactory());
               factories.addFirst(new TaskFactory.StatusFactory());
               factories.addFirst(new TaskFactory.EstimatedDurationFactory());
@@ -94,6 +96,24 @@ public final class StrictContentHandler extends DefaultContentHandler
   @Override
   public void propertyValue(String value) {
     String declared = currentParameters.getOrDefault(Parameter.VALUE, "").toUpperCase(Locale.ROOT);
+    // RFC 5545 §§3.3,3.8.1.1 define only URI and BINARY for ATTACH.
+    if (Property.ATTACH.equals(currentProperty)
+        && !declared.isEmpty()
+        && !Set.of("URI", "BINARY").contains(declared))
+      throw new IllegalArgumentException("Invalid attachment value type");
+    if (declared.equals("TIME")) {
+      // §3.3.12 also applies to explicitly typed extension data. Preserve
+      // floating/zoned spelling; a time-only value has no date to derive.
+      for (String time : value.split(",", -1)) {
+        if (!time.matches("(?i)[0-9]{6}Z?")
+            || Integer.parseInt(time.substring(0, 2)) > 23
+            || Integer.parseInt(time.substring(2, 4)) > 59
+            || Integer.parseInt(time.substring(4, 6)) > 60
+            || time.toUpperCase(Locale.ROOT).endsWith("Z")
+                && currentParameters.containsKey(Parameter.TZID))
+          throw new IllegalArgumentException("Invalid TIME value");
+      }
+    }
     // RFC 5545 §3.3.14 forbids negative zero; parsing to ZoneOffset loses its sign.
     if ((Set.of(Property.TZOFFSETFROM, Property.TZOFFSETTO).contains(currentProperty)
             || declared.equals("UTC-OFFSET"))

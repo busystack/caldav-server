@@ -60,3 +60,30 @@ DTEND, DUE and RECURRENCE-ID retain the floating local form if and only if the
 related DTSTART is floating (RFC5545 §§3.8.2.2–3,3.8.4.4). A report timezone
 interprets valid floating pairs; it does not make mixed floating/absolute pairs
 valid. RDATE/EXDATE and observance UNTIL keep their separate existing rules.
+
+### Remaining value-type and end-date clauses (9 November 2026)
+
+Explicit `VALUE=TIME` extension data follows RFC 5545 §3.3.12: six digits,
+valid hour/minute/second ranges, optional UTC suffix, and no numeric UTC offset.
+UTC TIME values cannot also carry TZID. Floating and embedded-zone forms retain
+their representation; the server does not derive a date or execute unknown
+extension fields. A syntactic leap-second value can be retained without inventing
+its date. Unknown experimental value types on extension properties remain opaque.
+
+ATTACH supports its defined URI/default and BINARY alternatives (§§3.3,3.8.1.1).
+BINARY still requires BASE64; FMTTYPE remains recommended rather than mandatory.
+Explicit default `ENCODING=8BIT` URI attachments use the official URI constructor
+through a first-party factory, retaining parameters and model-copy/report behavior.
+The upstream validators and binary decoder remain unchanged. Repeated event/task
+and email-alarm attachments remain supported; AUDIO retains its one-attachment
+limit. Attachment URIs are stored without retrieving their targets.
+
+The VEVENT grammar does not explicitly prohibit repeated DTEND: its comment
+excludes coexistence with DURATION but omits the preceding group's singleton
+restriction. Section 3.8.2.2 likewise omits a once-only conformance rule. Verified
+erratum6109 corrects an exclusive-end example, not cardinality. Accepted repeated
+ends are preserved; every supplied DTEND must independently satisfy the explicit
+DTSTART type, floating-form and later-than constraints. No singleton restriction
+was added merely to satisfy the former qualification hypothesis. The existing
+first-end interpretation for report calculations is unchanged where several valid
+ends are supplied; such ambiguous data is best avoided by producers.
