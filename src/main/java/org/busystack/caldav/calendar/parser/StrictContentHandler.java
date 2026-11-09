@@ -94,6 +94,12 @@ public final class StrictContentHandler extends DefaultContentHandler
   @Override
   public void propertyValue(String value) {
     String declared = currentParameters.getOrDefault(Parameter.VALUE, "").toUpperCase(Locale.ROOT);
+    // RFC 5545 §3.3.14 forbids negative zero; parsing to ZoneOffset loses its sign.
+    if ((Set.of(Property.TZOFFSETFROM, Property.TZOFFSETTO).contains(currentProperty)
+            || declared.equals("UTC-OFFSET"))
+        && Set.of("-0000", "-000000").contains(value))
+      throw new org.busystack.caldav.calendar.CalendarValidationException(
+          org.busystack.caldav.calendar.CalendarValidationException.Reason.INVALID_DATA);
     if (declared.equals("URI")
         || declared.equals("CAL-ADDRESS")
         || Set.of(

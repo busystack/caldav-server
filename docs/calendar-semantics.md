@@ -26,6 +26,9 @@ Open CUTYPE, ROLE, PARTSTAT, RELTYPE and VALUE vocabularies still require valid
 tokens; unknown valid tokens remain preserved. RANGE uses THISANDFUTURE under
 RFC5545 §3.2.13; the retired THISANDPRIOR value is not interpreted as a single
 occurrence or silently retained as a current range operation.
+UTC offsets -0000 and -000000 are rejected before typed offset parsing can lose
+their sign (RFC5545 §3.3.14). Valid positive zero retains its submitted precision
+in the authoritative stored representation.
 
 The [independent-audit correction record](standards-corrections.md) supersedes the earlier blanket validation claims. The later IV-CAL-01 follow-up checks original BYDAY ordinals, RFC duration alternatives and the exact ASCII initial calendar structure before typed normalization. Shared duration checks include relative triggers and duration-ended periods; valid ASCII structural case and the supported leading BOM affect only the derived reader, never authoritative bytes. `CalendarConstraints` enforces component and cross-property requirements at the write boundary, and `RecurrenceRuleSyntax` checks original RRULE parts before library normalization can discard duplicates. No event series is expanded for write validation. The parsing input adapter unfolds octets before strict UTF-8 decoding, including folds inside a multibyte character, and canonicalizes only structural identifier spelling in a derived reader. Already-valid input octets, case-sensitive identifiers and values remain unchanged. The default [local observance UNTIL input exception](observance-until-compatibility.md) runs before strict validation and makes corrected bytes authoritative for that narrow case; disabling it restores rejection. These corrections do not modify the upstream-derived parser or timezone-builder sources.
 
