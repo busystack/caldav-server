@@ -29,6 +29,18 @@ The primary RFCs, their verified errata and relevant update boundaries are recor
 
 ## iCalendar representation and semantics
 
+VJOURNAL collections hold one journal UID set per CalDAV resource. RFC 4791
+section 9.9 applies a point predicate to DATE-TIME, a nominal local day to DATE,
+and excludes journals without DTSTART from time-range matches. Component-only
+inventory includes undated entries. For RDATE PERIOD values, the server uses
+the start for journal REPORT matching. RFC 5545 section 3.8.5.2 defines generic
+PERIOD duration overrides without a journal-specific interaction with the
+CalDAV table. Report expansion leaves journal end and duration properties
+absent. Journal resources do not contribute to busy time. Storage admission and
+the release's provider qualification are tracked separately in the
+[journal admission record](../qualification/evidence/vjournal-admission.md).
+
+
 | Obligation — RFC5545 / RFC6868 | Evidence and boundaries |
 | --- | --- |
 | Complete resources, properties and parameters | `CalendarContent` validates with iCal4j while PostgreSQL keeps accepted UTF-8 bytes. GET/HEAD validators and ordinary round trips do not reconstruct objects from derived indexes. Independent-client fixtures cover Unicode, unknown X-properties and alarms. Synthetic parser/parameter tests additionally cover unknown parameters, organizer/attendee and ATTACH preservation; these are distinct evidence sources. No external ATTACH/TZURL retrieval is performed; a local socket test verifies the non-fetch boundary. |

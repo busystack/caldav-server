@@ -303,6 +303,24 @@ END; $fixture$;
 COMMIT;
 """,
             )
+            journal_checksum = None
+            if initial_version is None and baseline_image is None:
+                journal = (
+                    "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
+                    "PRODID:-//BusyStack Operations Fixture//EN\r\n"
+                    "BEGIN:VJOURNAL\r\nUID:operations-journal-fixture\r\n"
+                    "DTSTAMP:20261125T000000Z\r\nDESCRIPTION;LANGUAGE=en:Journal entry\r\n"
+                    "DESCRIPTION;LANGUAGE=fr:Entrée\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n"
+                ).encode()
+                journal_checksum = hashlib.sha256(journal).hexdigest()
+                sql(environment, f"""BEGIN;
+INSERT INTO collections(id,owner_id,name,component,revision)
+  SELECT '55555555-5555-4555-8555-555555555555',id,'Journal recovery fixture','VJOURNAL',1
+  FROM accounts WHERE username='opsadmin';
+INSERT INTO calendar_resources(collection_id,name,uid,content,etag,revision)
+  VALUES ('55555555-5555-4555-8555-555555555555','journal.ics','operations-journal-fixture',
+          decode('{journal.hex()}','hex'),'"{journal_checksum}"',1);
+COMMIT;""")
             epoch = sql(environment, "SELECT recovery_epoch FROM system_state WHERE id=1;")
             initial_verifier = sql(environment, "SELECT password_hash FROM accounts WHERE username='opsadmin';")
             has_federation = sql(environment, "SELECT to_regclass('public.external_identities') IS NOT NULL;") == "t"
@@ -350,6 +368,12 @@ COMMIT;
             projects.append(restored)
             compose(restored, "up", "-d", "--wait", "--wait-timeout", "120", "database")
             execute(["./scripts/restore.sh", str(archive)], restored)
+            if journal_checksum is not None:
+                assert sql(restored, """SELECT c.component || '|' || encode(sha256(r.content),'hex')
+                    || '|' || r.etag FROM calendar_resources r JOIN collections c ON c.id=r.collection_id
+                    WHERE r.uid='operations-journal-fixture';""") == (
+                        f'VJOURNAL|{journal_checksum}|"{journal_checksum}"')
+                print("OPERATIONS_JOURNAL_BYTES_ETAG_AND_COMPONENT_PRESERVED", flush=True)
             if initial_version is not None:
                 assert sql(restored, "SELECT max(version::integer) FROM flyway_schema_history WHERE version IS NOT NULL;") == "9"
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
@@ -358,18 +382,18 @@ COMMIT;
                 compose(restored, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
                 checks(restored)
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
-                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"
+                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
                 compose(restored, "stop", "application")
-                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V16_PASSED", flush=True)
+                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V17_PASSED", flush=True)
             result = json.loads(
                 sql(
                     restored,
                     """SELECT json_build_object(
 'accounts',(SELECT count(*) FROM accounts),
 'enabled_accounts',(SELECT count(*) FROM accounts WHERE enabled),
-'owner',(SELECT a.username FROM accounts a JOIN collections c ON c.owner_id=a.id),
+'owner',(SELECT a.username FROM accounts a JOIN collections c ON c.owner_id=a.id WHERE c.component='VEVENT'),
 'permission',(SELECT permission FROM collection_members),
-'content_sha256',(SELECT encode(sha256(content),'hex') FROM calendar_resources),
+'content_sha256',(SELECT encode(sha256(content),'hex') FROM calendar_resources WHERE name='fixture.ics'),
 'epoch',(SELECT recovery_epoch::text FROM system_state),
 'credentials',(SELECT count(*) FROM dav_credentials),
 'continuations',(SELECT count(*) FROM sync_continuations),
@@ -476,7 +500,7 @@ def negative_restores(source, private, projects):
     restore_history = "DELETE FROM flyway_schema_history; INSERT INTO flyway_schema_history SELECT * FROM json_populate_recordset(NULL::flyway_schema_history,'" + escaped + "'::json);"
     appended = "INSERT INTO flyway_schema_history(installed_rank,version,description,type,script,checksum,installed_by,execution_time,success) SELECT max(installed_rank)+1,{version},'Deliberate negative fixture','SQL','negative.sql',0,'busystack',0,true FROM flyway_schema_history;"
     cases = [
-        ("future", appended.format(version="'17'"), "supports schema versions 1 through 16"),
+        ("future", appended.format(version="'18'"), "supports schema versions 1 through 17"),
         ("failed", "UPDATE flyway_schema_history SET success=false WHERE version='13';", "Failed migration history"),
         ("gap", "DELETE FROM flyway_schema_history WHERE version='6';", "Gap in migration history"),
         ("duplicate", appended.format(version="'13'"), "Duplicate migration versions"),
