@@ -80,12 +80,15 @@ public final class CalendarRecurrence {
       if (c.getProperty(RECURRENCE_ID).isEmpty()) continue;
       boolean current = TimeRangeMatcher.matches(occurrence, range, timezone.zoneId());
       boolean original = false;
-      if (master != null && occurrence.recurrenceId() != null)
+      Component originalComponent = master;
+      if (originalComponent == null && c.getName().equals(Component.VJOURNAL))
+        originalComponent = c;
+      if (originalComponent != null && occurrence.recurrenceId() != null)
         original =
             TimeRangeMatcher.matches(
                 RecurrenceExpander.single(
                     parsed,
-                    master,
+                    originalComponent,
                     occurrence.recurrenceId(),
                     occurrence.recurrenceId(),
                     timezone.zoneId()),

@@ -60,7 +60,7 @@ public final class RecurrenceExpander {
       var result = new ArrayList<Occurrence>();
       for (Component c : components) {
         budget.charge(1);
-        result.add(single(parsed, c, null, null, zone));
+        result.add(single(parsed, c, null, TemporalSupport.date(c, RECURRENCE_ID), zone));
       }
       return result;
     }
@@ -79,7 +79,7 @@ public final class RecurrenceExpander {
       for (Component c : components)
         if (c != master) {
           budget.charge(1);
-          result.add(single(parsed, c, null, null, zone));
+          result.add(single(parsed, c, null, TemporalSupport.date(c, RECURRENCE_ID), zone));
         }
       return result;
     }

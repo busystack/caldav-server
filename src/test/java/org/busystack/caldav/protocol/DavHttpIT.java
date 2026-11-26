@@ -1356,6 +1356,137 @@ class DavHttpIT {
   }
 
   @Test
+  void detachedJournalReportsKeepIdentityAndMatchOriginalPositionWhenLimited() throws Exception {
+    String journals = create("detached-journals", "VJOURNAL");
+    String href = journals + "detached.ics";
+    String header =
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Detached journal QA//EN\r\n";
+    String entry = "BEGIN:VJOURNAL\r\nUID:detached-report\r\nDTSTAMP:20261126T000000Z\r\n";
+    String body =
+        header
+            + entry
+            + "RECURRENCE-ID:20261127T090000Z\r\nDTSTART:20261127T110000Z\r\nDESCRIPTION:First\r\nEND:VJOURNAL\r\n"
+            + entry
+            + "RECURRENCE-ID:20261128T090000Z\r\nDTSTART:20261128T120000Z\r\nDESCRIPTION:Second\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n";
+    var created = send("PUT", href, body, "If-None-Match", "*");
+    assertThat(created.statusCode()).isEqualTo(201);
+    String etag = created.headers().firstValue("ETag").orElseThrow();
+    String expand =
+        "<C:calendar-data><C:expand start='20261127T000000Z' end='20261129T000000Z'/></C:calendar-data>";
+    String multiget =
+        "<C:calendar-multiget xmlns:C='urn:ietf:params:xml:ns:caldav' xmlns:D='DAV:'><D:prop><C:calendar-data/></D:prop><D:href>https://calendar.example/team/dav"
+            + href
+            + "</D:href></C:calendar-multiget>";
+    var queried =
+        send(
+            "REPORT",
+            journals,
+            query("<C:comp-filter name='VJOURNAL'/>").replace("<C:calendar-data/>", expand),
+            "Depth",
+            "1");
+    var fetched = send("REPORT", journals, multiget.replace("<C:calendar-data/>", expand));
+    for (var response : List.of(queried, fetched)) {
+      assertThat(response.statusCode()).isEqualTo(207);
+      var lines = text(response, DavXml.CAL, "calendar-data").lines().toList();
+      assertThat(lines.stream().filter(line -> line.startsWith("RECURRENCE-ID:")))
+          .containsExactly("RECURRENCE-ID:20261127T090000Z", "RECURRENCE-ID:20261128T090000Z");
+      assertThat(lines.stream().filter(line -> line.startsWith("DTSTART:")))
+          .containsExactly("DTSTART:20261127T110000Z", "DTSTART:20261128T120000Z");
+      assertThat(lines).doesNotContain("DTEND:20261127T110000Z", "DTEND:20261128T120000Z");
+    }
+    for (String hour : List.of("09", "11")) {
+      String limit =
+          "<C:calendar-data><C:limit-recurrence-set start='20261127T"
+              + hour
+              + "0000Z' end='20261127T"
+              + hour
+              + "0001Z'/></C:calendar-data>";
+      var result = send("REPORT", journals, multiget.replace("<C:calendar-data/>", limit));
+      assertThat(result.statusCode()).isEqualTo(207);
+      assertThat(text(result, DavXml.CAL, "calendar-data"))
+          .contains("RECURRENCE-ID:20261127T090000Z", "DTSTART:20261127T110000Z")
+          .doesNotContain("RECURRENCE-ID:20261128T090000Z");
+    }
+    var after = send("GET", href, "");
+    assertThat(after.body()).isEqualTo(body);
+    assertThat(after.headers().firstValue("ETag")).contains(etag);
+  }
+
+  @Test
+  void detachedJournalReportNormalizesDatesAndEmbeddedZoneIdentities() throws Exception {
+    String journals = create("detached-journal-forms", "VJOURNAL");
+    String zone =
+        "BEGIN:VTIMEZONE\r\nTZID:Qualification/Fixed\r\nBEGIN:STANDARD\r\n"
+            + "DTSTART:19700101T000000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0200\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n";
+    String expand =
+        "<C:calendar-data><C:expand start='20261127T000000Z' end='20261201T000000Z'/></C:calendar-data>";
+    record Form(
+        String name,
+        String parameters,
+        String first,
+        String moved,
+        String definition,
+        String expandedIdentity,
+        String expandedStart) {}
+    for (var form :
+        List.of(
+            new Form(
+                "date",
+                ";VALUE=DATE",
+                "20261127",
+                "20261129",
+                "",
+                "RECURRENCE-ID;VALUE=DATE:20261127",
+                "DTSTART;VALUE=DATE:20261129"),
+            new Form(
+                "zone",
+                ";TZID=Qualification/Fixed",
+                "20261127T090000",
+                "20261129T110000",
+                zone,
+                "RECURRENCE-ID:20261127T070000Z",
+                "DTSTART:20261129T090000Z"))) {
+      String href = journals + form.name() + ".ics";
+      String body =
+          "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Journal QA//EN\r\n"
+              + form.definition()
+              + "BEGIN:VJOURNAL\r\nUID:journal-"
+              + form.name()
+              + "\r\nDTSTAMP:20261126T000000Z\r\nRECURRENCE-ID"
+              + form.parameters()
+              + ":"
+              + form.first()
+              + "\r\nDTSTART"
+              + form.parameters()
+              + ":"
+              + form.moved()
+              + "\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n";
+      assertThat(send("PUT", href, body, "If-None-Match", "*").statusCode()).isEqualTo(201);
+      String selector =
+          query(
+              "<C:comp-filter name='VJOURNAL'><C:prop-filter name='UID'>"
+                  + "<C:text-match>journal-"
+                  + form.name()
+                  + "</C:text-match></C:prop-filter></C:comp-filter>");
+      var expanded =
+          send("REPORT", journals, selector.replace("<C:calendar-data/>", expand), "Depth", "1");
+      assertThat(expanded.statusCode()).isEqualTo(207);
+      var lines = text(expanded, DavXml.CAL, "calendar-data").lines().toList();
+      assertThat(lines)
+          .contains(form.expandedIdentity(), form.expandedStart())
+          .doesNotContain("BEGIN:VTIMEZONE");
+      String limit =
+          "<C:calendar-data><C:limit-recurrence-set start='20261127T000000Z' end='20261128T000000Z'/></C:calendar-data>";
+      var limited =
+          send("REPORT", journals, selector.replace("<C:calendar-data/>", limit), "Depth", "1");
+      assertThat(limited.statusCode()).isEqualTo(207);
+      assertThat(text(limited, DavXml.CAL, "calendar-data").lines())
+          .contains("RECURRENCE-ID" + form.parameters() + ":" + form.first());
+      assertThat(send("GET", href, "").body()).isEqualTo(body);
+    }
+  }
+
+  @Test
   void calendarValidationPreconditionsAreDistinctAndRejectedWritesPreserveBothCollections()
       throws Exception {
     String events = create("validation-events", "VEVENT"),
