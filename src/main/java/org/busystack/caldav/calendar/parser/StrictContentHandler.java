@@ -257,8 +257,8 @@ public final class StrictContentHandler extends DefaultContentHandler
       boolean permitted =
           switch (components.getFirst()) {
             case Component.VJOURNAL ->
-                Set.of("PARTICIPANT", "VLOCATION", "VRESOURCE").contains(component);
-            case "PARTICIPANT" -> Set.of("VLOCATION", "VRESOURCE").contains(component);
+                Set.of("PARTICIPANT", "VLOCATION", "VRESOURCE", "VSTATUS").contains(component);
+            case "PARTICIPANT" -> Set.of("VLOCATION", "VRESOURCE", "VSTATUS").contains(component);
             default -> false;
           };
       if (!permitted) throw new IllegalArgumentException("Invalid journal child component");

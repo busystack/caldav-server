@@ -42,7 +42,8 @@ final class JournalConstraints {
           "LOCATION-TYPE",
           "RESOURCE-TYPE");
   private static final Set<String> STATUSES = Set.of("DRAFT", "FINAL", "CANCELLED");
-  private static final Set<String> CHILDREN = Set.of("PARTICIPANT", "VLOCATION", "VRESOURCE");
+  private static final Set<String> CHILDREN =
+      Set.of("PARTICIPANT", "VLOCATION", "VRESOURCE", "VSTATUS");
 
   private JournalConstraints() {}
 
@@ -78,6 +79,8 @@ final class JournalConstraints {
   }
 
   private static void validateChild(Component child) {
+    // RFC 10051 §12.1 defines VSTATUS without a UID. CalendarConstraints validates it.
+    if (child.getName().equals("VSTATUS")) return;
     if (child.getProperties(UID).size() != 1 || child.getRequiredProperty(UID).getValue().isBlank())
       invalid();
     boolean participant = child.getName().equals("PARTICIPANT");
@@ -104,7 +107,8 @@ final class JournalConstraints {
     if (singleton.stream().anyMatch(name -> child.getProperties(name).size() > 1)) invalid();
     if (child instanceof ComponentContainer<?> nested)
       for (Component component : nested.getComponents()) {
-        if (!participant || !Set.of("VLOCATION", "VRESOURCE").contains(component.getName()))
+        if (!participant
+            || !Set.of("VLOCATION", "VRESOURCE", "VSTATUS").contains(component.getName()))
           invalid();
         validateChild(component);
       }

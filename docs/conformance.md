@@ -40,6 +40,9 @@ absent. Journal resources do not contribute to busy time. Storage admission and
 the release's provider qualification are tracked separately in the
 [journal admission record](../qualification/evidence/vjournal-admission.md).
 
+Journals can carry nested VSTATUS components with a parent STATUS and one
+STATUS in each child. The VTODO status values PENDING and FAILED remain
+task-specific. [RFC 10051 sections 8 and 12.1](https://www.rfc-editor.org/rfc/rfc10051.html#section-8).
 
 | Obligation — RFC5545 / RFC6868 | Evidence and boundaries |
 | --- | --- |

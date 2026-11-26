@@ -34,6 +34,18 @@ class CalendarJournalTest {
   }
 
   @Test
+  void journalStatusChildrenRequireBothStatusesWithoutNeedingUid() {
+    String review = "BEGIN:VSTATUS\r\nSTATUS:FINAL\r\nCOMMENT:Reviewed\r\nEND:VSTATUS\r\n";
+    var parsed = parse(JOURNAL, "STATUS:FINAL\r\n" + review);
+    assertThat(parsed.calendar().getComponents().getFirst().toString()).contains(review);
+    assertThatThrownBy(() -> parse(JOURNAL, review))
+        .isInstanceOf(CalendarValidationException.class);
+    assertThatThrownBy(
+            () -> parse(JOURNAL, "STATUS:FINAL\r\n" + review.replace("STATUS:FINAL\r\n", "")))
+        .isInstanceOf(CalendarValidationException.class);
+  }
+
+  @Test
   void publishingExtensionsSurviveNestedReportCopies() {
     var journal =
         parse(

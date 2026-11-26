@@ -6,7 +6,7 @@ import net.fortuna.ical4j.model.ComponentList;
 import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.component.VJournal;
 
-/** Attaches RFC 9073 child components through the official VJournal container API. */
+/** Attaches RFC 9073 and RFC 10051 children using the official VJournal container API. */
 final class JournalFactory extends VJournal.Factory {
   @Override
   public VJournal createComponent(PropertyList properties, ComponentList<?> children) {
