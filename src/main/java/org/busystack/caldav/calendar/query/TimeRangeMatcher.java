@@ -14,6 +14,13 @@ public final class TimeRangeMatcher {
     Instant start = occurrence.instant(DTSTART, zone), end = occurrence.instant(DTEND, zone);
     if (Component.VEVENT.equals(occurrence.component().getName()))
       return start != null && range.overlaps(start, end == null ? start : end);
+    if (Component.VJOURNAL.equals(occurrence.component().getName())) {
+      if (start == null) return false;
+      if (occurrence.dates().get(DTSTART) instanceof LocalDate date)
+        return range.startsBefore(date.plusDays(1).atStartOfDay(zone).toInstant())
+            && range.endsAfter(start);
+      return range.contains(start);
+    }
     if (!Component.VTODO.equals(occurrence.component().getName()))
       throw new QueryException(
           QueryException.Kind.UNSUPPORTED_FILTER, "Time range is undefined for this component");

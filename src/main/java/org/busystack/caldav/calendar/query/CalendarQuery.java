@@ -57,8 +57,7 @@ public final class CalendarQuery {
     var selected = available.stream().filter(c -> c.getName().equals(filter.name())).toList();
     if (filter.notDefined()) return selected.isEmpty();
     if (selected.isEmpty()) return false;
-    boolean primary =
-        filter.name().equals(Component.VEVENT) || filter.name().equals(Component.VTODO);
+    boolean primary = CalendarContent.supportsCollectionComponent(filter.name());
     TimeRange window = window(filter);
     List<Occurrence> occurrences;
     if (primary && window != null)

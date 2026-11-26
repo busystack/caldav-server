@@ -431,7 +431,8 @@ final class DavController {
           var components = children(value, CAL, "comp");
           if (components.size() != 1
               || !is(components.getFirst(), CAL, "comp")
-              || !Set.of("VEVENT", "VTODO").contains(components.getFirst().getAttribute("name")))
+              || !CalendarContent.supportsCollectionComponent(
+                  components.getFirst().getAttribute("name")))
             throw new DavException(403, c("supported-calendar-component"));
           component = components.getFirst().getAttribute("name");
         } else if (name.equals(d("displayname"))) {

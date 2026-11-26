@@ -29,6 +29,8 @@ public final class CalendarConstraints {
     Temporal start = TemporalSupport.date(component, Property.DTSTART);
     boolean event = component.getName().equals(Component.VEVENT);
     boolean task = component.getName().equals(Component.VTODO);
+    boolean journal = component.getName().equals(Component.VJOURNAL);
+    if (journal) JournalConstraints.validate(component, start);
     if (event && start == null) invalid(); // METHOD is prohibited for stored calendar objects.
     if (event || task) {
       Temporal end = TemporalSupport.date(component, event ? Property.DTEND : Property.DUE);
@@ -49,6 +51,8 @@ public final class CalendarConstraints {
         positiveDuration(value);
         if (start instanceof LocalDate && value.toUpperCase(Locale.ROOT).contains("T")) invalid();
       }
+    }
+    if (event || task || journal) {
       Temporal id = TemporalSupport.date(component, Property.RECURRENCE_ID);
       if (id != null && start != null) {
         sameType(start, id);

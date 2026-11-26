@@ -12,6 +12,7 @@ import org.busystack.caldav.calendar.query.QueryException;
 public final class StrictContentHandler extends DefaultContentHandler
     implements ParameterListHandler {
   private String currentProperty;
+  private final Deque<String> components = new ArrayDeque<>();
   private final Map<String, String> currentParameters = new HashMap<>();
   private static final Set<String> DATE_PROPERTIES =
       Set.of(
@@ -60,6 +61,8 @@ public final class StrictContentHandler extends DefaultContentHandler
                   new ArrayList<>(new DefaultComponentFactorySupplier().get());
               factories.removeIf(factory -> factory.supports(Component.VTODO));
               factories.addFirst(new TaskFactory());
+              factories.removeIf(factory -> factory.supports(Component.VJOURNAL));
+              factories.addFirst(new JournalFactory());
               factories.addFirst(new net.fortuna.ical4j.model.component.VStatus.Factory());
               factories.removeIf(factory -> factory.supports(Component.VTIMEZONE));
               factories.addFirst(new CalendarTimezoneFactory());
@@ -221,12 +224,25 @@ public final class StrictContentHandler extends DefaultContentHandler
   @Override
   public void startComponent(String name) {
     token(name);
-    super.startComponent(name.toUpperCase(Locale.ROOT));
+    String component = name.toUpperCase(Locale.ROOT);
+    if (components.contains(Component.VJOURNAL)) {
+      boolean permitted =
+          switch (components.getFirst()) {
+            case Component.VJOURNAL ->
+                Set.of("PARTICIPANT", "VLOCATION", "VRESOURCE").contains(component);
+            case "PARTICIPANT" -> Set.of("VLOCATION", "VRESOURCE").contains(component);
+            default -> false;
+          };
+      if (!permitted) throw new IllegalArgumentException("Invalid journal child component");
+    }
+    components.push(component);
+    super.startComponent(component);
   }
 
   @Override
   public void endComponent(String name) {
     super.endComponent(name.toUpperCase(Locale.ROOT));
+    components.pop();
   }
 
   @Override

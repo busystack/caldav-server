@@ -182,7 +182,7 @@ public final class CalendarInterchange {
           s.duplicate
               ? "UID occurs in multiple calendar objects; combine its recurrence series before importing"
               : "";
-      if (!java.util.Set.of("VEVENT", "VTODO").contains(s.type))
+      if (!CalendarContent.supportsCollectionComponent(s.type))
         rejection = "Unsupported component type";
       else if (!s.type.equals(destination))
         rejection = "Does not match the destination collection type";

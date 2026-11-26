@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "J01",
+      "clause": "RFC 5545 §3.6.3",
+      "journal": []
+    },
+    {
+      "id": "J10",
+      "clause": "RFC 7986 §§4, 5.1, 5.9–5.10",
+      "calendar": ["NAME:Fixture calendar"],
+      "journal": ["COLOR:darkblue", "IMAGE;VALUE=URI;DISPLAY=BADGE:https://example.invalid/image.png", "X-JOURNAL;X-QUOTED=\"a,b\":opaque"]
+    },
+    {
+      "id": "J11",
+      "clause": "RFC 9073 §§4–7",
+      "journal": ["STYLED-DESCRIPTION;VALUE=TEXT;FMTTYPE=text/html:<b>Fixture</b>", "STRUCTURED-DATA;VALUE=URI;SCHEMA=\"https://schema.org/Thing\":https://example.invalid/record.json", "BEGIN:PARTICIPANT", "UID:participant-fixture", "PARTICIPANT-TYPE:CONTACT", "CALENDAR-ADDRESS:mailto:participant@example.invalid", "BEGIN:VLOCATION", "UID:participant-location-fixture", "NAME:Participant venue", "END:VLOCATION", "END:PARTICIPANT", "BEGIN:VLOCATION", "UID:location-fixture", "NAME:Journal venue", "END:VLOCATION", "BEGIN:VRESOURCE", "UID:resource-fixture", "NAME:Journal resource", "RESOURCE-TYPE:ROOM", "END:VRESOURCE"]
+    },
+    {
+      "id": "J12-link-uri",
+      "clause": "RFC 9253 §§2, 7",
+      "journal": ["LINK;VALUE=URI:https://example.invalid/journal"]
+    },
+    {
+      "id": "J12-link-uid",
+      "clause": "RFC 9253 §§2, 7",
+      "journal": ["LINK;VALUE=UID:target-fixture"]
+    },
+    {
+      "id": "J12-link-xml",
+      "clause": "RFC 9253 §§2, 7",
+      "journal": ["LINK;VALUE=XML-REFERENCE:https://example.invalid/journal.xml#xpointer(/journal)"]
+    },
+    {
+      "id": "J12-related-legacy",
+      "clause": "RFC 9253 §9.1",
+      "journal": ["RELATED-TO;RELTYPE=PARENT:target-fixture"]
+    },
+    {
+      "id": "J12-related-uri",
+      "clause": "RFC 9253 §9.1",
+      "journal": ["RELATED-TO;VALUE=URI:https://example.invalid/journal"]
+    },
+    {
+      "id": "J12-related-uid",
+      "clause": "RFC 9253 §9.1",
+      "journal": ["RELATED-TO;VALUE=UID:target-fixture"]
+    },
+    {
+      "id": "J15-start-end",
+      "clause": "RFC 5545 §§3.3.9, 3.8.5.2",
+      "journal": ["DTSTART:20261125T090000Z", "RDATE;VALUE=PERIOD:20261126T090000Z/20261126T110000Z"]
+    },
+    {
+      "id": "J15-start-duration",
+      "clause": "RFC 5545 §§3.3.9, 3.8.5.2",
+      "journal": ["DTSTART:20261125T090000Z", "RDATE;VALUE=PERIOD:20261126T090000Z/PT2H"]
+    }
+  ]
+}

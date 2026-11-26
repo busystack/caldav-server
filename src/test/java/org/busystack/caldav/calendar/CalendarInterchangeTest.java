@@ -277,15 +277,19 @@ class CalendarInterchangeTest {
                 "BEGIN:VTODO\nUID:task\nDTSTAMP:20261101T000000Z\nSUMMARY:Undated task\nSTATUS:NEEDS-ACTION\nEND:VTODO\n"));
     assertThat(read(task, "VTODO").getFirst().rejection()).isEmpty();
     assertThat(read(task, "VEVENT").getFirst().rejection()).contains("destination");
-    assertThat(
-            read(
-                    bytes(
-                        object(
-                            "BEGIN:VJOURNAL\nUID:journal\nDTSTAMP:20261101T000000Z\nEND:VJOURNAL\n")),
-                    "VEVENT")
-                .getFirst()
-                .rejection())
-        .contains("Unsupported");
+  }
+
+  @Test
+  void journalImportsPreserveBytesAndRequireAJournalDestination() {
+    var journal =
+        bytes(
+            object(
+                "BEGIN:VJOURNAL\nUID:journal\nDTSTAMP:20261101T000000Z\n"
+                    + "DESCRIPTION;LANGUAGE=en:First\nDESCRIPTION;LANGUAGE=fr:Second\nEND:VJOURNAL\n"));
+    var imported = read(journal, "VJOURNAL").getFirst();
+    assertThat(imported.rejection()).isEmpty();
+    assertThat(imported.content()).isEqualTo(journal);
+    assertThat(read(journal, "VEVENT").getFirst().rejection()).contains("destination");
   }
 
   @Test

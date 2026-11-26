@@ -325,7 +325,7 @@ same enrollment/verification sequence afterward.
 
 ![Calendars and task lists with collection types and access](images/getting-started/12-calendars.png)
 
-Open **Calendars & Tasks**. Use owned/shared filters and search. Choose
+Open **Calendar collections**. Use owned/shared filters and search. Choose
 **Create a collection**, enter a name and choose **Calendar** for events or
 **Task list** for tasks. Optional description and colour can help clients identify
 it. Type is fixed after creation. Actual event/task editing occurs in a CalDAV app.
@@ -687,7 +687,7 @@ to make an error disappear.
 | MFA expires while a page remains open | Ten-minute factors expired independently of session idle timeout. | Follow the contextual sign-in/verification action, return to the intended page, and review/resubmit forms yourself. |
 | Session invalidated | Password change, recovery, disabling or epoch change ended access. | Sign in again; contact administrator if disabled. A stale page cannot authorize a protected mutation. |
 | Application password rejected | Account password used instead, wrong username, expired/revoked password, disabled account or managed-user upstream freshness expired. | Check metadata in Security; issue a replacement after MFA, update client, revoke old access; managed users may need organization sign-in. |
-| Client discovers no calendars | No collection/shared grant, wrong URL/prefix, discovery route or client-specific username retention. | Check Calendars & Tasks and configured address; use GNOME's username-bearing address; ask owner to review effective access and refresh discovery. |
+| Client discovers no calendars | No collection/shared grant, wrong URL/prefix, discovery route or client-specific username retention. | Check Calendar collections and configured address; use GNOME's username-bearing address; ask owner to review effective access and refresh discovery. |
 | Keycloak unavailable | Provider discovery/login cannot complete. Local startup remains independent. | Restore the provider/certificate/configuration. Use a local administrator for operator work; managed users have no password fallback. Existing freshness is not extended. |
 | Import rejected or busy | Wrong collection type, invalid file, UID conflict, 64 MiB/10,000-series/1 MiB-resource bounds, processing budget or temporary capacity. | Read preview/error, preserve original, correct/split the migration, discard an unused preview or retry later. Never assume a conflict overwrote data. |
 | Import preview expired after restart | Preview tokens are temporary and do not survive restart. | Check destination if an outcome was uncertain, upload again, review and confirm the new preview. |

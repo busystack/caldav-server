@@ -1,7 +1,6 @@
 # Your BusyStack account
 
-BusyStack manages your account, collections and client access. Edit actual events
-and tasks in your CalDAV application. Local authentication requires no identity
+BusyStack manages your account, collections and client access. Edit events, tasks, and journal entries in your CalDAV application. Local authentication requires no identity
 provider, email service or vendor account.
 
 ## First sign-in
@@ -17,13 +16,13 @@ credentials and unused recovery codes. It never claims that a device is connecte
 Save recovery codes offline; see [account security](account-security.md). There is
 no public registration, email recovery or browser-based operator recovery.
 
-## Calendars and task lists
+## Calendar collections
 
-Open **Calendars & Tasks**. **My calendars and task lists** contains your owned
+Open **Calendar collections**. **My collections** contains your owned
 collections; **Shared with me** contains direct/group shared collections. Search
 and page through names. Select a collection for its details and address.
 
-Choose **Create a collection**, supply a name, choose Calendar or Task list and
+Choose **Create a collection**, supply a name, choose Calendar, Task list, or Journal and
 optionally enter a description and colour. Types stay fixed. Metadata changes
 preserve the collection's identity, address and stored resources. Descriptions use
 CalDAV `calendar-description`; colour uses the Apple `calendar-color` convention,

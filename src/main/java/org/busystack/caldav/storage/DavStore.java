@@ -144,7 +144,7 @@ public class DavStore {
     DavNamespace.binding(path, component != null);
     checkDisplayName(displayName);
     lockHomes(home);
-    if (component != null && !Set.of("VEVENT", "VTODO").contains(component))
+    if (component != null && !CalendarContent.supportsCollectionComponent(component))
       throw new IllegalArgumentException("Unsupported calendar component");
     requireFolder(actor, home, parent(path));
     if (bindingExists(home, path)) throw new StoreException(StoreException.Kind.EXISTS);

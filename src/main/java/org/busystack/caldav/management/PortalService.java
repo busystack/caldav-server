@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.xml.namespace.QName;
+import org.busystack.caldav.calendar.CalendarContent;
 import org.busystack.caldav.config.DeploymentProperties;
 import org.busystack.caldav.protocol.DavPaths;
 import org.busystack.caldav.protocol.DavXml;
@@ -43,7 +44,12 @@ public class PortalService {
       String state,
       String deletionState) {
     public String type() {
-      return "VTODO".equals(component) ? "Task list" : "Calendar";
+      return switch (component) {
+        case "VEVENT" -> "Calendar";
+        case "VTODO" -> "Task list";
+        case "VJOURNAL" -> "Journal";
+        default -> throw new IllegalStateException("Unknown collection component");
+      };
     }
 
     public String access() {
@@ -200,8 +206,8 @@ public class PortalService {
     RecentAuthentication.requireMfa(auth);
     UUID actor = management.current(auth).id();
     validateMetadata(name, description, color);
-    if (!Set.of("VEVENT", "VTODO").contains(component))
-      throw FormValidation.field("component", "Choose a calendar or task list.");
+    if (!CalendarContent.supportsCollectionComponent(component))
+      throw FormValidation.field("component", "Choose a calendar, task list, or journal.");
     UUID id = calendars.createCollection(actor, name, component);
     var binding = dav.bindingFor(actor, id);
     dav.patch(actor, actor, binding.path(), null, properties(name, description, color), Set.of());

@@ -1291,6 +1291,71 @@ class DavHttpIT {
   }
 
   @Test
+  void journalResourcesUseConditionalWritesQuerySyncAndTransfers() throws Exception {
+    String journals = create("journals", "VJOURNAL"), archive = create("archive", "VJOURNAL");
+    String events = create("journal-control", "VEVENT");
+    String href = journals + "different-from-uid.ics";
+    String body =
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack journal HTTP fixture//EN\r\n"
+            + "BEGIN:VJOURNAL\r\nUID:journal-uid\r\nDTSTAMP:20261125T060000Z\r\n"
+            + "DTSTART:20261125T090000Z\r\nRRULE:FREQ=DAILY;COUNT=2\r\n"
+            + "DESCRIPTION;LANGUAGE=en:First\r\nDESCRIPTION;LANGUAGE=fr:Deux\r\n"
+            + "STATUS:FINAL\r\nX-TEST;X-PARAM=keep:unknown\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n";
+    var created = send("PUT", href, body, "If-None-Match", "*");
+    assertThat(created.statusCode()).isEqualTo(201);
+    String etag = created.headers().firstValue("ETag").orElseThrow();
+    assertThat(send("HEAD", href, "").headers().firstValue("ETag")).contains(etag);
+    assertThat(send("GET", href, "").body()).isEqualTo(body);
+    var found =
+        send(
+            "REPORT",
+            journals,
+            query(
+                "<C:comp-filter name='VJOURNAL'><C:time-range start='20261126T090000Z' end='20261126T090001Z'/>"
+                    + "<C:prop-filter name='DESCRIPTION'><C:param-filter name='LANGUAGE'>"
+                    + "<C:text-match>fr</C:text-match></C:param-filter>"
+                    + "<C:text-match>Deux</C:text-match></C:prop-filter></C:comp-filter>"),
+            "Depth",
+            "1");
+    assertThat(found.statusCode()).isEqualTo(207);
+    assertThat(found.body()).contains("different-from-uid.ics", "Deux");
+    var baseline = send("REPORT", journals, sync("", 100), "Depth", "0");
+    String token = text(baseline, DavXml.DAV, "sync-token");
+    assertThat(send("PUT", href, body, "If-Match", "\"stale\"").statusCode()).isEqualTo(412);
+    assertThat(
+            send("PUT", href, body.replace("STATUS:FINAL", "STATUS:FAILED"), "If-Match", etag)
+                .statusCode())
+        .isEqualTo(403);
+    assertThat(send("PUT", journals + "uid-collision.ics", body, "If-None-Match", "*").statusCode())
+        .isEqualTo(403);
+    assertThat(sendAs("GET", href, "", bobAuth).statusCode()).isIn(403, 404);
+    String destinationPrefix = "https://calendar.example/team/dav";
+    assertThat(
+            send("MOVE", href, "", "Destination", destinationPrefix + events + "wrong.ics")
+                .statusCode())
+        .isEqualTo(403);
+    assertThat(send("GET", href, "").body()).isEqualTo(body);
+    assertThat(
+            text(
+                send("REPORT", journals, sync(token, 100), "Depth", "0"), DavXml.DAV, "sync-token"))
+        .isEqualTo(token);
+    assertThat(
+            send("COPY", href, "", "Destination", destinationPrefix + archive + "copy.ics")
+                .statusCode())
+        .isEqualTo(201);
+    assertThat(send("GET", archive + "copy.ics", "").body()).isEqualTo(body);
+    String updated = body.replace("STATUS:FINAL", "STATUS:DRAFT");
+    var changed = send("PUT", href, updated, "If-Match", etag);
+    assertThat(changed.statusCode()).isEqualTo(204);
+    String newEtag = changed.headers().firstValue("ETag").orElseThrow();
+    assertThat(newEtag).isNotEqualTo(etag);
+    assertThat(send("DELETE", href, "", "If-Match", newEtag).statusCode()).isEqualTo(204);
+    var delta = send("REPORT", journals, sync(token, 100), "Depth", "0");
+    assertThat(delta.body()).contains("different-from-uid.ics", "404");
+    assertThat(text(delta, DavXml.DAV, "sync-token")).isNotEqualTo(token);
+  }
+
+  @Test
   void calendarValidationPreconditionsAreDistinctAndRejectedWritesPreserveBothCollections()
       throws Exception {
     String events = create("validation-events", "VEVENT"),

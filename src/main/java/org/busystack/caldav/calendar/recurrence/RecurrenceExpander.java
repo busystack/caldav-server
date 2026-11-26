@@ -65,8 +65,11 @@ public final class RecurrenceExpander {
       return result;
     }
     Temporal seed = TemporalSupport.date(master, DTSTART);
+    boolean journal = Component.VJOURNAL.equals(master.getName());
     boolean recurring =
-        !master.getProperties(RRULE).isEmpty() || !master.getProperties(RDATE).isEmpty();
+        !master.getProperties(RRULE).isEmpty()
+            || !master.getProperties(RDATE).isEmpty()
+            || journal && !master.getProperties(EXDATE).isEmpty();
     if (!recurring) {
       var result = new ArrayList<Occurrence>();
       // Existing components are consumed one resource at a time. They spend shared candidate
@@ -140,6 +143,9 @@ public final class RecurrenceExpander {
             value = ((LocalDateTime) value).atZone(zoneFor(parsed, property, zone));
           Object id = key(value, seed, zone);
           dates.put(id, value);
+          // RFC 4791 §9.9 gives journals a point or a nominal-day extent.
+          // A PERIOD supplies an occurrence start without a serialized end.
+          if (journal) continue;
           String endValue = rawPeriod.substring(rawPeriod.indexOf('/') + 1);
           Temporal end =
               endValue.startsWith("P") || endValue.startsWith("+P")
@@ -432,7 +438,8 @@ public final class RecurrenceExpander {
           if (reach.compareTo(max) > 0) max = reach;
         }
       }
-      if (start instanceof LocalDate && c.getName().equals(Component.VEVENT))
+      if (start instanceof LocalDate
+          && Set.of(Component.VEVENT, Component.VJOURNAL).contains(c.getName()))
         max = max.compareTo(Duration.ofHours(60)) < 0 ? Duration.ofHours(60) : max;
       if (c.getProperty(DURATION).isPresent()) {
         Duration d =

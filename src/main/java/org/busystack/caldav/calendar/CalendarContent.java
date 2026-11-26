@@ -38,7 +38,14 @@ public final class CalendarContent {
 
   public static final int MAX_BYTES = 1048576;
 
+  private static final Set<String> COLLECTION_COMPONENTS =
+      Set.of(Component.VEVENT, Component.VTODO, Component.VJOURNAL);
+
   private CalendarContent() {}
+
+  public static boolean supportsCollectionComponent(String component) {
+    return component != null && COLLECTION_COMPONENTS.contains(component);
+  }
 
   public static Parsed parse(byte[] bytes, String supportedComponent) {
     if (bytes.length == 0 || bytes.length > MAX_BYTES)
