@@ -34,6 +34,17 @@ class CalendarJournalTest {
   }
 
   @Test
+  void journalStatusAllowsExtensionParametersAndStillRequiresAJournalStatus() {
+    var parsed = parse(JOURNAL, "STATUS;DERIVED=TRUE;X-QA=kept:FINAL\r\n");
+    var status = parsed.calendar().getComponents().getFirst().getRequiredProperty("STATUS");
+    assertThat(status.getValue()).isEqualTo("FINAL");
+    assertThat(status.getParameter("DERIVED").orElseThrow().getValue()).isEqualTo("TRUE");
+    assertThat(status.getParameter("X-QA").orElseThrow().getValue()).isEqualTo("kept");
+    assertThatThrownBy(() -> parse(JOURNAL, "STATUS;X-QA=kept:PENDING\r\n"))
+        .isInstanceOf(CalendarValidationException.class);
+  }
+
+  @Test
   void journalStatusChildrenRequireBothStatusesWithoutNeedingUid() {
     String review = "BEGIN:VSTATUS\r\nSTATUS:FINAL\r\nCOMMENT:Reviewed\r\nEND:VSTATUS\r\n";
     var parsed = parse(JOURNAL, "STATUS:FINAL\r\n" + review);
