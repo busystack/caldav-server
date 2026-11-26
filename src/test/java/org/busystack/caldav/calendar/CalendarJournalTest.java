@@ -41,6 +41,8 @@ class CalendarJournalTest {
             "DTSTART:20261125T090000Z\r\nCOLOR:darkblue\r\n"
                 + "IMAGE;VALUE=URI;DISPLAY=BADGE:https://example.invalid/image.png\r\n"
                 + "STYLED-DESCRIPTION;VALUE=TEXT;FMTTYPE=text/html:<b>Fixture</b>\r\n"
+                + "STRUCTURED-DATA;VALUE=URI;SCHEMA=\"https://schema.org/Thing\":https://example.invalid/data.json\r\n"
+                + "STRUCTURED-DATA;VALUE=URI:https://example.invalid/data.xml\r\n"
                 + "BEGIN:PARTICIPANT\r\nUID:person\r\nPARTICIPANT-TYPE:CONTACT\r\n"
                 + "BEGIN:VLOCATION\r\nUID:place\r\nNAME:Venue\r\nEND:VLOCATION\r\n"
                 + "END:PARTICIPANT\r\nBEGIN:VRESOURCE\r\nUID:room\r\nRESOURCE-TYPE:ROOM\r\nEND:VRESOURCE\r\n");
@@ -55,6 +57,8 @@ class CalendarJournalTest {
             "COLOR:darkblue",
             "DISPLAY=BADGE",
             "STYLED-DESCRIPTION",
+            "SCHEMA=\"https://schema.org/Thing\"",
+            "VALUE=URI:https://example.invalid/data.xml",
             "BEGIN:PARTICIPANT",
             "BEGIN:VLOCATION",
             "NAME:Venue",

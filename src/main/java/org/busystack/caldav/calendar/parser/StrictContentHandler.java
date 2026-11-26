@@ -34,16 +34,19 @@ public final class StrictContentHandler extends DefaultContentHandler
           "CN",
           "CUTYPE",
           "DIR",
+          "DERIVED",
           "ENCODING",
           "FMTTYPE",
           "FBTYPE",
           "LANGUAGE",
+          "ORDER",
           "PARTSTAT",
           "RANGE",
           "RELATED",
           "RELTYPE",
           "ROLE",
           "RSVP",
+          "SCHEMA",
           "SENT-BY",
           "TZID",
           "VALUE");
@@ -77,6 +80,8 @@ public final class StrictContentHandler extends DefaultContentHandler
               factories.removeIf(factory -> factory.supports(Property.PARTICIPANT_TYPE));
               factories.removeIf(factory -> factory.supports(Property.ATTACH));
               factories.addFirst(new AttachmentFactory());
+              factories.removeIf(factory -> factory.supports("STRUCTURED-DATA"));
+              factories.addFirst(new StructuredDataFactory());
               factories.addFirst(new ClassificationFactory());
               factories.addFirst(new TaskFactory.StatusFactory());
               factories.addFirst(new TaskFactory.EstimatedDurationFactory());
@@ -104,6 +109,29 @@ public final class StrictContentHandler extends DefaultContentHandler
         && !declared.isEmpty()
         && !Set.of("URI", "BINARY").contains(declared))
       throw new IllegalArgumentException("Invalid attachment value type");
+    if ("STRUCTURED-DATA".equals(currentProperty)) {
+      // RFC 9073 §6.6 distinguishes linked data from inline text and binary.
+      if (!Set.of("URI", "TEXT", "BINARY").contains(declared))
+        throw new IllegalArgumentException("Structured data requires a supported VALUE");
+      if (!declared.equals("URI")
+          && (!currentParameters.containsKey("SCHEMA")
+              || !currentParameters.containsKey("FMTTYPE")))
+        throw new IllegalArgumentException("Inline structured data requires SCHEMA and FMTTYPE");
+      boolean binary = declared.equals("BINARY");
+      if (binary != "BASE64".equalsIgnoreCase(currentParameters.get("ENCODING")))
+        throw new IllegalArgumentException("Invalid structured data encoding");
+      if (binary) {
+        if (value.length() % 4 != 0) throw new IllegalArgumentException("Invalid binary length");
+        Base64.getDecoder().decode(value);
+      } else if (declared.equals("TEXT")) {
+        org.busystack.caldav.calendar.CalendarTextValues.scalar(value);
+      }
+    }
+    if ("STYLED-DESCRIPTION".equals(currentProperty)) {
+      if (!Set.of("URI", "TEXT").contains(declared))
+        throw new IllegalArgumentException("Styled descriptions require VALUE=TEXT or URI");
+      if (declared.equals("TEXT")) org.busystack.caldav.calendar.CalendarTextValues.scalar(value);
+    }
     if (declared.equals("TIME")) {
       // §3.3.12 also applies to explicitly typed extension data. Preserve
       // floating/zoned spelling; a time-only value has no date to derive.
@@ -277,6 +305,13 @@ public final class StrictContentHandler extends DefaultContentHandler
         && values.stream().anyMatch(value -> !value.matches("[A-Za-z0-9-]+")))
       throw new QueryException(
           QueryException.Kind.INVALID_DATA, "Invalid calendar parameter token");
+    if (name.equals("SCHEMA")) values.forEach(StrictContentHandler::uri);
+    if (name.equals("ORDER") && values.stream().anyMatch(value -> Integer.parseInt(value) < 1))
+      throw new IllegalArgumentException("Invalid ORDER value");
+    if (name.equals("DERIVED")
+        && values.stream()
+            .anyMatch(value -> !Set.of("TRUE", "FALSE").contains(value.toUpperCase(Locale.ROOT))))
+      throw new IllegalArgumentException("Invalid DERIVED value");
     if (name.equals(Parameter.RANGE)
         && values.stream().anyMatch(value -> !value.equalsIgnoreCase("THISANDFUTURE")))
       throw new QueryException(QueryException.Kind.INVALID_DATA, "Invalid recurrence range");

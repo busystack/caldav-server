@@ -55,6 +55,17 @@ final class JournalConstraints {
         || DISALLOWED.stream().anyMatch(name -> !journal.getProperties(name).isEmpty())) invalid();
     for (var status : journal.getProperties(STATUS))
       if (!STATUSES.contains(status.getValue().toUpperCase(Locale.ROOT))) invalid();
+    var styled = journal.getProperties("STYLED-DESCRIPTION");
+    if (styled.size() > 1
+        && styled.stream()
+                .filter(
+                    property ->
+                        property
+                            .getParameter("DERIVED")
+                            .map(parameter -> !parameter.getValue().equalsIgnoreCase("TRUE"))
+                            .orElse(true))
+                .count()
+            != 1) invalid();
     if (start == null
         && (!journal.getProperties(RRULE).isEmpty()
             || !journal.getProperties(RDATE).isEmpty()
