@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
-import {openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect,captureWorkflow,expectFieldError} from './portal-helpers.mjs';
+import {createCollection,openCollection,provisionAccount,prefixOf,grantDirect,revokeDirect,captureWorkflow,expectFieldError} from './portal-helpers.mjs';
 
 export async function qualifyGroups(page,base,privateValues) {
   const prefix=prefixOf(base),member='browsergroupmember',password=randomBytes(32).toString('base64url');
@@ -76,6 +76,19 @@ export async function qualifyGroups(page,base,privateValues) {
     }
   }
   assert.equal(await grant.count(),0);
+  const journal=await createCollection(page,base,'Journal group QA','VJOURNAL');
+  await page.goto(base+'/collections/'+journal+'/sharing');
+  if(!await sharing.locator('..').evaluate(element=>element.open)) await sharing.locator('..').locator('summary').click();
+  await sharing.locator('select[name=group]').selectOption(group);
+  await sharing.locator('select[name=permission]').selectOption('WRITE');
+  await Promise.all([page.waitForURL(base+'/collections/'+journal+'/sharing'),sharing.getByRole('button',{name:'Grant group access',exact:true}).click()]);
+  await grantDirect(page,base,journal,member,'READ');
+  const journalEffective=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Combined direct and group access'})}).locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
+  assert.ok((await journalEffective.innerText()).includes('Read and write'));
+  await grant.locator('select[name=permission]').selectOption('REVOKE');
+  await Promise.all([page.waitForURL(base+'/collections/'+journal+'/sharing'),grant.getByRole('button',{name:'Save group grant',exact:true}).click()]);
+  await revokeDirect(page,base,journal,member);
+  console.log('PORTAL_JOURNAL_DIRECT_READER_GROUP_WRITER_AND_REVOCATION_PASSED');
   await page.goto(base+'/admin/groups/'+group);
   const remove=page.locator(`form[method="post"][action="${prefix}/admin/groups/${group}/delete"]`);
   await remove.locator('input[name=confirmed]').check();

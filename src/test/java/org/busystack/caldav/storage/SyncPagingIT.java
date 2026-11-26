@@ -525,6 +525,119 @@ class SyncPagingIT {
   }
 
   @Test
+  void upgradingV16KeepsBothCollectionTypesHistoryAndSharesBeforeJournalWrites() {
+    String schema = "journal_upgrade_" + UUID.randomUUID().toString().replace("-", "");
+    var flyway =
+        org.flywaydb.core.Flyway.configure()
+            .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+            .defaultSchema(schema)
+            .schemas(schema);
+    var properties = new java.util.Properties();
+    properties.setProperty("currentSchema", schema);
+    var source =
+        new org.springframework.jdbc.datasource.DriverManagerDataSource(
+            POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+    source.setConnectionProperties(properties);
+    var db = new JdbcTemplate(source);
+    var transactions = new org.springframework.jdbc.datasource.DataSourceTransactionManager(source);
+    var transaction = new TransactionTemplate(transactions);
+    var calendar = new CalendarStore(db, new SyncContinuationStore(db, transactions));
+    UUID actor = UUID.randomUUID(), reader = UUID.randomUUID(), journal = UUID.randomUUID();
+    record Retained(UUID collection, byte[] content, String etag, String token) {}
+    var retained = new java.util.ArrayList<Retained>();
+    try {
+      flyway.target("16").load().migrate();
+      db.update(
+          "INSERT INTO accounts(id,username,display_name) VALUES (?,'journalowner','Owner'),(?,'journalreader','Reader')",
+          actor,
+          reader);
+      for (String type : java.util.List.of("VEVENT", "VTODO")) {
+        UUID id = UUID.randomUUID();
+        db.update(
+            "INSERT INTO collections(id,owner_id,name,component) VALUES (?,?,?,?)",
+            id,
+            actor,
+            type,
+            type);
+        db.update(
+            "INSERT INTO collection_members(collection_id,account_id,permission) VALUES (?,?,'READ')",
+            id,
+            reader);
+        String template =
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//V16 fixture//EN\r\n"
+                + "BEGIN:"
+                + type
+                + "\r\nUID:%s\r\nDTSTAMP:20261126T000000Z\r\nDTSTART:20261126T080000Z\r\n"
+                + "SUMMARY:%s\r\nEND:"
+                + type
+                + "\r\nEND:VCALENDAR\r\n";
+        byte[] content = template.formatted("kept", "Retained").getBytes(StandardCharsets.UTF_8);
+        var original =
+            transaction.execute(
+                s -> calendar.put(actor, id, "kept.ics", "kept", content, WriteCondition.none()));
+        var baseline = transaction.execute(s -> calendar.sync(reader, id, null, 100));
+        transaction.executeWithoutResult(
+            s -> {
+              calendar.put(
+                  actor,
+                  id,
+                  "removed.ics",
+                  "removed",
+                  template.formatted("removed", "Removed").getBytes(StandardCharsets.UTF_8),
+                  WriteCondition.none());
+              calendar.delete(actor, id, "removed.ics", WriteCondition.none());
+            });
+        retained.add(new Retained(id, content, original.etag(), baseline.token()));
+      }
+      assertThatThrownBy(
+              () ->
+                  db.update(
+                      "INSERT INTO collections(id,owner_id,name,component) VALUES (?,?,'Journal','VJOURNAL')",
+                      journal,
+                      actor))
+          .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+      var migration = flyway.target("17").load();
+      migration.migrate();
+      migration.validate();
+      assertThat(migration.info().current().getVersion().getVersion()).isEqualTo("17");
+      for (var before : retained) {
+        var delta =
+            transaction.execute(
+                s -> calendar.sync(reader, before.collection(), before.token(), 100));
+        assertThat(delta.changes())
+            .filteredOn(CalendarStore.Change::deleted)
+            .singleElement()
+            .extracting(CalendarStore.Change::name)
+            .isEqualTo("removed.ics");
+        var after = calendar.get(reader, before.collection(), "kept.ics");
+        assertThat(after.content()).isEqualTo(before.content());
+        assertThat(after.etag()).isEqualTo(before.etag());
+        assertThat(
+                db.queryForObject(
+                    "SELECT count(*) FROM calendar_resource_versions WHERE collection_id=?",
+                    Integer.class,
+                    before.collection()))
+            .isEqualTo(3);
+      }
+      db.update(
+          "INSERT INTO collections(id,owner_id,name,component) VALUES (?,?,'Journal','VJOURNAL')",
+          journal,
+          actor);
+      byte[] newJournal =
+          ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//V17 fixture//EN\r\n"
+                  + "BEGIN:VJOURNAL\r\nUID:new-journal\r\nDTSTAMP:20261126T000000Z\r\nDESCRIPTION:After upgrade\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n")
+              .getBytes(StandardCharsets.UTF_8);
+      transaction.executeWithoutResult(
+          s ->
+              calendar.put(
+                  actor, journal, "new.ics", "new-journal", newJournal, WriteCondition.none()));
+      assertThat(calendar.get(actor, journal, "new.ics").content()).isEqualTo(newJournal);
+    } finally {
+      jdbc.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+    }
+  }
+
+  @Test
   void projectedContentPagesAlsoBoundRetainedUnprojectedBodies() {
     String summary = "x".repeat(900_000);
     for (int i = 0; i < 7; i++) put("large-" + i + ".ics", "large-" + i, summary);

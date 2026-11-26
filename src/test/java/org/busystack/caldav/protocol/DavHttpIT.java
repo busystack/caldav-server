@@ -1487,6 +1487,139 @@ class DavHttpIT {
   }
 
   @Test
+  void journalAclPreservesOwnerWriterReaderAndGroupViewsAcrossDowngrade() throws Exception {
+    String journals = create("journal-shared", "VJOURNAL");
+    String href = journals + "shared.ics";
+    String body =
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Journal sharing QA//EN\r\n"
+            + "BEGIN:VJOURNAL\r\nUID:shared-journal\r\nDTSTAMP:20261126T000000Z\r\n"
+            + "CLASS:PRIVATE\r\nDESCRIPTION;LANGUAGE=en:Original\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n";
+    var created = send("PUT", href, body, "If-None-Match", "*");
+    assertThat(created.statusCode()).isEqualTo(201);
+    String firstEtag = created.headers().firstValue("ETag").orElseThrow();
+    UUID id =
+        jdbc.queryForObject(
+            "SELECT id FROM collections WHERE owner_id=? AND name='journal-shared'",
+            UUID.class,
+            alice);
+    UUID reader =
+        accounts.provision(
+            "journalreader", "Journal Reader", "journal reader private fixture password", false);
+    UUID groupMember =
+        accounts.provision(
+            "journalgroup",
+            "Journal Group Member",
+            "journal group private fixture password",
+            false);
+    UUID unrelated =
+        accounts.provision(
+            "journalunrelated",
+            "Journal Unrelated",
+            "journal unrelated private fixture password",
+            false);
+    String readerAuth =
+        basic(
+            "journalreader",
+            accounts
+                .issueDavCredential(reader, "reader fixture", Instant.now().plusSeconds(3600))
+                .secret());
+    String groupAuth =
+        basic(
+            "journalgroup",
+            accounts
+                .issueDavCredential(groupMember, "group fixture", Instant.now().plusSeconds(3600))
+                .secret());
+    String unrelatedAuth =
+        basic(
+            "journalunrelated",
+            accounts
+                .issueDavCredential(unrelated, "unrelated fixture", Instant.now().plusSeconds(3600))
+                .secret());
+    UUID group =
+        groupDirectory.create(
+            groupAdministrator(), "Journal access", java.util.Set.of("journalgroup"));
+    String read = "<D:privilege><D:read/></D:privilege>",
+        write = "<D:privilege><D:write/></D:privilege>";
+    String additionalReaders = aclGrant(reader, read) + aclGrant(group, read);
+    assertThat(
+            send("ACL", journals, aclBody(aclGrant(bob, read + write) + additionalReaders))
+                .statusCode())
+        .isEqualTo(200);
+    record Sharee(UUID principal, String credential) {}
+    for (var share :
+        List.of(
+            new Sharee(bob, bobAuth),
+            new Sharee(reader, readerAuth),
+            new Sharee(groupMember, groupAuth))) {
+      String address = "/calendars/" + share.principal() + "/" + id + "/";
+      var capability =
+          sendAs(
+              "PROPFIND",
+              address,
+              propRequest("<C:supported-calendar-component-set/><D:current-user-privilege-set/>"),
+              share.credential(),
+              "Depth",
+              "0");
+      assertThat(capability.statusCode()).isEqualTo(207);
+      assertThat(capability.body()).contains("VJOURNAL");
+      var visible = sendAs("GET", address + "shared.ics", "", share.credential());
+      assertThat(visible.statusCode()).isEqualTo(200);
+      // BusyStack applies ACL authorization and serves the authoritative bytes to readers.
+      assertThat(visible.body()).isEqualTo(body);
+      assertThat(visible.headers().firstValue("ETag")).hasValue(firstEtag);
+    }
+    String writerHref = "/calendars/" + bob + "/" + id + "/shared.ics";
+    assertThat(sendAs("GET", href, "", unrelatedAuth).statusCode()).isIn(403, 404);
+    String updated = body.replace("Original", "Writer revision");
+    var firstUpdate = sendAs("PUT", writerHref, updated, bobAuth, "If-Match", firstEtag);
+    assertThat(firstUpdate.statusCode()).isEqualTo(204);
+    String currentEtag = firstUpdate.headers().firstValue("ETag").orElseThrow();
+    assertThat(currentEtag).isNotEqualTo(firstEtag);
+    assertThat(send("GET", href, "").body()).isEqualTo(updated);
+    assertThat(send("ACL", journals, aclBody(aclGrant(bob, read) + additionalReaders)).statusCode())
+        .isEqualTo(200);
+    String token = currentCollectionToken(journals);
+    var history = admissionHistoryState(id);
+    String queued = updated.replace("Writer revision", "Offline edit");
+    assertThat(sendAs("PUT", writerHref, queued, bobAuth, "If-Match", currentEtag).statusCode())
+        .isEqualTo(403);
+    assertThat(
+            sendAs(
+                    "DELETE",
+                    "/calendars/" + reader + "/" + id + "/shared.ics",
+                    "",
+                    readerAuth,
+                    "If-Match",
+                    currentEtag)
+                .statusCode())
+        .isEqualTo(403);
+    assertThat(
+            sendAs(
+                    "PUT",
+                    "/calendars/" + groupMember + "/" + id + "/shared.ics",
+                    queued,
+                    groupAuth,
+                    "If-Match",
+                    currentEtag)
+                .statusCode())
+        .isEqualTo(403);
+    assertThat(currentCollectionToken(journals)).isEqualTo(token);
+    assertThat(admissionHistoryState(id)).isEqualTo(history);
+    assertThat(send("GET", href, "").body()).isEqualTo(updated);
+    assertThat(send("ACL", journals, aclBody(additionalReaders)).statusCode()).isEqualTo(200);
+    assertThat(sendAs("GET", writerHref, "", bobAuth).statusCode()).isIn(403, 404);
+    assertThat(
+            send("ACL", journals, aclBody(aclGrant(bob, read + write) + additionalReaders))
+                .statusCode())
+        .isEqualTo(200);
+    assertThat(sendAs("GET", writerHref, "", bobAuth).headers().firstValue("ETag"))
+        .hasValue(currentEtag);
+    assertThat(sendAs("PUT", writerHref, queued, bobAuth, "If-Match", currentEtag).statusCode())
+        .isEqualTo(204);
+    assertThat(send("GET", href, "").body()).isEqualTo(queued);
+  }
+
+  @Test
   void calendarValidationPreconditionsAreDistinctAndRejectedWritesPreserveBothCollections()
       throws Exception {
     String events = create("validation-events", "VEVENT"),

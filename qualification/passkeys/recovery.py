@@ -79,6 +79,7 @@ class Checkpoint:
         self.writer = self.operations.sql(environment, "SELECT id FROM accounts WHERE username='" + self.saved['writerUsername'] + "';")
         self.reader_path = '/dav/calendars/' + self.reader + '/' + self.saved['collection'] + '/restoration-fixture.ics'
         self.permissions(environment)
+        self.seed_journal(environment)
         self.audit_corpus.seed(environment)
         self.epoch = self.operations.sql(environment, 'SELECT recovery_epoch FROM system_state WHERE id=1;')
         if self.clients is not None:
@@ -96,6 +97,85 @@ class Checkpoint:
         self.archive = self.directory / 'https-recovery.dump'
         self.operations.execute(['./scripts/backup.sh', str(self.archive)], environment)
         print('HTTPS_RECOVERY_SNAPSHOT_WITH_VALID_DAV_OAUTH_AND_SYNC_CREATED', flush=True)
+
+    def seed_journal(self, environment):
+        basic = {'Authorization': 'Basic ' + self.saved['encoded']}
+
+        def discover(path, namespace, property_name):
+            document = XML.Element('{DAV:}propfind')
+            XML.SubElement(XML.SubElement(document, '{DAV:}prop'), namespace + property_name)
+            status, _, payload = self.request(path, 'PROPFIND',
+                {**basic, 'Depth': '0', 'Content-Type': 'application/xml'}, XML.tostring(document))
+            assert status == 207
+            href = XML.fromstring(payload).findtext(f'.//{namespace}{property_name}/{{DAV:}}href')
+            assert href
+            candidate = urllib.parse.urlsplit(urllib.parse.urljoin(self.base + path, href))
+            origin = urllib.parse.urlsplit(self.base)
+            prefix = origin.path.rstrip('/')
+            assert (candidate.scheme, candidate.netloc) == (origin.scheme, origin.netloc)
+            assert candidate.path.startswith(prefix + '/dav/')
+            return candidate.path[len(prefix):]
+
+        principal = discover('/dav/', '{DAV:}', 'current-user-principal')
+        home = discover(principal, '{urn:ietf:params:xml:ns:caldav}', 'calendar-home-set')
+        self.journal_path = home.rstrip('/') + '/restoration-journals/'
+        self.journal_member = self.journal_path + 'kept-journal.ics'
+        deleted = self.journal_path + 'deleted-journal.ics'
+        create = (b'<C:mkcalendar xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:D="DAV:">'
+            b'<D:set><D:prop><D:displayname>Restoration journals</D:displayname>'
+            b'<C:supported-calendar-component-set><C:comp name="VJOURNAL"/>'
+            b'</C:supported-calendar-component-set></D:prop></D:set></C:mkcalendar>')
+        assert self.request(self.journal_path, 'MKCALENDAR',
+            {**basic, 'Content-Type': 'application/xml'}, create)[0] == 201
+        raw = (b'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Recovery journal//EN\r\n'
+            b'BEGIN:VJOURNAL\r\nUID:recovery-journal\r\nDTSTAMP:20261126T000000Z\r\n'
+            b'DESCRIPTION;LANGUAGE=en:Original\r\nDESCRIPTION;LANGUAGE=fr:Second\r\n'
+            b'X-RESTORE:Preserved\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n')
+        put = {**basic, 'Content-Type': 'text/calendar; charset=utf-8'}
+        status, headers, _ = self.request(self.journal_member, 'PUT', {**put, 'If-None-Match': '*'}, raw)
+        assert status == 201
+        self.journal_content = raw.replace(b'Original', b'Updated before backup')
+        status, changed, _ = self.request(self.journal_member, 'PUT', {**put, 'If-Match': headers['ETag']},
+            self.journal_content)
+        assert status == 204 and changed['ETag'] != headers['ETag']
+        self.journal_etag = changed['ETag']
+        status, tombstone, _ = self.request(deleted, 'PUT', {**put, 'If-None-Match': '*'},
+            raw.replace(b'UID:recovery-journal', b'UID:recovery-journal-deleted'))
+        assert status == 201
+        assert self.request(deleted, 'DELETE', {**basic, 'If-Match': tombstone['ETag']})[0] == 204
+        principal_base = self.base + '/dav/principals/'
+        ace = ''.join(f'<D:ace><D:principal><D:href>{principal_base}{account}/</D:href></D:principal>'
+            f'<D:grant><D:privilege><D:read/></D:privilege>{write}</D:grant></D:ace>'
+            for account, write in [(self.reader, ''), (self.writer, '<D:privilege><D:write/></D:privilege>')])
+        assert self.request(self.journal_path, 'ACL', {**basic, 'Content-Type': 'application/xml'},
+            f'<D:acl xmlns:D="DAV:">{ace}</D:acl>'.encode())[0] == 200
+        status, _, inventory = self.report(self.saved['encoded'], path=self.journal_path)
+        assert status == 207
+        self.journal_token = XML.fromstring(inventory).findtext('{DAV:}sync-token')
+        assert self.journal_token
+        self.journal_collection = self.operations.sql(environment,
+            "SELECT id FROM collections WHERE name='Restoration journals' AND component='VJOURNAL';")
+
+    def verify_journal(self, current):
+        owner = {'Authorization': 'Basic ' + current['recoveredEncoded']}
+        assert self.request(self.journal_member, headers={'Authorization': 'Basic ' + self.saved['encoded']})[0] == 401
+        status, headers, content = self.request(self.journal_member, headers=owner)
+        assert status == 200 and headers['ETag'] == self.journal_etag and content == self.journal_content
+        status, _, invalid = self.report(current['recoveredEncoded'], self.journal_token, path=self.journal_path)
+        assert status == 403 and XML.fromstring(invalid).find('{DAV:}valid-sync-token') is not None
+        status, _, rebuilt = self.report(current['recoveredEncoded'], path=self.journal_path)
+        assert status == 207
+        doc = XML.fromstring(rebuilt)
+        assert doc.findtext('{DAV:}sync-token') not in ('', None, self.journal_token)
+        members = [node.text.rsplit('/', 1)[-1] for node in doc.findall('.//{DAV:}href') if node.text]
+        assert 'kept-journal.ics' in members and 'deleted-journal.ics' not in members
+        assert self.request(self.journal_path + 'deleted-journal.ics', headers=owner)[0] == 404
+        reader = {'Authorization': 'Basic ' + current['readerEncoded']}
+        path = f'/dav/calendars/{self.reader}/{self.journal_collection}/kept-journal.ics'
+        status, _, content = self.request(path, headers=reader)
+        assert status == 200 and content == self.journal_content
+        assert self.request(path, 'DELETE', {**reader, 'If-Match': self.journal_etag})[0] == 403
+        print('HTTPS_RECOVERY_DAV_JOURNAL_UPDATE_SHARED_READBACK_FRESH_SYNC_AND_NO_RESURRECTION_PASSED', flush=True)
 
     def verify_snapshot_session(self):
         """Prove the current authenticated account page, independent of obsolete page copy."""
@@ -266,6 +346,7 @@ class Checkpoint:
         print('HTTPS_RECOVERY_RESTORED_READ_SHARE_GET_ALLOWED_PUT_DENIED', flush=True)
         print('HTTPS_RECOVERY_OLD_CREDENTIALS_AND_SYNC_REJECTED_FRESH_ACCESS_PRESERVES_TASK', flush=True)
         self.audit_corpus.verify_restored(current['recoveredEncoded'], current['readerEncoded'])
+        self.verify_journal(current)
 
     def verify_revoked_reader(self):
         current = json.loads(self.exchange.read_text())

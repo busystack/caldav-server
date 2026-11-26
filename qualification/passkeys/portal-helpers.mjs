@@ -56,7 +56,7 @@ export async function createCollection(page,base,name,component) {
   await form.locator('select[name=component]').selectOption(component);
   await Promise.all([page.waitForURL(/\/collections\/[a-f0-9-]{36}$/i),form.getByRole('button',{name:'Create collection',exact:true}).click()]);
   assert.equal(await page.getByRole('heading',{name,exact:true}).count(),1);
-  assert.ok((await page.locator('main').innerText()).includes(component==='VTODO'?'Task list':'Calendar'));
+  assert.ok((await page.locator('main').innerText()).includes({VEVENT:'Calendar',VTODO:'Task list',VJOURNAL:'Journal'}[component]));
   return new URL(page.url()).pathname.split('/').at(-1);
 }
 export async function provisionAccount(page,base,username,displayName,password) {

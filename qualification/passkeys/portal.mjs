@@ -118,10 +118,53 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await Promise.all([page.waitForURL(base+'/collections'),page.getByRole('button',{name:'Delete collection permanently',exact:true}).click()]);
   assert.ok([403,404].includes((await call(base,new URL(destinationAddress).pathname.slice(prefixOf(base).length),{method:'PROPFIND',headers:{Authorization:'Basic '+device.encoded,Depth:'0'},body:'<D:propfind xmlns:D="DAV:"><D:allprop/></D:propfind>'})).status));
   console.log('PORTAL_COLLECTION_METADATA_IMPORT_EXPORT_ROUNDTRIP_CONFLICTS_AND_CONFIRMED_DELETE_PASSED '+suffix);
+  await qualifyJournalPortal(page,base,device.encoded,suffix);
   await page.goto(base+'/connections?client=gnome');
   const serverAddress=await page.locator('#server-address').inputValue();
   const gnomeAddress=await page.locator('#gnome-address').inputValue();
   return {id,address:originalAddress,serverAddress,gnomeAddress,device,name:name+' renamed'};
+}
+
+async function qualifyJournalPortal(page,base,credential,suffix) {
+  const name='Portal journal '+suffix;
+  const id=await createCollection(page,base,name,'VJOURNAL');
+  const address=await page.locator('#collection-address').inputValue();
+  const edit=page.locator('form').filter({has:page.getByRole('button',{name:'Save details',exact:true})});
+  await edit.locator('input[name=name]').fill(name+' renamed');
+  await Promise.all([page.waitForURL(base+'/collections/'+id),edit.getByRole('button',{name:'Save details',exact:true}).click()]);
+  await page.getByRole('heading',{name:name+' renamed',exact:true}).waitFor();
+  assert.equal(await page.locator('#collection-address').inputValue(),address);
+  const envelope=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//BusyStack//Portal journal fixture//EN'];
+  const component=['BEGIN:VJOURNAL','UID:portal-journal','DTSTAMP:20261126T000000Z',
+    'DTSTART;VALUE=DATE:20261126','RRULE:FREQ=DAILY;COUNT=2','STATUS:DRAFT',
+    'DESCRIPTION;LANGUAGE=en:First block','DESCRIPTION;LANGUAGE=fr:Deuxième bloc',
+    'X-JOURNAL;X-PARAM=kept:opaque','END:VJOURNAL'].join('\r\n');
+  const detached=['BEGIN:VJOURNAL','UID:portal-journal','DTSTAMP:20261126T000000Z',
+    'RECURRENCE-ID;VALUE=DATE:20261127','DTSTART;VALUE=DATE:20261128','STATUS:FINAL',
+    'DESCRIPTION:Moved occurrence','END:VJOURNAL'].join('\r\n');
+  const input=[...envelope,component,detached,'END:VCALENDAR',''].join('\r\n');
+  await importFile(page,base,id,input);
+  assert.equal(await page.getByRole('cell',{name:'Ready',exact:true}).count(),1);
+  await confirmImport(page,base);
+  assert.equal(await page.getByRole('cell',{name:'Imported',exact:true}).count(),1);
+  const urls=await resourceUrls(page,base,address,credential);
+  assert.equal(urls.length,1);
+  const path=new URL(urls[0],base).pathname.slice(prefixOf(base).length);
+  const raw=await call(base,path,{headers:{Authorization:'Basic '+credential}});
+  assert.equal(raw.status,200);
+  assert.ok(raw.body.includes(component));
+  assert.ok(raw.body.includes(detached));
+  await page.goto(base+'/collections/'+id);
+  const downloadPromise=page.waitForEvent('download');
+  await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
+  const exported=readFileSync(await (await downloadPromise).path(),'utf8');
+  assert.ok(exported.includes(component));
+  assert.ok(exported.includes(detached));
+  await page.goto(base+'/collections/'+id+'/delete');
+  await page.getByRole('checkbox').check();
+  await Promise.all([page.waitForURL(base+'/collections'),page.getByRole('button',{name:'Delete collection permanently',exact:true}).click()]);
+  assert.ok([403,404].includes((await call(base,path,{headers:{Authorization:'Basic '+credential}})).status));
+  console.log('PORTAL_JOURNAL_CREATE_RENAME_IMPORT_EXPORT_AND_DELETE_PASSED '+suffix);
 }
 
 export async function qualifyPortalPresentation(page,base,collection,administrator=true,suffix='local') {
