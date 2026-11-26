@@ -351,9 +351,9 @@ COMMIT;""")
                 upgraded_history = json.loads(sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;"))
                 previous_history = json.loads(baseline_history)
                 assert upgraded_history[:len(previous_history)] == previous_history
-                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 17)]
+                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 18)]
                 assert sql(environment, "SELECT initialized FROM installation_state WHERE id=1;") == "t"
-                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15_V16", flush=True)
+                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15_V16_V17", flush=True)
             compose(environment, "restart", "application")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
@@ -371,9 +371,12 @@ COMMIT;""")
             if journal_checksum is not None:
                 assert sql(restored, """SELECT c.component || '|' || encode(sha256(r.content),'hex')
                     || '|' || r.etag FROM calendar_resources r JOIN collections c ON c.id=r.collection_id
+                    JOIN calendar_resource_versions v ON v.collection_id=r.collection_id
+                        AND v.name=r.name AND v.revision=r.revision AND v.content=r.content AND v.etag=r.etag
+                    JOIN dav_bindings b ON b.collection_id=c.id AND b.home_id=c.owner_id
                     WHERE r.uid='operations-journal-fixture';""") == (
                         f'VJOURNAL|{journal_checksum}|"{journal_checksum}"')
-                print("OPERATIONS_JOURNAL_BYTES_ETAG_AND_COMPONENT_PRESERVED", flush=True)
+                print("OPERATIONS_JOURNAL_BYTES_ETAG_COMPONENT_HISTORY_AND_BINDING_PRESERVED", flush=True)
             if initial_version is not None:
                 assert sql(restored, "SELECT max(version::integer) FROM flyway_schema_history WHERE version IS NOT NULL;") == "9"
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
@@ -412,7 +415,8 @@ COMMIT;""")
             assert result["registered_clients"] == 1
             assert result["permission"] == "READ" and result["content_sha256"] == checksum
             assert result["epoch"] != epoch and result["history"] == 1
-            assert result["continuations"] == 0 and result["versions"] == 1
+            assert result["continuations"] == 0
+            assert result["versions"] == (2 if journal_checksum is not None else 1)
             assert result["history_properties"] == 1
             for key in ("enabled_accounts", "credentials", "grants", "consents", "passkeys", "active_families", "tables_not_owned_by_app"):
                 assert result[key] == 0, key
@@ -436,7 +440,8 @@ COMMIT;""")
 'folder_xml',(SELECT xml FROM dav_binding_properties WHERE namespace='urn:busystack:operations'),
 'collection_xml',(SELECT xml FROM dav_collection_properties WHERE namespace='urn:busystack:operations'),
 'resource_xml',(SELECT xml FROM dav_resource_properties WHERE namespace='urn:busystack:operations'));"""))
-                assert binding_data['bindings'] == 3 and binding_data['folder'] == 'Recovery folder ü'
+                assert binding_data['bindings'] == (4 if journal_checksum is not None else 3)
+                assert binding_data['folder'] == 'Recovery folder ü'
                 assert binding_data['owner_path'] == '11111111-1111-4111-8111-111111111111'
                 for key, value in [('folder_xml', 'folder'), ('collection_xml', 'collection'), ('resource_xml', 'resource')]:
                     assert binding_data[key] == '<o:preserved xmlns:o="urn:busystack:operations">' + value + '</o:preserved>'
