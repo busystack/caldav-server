@@ -24,6 +24,11 @@ public final class CalendarConstraints {
     for (Component component : calendar.getComponents()) validate(component, null, lexical);
   }
 
+  static void validateRecurrenceIdentity(Temporal start, Temporal identity) {
+    sameType(start, identity);
+    sameLocalForm(start, identity);
+  }
+
   private static void validate(
       Component component, Component parent, Map<Property, String> lexical) {
     Temporal start = TemporalSupport.date(component, Property.DTSTART);
@@ -55,8 +60,7 @@ public final class CalendarConstraints {
     if (event || task || journal) {
       Temporal id = TemporalSupport.date(component, Property.RECURRENCE_ID);
       if (id != null && start != null) {
-        sameType(start, id);
-        sameLocalForm(start, id);
+        validateRecurrenceIdentity(start, id);
       }
       for (String name : List.of(Property.RDATE, Property.EXDATE))
         for (var property : component.getProperties(name)) {

@@ -77,6 +77,7 @@ public final class CalendarContent {
       CalendarConstraints.validate(model, lexical.values(model));
       String uid = null;
       int masters = 0;
+      java.time.temporal.Temporal masterStart = null;
       Set<java.time.temporal.Temporal> recurrenceIds = new HashSet<>();
       for (var component : model.getComponents()) {
         if (Component.VTIMEZONE.equals(component.getName())) continue;
@@ -95,13 +96,20 @@ public final class CalendarContent {
           throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_OBJECT);
         uid = current;
         var recurrence = component.getProperty(Property.RECURRENCE_ID);
-        if (recurrence.isEmpty()) masters++;
-        else if (!recurrenceIds.add(
+        if (recurrence.isEmpty()) {
+          masters++;
+          masterStart =
+              org.busystack.caldav.calendar.recurrence.TemporalSupport.date(
+                  component, Property.DTSTART);
+        } else if (!recurrenceIds.add(
             recurrenceKey((net.fortuna.ical4j.model.property.DateProperty<?>) recurrence.get())))
           throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_OBJECT);
       }
       if (uid == null || masters > 1)
         throw new CalendarValidationException(CalendarValidationException.Reason.INVALID_OBJECT);
+      if (masterStart != null)
+        for (var identity : recurrenceIds)
+          CalendarConstraints.validateRecurrenceIdentity(masterStart, identity);
       return new Parsed(uid, model, lexical.values(model), registry.coverage());
     } catch (CalendarValidationException ex) {
       throw ex;

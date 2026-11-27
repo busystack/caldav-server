@@ -1291,6 +1291,63 @@ class DavHttpIT {
   }
 
   @Test
+  void mismatchedRecurrenceIdentityFailsBeforeWritingOrIndexing() throws Exception {
+    for (String type : List.of("VEVENT", "VTODO", "VJOURNAL")) {
+      String name = "recurrence-identity-" + type.toLowerCase(java.util.Locale.ROOT);
+      String calendar = create(name, type), href = calendar + "series.ics";
+      UUID collection = datedCollection(name);
+      String header = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//QA//EN\r\n";
+      String entry = "BEGIN:" + type + "\r\nUID:series-id\r\nDTSTAMP:20261126T000000Z\r\n";
+      String end = "END:" + type + "\r\n";
+      String valid =
+          header
+              + entry
+              + "DTSTART;VALUE=DATE:20261126\r\nRRULE:FREQ=DAILY;COUNT=2\r\n"
+              + end
+              + entry
+              + "RECURRENCE-ID;VALUE=DATE:20261127\r\nDTSTART;VALUE=DATE:20261128\r\n"
+              + end
+              + "END:VCALENDAR\r\n";
+      String invalid =
+          valid.replace(
+              "RECURRENCE-ID;VALUE=DATE:20261127\r\nDTSTART;VALUE=DATE:20261128",
+              "RECURRENCE-ID:20261127T090000Z\r\nDTSTART:20261128T100000Z");
+      var empty = admissionHistoryState(collection);
+      String before = currentCollectionToken(calendar);
+      var rejected = send("PUT", href, invalid, "If-None-Match", "*");
+      assertThat(rejected.statusCode()).isEqualTo(403);
+      assertThat(DavXml.child(xml(rejected), DavXml.CAL, "valid-calendar-data")).isNotNull();
+      assertThat(send("GET", href, "").statusCode()).isEqualTo(404);
+      assertThat(admissionHistoryState(collection)).isEqualTo(empty);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(before);
+      var created = send("PUT", href, valid, "If-None-Match", "*");
+      assertThat(created.statusCode()).isEqualTo(201);
+      String etag = created.headers().firstValue("ETag").orElseThrow();
+      var state = admissionHistoryState(collection);
+      String token = currentCollectionToken(calendar);
+      assertThat(send("PUT", href, invalid, "If-Match", etag).statusCode()).isEqualTo(403);
+      var stored = send("GET", href, "");
+      assertThat(stored.statusCode()).isEqualTo(200);
+      assertThat(stored.body()).isEqualTo(valid);
+      assertThat(stored.headers().firstValue("ETag")).contains(etag);
+      assertThat(admissionHistoryState(collection)).isEqualTo(state);
+      assertThat(currentCollectionToken(calendar)).isEqualTo(token);
+      var report =
+          send(
+              "REPORT",
+              calendar,
+              query(
+                  "<C:comp-filter name='"
+                      + type
+                      + "'><C:time-range start='20261128T000000Z' end='20261129T000000Z'/></C:comp-filter>"),
+              "Depth",
+              "1");
+      assertThat(report.statusCode()).isEqualTo(207);
+      assertThat(report.body()).contains("series.ics");
+    }
+  }
+
+  @Test
   void journalResourcesUseConditionalWritesQuerySyncAndTransfers() throws Exception {
     String journals = create("journals", "VJOURNAL"), archive = create("archive", "VJOURNAL");
     String events = create("journal-control", "VEVENT");
