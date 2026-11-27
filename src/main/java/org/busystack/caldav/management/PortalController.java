@@ -12,33 +12,45 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class PortalController {
   private final PortalService portal;
   private final GroupService groups;
+  private final org.busystack.caldav.security.IssuanceIntents intents;
 
-  public PortalController(PortalService portal, GroupService groups) {
+  public PortalController(
+      PortalService portal,
+      GroupService groups,
+      org.busystack.caldav.security.IssuanceIntents intents) {
     this.portal = portal;
     this.groups = groups;
+    this.intents = intents;
   }
 
   @GetMapping("/collections")
   String collections(
       Authentication auth,
-      @RequestParam(defaultValue = "owned") String scope,
+      @RequestParam(defaultValue = "all") String scope,
       @RequestParam(defaultValue = "") String q,
       @RequestParam(defaultValue = "0") int page,
       Model model) {
     model.addAttribute("collectionPage", portal.collections(auth, scope, q, page));
     model.addAttribute("scope", scope);
+    model.addAttribute("setup", portal.setup(auth));
     model.addAttribute("query", q);
     return "collections";
   }
 
   @GetMapping("/collections/new")
-  String create() {
+  String create(@RequestParam(defaultValue = "VEVENT") String component, Model model) {
+    model.addAttribute(
+        "selectedComponent",
+        org.busystack.caldav.calendar.CalendarContent.supportsCollectionComponent(component)
+            ? component
+            : "VEVENT");
     return "collection-new";
   }
 
   @GetMapping("/collections/{id}")
   String collection(Authentication auth, @PathVariable UUID id, Model model) {
     model.addAttribute("collection", portal.collection(auth, id));
+    model.addAttribute("hasItems", portal.hasItems(auth, id));
     return "collection";
   }
 
@@ -115,10 +127,31 @@ public class PortalController {
       Authentication auth,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "generic") String client,
-      Model model) {
+      @RequestParam(defaultValue = "security") String from,
+      Model model,
+      jakarta.servlet.http.HttpServletResponse response) {
     model.addAttribute("client", client(client));
+    model.addAttribute("credentialOrigin", credentialOrigin(from));
+    if (page == 0)
+      model.addAttribute(
+          "issuanceIntent",
+          intents
+              .prepare(
+                  auth,
+                  org.busystack.caldav.security.IssuanceIntents.Purpose.APPLICATION_PASSWORD,
+                  issuanceContext(client, from))
+              .id());
+    org.busystack.caldav.security.IssuancePages.protect(response);
     model.addAttribute("credentialPage", portal.credentials(auth, page));
     return "credentials";
+  }
+
+  static String credentialOrigin(String from) {
+    return "connect".equals(from) ? "connect" : "security";
+  }
+
+  static String issuanceContext(String client, String from) {
+    return client(client) + ":" + credentialOrigin(from);
   }
 
   static String client(String client) {

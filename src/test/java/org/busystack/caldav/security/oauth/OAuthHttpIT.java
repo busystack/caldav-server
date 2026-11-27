@@ -818,7 +818,7 @@ class OAuthHttpIT {
             HttpResponse.BodyHandlers.ofString());
     assertThat(denied.statusCode()).isEqualTo(302);
     assertThat(denied.headers().firstValue("Location").orElseThrow())
-        .contains("/login?factor=required");
+        .contains("/auth/continue?flow=");
     assertThat(jdbc.queryForObject("SELECT count(*) FROM oauth2_authorization", Long.class))
         .isZero();
   }

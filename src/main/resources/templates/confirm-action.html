@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${actionTitle})}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <h1 th:text="${actionTitle}"></h1>
+  <p class="notice warning" th:text="${consequence}"></p>
+  <form method="post" th:action="@{${actionPath}}">
+    <input type="hidden" name="confirmed" value="true">
+    <input th:if="${expectedRevision != null}" type="hidden" name="expected" th:value="${expectedRevision}">
+    <input th:if="${expectedGrants != null}" type="hidden" name="expectedGrants" th:value="${expectedGrants}">
+    <button type="submit" class="danger" th:text="${actionLabel}"></button>
+    <a th:href="@{${cancelPath}}">Cancel</a>
+  </form>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

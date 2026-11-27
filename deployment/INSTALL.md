@@ -80,7 +80,7 @@ Download `caldav-server-@VERSION@.jar` and verify its SHA-256. Use official Java
 an application-owned PostgreSQL database/role, file-backed Spring config-tree
 secrets, equal canonical HTTPS public URL and issuer, and loopback listener.
 Use the operations guide's bootstrap/recovery commands with the downloaded JAR
-path in place of `target/caldav-server-@VERSION@.jar`. Run `java -jar
+path in place of `target/caldav-server-@VERSION@.jar`. Set `umask 0077` and run `java -XX:+ExitOnOutOfMemoryError -jar
 /path/caldav-server-@VERSION@.jar`. A JAR needs a host JDK/runtime and an operator-managed
 process; it does not install a service manager or database. Container deployment
 above needs neither host Java nor a compiler.

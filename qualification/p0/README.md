@@ -17,22 +17,22 @@ python3 qualification/p0/run.py --application-image busystack-caldav:p0-local
 
 The latter uses an empty isolated Compose database, actual TLS with normal
 certificate validation, the exact operator code command, and Chromium's CTAP2
-virtual authenticator. It never pre-creates an administrator. It captures twenty
-screens at 1280×900 with light production CSS, checks reflow at 390px, masks the
+virtual authenticator. It never pre-creates an administrator. It captures twenty-six
+screens at 1280×900 with light production CSS, checks reflow at 320px, masks the
 one-time application password's containing block, and destroys only its owned
 project/volume. No native browser/password-manager dialog is fabricated. Fixture
 secrets exist only in a private temporary directory; no secrets enter screenshots
 or the success receipt. Do not print HTTP client exception headers or dump cookies.
 
 A passing run writes `target/qualification/p0/browser-result.json` and PNGs. Copy
-only the twenty named PNGs to `docs/images/getting-started/`, inspect them, and
+only the twenty-six named PNGs to `docs/images/getting-started/`, inspect them, and
 commit them. The final capture must use the final qualified runtime. Qualification
 results must distinguish Chromium virtual-authenticator evidence from manual
 Firefox/Bitwarden acceptance.
 
 `package.py` assembles an **unpublished local** deployment archive through the same
 file-selection and deterministic archive functions as `scripts/release-bundle.py`.
-It validates all guide links and twenty PNGs, verifies source/runtime equivalence
+It validates all guide links and twenty-six PNGs, verifies source/runtime equivalence
 and the exact container JAR checksum, and records actual image/source identities.
 Its metadata does not invent a CI run or a published release. When Docker has no
 OCI descriptor, the local archive uses the verified immutable image ID and records
@@ -48,9 +48,7 @@ python3 qualification/p0/run.py --application-image busystack-caldav:p0-local \
 
 The proxy profile uses the guide's complete `up -d --no-build --wait
 --wait-timeout 240` command and both production health checks. Run it again with
-`--context-path /team` to check the packaged subpath example. The default
-administrator activity is **Manage users**; `--administrator-activity personal`
-also exercises **Set up my calendar** before continuing the same complete journey.
+`--context-path /team` to check the packaged subpath example. The browser enters the administrator area from the same Overview used by personal accounts.
 
 For final manual acceptance, prepare a separate fresh project using the extracted
 package. The following starts an isolated Nginx HTTPS deployment using the package's
@@ -64,8 +62,8 @@ python3 qualification/p0/manual.py \
 
 The resulting private `acceptance.json` identifies the exact HTTPS address,
 installation directory and disposable CA. Use a new Firefox profile; trust the CA
-in that profile through Firefox's certificate settings and install/configure
-Bitwarden yourself. Do not change an existing profile or vault automatically.
+in that profile through Firefox's certificate settings and select your usual
+passkey provider for this test. Do not change an existing profile or vault automatically.
 From the displayed installation directory, issue `bash scripts/initialize.sh` and
 follow Getting Started chapters 6–7. Choose a fresh test password yourself; the
 agent has not prepared a login or registered a passkey in a password manager.

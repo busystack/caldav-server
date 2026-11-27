@@ -2,47 +2,58 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title th:text="${title + ' · BusyStack'}">BusyStack</title>
+  <title th:text="${(fieldErrors != null and !fieldErrors.isEmpty() ? 'Error: ' : '') + title + ' · BusyStack'}">BusyStack</title>
   <meta th:if="${_csrf != null}" name="csrf-token" th:content="${_csrf.token}">
   <meta th:if="${_csrf != null}" name="csrf-header" th:content="${_csrf.headerName}">
   <link rel="stylesheet" th:href="@{/assets/account.css}">
   <script th:src="@{/assets/portal.js}" defer></script>
 </head>
 <body>
-<header th:fragment="header" class="app-header">
+<header th:fragment="header" class="app-header" th:classappend="${applicationShell == true ? 'application-shell' : 'authentication-shell'}">
   <a class="skip-link" href="#main">Skip to content</a>
-  <div class="brand-row"><a class="brand" th:href="@{/}"><span class="brand-mark" aria-hidden="true">B</span> BusyStack <span class="brand-caption">Calendar infrastructure</span></a>
+  <div class="brand-row">
+    <a class="brand" th:href="${applicationShell == true} ? @{/} : @{/login}"><span class="brand-mark" aria-hidden="true">B</span> BusyStack</a>
+    <div th:if="${applicationShell == true}" class="area-switch">
+      <span th:text="${administrationArea ? 'Server administration' : 'My account'}"></span>
+      <a th:if="${viewer.administrator and !administrationArea}" th:href="@{/admin}">Server administration</a>
+      <a th:if="${administrationArea}" th:href="@{/}">My account</a>
+    </div>
     <div th:if="${viewer != null}" class="identity"><span th:text="${viewer.displayName}"></span><form method="post" th:action="@{/logout}"><button class="quiet">Sign out</button></form></div>
   </div>
-  <nav th:if="${viewer != null}" aria-label="Portal" class="portal-switch"><a th:href="@{/}" th:attr="aria-current=${!administrationArea ? 'true' : null}">My account</a><a th:if="${viewer.administrator}" th:href="@{/admin}" th:attr="aria-current=${administrationArea ? 'true' : null}">Server administration</a></nav>
-  <nav th:if="${viewer != null and !administrationArea}" aria-label="Account" class="section-nav">
-    <a th:href="@{/}" th:attr="aria-current=${portalPath == '/' ? 'page' : null}">Overview</a>
-    <a th:href="@{/collections}" th:attr="aria-current=${portalPath.startsWith('/collections') ? 'page' : null}">Calendar collections</a>
-    <a th:href="@{/connections}" th:attr="aria-current=${portalPath == '/connections' ? 'page' : null}">Connections</a>
-    <a th:href="@{/security}" th:attr="aria-current=${portalPath.startsWith('/security') or portalPath == '/oauth-grants' or portalPath.startsWith('/credentials') ? 'page' : null}">Security</a>
-    <a th:href="@{/portability}" th:attr="aria-current=${portalPath.startsWith('/portability') ? 'page' : null}">Import &amp; Export</a>
-  </nav>
-  <nav th:if="${viewer != null and administrationArea}" aria-label="Administration" class="section-nav">
-    <a th:href="@{/admin}" th:attr="aria-current=${portalPath == '/admin' ? 'page' : null}">Overview</a>
-    <a th:href="@{/admin/accounts}" th:attr="aria-current=${portalPath.startsWith('/admin/accounts') ? 'page' : null}">Accounts</a>
-    <a th:href="@{/admin/groups}" th:attr="aria-current=${portalPath.startsWith('/admin/groups') ? 'page' : null}">Groups</a>
-    <a th:href="@{/admin/audit}" th:attr="aria-current=${portalPath == '/admin/audit' or portalPath.startsWith('/admin/oauth-clients') ? 'page' : null}">Security &amp; Audit</a>
-    <a th:href="@{/admin/diagnostics}" th:attr="aria-current=${portalPath == '/admin/diagnostics' ? 'page' : null}">System &amp; Diagnostics</a>
-  </nav>
+  <details th:if="${applicationShell == true}" class="section-disclosure" open>
+    <summary>Menu</summary>
+    <nav th:unless="${administrationArea}" aria-label="My account" class="section-nav">
+      <a th:href="@{/}" th:attr="aria-current=${section == 'overview' ? 'page' : null}">Overview</a>
+      <a th:href="@{/collections}" th:attr="aria-current=${section == 'collections' ? 'page' : null}">Calendars, tasks &amp; journals</a>
+      <a th:href="@{/connections}" th:attr="aria-current=${section == 'connections' ? 'page' : null}">Connect an app</a>
+      <a th:href="@{/security}" th:attr="aria-current=${section == 'security' ? 'page' : null}">Security</a>
+    </nav>
+    <nav th:if="${administrationArea}" aria-label="Server administration" class="section-nav">
+      <a th:href="@{/admin}" th:attr="aria-current=${section == 'admin-overview' ? 'page' : null}">Overview</a>
+      <a th:href="@{/admin/accounts}" th:attr="aria-current=${section == 'accounts' ? 'page' : null}">Accounts</a>
+      <a th:href="@{/admin/groups}" th:attr="aria-current=${section == 'groups' ? 'page' : null}">Groups</a>
+      <a th:href="@{/admin/audit}" th:attr="aria-current=${section == 'audit' ? 'page' : null}">Security &amp; audit</a>
+      <a th:href="@{/admin/diagnostics}" th:attr="aria-current=${section == 'diagnostics' ? 'page' : null}">System &amp; diagnostics</a>
+    </nav>
+  </details>
+  <div th:if="${applicationShell == true and overallDeadline != null and _csrf != null}"
+       class="notice warning session-warning" hidden data-session-warning
+       th:attr="data-idle=${idleDeadline},data-overall=${overallDeadline},data-server=${serverTime},data-stay=@{/session/stay},data-csrf=${_csrf.token}">
+    <p role="status" data-session-message></p>
+    <button type="button" data-session-stay>Stay signed in</button>
+    <a th:href="@{/login(reauthenticate='',next=${authenticationNext})}">Sign in again</a>
+  </div>
 </header>
 <th:block th:fragment="feedback">
-  <div th:if="${fieldErrors != null}" class="notice error-summary" role="alert" tabindex="-1" data-error-summary aria-labelledby="error-summary-heading"><h2 id="error-summary-heading">Check the submitted details</h2><p>Correct the fields below and submit the form again.</p><ul><li th:each="e : ${fieldErrors}"><a th:href="${'#' + errorFormKey + '-' + e.key}" th:text="${e.value}"></a></li></ul></div>
-  <p th:if="${notice != null}" th:text="${notice}" class="notice success" role="status"></p>
-  <div th:if="${viewer != null and !mfaCurrent and (portalPath.startsWith('/security') or portalPath.startsWith('/credentials') or portalPath.startsWith('/admin') or portalPath == '/collections/new' or portalPath.startsWith('/portability'))}" class="notice">
-    <th:block th:if="${!primaryCurrent}">Sign in again before continuing. <a th:href="@{/auth/continue(next=${authenticationNext})}">Sign in</a>.</th:block>
-    <th:block th:if="${primaryCurrent and hasPasskeys == false}">Secure your account before making changes. <a th:href="@{/auth/continue(next=${authenticationNext})}">Create passkey</a>.</th:block>
-    <th:block th:if="${primaryCurrent and hasPasskeys == true}">Your passkey verification is needed for changes on this page. <a th:href="@{/auth/continue(next=${authenticationNext})}">Verify passkey</a>.</th:block>
-  </div>
+  <div th:if="${fieldErrors != null and !fieldErrors.isEmpty()}" class="notice error-summary" role="alert" tabindex="-1" data-error-summary aria-labelledby="error-summary-heading"><h2 id="error-summary-heading">Check the submitted details</h2><p>Correct the fields below and submit the form again.</p><ul><li th:each="e : ${fieldErrors}"><a th:href="${'#' + errorFormKey + '-' + e.key}" th:text="${e.value}"></a></li></ul></div>
+  <p th:if="${notice != null}" th:text="${notice}" th:class="${'notice ' + (noticeSeverity ?: 'success')}" role="status"></p>
 </th:block>
+<p th:fragment="fieldError(form, field)" th:if="${fieldErrors != null and fieldErrors.containsKey(field) and errorFormKey == form}"
+   th:id="${form + '-' + field + '-error'}" th:text="${fieldErrors.get(field)}" class="field-error"></p>
 <nav th:fragment="securityNav" aria-label="Security settings" class="security-nav"><a th:href="@{/security}">Security overview</a><a th:href="@{/security/passkeys}">Passkeys</a><a th:href="@{/security/credentials}">Application passwords</a><a th:href="@{/security/sessions}">Sessions</a><a th:href="@{/security/recovery}">Recovery</a><a th:href="@{/oauth-grants}">OAuth grants</a></nav>
 <time class="timestamp" th:fragment="timestamp(value, fallback)" th:datetime="${value}" th:text="${value == null ? fallback : #temporals.format(value, 'uuuu-MM-dd HH:mm', 'UTC') + ' UTC'}"></time>
-<footer th:fragment="footer"><span>BusyStack · Your server. Your data.</span><span>Calendar and task contents are managed in your CalDAV applications.</span><p id="copy-status" role="status" aria-live="polite"></p></footer>
-<nav th:fragment="pagination(base, page)" aria-label="Pagination" class="pagination">
-  <a th:if="${page.page > 0}" th:href="@{${base}(page=${page.page - 1},q=${query},status=${filter})}">Previous</a><span th:text="${'Page ' + (page.page + 1)}"></span><a th:if="${page.hasNext}" th:href="@{${base}(page=${page.page + 1},q=${query},status=${filter})}">Next</a>
+<footer th:fragment="footer"><span>BusyStack · Your server. Your data.</span><span>Manage events, tasks and journal entries in your CalDAV apps.</span><p id="copy-status" role="status" aria-live="polite"></p></footer>
+<nav th:fragment="pagination(base, page)" aria-label="Pagination" class="pagination" th:if="${page.page > 0 or page.hasNext}">
+  <a th:if="${page.page > 0}" th:href="@{${base}(page=${page.page - 1},q=${query},status=${filter},method=${signInMethod},scope=${scope},client=${client},destination=${selectedDestination},from=${credentialOrigin})}">Previous</a><span th:text="${'Page ' + (page.page + 1)}"></span><a th:if="${page.hasNext}" th:href="@{${base}(page=${page.page + 1},q=${query},status=${filter},method=${signInMethod},scope=${scope},client=${client},destination=${selectedDestination},from=${credentialOrigin})}">Next</a>
 </nav>
 </body></html>

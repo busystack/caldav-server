@@ -200,6 +200,18 @@ public class PortalService {
         deletion);
   }
 
+  @Transactional(isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+  public boolean hasItems(Authentication auth, UUID id) {
+    // Authorize and inspect the same snapshot, without reading stored content.
+    var actor = management.current(auth).id();
+    calendars.collection(actor, id);
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM calendar_resources WHERE collection_id=?)",
+            Boolean.class,
+            id));
+  }
+
   @Transactional
   public UUID create(
       Authentication auth, String name, String component, String description, String color) {

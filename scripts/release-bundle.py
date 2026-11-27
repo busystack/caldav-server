@@ -57,39 +57,89 @@ OPERATOR_DOCUMENTS = (
     'pom.xml',
     '.github/workflows/ci.yml',
 )
-SCREENSHOTS = tuple(f'docs/images/getting-started/{number:02d}-{name}.png' for number, name in enumerate((
-    'initial-setup', 'create-administrator', 'setup-complete', 'sign-in', 'create-passkey',
-    'passkey-created', 'verify-passkey', 'administrator-welcome', 'manage-users', 'create-user',
-    'user-onboarding', 'calendars', 'connect-application', 'create-application-password',
-    'password-created', 'client-configuration', 'security', 'recovery', 'sharing', 'import-export'), 1))
+SCREENSHOTS = tuple(f'docs/images/getting-started/{name}.png' for name in (
+    '01-protected-setup',
+    '02-sign-in',
+    '03-create-passkey',
+    '04-passkey-saved',
+    '05-overview',
+    '06-server-administration',
+    '07-accounts',
+    '08-create-account',
+    '09-account-handoff',
+    '10-resource-type',
+    '11-empty-task-list',
+    '12-resources',
+    '13-sharing',
+    '14-security',
+    '15-recovery-codes',
+    '16-connect-an-app',
+    '17-client-configuration',
+    '18-create-application-password',
+    '19-password-created',
+    '20-import-destination',
+    '21-import-preview',
+    '22-import-result',
+    '23-audit',
+    '24-diagnostics',
+    '25-shared-overview',
+    '26-returning-verification',
+))
+
+
+def heading_anchors(document):
+    """Return GitHub-style ATX heading identifiers, with duplicate suffixes."""
+    identifiers = set()
+    occurrences = {}
+    fenced = False
+    for line in document.splitlines():
+        if re.match(r'^\s*(?:```|~~~)', line):
+            fenced = not fenced
+        if fenced:
+            continue
+        heading = re.match(r'^ {0,3}#{1,6}\s+(.+?)\s*#*$', line)
+        if heading is None:
+            continue
+        title = re.sub(r'\[([^]]+)\]\([^)]+\)', r'\1', heading[1])
+        identifier = re.sub(r'[^\w -]', '', title.lower()).replace(' ', '-')
+        occurrence = occurrences.get(identifier, 0)
+        occurrences[identifier] = occurrence + 1
+        identifiers.add(identifier if occurrence == 0 else f'{identifier}-{occurrence}')
+    identifiers.update(re.findall(r'<a\s+(?:id|name)="([^"]+)"', document))
+    return identifiers
+
+
+def validate_links(name, files, label):
+    from urllib.parse import unquote
+    for link in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', files[name].decode()):
+        if link.startswith(('https://', 'http://', 'mailto:')):
+            continue
+        path, separator, anchor = link.partition('#')
+        target = posixpath.normpath(posixpath.join(posixpath.dirname(name), unquote(path))) if path else name
+        assert target in files, f'Broken {label} reference: {name}: {link}'
+        if separator and anchor and target.endswith('.md'):
+            assert unquote(anchor) in heading_anchors(files[target].decode()), (
+                f'Broken {label} heading anchor: {name}: {link}')
 
 
 def validate_guide(files):
-    """Missing illustrations or broken local guide links fail artifact validation."""
+    """Check that navigation, headings and final screenshots are present."""
     guide = 'docs/GETTING_STARTED.md'
     text = files[guide].decode()
     for name in SCREENSHOTS:
         assert name in files, 'Missing guide screenshot: ' + name
         assert files[name].startswith(b'\x89PNG\r\n\x1a\n'), 'Invalid guide PNG: ' + name
-    for target in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', text):
-        if target.startswith(('https://', 'http://', '#', 'mailto:')):
-            continue
-        path = posixpath.normpath(posixpath.join('docs', target.split('#')[0]))
-        assert path in files, 'Broken guide reference: ' + target
-    for name in SCREENSHOTS:
         assert name.removeprefix('docs/') in text, 'Unreferenced guide screenshot: ' + name
+    validate_links(guide, files, 'guide')
 
 
 def validate_document_links(files):
     """Supporting documents must remain usable in a source-free installation."""
-    for name, data in files.items():
-        if not name.endswith('.md'):
-            continue
-        for target in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', data.decode()):
-            if target.startswith(('https://', 'http://', '#', 'mailto:')):
-                continue
-            path = posixpath.normpath(posixpath.join(posixpath.dirname(name), target.split('#')[0]))
-            assert path in files, 'Broken deployment document reference: ' + name + ': ' + target
+    for name in files:
+        if name.endswith('.md'):
+            validate_links(name, files, 'deployment document')
+
+
 spec = importlib.util.spec_from_file_location('candidate', ROOT / 'scripts/release-candidate.py')
 candidate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(candidate)

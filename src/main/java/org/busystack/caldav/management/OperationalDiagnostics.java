@@ -79,6 +79,8 @@ public final class OperationalDiagnostics {
         "journalCollections",
         jdbc.queryForObject(
             "SELECT count(*) FROM collections WHERE component='VJOURNAL'", Long.class));
+    model.addAttribute(
+        "groups", jdbc.queryForObject("SELECT count(*) FROM sharing_groups", Long.class));
     model.addAttribute("databaseStatus", "Available — database queries succeeded for this request");
     model.addAttribute(
         "collections", jdbc.queryForObject("SELECT count(*) FROM collections", Long.class));

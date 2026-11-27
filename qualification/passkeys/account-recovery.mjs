@@ -18,13 +18,13 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
       const password = readFileSync(process.env.BUSYSTACK_BROWSER_PASSWORD_FILE, 'utf8').trimEnd();
       await page.locator('input[name=username]').fill(username);
       await page.locator('input[name=password]').fill(password);
-      await Promise.all([page.waitForURL(base + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
+      await Promise.all([page.waitForURL(url => url.pathname === new URL(base).pathname.replace(/\/$/,'') + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
     }
   }
   const device = await issueDavCredential(page, base, privateValues, 'Recovery-code reset device', username);
   const grant = await qualifyOAuth(page, base, privateValues, administratorPage,
     {clientId: 'browser-code-recovery-qualification', clientName: 'Browser Recovery Reset', retainGrant: true});
-  await page.goto(base + '/security/recovery');
+  await page.goto(base + '/security/recovery/codes/new');
   const [issued] = await Promise.all([page.waitForResponse(response => response.request().method() === 'POST'
     && response.url() === base + '/security/recovery/codes'), page.getByRole('button', {name: 'Generate ten codes', exact: true}).click()]);
   assert.ok((issued.headers()['cache-control'] || '').includes('no-store'));
@@ -76,10 +76,10 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await page.getByLabel('Recovery code', {exact: true}).fill(codes[0]);
   const [replay] = await Promise.all([page.waitForResponse(response => response.request().method() === 'POST'
     && response.url() === base + '/security/recovery/use'), page.getByRole('button', {name: 'Use code and reset account access', exact: true}).click()]);
-  assert.equal(replay.status(), 403, 'A consumed recovery code must not be reusable');
+  assert.equal(replay.status(), 400, 'A consumed recovery code must not be reusable');
   await page.goto(base + '/security/passkeys');
   await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await page.locator('#security-status').filter({hasText: 'Passkey saved.'}).waitFor();
   await verifyPasskey(page,base);
   console.log('BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED');
 }

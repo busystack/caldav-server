@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.busystack.caldav.account.AccountService;
+import org.busystack.caldav.security.IssuanceIntents;
 import org.busystack.caldav.security.RecentAuthentication;
 import org.busystack.caldav.storage.CalendarStore;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,7 +41,10 @@ public class ManagementService {
     }
   }
 
+  public record CredentialResult(AccountService.IssuedCredential secret, UUID credentialId) {}
+
   private final AccountService accounts;
+  private final IssuanceIntents intents;
   private final CalendarStore calendars;
   private final JdbcTemplate jdbc;
   private final org.busystack.caldav.security.session.SessionSecurity sessions;
@@ -49,11 +53,13 @@ public class ManagementService {
       AccountService accounts,
       CalendarStore calendars,
       JdbcTemplate jdbc,
-      org.busystack.caldav.security.session.SessionSecurity sessions) {
+      org.busystack.caldav.security.session.SessionSecurity sessions,
+      IssuanceIntents intents) {
     this.accounts = accounts;
     this.calendars = calendars;
     this.jdbc = jdbc;
     this.sessions = sessions;
+    this.intents = intents;
   }
 
   public UserView current(Authentication auth) {
@@ -84,7 +90,6 @@ public class ManagementService {
 
   @Transactional
   public void completeWelcome(Authentication auth) {
-    RecentAuthentication.requireMfa(auth);
     var account = requireAccount(auth);
     jdbc.update(
         "UPDATE installation_state SET welcome_completed_at=now() WHERE initial_administrator=? AND welcome_completed_at IS NULL",
@@ -128,6 +133,25 @@ public class ManagementService {
         actor);
   }
 
+  public Credential credential(Authentication auth, UUID id) {
+    var rows =
+        jdbc.query(
+            "SELECT label,created_at,expires_at,revoked_at FROM dav_credentials WHERE id=? AND account_id=?",
+            (rs, row) ->
+                new Credential(
+                    id,
+                    rs.getString(1),
+                    rs.getTimestamp(2).toInstant(),
+                    rs.getTimestamp(3).toInstant(),
+                    rs.getTimestamp(4) != null),
+            id,
+            requireAccount(auth).id());
+    if (rows.isEmpty())
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND);
+    return rows.getFirst();
+  }
+
   public List<UserView> users(Authentication auth) {
     requireAdministrator(auth);
     return jdbc.query(
@@ -143,14 +167,35 @@ public class ManagementService {
 
   @Transactional
   public void provision(Authentication auth, String username, String displayName, String password) {
+    RecentAuthentication.requireMfa(auth);
     requireAdministrator(auth);
     accounts.provision(username, displayName, password, false);
   }
 
   @Transactional
-  public void disable(Authentication auth, UUID id) {
+  public UUID disable(Authentication auth, UUID id) {
+    RecentAuthentication.requireMfa(auth);
+    // Lock in the same order in either direction; check the live actor after acquiring locks.
+    var locked =
+        jdbc.queryForList(
+            "SELECT id FROM accounts WHERE (administrator AND enabled) OR id=? ORDER BY id FOR UPDATE",
+            UUID.class,
+            id);
     requireAdministrator(auth);
+    UUID actor = sessions.assertForReset(auth).id();
+    if (actor.equals(id))
+      throw new AccessDeniedException("You cannot disable your own administrator account.");
+    if (!locked.contains(id))
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND);
+    var target = accounts.find(id);
+    if (!target.enabled())
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.PRECONDITION);
+    if (target.administrator() && locked.size() <= 1)
+      throw new AccessDeniedException("At least one enabled administrator must remain.");
     accounts.disable(id);
+    return actor;
   }
 
   @Transactional
@@ -167,6 +212,19 @@ public class ManagementService {
       throw FormValidation.field(
           "label", "Use a credential label of 1–100 characters without control characters.");
     return accounts.issueDavCredential(actor, label, Instant.now().plusSeconds(days * 86400L));
+  }
+
+  @Transactional
+  public CredentialResult issue(
+      Authentication auth, String label, int days, UUID intent, String context) {
+    RecentAuthentication.requireMfa(auth);
+    var account = sessions.assertForReset(auth);
+    var claim =
+        intents.claim(account, intent, IssuanceIntents.Purpose.APPLICATION_PASSWORD, context);
+    if (claim.consumed()) return new CredentialResult(null, claim.result());
+    var issued = issue(auth, label, days);
+    intents.consume(claim, issued.id());
+    return new CredentialResult(issued, issued.id());
   }
 
   @Transactional
@@ -219,7 +277,6 @@ public class ManagementService {
   }
 
   public void requireAdministrator(Authentication auth) {
-    RecentAuthentication.requireMfa(auth);
     if (!requireAccount(auth).administrator())
       throw new AccessDeniedException("Administrator required");
   }

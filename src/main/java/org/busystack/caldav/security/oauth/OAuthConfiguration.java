@@ -117,7 +117,9 @@ public class OAuthConfiguration {
       JdbcTemplate jdbc,
       PlatformTransactionManager transactions,
       org.busystack.caldav.security.session.SessionSecurity sessions,
-      AccountService accounts)
+      AccountService accounts,
+      org.busystack.caldav.security.session.BrowserSession browserSessions,
+      org.busystack.caldav.security.AuthenticationJourney journey)
       throws Exception {
     http.oauth2AuthorizationServer(
             server -> {
@@ -223,6 +225,16 @@ public class OAuthConfiguration {
                                       })));
             })
         .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+        .requestCache(
+            cache -> {
+              var safe =
+                  new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
+              safe.setRequestMatcher(
+                  request ->
+                      "GET".equals(request.getMethod())
+                          && "/oauth2/authorize".equals(request.getServletPath()));
+              cache.requestCache(safe);
+            })
         .exceptionHandling(
             exceptions ->
                 exceptions.defaultAuthenticationEntryPointFor(
@@ -236,7 +248,7 @@ public class OAuthConfiguration {
         new org.busystack.caldav.security.session.SessionEpochFilter(sessions),
         org.springframework.security.web.context.SecurityContextHolderFilter.class);
     http.addFilterBefore(
-        new RecentMfaAuthorizationFilter(),
+        new RecentMfaAuthorizationFilter(browserSessions, journey),
         org.springframework.security.web.authentication.logout.LogoutFilter.class);
     // Framework CSRF protection for the cookie-authenticated consent form. Token exchanges
     // retain the authorization server's protocol authentication and do not require a cookie.

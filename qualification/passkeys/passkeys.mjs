@@ -39,7 +39,7 @@ try {
   assert.equal(await page.locator('meta[name=csrf-token]').count(), 1);
   await page.locator('input[name=username]').fill(process.env.BUSYSTACK_BROWSER_USERNAME);
   await page.locator('input[name=password]').fill(password);
-  await Promise.all([page.waitForURL(base + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
+  await Promise.all([page.waitForURL(url => url.pathname === new URL(base).pathname.replace(/\/$/,'') + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   const passwordSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
   assert.ok(passwordSession);
   privateValues.push(passwordSession);
@@ -53,7 +53,7 @@ try {
   assert.equal(passwordOnly, 403, 'Password alone must not authorize account mutations');
   await page.goto(base + '/security/passkeys');
   await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await page.locator('#security-status').filter({hasText: 'Passkey saved.'}).waitFor();
   await verifyPasskey(page,base);
   const mfaSession = (await context.cookies()).find(cookie => cookie.name === 'JSESSIONID')?.value;
   if (mfaSession) privateValues.push(mfaSession);
@@ -103,7 +103,7 @@ try {
   console.log('READY_RESTART');
   await waitFor('RESTARTED');
   await page.goto(base + '/');
-  await page.getByRole('heading', {name: /^Welcome,/}).waitFor();
+  await page.getByRole('heading', {name: 'Overview'}).waitFor();
   assert.equal((await context.cookies()).find(value => value.name === 'JSESSIONID')?.value, persistentCookie,
     'A persisted browser session must survive the application restart');
   console.log('PERSISTED_BROWSER_SESSION_AFTER_RESTART_PASSED');
@@ -118,7 +118,7 @@ try {
   const currentPassword = process.env.BUSYSTACK_BROWSER_RESTORE === 'true' ? readFileSync(process.env.BUSYSTACK_BROWSER_RECOVERY_PASSWORD_FILE, 'utf8').trimEnd() : password;
   privateValues.push(currentPassword);
   await page.locator('input[name=password]').fill(currentPassword);
-  await Promise.all([page.waitForURL(base + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
+  await Promise.all([page.waitForURL(url => url.pathname === new URL(base).pathname.replace(/\/$/,'') + '/auth/continue'), page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
   }
   await page.goto(base + '/login');
   await verifyPasskey(page,base);

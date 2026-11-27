@@ -28,7 +28,17 @@ class ImportStagingTest {
         bytes,
         stage ->
             new PortabilityService.Report(
-                stage.token(), "Fixture", stage.expires(), java.util.List.of(), 0, 0, 0, 0, 0));
+                stage.token(),
+                new UUID(0, 1),
+                "VEVENT",
+                "Fixture",
+                stage.expires(),
+                java.util.List.of(),
+                0,
+                0,
+                0,
+                0,
+                0));
   }
 
   @Test

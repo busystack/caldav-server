@@ -1,10 +1,41 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Set up BusyStack')}"></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
-<h1>Set up BusyStack</h1>
-<p>Your server is running. Create its first administrator account to begin.</p>
-<p>To protect this server, you need an initialization code obtained through local operator access. From the extracted deployment directory, run the documented command:</p>
-<pre><code>bash scripts/initialize.sh</code></pre>
-<p>The code expires after 15 minutes. Only the operator can issue a replacement. See the included <strong>Getting Started</strong> guide, chapter 6.</p>
-<a class="button" th:href="@{/setup/administrator}">Create administrator account</a>
-</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Set up BusyStack')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main tabindex="-1" id="main" class="auth-page">
+  <h1>Set up BusyStack</h1>
+  <p>Your server is running and needs its first administrator.</p>
+  <p>On the server, open the extracted deployment folder that contains <code>compose.yaml</code> and the scripts. Run:</p>
+  <div class="copy-field">
+    <code id="initialize-command">bash scripts/initialize.sh</code>
+    <button type="button" class="secondary" data-copy="initialize-command" data-copy-message="Command copied.">Copy command</button>
+  </div>
+  <p>The code expires after 15 minutes. Run the command again to replace an expired code or a code locked after repeated unsuccessful attempts.</p>
+  <p><a th:href="@{/help/setup}">Setup and recovery help</a> · Packaged guide at <code>docs/GETTING_STARTED.md</code></p>
+  <th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+  <form method="post" th:action="@{/setup/administrator}" data-password-policy data-form-key="setup">
+    <label for="setup-code">Initialization code</label>
+    <input id="setup-code" name="code" type="password" autocomplete="off" required
+           th:attr="aria-invalid=${fieldErrors != null and fieldErrors.containsKey('code') ? 'true' : null},aria-describedby=${fieldErrors != null and fieldErrors.containsKey('code') ? 'setup-code-error' : null}">
+    <p th:replace="~{fragments/layout :: fieldError('setup','code')}"></p>
+    <label for="setup-username">Administrator username</label>
+    <input id="setup-username" name="username" autocomplete="username" required maxlength="64"
+           th:value="${username}" th:attr="aria-invalid=${fieldErrors != null and fieldErrors.containsKey('username') ? 'true' : null},aria-describedby=${fieldErrors != null and fieldErrors.containsKey('username') ? 'setup-username-error' : null}">
+    <p th:replace="~{fragments/layout :: fieldError('setup','username')}"></p>
+    <label for="setup-password">Administrator password</label>
+    <input id="setup-password" name="password" type="password" autocomplete="new-password" required
+           th:attr="aria-invalid=${fieldErrors != null and fieldErrors.containsKey('password') ? 'true' : null},aria-describedby=${fieldErrors != null and fieldErrors.containsKey('password') ? 'password-help setup-password-error' : 'password-help'}">
+    <p id="password-help">Use at least 14 Unicode characters and at most 72 UTF-8 bytes.</p>
+    <p th:replace="~{fragments/layout :: fieldError('setup','password')}"></p>
+    <label for="setup-confirmation">Confirm password</label>
+    <input id="setup-confirmation" name="confirmation" type="password" autocomplete="new-password" required
+           th:attr="aria-invalid=${fieldErrors != null and fieldErrors.containsKey('confirmation') ? 'true' : null},aria-describedby=${fieldErrors != null and fieldErrors.containsKey('confirmation') ? 'setup-confirmation-error' : null}">
+    <p th:replace="~{fragments/layout :: fieldError('setup','confirmation')}"></p>
+    <button class="secondary" type="button" data-show-password hidden>Show passwords</button>
+    <button type="submit">Create administrator account</button>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

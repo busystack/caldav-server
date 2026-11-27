@@ -15,8 +15,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * reuse.
  */
 final class RecentMfaAuthorizationFilter extends OncePerRequestFilter {
-  private final org.springframework.security.web.savedrequest.HttpSessionRequestCache requestCache =
-      new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
+  private final org.busystack.caldav.security.session.BrowserSession sessions;
+  private final org.busystack.caldav.security.AuthenticationJourney journey;
+
+  RecentMfaAuthorizationFilter(
+      org.busystack.caldav.security.session.BrowserSession sessions,
+      org.busystack.caldav.security.AuthenticationJourney journey) {
+    this.sessions = sessions;
+    this.journey = journey;
+  }
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -31,12 +38,24 @@ final class RecentMfaAuthorizationFilter extends OncePerRequestFilter {
     if (authentication != null
         && authentication.isAuthenticated()
         && !(authentication instanceof AnonymousAuthenticationToken)) {
-      try {
-        org.busystack.caldav.security.RecentAuthentication.requireMfa(authentication);
-      } catch (org.springframework.security.access.AccessDeniedException ex) {
+      var state = sessions.state(request, authentication);
+      if (state != org.busystack.caldav.security.session.BrowserSession.State.CURRENT
+          || !org.busystack.caldav.security.RecentAuthentication.mfaCurrent(authentication)) {
+        if (state == org.busystack.caldav.security.session.BrowserSession.State.EXPIRED) {
+          SecurityContextHolder.clearContext();
+          request.getSession(false).invalidate();
+          authentication = null;
+        }
         if ("GET".equals(request.getMethod())) {
-          requestCache.saveRequest(request, response);
-          response.sendRedirect(request.getContextPath() + "/login?factor=required");
+          String flow =
+              journey.start(
+                  request,
+                  org.busystack.caldav.security.BrowserAccessFilter.destination(request),
+                  authentication);
+          response.sendRedirect(
+              request.getContextPath()
+                  + (authentication == null ? "/login?session&flow=" : "/auth/continue?flow=")
+                  + flow);
         } else response.sendError(403, "Recent primary and passkey verification required");
         return;
       }

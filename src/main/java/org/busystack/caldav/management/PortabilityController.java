@@ -41,12 +41,18 @@ public class PortabilityController {
     return "portability";
   }
 
+  @GetMapping("/portability/verify")
+  String verify(Authentication auth, @RequestParam UUID destination) {
+    var collection = portal.collection(auth, destination);
+    if (!collection.writable())
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.FORBIDDEN);
+    return "redirect:/portability?destination=" + destination;
+  }
+
   @PostMapping("/portability/preview")
   String preview(
-      Authentication auth,
-      @RequestParam UUID destination,
-      @RequestParam MultipartFile file,
-      Model model)
+      Authentication auth, @RequestParam UUID destination, @RequestParam MultipartFile file)
       throws IOException {
     if (file.isEmpty())
       throw FormValidation.field("file", "Choose an iCalendar file to validate and preview.");
@@ -54,22 +60,19 @@ public class PortabilityController {
       throw new org.busystack.caldav.storage.StoreException(
           org.busystack.caldav.storage.StoreException.Kind.LIMIT);
     try (var input = file.getInputStream()) {
-      model.addAttribute("report", portability.preview(auth, destination, input));
+      var report = portability.preview(auth, destination, input);
+      return "redirect:/portability/import/" + report.token();
     }
-    paginate(model, 0, ((PortabilityService.Report) model.getAttribute("report")).token());
-    return "import-report";
   }
 
   @PostMapping("/portability/import/{token}")
   String confirm(
       Authentication auth,
       @PathVariable UUID token,
-      @RequestParam(defaultValue = "false") boolean confirmed,
-      Model model)
+      @RequestParam(defaultValue = "false") boolean confirmed)
       throws IOException {
-    model.addAttribute("report", portability.confirm(auth, token, confirmed));
-    paginate(model, 0, token);
-    return "import-report";
+    portability.confirm(auth, token, confirmed);
+    return "redirect:/portability/import/" + token;
   }
 
   @GetMapping("/portability/import/{token}")
@@ -98,9 +101,10 @@ public class PortabilityController {
 
   @PostMapping("/portability/import/{token}/cancel")
   String cancel(Authentication auth, @PathVariable UUID token, RedirectAttributes flash) {
+    var report = portability.review(auth, token, 0);
     portability.cancel(auth, token);
-    flash.addFlashAttribute("notice", "Import preview discarded. No data was imported.");
-    return "redirect:/portability";
+    flash.addFlashAttribute("notice", "Import preview discarded.");
+    return "redirect:/collections/" + report.destination();
   }
 
   @GetMapping("/portability/collections/{id}/export")
@@ -114,9 +118,14 @@ public class PortabilityController {
     try {
       response.setHeader("Cache-Control", "no-store");
       if (export.length() == 0) {
-        flash.addFlashAttribute(
-            "notice",
-            "This export snapshot contained no calendar or task items. No file was downloaded.");
+        String item =
+            switch (portal.collection(auth, id).component()) {
+              case "VTODO" -> "tasks";
+              case "VJOURNAL" -> "journal entries";
+              default -> "events";
+            };
+        flash.addFlashAttribute("notice", "There are no " + item + " to export yet.");
+        flash.addFlashAttribute("noticeSeverity", "info");
         return new ModelAndView("redirect:/collections/" + id);
       }
       response.setContentType("text/calendar; charset=utf-8");

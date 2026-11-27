@@ -9,6 +9,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.busystack.caldav.account.AccountService;
+import org.busystack.caldav.security.IssuanceIntents;
 import org.busystack.caldav.security.RecentAuthentication;
 import org.busystack.caldav.security.audit.SecurityAudit;
 import org.busystack.caldav.security.audit.SecurityHashes;
@@ -41,12 +42,19 @@ public class RecoveryService {
     }
   }
 
+  static final class RejectedCode extends AccessDeniedException {
+    RejectedCode() {
+      super("Recovery code is invalid or expired");
+    }
+  }
+
   public record Status(int remaining, Instant expiresAt) {}
 
   private record StoredCode(
       String hash, Instant expiresAt, boolean available, boolean epochValid) {}
 
   private final JdbcTemplate jdbc;
+  private final IssuanceIntents intents;
   private final SessionSecurity sessions;
   private final AccountService accounts;
   private final org.busystack.caldav.security.session.ClientAccessRevocation clients;
@@ -63,13 +71,15 @@ public class RecoveryService {
       AccountPasskeyCredentials passkeys,
       SecurityAudit audit,
       PlatformTransactionManager transactions,
-      org.busystack.caldav.security.session.ClientAccessRevocation clients) {
+      org.busystack.caldav.security.session.ClientAccessRevocation clients,
+      IssuanceIntents intents) {
     this.jdbc = jdbc;
     this.sessions = sessions;
     this.accounts = accounts;
     this.passkeys = passkeys;
     this.audit = audit;
     this.clients = clients;
+    this.intents = intents;
     this.transaction = new TransactionTemplate(transactions);
     transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     transaction.setTimeout(15);
@@ -89,7 +99,30 @@ public class RecoveryService {
   public IssuedCodes issue(Authentication authentication, String peer) {
     RecentAuthentication.requireMfa(authentication);
     var account = sessions.assertForReset(authentication);
+    return issueSet(account, peer);
+  }
+
+  @Transactional
+  public IssuedCodes issue(
+      Authentication authentication, String peer, UUID intent, boolean replace) {
+    RecentAuthentication.requireMfa(authentication);
+    var account = sessions.assertForReset(authentication);
+    var claim = intents.claim(account, intent, IssuanceIntents.Purpose.RECOVERY_CODES, "");
+    if (claim.consumed()) return null;
+    if (!java.util.Objects.equals(
+        claim.expectedGeneration(), intents.recoveryGeneration(account.id())))
+      throw IssuanceIntents.changed();
+    if (status(authentication).remaining() > 0 && !replace)
+      throw new IllegalArgumentException("Confirm replacement of the current recovery codes.");
+    var issued = issueSet(account, peer);
+    intents.consume(claim, null);
+    return issued;
+  }
+
+  private IssuedCodes issueSet(SessionSecurity.Account account, String peer) {
     requireCurrentAccess(account.id());
+    jdbc.update(
+        "UPDATE accounts SET recovery_code_generation=gen_random_uuid() WHERE id=?", account.id());
     jdbc.update(
         "UPDATE account_recovery_codes SET revoked_at=now() WHERE account_id=? AND used_at IS NULL AND revoked_at IS NULL",
         account.id());
@@ -167,8 +200,7 @@ public class RecoveryService {
                   peer);
               return true;
             });
-    if (!Boolean.TRUE.equals(accepted))
-      throw new AccessDeniedException("Recovery code is invalid or expired");
+    if (!Boolean.TRUE.equals(accepted)) throw new RejectedCode();
   }
 
   private void lock(UUID account) {

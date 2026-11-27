@@ -41,7 +41,11 @@ public final class SignedPasskeyClient implements AutoCloseable {
   private final List<HttpClient> browsers = new java.util.ArrayList<>();
 
   public SignedPasskeyClient(int port, String context, String origin) {
-    this.base = "https://127.0.0.1:" + port;
+    this("https://127.0.0.1:" + port, context, origin);
+  }
+
+  public SignedPasskeyClient(String base, String context, String origin) {
+    this.base = base;
     this.context = context;
     this.origin = origin;
   }
@@ -98,10 +102,12 @@ public final class SignedPasskeyClient implements AutoCloseable {
 
   public String csrf(HttpClient browser, String path) throws Exception {
     var response = get(browser, path);
-    if (path.equals("/login")
-        && response.statusCode() == 302
-        && response.headers().firstValue("Location").orElse("").endsWith("/auth/continue"))
-      response = get(browser, "/auth/continue");
+    if (path.equals("/login")) {
+      for (int redirects = 0; response.statusCode() == 302 && redirects < 3; redirects++) {
+        String location = response.headers().firstValue("Location").orElseThrow();
+        response = get(browser, localPath(location));
+      }
+    }
     assertThat(response.statusCode()).as(path).isEqualTo(200);
     return csrf(response.body());
   }

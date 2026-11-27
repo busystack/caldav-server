@@ -67,13 +67,18 @@ class InitializationIT {
         .endsWith("/setup");
     assertThat(http.get(browser, "/login").headers().firstValue("Location").orElseThrow())
         .endsWith("/setup");
-    var page = http.get(browser, "/setup");
-    assertThat(page.body())
-        .contains("Set up BusyStack", "scripts/initialize.sh")
-        .doesNotContain("name=\"password\"");
-    var form = http.get(browser, "/setup/administrator");
+    var form = http.get(browser, "/setup");
+    assertThat(form.body())
+        .contains("Set up BusyStack", "scripts/initialize.sh", "name=\"password\"");
     assertThat(form.headers().firstValue("Cache-Control").orElseThrow()).isEqualTo("no-store");
     assertThat(form.headers().firstValue("Referrer-Policy").orElseThrow()).isEqualTo("no-referrer");
+    assertThat(
+            http.get(browser, "/setup/administrator")
+                .headers()
+                .firstValue("Location")
+                .orElseThrow())
+        .endsWith("/team/setup");
+    assertThat(http.get(browser, "/help/setup").statusCode()).isEqualTo(200);
     String code = setup.issueCode();
     var values =
         Map.of(
@@ -117,8 +122,9 @@ class InitializationIT {
             "POST",
             SignedPasskeyClient.csrf(wrong.body()),
             SignedPasskeyClient.form(values));
-    assertThat(result.statusCode()).isEqualTo(200);
-    assertThat(result.body())
+    assertThat(result.statusCode()).isEqualTo(302);
+    assertThat(result.headers().firstValue("Location").orElseThrow()).endsWith("/team/login");
+    assertThat(http.get(browser, "/login").body())
         .contains("Administrator account created", "Sign in")
         .doesNotContain(code, PASSWORD);
     assertThat(http.get(browser, "/security").statusCode())
@@ -194,8 +200,8 @@ class InitializationIT {
     var browser = http.passwordLogin("journey-admin", PASSWORD);
     var enrollment = http.get(browser, "/auth/continue?next=/team/connections?client=gnome");
     assertThat(enrollment.body())
-        .contains("Secure your account", "Create passkey")
-        .doesNotContain("Registered passkeys", "id=\"authenticate-passkey\"");
+        .contains("Create a passkey", "Create passkey")
+        .doesNotContain("Registered passkeys", "aria-label=\"Server administration\"");
     String csrf = SignedPasskeyClient.csrf(enrollment.body());
     assertThat(
             http.request(
@@ -223,19 +229,15 @@ class InitializationIT {
     assertThat(http.assertCredential(http.options(browser), key, "correct", 0x0d).statusCode())
         .isEqualTo(200);
     var complete = http.get(browser, "/auth/continue");
-    assertThat(complete.body()).contains("Authentication successful");
+    assertThat(complete.statusCode()).isEqualTo(302);
+    assertThat(complete.headers().firstValue("Location").orElseThrow()).endsWith("/team/");
     assertThat(http.get(browser, "/").body())
-        .contains("Welcome to BusyStack", "Set up my calendar", "Manage users");
-    assertThat(
-            http.request(
-                    browser,
-                    "/welcome",
-                    "POST",
-                    http.csrf(browser, "/"),
-                    SignedPasskeyClient.form(Map.of("activity", "users")))
-                .statusCode())
-        .isEqualTo(302);
-    assertThat(http.get(browser, "/").body()).doesNotContain("<h1>Welcome to BusyStack</h1>");
+        .contains("Overview", "Open server administration", "Create a resource");
+    var credentialForm = http.get(browser, "/security/credentials?client=gnome&from=connect");
+    var matcher =
+        java.util.regex.Pattern.compile("name=\"intent\" value=\"([a-f0-9-]{36})\"")
+            .matcher(credentialForm.body());
+    assertThat(matcher.find()).isTrue();
     var issued =
         http.request(
             browser,
@@ -243,7 +245,17 @@ class InitializationIT {
             "POST",
             http.csrf(browser, "/security/credentials"),
             SignedPasskeyClient.form(
-                Map.of("label", "Synthetic GNOME", "days", "1", "client", "gnome")));
+                Map.of(
+                    "label",
+                    "Synthetic GNOME",
+                    "days",
+                    "1",
+                    "client",
+                    "gnome",
+                    "from",
+                    "connect",
+                    "intent",
+                    matcher.group(1))));
     assertThat(issued.statusCode()).isEqualTo(200);
     assertThat(issued.body())
         .contains("Application password created", "Synthetic GNOME", "client=gnome");

@@ -39,11 +39,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.FactorGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.session.Session;
@@ -214,9 +210,9 @@ class KeycloakOidcIT {
         .as("Login failed at %s: %s", lastLoginStage, visibleText(result.body()))
         .isEqualTo(302);
     assertThat(result.headers().firstValue("Location").orElse("")).doesNotContain("error");
-    var probe = client.send(get(BASE + "/probe/oidc"), HttpResponse.BodyHandlers.ofString());
-    assertThat(probe.statusCode()).isEqualTo(200);
-    var principal = json.readTree(probe.body());
+    var incomplete = client.send(get(BASE + "/probe/oidc"), HttpResponse.BodyHandlers.ofString());
+    assertThat(incomplete.statusCode()).isEqualTo(302);
+    var principal = storedPrimary(client);
     assertThat(principal.path("name").asString()).isEqualTo("internal-alice");
     assertThat(principal.path("authorities").toString())
         .contains("FACTOR_AUTHORIZATION_CODE", "BUSYSTACK_TRUSTED_UPSTREAM")
@@ -282,9 +278,7 @@ class KeycloakOidcIT {
   @Test
   @Order(4)
   void explicitMfaLinkingKeepsOwnershipAndReplacesTheOldSecurityContext() throws Exception {
-    // The initial MFA session and old OAuth rows are fixtures, not WebAuthn qualification.
-    // Linking, CSRF, provider password/code/PKCE, signed ID-token verification,
-    // callback, and replacement JDBC session exercise the real HTTP application.
+    // Seed only the existing OAuth rows. Local MFA uses signed WebAuthn assertions.
     var ownerId =
         accounts.provision(
             "linked-owner", "Existing local administrator", "correct horse battery staple", true);
@@ -301,8 +295,15 @@ class KeycloakOidcIT {
     jdbc.update(
         "INSERT INTO oauth_refresh_families(authorization_id,account_id,client_id,recovery_epoch,expires_at) SELECT 'link-fixture',?,'fixture-client',recovery_epoch,now()+interval '1 hour' FROM system_state WHERE id=1",
         ownerId);
-    String oldSession = persistMfaSession(sessions, original);
-    var client = browserFor(oldSession);
+    var transport = new org.busystack.caldav.testing.SignedPasskeyClient(BASE, "", BASE);
+    var client = transport.passwordLogin(original.username(), "correct horse battery staple");
+    var key = transport.enroll(client);
+    assertThat(
+            transport
+                .assertCredential(transport.options(client), key, "correct", 0x0d)
+                .statusCode())
+        .isEqualTo(200);
+    String oldSession = sessionId(client);
     var dashboard = client.send(get(BASE + "/"), HttpResponse.BodyHandlers.ofString());
     assertThat(dashboard.statusCode()).isEqualTo(200);
     String csrf = parse(dashboard.body()).hidden().get("_csrf");
@@ -359,13 +360,14 @@ class KeycloakOidcIT {
                 "SELECT revoked_at IS NOT NULL FROM oauth_refresh_families WHERE authorization_id='link-fixture'",
                 Boolean.class))
         .isTrue();
-    var probe = client.send(get(BASE + "/probe/oidc"), HttpResponse.BodyHandlers.ofString());
-    assertThat(probe.statusCode()).isEqualTo(200);
-    var principal = json.readTree(probe.body());
+    var incomplete = client.send(get(BASE + "/probe/oidc"), HttpResponse.BodyHandlers.ofString());
+    assertThat(incomplete.statusCode()).isEqualTo(302);
+    var principal = storedPrimary(client);
     assertThat(principal.path("name").asString()).isEqualTo(original.username());
     assertThat(principal.path("authorities").toString())
         .contains("ROLE_ADMIN", "BUSYSTACK_TRUSTED_UPSTREAM", "FACTOR_AUTHORIZATION_CODE")
         .doesNotContain("FACTOR_PASSWORD", "FACTOR_WEBAUTHN");
+    transport.close();
   }
 
   @Test
@@ -512,30 +514,33 @@ class KeycloakOidcIT {
         .build();
   }
 
-  private static <S extends Session> String persistMfaSession(
-      SessionRepository<S> sessions, AccountService.Account account) {
-    var principal =
-        User.withUsername(account.username())
-            .password(account.passwordHash())
-            .authorities("ROLE_ADMIN")
-            .build();
-    var authentication =
-        UsernamePasswordAuthenticationToken.authenticated(
-            principal,
-            null,
-            List.of(
-                new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                    "ROLE_ADMIN"),
-                org.busystack.caldav.security.session.SessionSecurity.authority(
-                    account.securityEpoch()),
-                FactorGrantedAuthority.fromAuthority(FactorGrantedAuthority.PASSWORD_AUTHORITY),
-                FactorGrantedAuthority.fromAuthority(FactorGrantedAuthority.WEBAUTHN_AUTHORITY)));
-    S session = sessions.createSession();
-    session.setAttribute(
-        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-        new SecurityContextImpl(authentication));
-    sessions.save(session);
-    return session.getId();
+  private String sessionId(HttpClient browser) {
+    var manager = (CookieManager) browser.cookieHandler().orElseThrow();
+    return manager.getCookieStore().getCookies().stream()
+        .filter(cookie -> cookie.getName().equals("JSESSIONID"))
+        .map(
+            cookie ->
+                new String(Base64.getDecoder().decode(cookie.getValue()), StandardCharsets.UTF_8))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private tools.jackson.databind.JsonNode storedPrimary(HttpClient browser) {
+    var session = sessions.findById(sessionId(browser));
+    org.springframework.security.core.context.SecurityContext context =
+        session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+    var auth = context.getAuthentication();
+    var oidc = (org.springframework.security.oauth2.core.oidc.user.OidcUser) auth.getPrincipal();
+    return json.valueToTree(
+        Map.of(
+            "name",
+            auth.getName(),
+            "idToken",
+            oidc.getIdToken().getTokenValue(),
+            "authorities",
+            auth.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .toList()));
   }
 
   private HttpRequest get(String uri) {

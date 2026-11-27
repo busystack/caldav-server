@@ -255,14 +255,14 @@ class GroupServiceIT {
   }
 
   @Test
-  void administrationRequiresCurrentAdministratorAndMfaButSharingChoicesDoNot() {
+  void administratorMetadataAndMutationApplyDistinctAssuranceRequirements() {
     denied(() -> groups.create(auth(administrator, false), "Denied", Set.of()));
     denied(() -> groups.create(auth(owner, true), "Denied", Set.of()));
     UUID group = group("Engineering", Set.of("bob"));
     assertThat(groups.choices(auth(owner, false)))
         .containsExactly(new GroupService.Choice(group, "Engineering"));
     denied(() -> groups.list(auth(owner, true)));
-    denied(() -> groups.list(auth(administrator, false)));
+    assertThat(groups.list(auth(administrator, false))).hasSize(1);
     var stale = auth(administrator, true);
     jdbc.update("UPDATE accounts SET security_epoch=gen_random_uuid() WHERE id=?", administrator);
     denied(() -> groups.update(stale, group, "Changed", Set.of("bob")));

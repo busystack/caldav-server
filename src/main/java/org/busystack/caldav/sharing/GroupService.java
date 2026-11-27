@@ -111,6 +111,18 @@ public class GroupService {
       UUID member,
       boolean add,
       boolean confirmed) {
+    changeMember(auth, group, username, member, add, confirmed, null);
+  }
+
+  @Transactional(timeout = 30)
+  public void changeMember(
+      Authentication auth,
+      UUID group,
+      String username,
+      UUID member,
+      boolean add,
+      boolean confirmed,
+      Long expectedGrants) {
     RecentAuthentication.requireMfa(auth);
     DavMutationLock.exclusive(jdbc);
     UUID actor = administrator(auth);
@@ -118,6 +130,8 @@ public class GroupService {
     if (!confirmed)
       throw org.busystack.caldav.management.FormValidation.field(
           "confirmed", "Confirm the effect on existing and future group access.");
+    if (expectedGrants != null && !expectedGrants.equals(grantCount(group)))
+      throw new StoreException(StoreException.Kind.PRECONDITION);
     if (add) member = accounts(Set.of(username)).iterator().next();
     if (member == null) throw new IllegalArgumentException("An account is required");
     lockAffected(group);
@@ -157,6 +171,32 @@ public class GroupService {
         org.busystack.caldav.security.audit.SecurityAudit.TargetType.GROUP,
         group,
         member);
+  }
+
+  private Long grantCount(UUID group) {
+    return jdbc.queryForObject(
+        "SELECT count(*) FROM collection_group_members WHERE group_id=?", Long.class, group);
+  }
+
+  public MemberView member(Authentication auth, UUID group, UUID account) {
+    administrator(auth);
+    var rows =
+        jdbc.query(
+            """
+        SELECT a.id,a.username,a.display_name,a.enabled
+        FROM sharing_group_members m JOIN accounts a ON a.id=m.account_id
+        WHERE m.group_id=? AND a.id=?
+        """,
+            (rs, row) ->
+                new MemberView(
+                    rs.getObject(1, UUID.class),
+                    rs.getString(2),
+                    rs.getString(3),
+                    rs.getBoolean(4)),
+            group,
+            account);
+    if (rows.isEmpty()) throw new StoreException(StoreException.Kind.NOT_FOUND);
+    return rows.getFirst();
   }
 
   public record Grant(
@@ -371,7 +411,6 @@ public class GroupService {
   }
 
   private UUID administrator(Authentication authentication) {
-    RecentAuthentication.requireMfa(authentication);
     var actor = sessions.assertCurrent(authentication);
     if (!Boolean.TRUE.equals(
         jdbc.queryForObject(

@@ -10,34 +10,54 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SecurityAudit {
   public enum Action {
-    DATABASE_RESTORE,
-    PASSWORD_LOGIN,
-    PASSWORD_CHANGED,
-    ACCOUNT_DISABLED,
-    OFFLINE_RECOVERY,
-    PASSKEY_LOGIN,
-    SESSION_REVOKED,
-    RECOVERY_CODES_ISSUED,
-    RECOVERY_USED,
-    GROUP_CREATED,
-    GROUP_UPDATED,
-    GROUP_MEMBER_ADDED,
-    GROUP_MEMBER_REMOVED,
-    GROUP_DELETED,
-    GROUP_SHARING_CHANGED,
-    COLLECTION_CREATED,
-    COLLECTION_UPDATED,
-    COLLECTION_DELETED,
-    COLLECTION_IMPORTED,
-    INDIVIDUAL_SHARING_CHANGED,
-    ACCOUNT_CREATED,
-    ACCOUNT_PROFILE_UPDATED
+    DATABASE_RESTORE("Database restored"),
+    PASSWORD_LOGIN("Password sign-in"),
+    PASSWORD_CHANGED("Password changed"),
+    ACCOUNT_DISABLED("Account disabled"),
+    OFFLINE_RECOVERY("Offline account recovery"),
+    PASSKEY_LOGIN("Passkey verification"),
+    SESSION_REVOKED("Browser session ended"),
+    RECOVERY_CODES_ISSUED("Recovery codes generated"),
+    RECOVERY_USED("Recovery code used"),
+    GROUP_CREATED("Group created"),
+    GROUP_UPDATED("Group updated"),
+    GROUP_MEMBER_ADDED("Group member added"),
+    GROUP_MEMBER_REMOVED("Group member removed"),
+    GROUP_DELETED("Group deleted"),
+    GROUP_SHARING_CHANGED("Group share changed"),
+    COLLECTION_CREATED("Resource created"),
+    COLLECTION_UPDATED("Resource settings updated"),
+    COLLECTION_DELETED("Resource deleted"),
+    COLLECTION_IMPORTED("Resource import"),
+    INDIVIDUAL_SHARING_CHANGED("Direct share changed"),
+    ACCOUNT_CREATED("Account created"),
+    ACCOUNT_PROFILE_UPDATED("Account profile updated");
+
+    private final String label;
+
+    Action(String label) {
+      this.label = label;
+    }
+
+    public String label() {
+      return label;
+    }
   }
 
   public enum Outcome {
-    SUCCESS,
-    FAILURE,
-    THROTTLED
+    SUCCESS("Succeeded"),
+    FAILURE("Failed"),
+    THROTTLED("Rate limited");
+
+    private final String label;
+
+    Outcome(String label) {
+      this.label = label;
+    }
+
+    public String label() {
+      return label;
+    }
   }
 
   public enum TargetType {

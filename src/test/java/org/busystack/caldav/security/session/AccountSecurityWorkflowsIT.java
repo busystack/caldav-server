@@ -161,9 +161,10 @@ class AccountSecurityWorkflowsIT {
             .orElseThrow()
             .getValue();
     assertThat(after).isNotEqualTo(before);
-    var page = get(browser, "/security/sessions");
+    assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(302);
+    var page = get(browser, "/auth/continue");
     assertThat(page.statusCode()).isEqualTo(200);
-    assertThat(page.body()).contains("This browser");
+    assertThat(page.body()).contains("Create a passkey").doesNotContain("class=\"section-nav\"");
     String id =
         jdbc.queryForObject(
             "SELECT session_id FROM spring_session WHERE principal_name='session-owner'",
@@ -230,7 +231,7 @@ class AccountSecurityWorkflowsIT {
       assertThat(delayed.get(10, TimeUnit.SECONDS).statusCode()).isEqualTo(200);
     }
     assertThat(repository.findById(oldId)).isNull();
-    assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(200);
+    assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(302);
     assertThat(get(oldBrowser, "/security/sessions").statusCode()).isEqualTo(302);
   }
 
@@ -253,18 +254,28 @@ class AccountSecurityWorkflowsIT {
 
   @Test
   void selfSessionRevocationWorksOverHttpsAndRequiresCsrf() throws Exception {
-    String id = persist(auth(owner, true));
-    HttpClient browser = browserFor(id);
-    UUID primary = primaryId(id);
-    assertThat(post(browser, "/security/sessions/" + primary + "/revoke", Map.of()).statusCode())
-        .isEqualTo(403);
-    String csrf = csrf(browser, "/security/sessions");
-    assertThat(
-            post(browser, "/security/sessions/" + primary + "/revoke", Map.of("_csrf", csrf))
-                .statusCode())
-        .isEqualTo(302);
-    assertThat(repository.findById(id)).isNull();
-    assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(302);
+    try (var transport =
+        new org.busystack.caldav.testing.SignedPasskeyClient(
+            base(), "", "https://calendar.example")) {
+      var browser = completedBrowser(transport);
+      String id =
+          jdbc.queryForObject(
+              "SELECT session_id FROM spring_session WHERE principal_name='session-owner'",
+              String.class);
+      UUID primary = primaryId(id);
+      assertThat(post(browser, "/security/sessions/" + primary + "/revoke", Map.of()).statusCode())
+          .isEqualTo(403);
+      String csrf = csrf(browser, "/security/sessions/" + primary + "/revoke");
+      assertThat(
+              post(
+                      browser,
+                      "/security/sessions/" + primary + "/revoke",
+                      Map.of("_csrf", csrf, "confirmed", "true"))
+                  .statusCode())
+          .isEqualTo(302);
+      assertThat(repository.findById(id)).isNull();
+      assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(302);
+    }
   }
 
   @Test
@@ -275,8 +286,12 @@ class AccountSecurityWorkflowsIT {
     assertThat(get(browserFor(stale), "/security/sessions").statusCode()).isEqualTo(403);
     assertThat(repository.findById(stale)).isNull();
     assertThatThrownBy(() -> security.assertCurrent(old)).isInstanceOf(AccessDeniedException.class);
-    assertThat(get(browserFor(persist(auth(owner, true))), "/security/sessions").statusCode())
-        .isEqualTo(200);
+    try (var transport =
+        new org.busystack.caldav.testing.SignedPasskeyClient(
+            base(), "", "https://calendar.example")) {
+      assertThat(get(completedBrowser(transport), "/security/sessions").statusCode())
+          .isEqualTo(200);
+    }
   }
 
   @Test
@@ -511,7 +526,7 @@ class AccountSecurityWorkflowsIT {
         .isEqualTo(302);
     assertThat(accounts.find(owner).passwordHash()).startsWith("$2a$12$");
     assertThat(epoch(owner)).isEqualTo(epoch);
-    assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(200);
+    assertThat(get(browser, "/security/sessions").statusCode()).isEqualTo(302);
   }
 
   @Test
@@ -695,6 +710,18 @@ class AccountSecurityWorkflowsIT {
   private UUID epoch(UUID account) {
     return jdbc.queryForObject(
         "SELECT security_epoch FROM accounts WHERE id=?", UUID.class, account);
+  }
+
+  private HttpClient completedBrowser(org.busystack.caldav.testing.SignedPasskeyClient transport)
+      throws Exception {
+    var browser = transport.passwordLogin("session-owner", "correct horse battery staple");
+    var key = transport.enroll(browser);
+    assertThat(
+            transport
+                .assertCredential(transport.options(browser), key, "correct", 0x0d)
+                .statusCode())
+        .isEqualTo(200);
+    return browser;
   }
 
   private String persist(Authentication authentication) {

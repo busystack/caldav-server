@@ -29,7 +29,25 @@ public class AdministrationService {
       UUID actor,
       String targetType,
       UUID targetId,
-      UUID relatedAccount) {}
+      UUID relatedAccount,
+      String targetLabel,
+      String relatedUsername) {
+    public String eventLabel() {
+      try {
+        return SecurityAudit.Action.valueOf(action).label();
+      } catch (IllegalArgumentException unknown) {
+        return "Other security event";
+      }
+    }
+
+    public String outcomeLabel() {
+      try {
+        return SecurityAudit.Outcome.valueOf(outcome).label();
+      } catch (IllegalArgumentException unknown) {
+        return "Unknown";
+      }
+    }
+  }
 
   private final ManagementService management;
   private final AccountService accounts;
@@ -51,14 +69,25 @@ public class AdministrationService {
 
   public PortalPage<AccountView> accounts(
       Authentication auth, String query, String status, int page) {
+    String method = Set.of("local", "external").contains(status) ? status : "all";
+    return accounts(auth, query, method.equals("all") ? status : "all", method, page);
+  }
+
+  public PortalPage<AccountView> accounts(
+      Authentication auth, String query, String status, String method, int page) {
     management.requireAdministrator(auth);
     PortalService.checkQuery(query);
-    if (!Set.of("all", "enabled", "disabled", "local", "external").contains(status))
+    if (!Set.of("all", "enabled", "disabled").contains(status)
+        || !Set.of("all", "local", "external").contains(method))
       throw new IllegalArgumentException("Invalid account filter");
     String clause =
         switch (status) {
           case "enabled" -> " AND a.enabled";
           case "disabled" -> " AND NOT a.enabled";
+          default -> "";
+        };
+    String signIn =
+        switch (method) {
           case "local" ->
               " AND NOT EXISTS(SELECT 1 FROM external_identities e WHERE e.account_id=a.id)";
           case "external" ->
@@ -70,6 +99,7 @@ public class AdministrationService {
             ACCOUNT_SELECT
                 + " WHERE (strpos(lower(a.username),lower(?))>0 OR strpos(lower(a.display_name),lower(?))>0)"
                 + clause
+                + signIn
                 + " ORDER BY a.username,a.id LIMIT 51 OFFSET ?",
             AdministrationService::account,
             query,
@@ -87,6 +117,7 @@ public class AdministrationService {
 
   @Transactional
   public UUID create(Authentication auth, String username, String displayName, String password) {
+    org.busystack.caldav.security.RecentAuthentication.requireMfa(auth);
     management.requireAdministrator(auth);
     FormValidation.account(username, displayName, password);
     if (accounts.find(username) != null)
@@ -111,6 +142,7 @@ public class AdministrationService {
 
   @Transactional
   public void edit(Authentication auth, UUID id, String expected, String displayName) {
+    org.busystack.caldav.security.RecentAuthentication.requireMfa(auth);
     management.requireAdministrator(auth);
     account(auth, id);
     if (!FormValidation.displayName(displayName))
@@ -128,12 +160,9 @@ public class AdministrationService {
 
   @Transactional
   public void disable(Authentication auth, UUID id, boolean confirmed) {
-    management.requireAdministrator(auth);
-    account(auth, id);
     if (!confirmed)
       throw new IllegalArgumentException("Confirm disabling this account and revoking its access");
-    UUID actor = management.current(auth).id();
-    accounts.disable(id);
+    UUID actor = management.disable(auth, id);
     audit.targeted(
         actor,
         SecurityAudit.Action.ACCOUNT_DISABLED,
@@ -151,7 +180,17 @@ public class AdministrationService {
     if (!outcome.isEmpty()) SecurityAudit.Outcome.valueOf(outcome);
     return PortalPage.of(
         jdbc.query(
-            "SELECT s.occurred_at,s.action,s.outcome,a.username,s.account_id,s.target_type,s.target_id,s.related_account_id FROM security_audit s LEFT JOIN accounts a ON a.id=s.account_id WHERE (?='' OR s.action=?) AND (?='' OR s.outcome=?) AND (?='' OR a.username=?) ORDER BY s.id DESC LIMIT 51 OFFSET ?",
+            """
+            SELECT s.occurred_at,s.action,s.outcome,a.username,s.account_id,s.target_type,s.target_id,
+                   s.related_account_id,COALESCE(t.display_name,g.name),m.username
+            FROM security_audit s
+            LEFT JOIN accounts a ON a.id=s.account_id
+            LEFT JOIN accounts t ON s.target_type='ACCOUNT' AND t.id=s.target_id
+            LEFT JOIN sharing_groups g ON s.target_type='GROUP' AND g.id=s.target_id
+            LEFT JOIN accounts m ON m.id=s.related_account_id
+            WHERE (?='' OR s.action=?) AND (?='' OR s.outcome=?) AND (?='' OR a.username=?)
+            ORDER BY s.id DESC LIMIT 51 OFFSET ?
+            """,
             (rs, row) ->
                 new AuditEntry(
                     rs.getTimestamp(1).toInstant(),
@@ -161,7 +200,9 @@ public class AdministrationService {
                     rs.getObject(5, UUID.class),
                     rs.getString(6),
                     rs.getObject(7, UUID.class),
-                    rs.getObject(8, UUID.class)),
+                    rs.getObject(8, UUID.class),
+                    rs.getString(9),
+                    rs.getString(10)),
             action,
             action,
             outcome,

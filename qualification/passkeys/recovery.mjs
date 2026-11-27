@@ -70,10 +70,12 @@ export async function qualifyRestoration({page, base, privateValues, administrat
   console.log('HTTPS_RECOVERY_RECENT_PRIMARY_AND_WEBAUTHN_REAUTHENTICATION_PASSED');
   await page.goto(base + '/security/credentials');
   const device = page.locator('tbody tr').filter({hasText: 'Recovery snapshot device'});
-  await Promise.all([page.waitForURL(base + '/security/credentials'), device.getByRole('button', {name: 'Revoke', exact: true}).click()]);
+  await device.getByRole('link', {name: 'Revoke', exact: true}).click();
+  await Promise.all([page.waitForURL(base + '/security/credentials'), page.getByRole('button', {name: 'Revoke application password', exact: true}).click()]);
   await page.goto(base + '/oauth-grants');
   const authorization = page.locator('tbody tr').filter({hasText: grant.clientId});
-  await Promise.all([page.waitForURL(base + '/oauth-grants'), authorization.getByRole('button', {name: 'Revoke access', exact: true}).click()]);
+  await authorization.getByRole('link', {name: 'Revoke access', exact: true}).click();
+  await Promise.all([page.waitForURL(base + '/oauth-grants'), page.getByRole('button', {name: 'Revoke app access', exact: true}).click()]);
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Basic ' + credential.encoded}})).status, 401);
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Bearer ' + grant.accessToken}})).status, 401);
   console.log('READY_RESTORE_APPLY');
@@ -106,12 +108,12 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await page.locator('input[name=password]').fill(password);
     await Promise.all([page.waitForURL(url => accountLocation(url, base)),
       page.getByRole('button', {name: 'Sign in', exact: true}).click()]);
-    await page.getByRole('heading', {name: 'Secure your account', exact: true}).waitFor();
+    await page.getByRole('heading', {name: 'Create a passkey', exact: true}).waitFor();
   }
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');
   await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await page.locator('#security-status').filter({hasText: 'Passkey saved.'}).waitFor();
   await verifyPasskey(page,base);
   const fresh = await issueDavCredential(page, base, privateValues, 'Recovered device', username);
   await qualifyOAuth(page, base, privateValues, administratorPage,
@@ -132,11 +134,11 @@ export async function qualifyRestoration({page, base, privateValues, administrat
     await readerPage.goto(base + '/login');
     await readerPage.locator('input[name=username]').fill(readerUsername);
     await readerPage.locator('input[name=password]').fill(readerPassword);
-    await Promise.all([readerPage.waitForURL(base + '/auth/continue'), readerPage.getByRole('button', {name: 'Sign in', exact: true}).click()]);
+    await Promise.all([readerPage.waitForURL(url => url.pathname === new URL(base).pathname.replace(/\/$/,'') + '/auth/continue'), readerPage.getByRole('button', {name: 'Sign in', exact: true}).click()]);
     await primaryCannotMutate(readerPage, base);
     await readerPage.goto(base + '/security/passkeys');
     await readerPage.getByRole('button', {name: 'Create passkey', exact: true}).click();
-    await readerPage.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+    await readerPage.locator('#security-status').filter({hasText: 'Passkey saved.'}).waitFor();
     await verifyPasskey(readerPage,base);
     await openCollection(readerPage,base,collectionName);
     readerCredential = await issueDavCredential(readerPage, base, privateValues, 'Recovered shared read device', readerUsername);

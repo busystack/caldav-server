@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const status = document.getElementById('security-status');
-  if (!status) return;
+  if (!status || !document.querySelector('meta[name=csrf-token]')) return;
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
   const csrfHeader = document.querySelector('meta[name="csrf-header"]').content;
   let busy = false;
@@ -58,13 +58,18 @@
           throw new Error('Passkeys are unavailable in this browser or address. Use a supported browser at the configured HTTPS URL.');
         await action(button.dataset.context);
       } catch (error) { status.textContent = explain(error); }
-      finally { busy = false; buttons.forEach(b => { b.disabled = false; }); }
+      finally {
+        busy = false;
+        buttons.forEach(b => { b.disabled = false; });
+        if (button.closest('[hidden]')) document.getElementById('authenticate-passkey')?.focus();
+        else button.focus();
+      }
     });
   }
   function registered() {
     document.getElementById('enrollment-stage').hidden = true;
     document.getElementById('registration-success').hidden = false;
-    status.textContent = 'Passkey created. Verify your passkey to continue.';
+    status.textContent = 'Passkey saved. Verification needed.';
   }
   const register = document.getElementById('register-passkey');
   if (register) run(register, async base => {
@@ -91,6 +96,19 @@
     if (first) registered();
     else { status.textContent = 'Passkey created. Updating registered passkeys…'; window.location.reload(); }
   });
+  let lastReconciliation = 0;
+  if (register && document.getElementById('enrollment-stage')) {
+    window.addEventListener('focus', async () => {
+      if (busy || register.closest('[hidden]') || Date.now() - lastReconciliation < 1500) return;
+      lastReconciliation = Date.now();
+      try {
+        if ((await call(register.dataset.context, 'auth/state', 'GET')).enrolled) {
+          registered();
+          document.getElementById('authenticate-passkey')?.focus();
+        }
+      } catch { /* The visible action remains available. */ }
+    });
+  }
   const authenticate = document.getElementById('authenticate-passkey');
   if (authenticate) run(authenticate, async base => {
     const options = await call(base, 'webauthn/authenticate/options', 'POST');
@@ -98,10 +116,22 @@
     for (const credential of options.allowCredentials || []) credential.id = decode(credential.id);
     const credential = await navigator.credentials.get({publicKey: options});
     const response = credential.response;
-    const result = await call(base, 'login/webauthn', 'POST', {id: credential.id, rawId: encode(credential.rawId), type: credential.type,
+    const flow = encodeURIComponent(authenticate.dataset.flow || '');
+    let result;
+    try {
+      result = await call(base, 'login/webauthn?flow=' + flow, 'POST', {id: credential.id, rawId: encode(credential.rawId), type: credential.type,
       response: {authenticatorData: encode(response.authenticatorData), clientDataJSON: encode(response.clientDataJSON),
         signature: encode(response.signature), userHandle: response.userHandle ? encode(response.userHandle) : null},
       clientExtensionResults: credential.getClientExtensionResults(), authenticatorAttachment: credential.authenticatorAttachment});
+    } catch (error) {
+      try {
+        if ((await call(base, 'auth/state', 'GET')).verified) {
+          window.location.assign(base + 'auth/continue?flow=' + flow);
+          return;
+        }
+      } catch { /* Keep the original failure if the server cannot confirm the outcome. */ }
+      throw error;
+    }
     const destination = new URL(result.redirectUrl || base, window.location.href);
     const application = new URL(base, window.location.href);
     if (destination.origin !== application.origin || !destination.pathname.startsWith(application.pathname))

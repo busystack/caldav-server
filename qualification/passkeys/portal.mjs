@@ -9,7 +9,7 @@ async function importFile(page,base,id,content) {
   await page.goto(base+'/portability?destination='+id);
   const form=page.locator('form').filter({has:page.locator(`input[name=destination][value="${id}"]`)});
   await form.locator('input[type=file]').setInputFiles({name:'../../untrusted.ics',mimeType:'text/calendar',buffer:Buffer.from(content)});
-  await Promise.all([page.waitForURL(base+'/portability/preview'),form.getByRole('button',{name:'Validate and preview import',exact:true}).click()]);
+  await Promise.all([page.waitForURL(/\/portability\/import\/[a-f0-9-]{36}$/i),form.getByRole('button',{name:'Validate and preview import',exact:true}).click()]);
   await page.getByRole('heading',{name:'Review your import',exact:true}).waitFor();
 }
 async function confirmImport(page,base) {
@@ -26,13 +26,13 @@ async function resourceUrls(page,base,address,encoded) {
 export async function qualifyPersonalPortal(page,base,privateValues,username,suffix='local') {
   const name='Portal events '+suffix;
   await page.goto(base+'/collections/new');
-  const create=page.locator('form').filter({has:page.getByRole('button',{name:'Create collection',exact:true})});
+  const create=page.locator('form').filter({has:page.getByRole('button',{name:/^Create (calendar|task list|journal)$/})});
   await create.locator('[name=name]').fill(name); await create.locator('[name=description]').fill('Retain description'); await create.locator('[name=color]').fill('invalid');
   await expectFieldError(page,create,'color',400,'collection-create');
   assert.equal(await create.locator('[name=name]').inputValue(),name);
   assert.equal(await create.locator('[name=description]').inputValue(),'Retain description');
   await create.locator('[name=color]').fill('#123456');
-  await Promise.all([page.waitForURL(/\/collections\/[a-f0-9-]{36}$/i),create.getByRole('button',{name:'Create collection',exact:true}).click()]);
+  await Promise.all([page.waitForURL(/\/collections\/[a-f0-9-]{36}$/i),create.getByRole('button',{name:/^Create (calendar|task list|journal)$/}).click()]);
   const id=new URL(page.url()).pathname.split('/').at(-1);
   const originalAddress=await page.locator('#collection-address').inputValue();
   const edit=page.locator('form').filter({has:page.getByRole('button',{name:'Save details',exact:true})});
@@ -44,8 +44,8 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await Promise.all([page.waitForURL(base+'/collections/'+id),edit.getByRole('button',{name:'Save details',exact:true}).click()]);
   assert.equal(await page.locator('#collection-address').inputValue(),originalAddress);
   assert.equal(await page.locator('img[src=x]').count(),0);
-  await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
-  await page.getByRole('status').filter({hasText:'This export snapshot contained no calendar or task items'}).waitFor();
+  await page.getByText('There are no events to export yet.', {exact:false}).waitFor();
+  assert.equal(await page.getByRole('link',{name:'Export events (.ics)',exact:true}).count(),0);
   await page.goto(base+'/portability?destination='+id);
   const upload=page.locator('form').filter({has:page.locator(`input[name=destination][value="${id}"]`)});
   await upload.locator('[name=file]').setInputFiles({name:'invalid.ics',mimeType:'text/calendar',buffer:Buffer.from('not iCalendar')});
@@ -75,7 +75,7 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   assert.ok(recurring.includes('DURATION:P1D'));assert.ok(recurring.includes('X-PRIVATE:preserve'));
   await page.goto(base+'/collections/'+id);
   const downloadPromise=page.waitForEvent('download');
-  await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
+  await page.getByRole('link',{name:/^Export (events|tasks|journal entries) \(\.ics\)$/}).click();
   const download=await downloadPromise;
   const exported=readFileSync(await download.path());
   assert.equal(download.suggestedFilename(),'busystack-collection.ics');
@@ -156,7 +156,7 @@ async function qualifyJournalPortal(page,base,credential,suffix) {
   assert.ok(raw.body.includes(detached));
   await page.goto(base+'/collections/'+id);
   const downloadPromise=page.waitForEvent('download');
-  await page.getByRole('link',{name:'Export iCalendar',exact:true}).click();
+  await page.getByRole('link',{name:/^Export (events|tasks|journal entries) \(\.ics\)$/}).click();
   const exported=readFileSync(await (await downloadPromise).path(),'utf8');
   assert.ok(exported.includes(component));
   assert.ok(exported.includes(detached));

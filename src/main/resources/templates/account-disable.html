@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Disable account')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <h1 th:text="${'Disable ' + account.username + '?'}"></h1>
+  <p class="notice warning">This ends the account’s browser sessions and revokes application passwords and authorized app access. Stored resource contents and memberships are retained. An operator must use offline recovery to enable the account again.</p>
+  <form method="post" th:action="@{/admin/accounts/{id}/disable(id=${account.id})}">
+    <input type="hidden" name="confirmed" value="true">
+    <button type="submit" class="danger">Disable account</button>
+    <a th:href="@{/admin/accounts/{id}(id=${account.id})}">Cancel</a>
+  </form>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

@@ -1,10 +1,43 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Overview')}"></head>
-<body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main"><th:block th:replace="~{fragments/layout :: feedback}"></th:block>
-
-<div class="page-heading"><div><span class="eyebrow">My account</span><h1>Welcome, <span th:text="${account.displayName}"></span></h1><p><span th:text="${account.username}"></span> · <span th:text="${externallyManaged ? 'Organization-managed sign-in' : 'Locally managed sign-in'}"></span></p></div><a class="button" th:href="@{/connections}">Connect an application</a></div>
-<div class="grid"><section><h2>My collections</h2><p class="metric" th:text="${setup.owned}"></p><p>Calendars, task lists, and journals you own.</p><a th:href="@{/collections}">Manage my collections</a></section><section><h2>Shared with me</h2><p class="metric" th:text="${setup.shared}"></p><p>Collections available through direct or group access.</p><a th:href="@{/collections(scope='shared')}">View shared collections</a></section><section><h2>Account security</h2><p th:text="${setup.passkeys > 0 ? 'Passkey enrolled' : 'Passkey setup needed'}"></p><p th:text="${mfaCurrent ? 'Both authentication factors are current.' : 'Complete verification before making changes.'}"></p><a th:href="@{/security}">Review security</a></section></div>
-<section th:if="${setup.credentials == 0}"><h2>Get started with your collections</h2><p th:if="${setup.recoveryCodes == 0}"><a th:href="@{/security/recovery}">Prepare recovery codes</a> to keep access if you lose a passkey. You can return to this at any time.</p><th:block th:if="${setup.owned + setup.shared == 0}"><p>Create a collection, or ask an owner to share an existing collection with your username.</p><a class="button" th:href="@{/collections/new}">Create a collection</a></th:block><th:block th:if="${setup.owned + setup.shared > 0}"><p>Your collections are ready, including any collections shared with you. Connect an application to edit events, tasks, and journal entries.</p><a class="button" th:href="@{/connections}">Connect an application</a></th:block></section>
-<section><h2>Your collections</h2><p th:if="${recentCollections.rows.isEmpty()}" class="empty">You have no collections yet. <a th:href="@{/collections/new}">Create your first collection</a>.</p><div class="table-scroll" th:unless="${recentCollections.rows.isEmpty()}" tabindex="0" role="region" aria-labelledby="table-caption-1"><table><caption id="table-caption-1">Up to 50 available collections</caption><thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Access</th></tr></thead><tbody><tr th:each="c : ${recentCollections.rows}"><td><a th:href="@{/collections/{id}(id=${c.id})}" th:text="${c.name}"></a></td><td th:text="${c.type}"></td><td th:text="${c.access}"></td></tr></tbody></table></div><p><a th:href="@{/collections}">Open collection management</a> to edit details, manage sharing or export your data.</p></section>
-
-</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Overview')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+  <h1>Overview</h1>
+  <p th:text="${'Signed in as ' + account.displayName + ' (' + account.username + ').'}"></p>
+  <section th:if="${recentCollections.rows.isEmpty()}">
+    <h2>Start with a calendar, task list or journal</h2>
+    <p>Use a compatible CalDAV app to edit events, tasks and journal entries. Resources shared with you will also appear here.</p>
+    <div class="actions">
+      <a class="button" th:href="@{/collections/new}">Create a resource</a>
+      <a th:href="@{/portability}">Import existing data</a>
+    </div>
+  </section>
+  <section th:unless="${recentCollections.rows.isEmpty()}">
+    <h2 th:text="${setup.owned == 0 ? 'Shared with you' : 'Calendars, tasks &amp; journals'}"></h2>
+    <ul class="resource-list">
+      <li th:each="collection, index : ${recentCollections.rows}" th:if="${index.index < 8}">
+        <a th:href="@{/collections/{id}(id=${collection.id})}" th:text="${collection.name}"></a>
+        <span th:text="${collection.type + ' · ' + collection.access}"></span>
+      </li>
+    </ul>
+    <div class="actions">
+      <a class="button" th:href="@{/connections}">Connect an app</a>
+      <a th:href="@{/collections}">View all resources</a>
+    </div>
+  </section>
+  <section th:if="${account.administrator}">
+    <h2>Server administration</h2>
+    <p>Manage accounts and groups, review audit events and check deployment diagnostics.</p>
+    <div class="actions">
+      <a th:href="@{/admin}">Open server administration</a>
+      <a th:href="@{/admin/accounts/new}">Create account</a>
+    </div>
+  </section>
+  <p th:if="${setup.recoveryCodes == 0}"><a th:href="@{/security/recovery}">Prepare recovery codes</a> in case you lose access to your passkey.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

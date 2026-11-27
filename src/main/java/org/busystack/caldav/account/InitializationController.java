@@ -13,12 +13,21 @@ public class InitializationController {
     this.initialization = initialization;
   }
 
-  @GetMapping({"/setup", "/setup/administrator"})
-  public String setup(
-      jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
+  @GetMapping("/setup")
+  public String setup(HttpServletResponse response) {
     protect(response);
     if (!initialization.available()) return "redirect:/login";
-    return request.getServletPath().endsWith("/administrator") ? "setup-administrator" : "setup";
+    return "setup";
+  }
+
+  @GetMapping("/setup/administrator")
+  public String legacy() {
+    return "redirect:/setup";
+  }
+
+  @GetMapping("/help/setup")
+  public String help() {
+    return "setup-help";
   }
 
   @PostMapping("/setup/administrator")
@@ -28,14 +37,20 @@ public class InitializationController {
       @RequestParam(defaultValue = "") String password,
       @RequestParam(defaultValue = "") String confirmation,
       Model model,
-      HttpServletResponse response) {
+      HttpServletResponse response,
+      org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
     protect(response);
     var errors = initialization.initialize(code, username, password, confirmation);
-    if (errors.isEmpty()) return "setup-complete";
+    if (errors.isEmpty()) {
+      flash.addFlashAttribute("notice", "Administrator account created. Sign in to continue.");
+      flash.addFlashAttribute("initialUsername", username);
+      return "redirect:/login";
+    }
     response.setStatus(400);
-    model.addAttribute("errors", errors);
+    model.addAttribute("fieldErrors", errors);
+    model.addAttribute("errorFormKey", "setup");
     model.addAttribute("username", username.length() <= 64 ? username : "");
-    return "setup-administrator";
+    return "setup";
   }
 
   private static void protect(HttpServletResponse response) {

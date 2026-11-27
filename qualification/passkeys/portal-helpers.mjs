@@ -53,8 +53,8 @@ export async function createCollection(page,base,name,component) {
   await page.goto(base+'/collections/new');
   const form=page.locator(`form[action="${prefixOf(base)}/collections"]`);
   await form.locator('input[name=name]').fill(name);
-  await form.locator('select[name=component]').selectOption(component);
-  await Promise.all([page.waitForURL(/\/collections\/[a-f0-9-]{36}$/i),form.getByRole('button',{name:'Create collection',exact:true}).click()]);
+  await form.locator(`input[name=component][value=${component}]`).check();
+  await Promise.all([page.waitForURL(/\/collections\/[a-f0-9-]{36}$/i),form.getByRole('button',{name:/^Create (calendar|task list|journal)$/}).click()]);
   assert.equal(await page.getByRole('heading',{name,exact:true}).count(),1);
   assert.ok((await page.locator('main').innerText()).includes({VEVENT:'Calendar',VTODO:'Task list',VJOURNAL:'Journal'}[component]));
   return new URL(page.url()).pathname.split('/').at(-1);

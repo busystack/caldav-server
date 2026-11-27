@@ -93,7 +93,8 @@ export async function qualifyOAuth(page, base, privateValues, administratorPage 
     }
     await page.goto(base + '/oauth-grants');
     const grant = page.locator('tbody tr').filter({hasText: clientId});
-    await Promise.all([page.waitForURL(base + '/oauth-grants'), grant.getByRole('button', {name: 'Revoke access', exact: true}).click()]);
+    await grant.getByRole('link', {name: 'Revoke access', exact: true}).click();
+  await Promise.all([page.waitForURL(base + '/oauth-grants'), page.getByRole('button', {name: 'Revoke app access', exact: true}).click()]);
     assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Bearer ' + current.access_token}})).status, 401);
     const revokedRefresh = await call(base, '/oauth2/token', {method: 'POST', form: {
       grant_type: 'refresh_token', client_id: clientId, refresh_token: current.refresh_token

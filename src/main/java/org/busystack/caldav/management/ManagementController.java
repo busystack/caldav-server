@@ -25,11 +25,6 @@ public class ManagementController {
     model.addAttribute("account", management.current(auth));
     model.addAttribute("setup", portal.setup(auth));
     model.addAttribute("recentCollections", portal.collections(auth, "all", "", 0));
-    if (management.administratorWelcome(auth)) {
-      if (!org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth))
-        return "redirect:/auth/continue";
-      return "administrator-welcome";
-    }
     return "dashboard";
   }
 
@@ -54,7 +49,12 @@ public class ManagementController {
       RedirectAttributes flash) {
     UUID id = portal.create(auth, name, component, description, color);
     flash.addFlashAttribute(
-        "notice", "Collection created. Use Connections to configure your application.");
+        "notice",
+        switch (component) {
+          case "VTODO" -> "Task list created.";
+          case "VJOURNAL" -> "Journal created.";
+          default -> "Calendar created.";
+        });
     return "redirect:/collections/" + id;
   }
 
@@ -79,18 +79,47 @@ public class ManagementController {
       @RequestParam(defaultValue = "") String label,
       @RequestParam int days,
       @RequestParam(defaultValue = "generic") String client,
+      @RequestParam(defaultValue = "security") String from,
+      @RequestParam(required = false) UUID intent,
       Model model,
       jakarta.servlet.http.HttpServletResponse response) {
     model.addAttribute("client", PortalController.client(client));
     model.addAttribute("label", label);
-    model.addAttribute("credential", management.issue(auth, label, days));
-    response.setHeader("Cache-Control", "no-store");
-    response.setHeader("Referrer-Policy", "no-referrer");
+    model.addAttribute("credentialOrigin", PortalController.credentialOrigin(from));
+    var result =
+        management.issue(auth, label, days, intent, PortalController.issuanceContext(client, from));
+    org.busystack.caldav.security.IssuancePages.protect(response);
+    if (result.secret() == null) {
+      model.addAttribute("issuedId", result.credentialId());
+      model.addAttribute(
+          "issuanceMessage",
+          "This request already created an application password. Its original value is only shown once. Review your passwords before creating a replacement.");
+      return "issuance-receipt";
+    }
+    model.addAttribute("credential", result.secret());
     return "issued-credential";
   }
 
+  @GetMapping("/credentials/{id}/revoke")
+  String confirmRevoke(Authentication auth, @PathVariable UUID id, Model model) {
+    var credential = management.credential(auth, id);
+    model.addAttribute("actionTitle", "Revoke " + credential.label() + "?");
+    model.addAttribute(
+        "consequence",
+        "Apps using this password will lose access the next time they connect. Other application passwords remain available.");
+    model.addAttribute("actionLabel", "Revoke application password");
+    model.addAttribute("actionPath", "/credentials/" + id + "/revoke");
+    model.addAttribute("cancelPath", "/security/credentials");
+    return "confirm-action";
+  }
+
   @PostMapping("/credentials/{id}/revoke")
-  String revoke(Authentication auth, @PathVariable UUID id, RedirectAttributes flash) {
+  String revoke(
+      Authentication auth,
+      @PathVariable UUID id,
+      @RequestParam(defaultValue = "false") boolean confirmed,
+      RedirectAttributes flash) {
+    if (!confirmed) return "redirect:/credentials/" + id + "/revoke";
     management.revoke(auth, id);
     flash.addFlashAttribute(
         "notice",

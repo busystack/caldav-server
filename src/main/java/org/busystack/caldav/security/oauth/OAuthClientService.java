@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class OAuthClientService {
   public record Client(String id, String name, String redirects) {}
 
+  record Registration(String id, String name, String revision) {}
+
   private final RegisteredClientRepository clients;
   private final AccountService accounts;
   private final JdbcTemplate jdbc;
@@ -63,6 +65,26 @@ public class OAuthClientService {
     remove(actor(authentication), clientId);
   }
 
+  Registration registration(Authentication auth, String id) {
+    requireAdministrator(actor(auth));
+    var client = clients.findByClientId(id);
+    if (client == null)
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND);
+    return new Registration(client.getClientId(), client.getClientName(), client.getId());
+  }
+
+  @Transactional
+  public void remove(Authentication auth, String clientId, String expected) {
+    RecentAuthentication.requireMfa(auth);
+    clientLocks.lock(clientId);
+    var current = registration(auth, clientId);
+    if (!current.revision().equals(expected))
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.PRECONDITION);
+    remove(actor(auth), clientId);
+  }
+
   List<Client> list(UUID administrator) {
     requireAdministrator(administrator);
     return jdbc.query(
@@ -74,19 +96,30 @@ public class OAuthClientService {
   void registerNative(UUID administrator, String clientId, String name, Set<String> redirects) {
     clientLocks.lock(clientId);
     requireAdministrator(administrator);
-    if (clientId == null
-        || !clientId.matches("[A-Za-z0-9._-]{1,100}")
-        || name == null
+    if (clientId == null || !clientId.matches("[A-Za-z0-9._-]{1,100}"))
+      throw org.busystack.caldav.management.FormValidation.field(
+          "clientId", "Enter 1–100 letters, digits, dots, underscores or hyphens.");
+    if (name == null
         || name.isBlank()
         || name.length() > 100
-        || redirects == null
+        || name.codePoints().anyMatch(Character::isISOControl))
+      throw org.busystack.caldav.management.FormValidation.field(
+          "name", "Enter a name of 1–100 characters without control characters.");
+    if (redirects == null
         || redirects.isEmpty()
         || redirects.size() > 5
         || redirects.stream().mapToInt(String::length).sum() > 950)
-      throw new IllegalArgumentException("Invalid OAuth client registration");
-    redirects.forEach(OAuthClientService::validateRedirect);
+      throw org.busystack.caldav.management.FormValidation.field(
+          "redirects", "Enter 1–5 redirect addresses, within 950 characters in total.");
+    try {
+      redirects.forEach(OAuthClientService::validateRedirect);
+    } catch (IllegalArgumentException invalid) {
+      throw org.busystack.caldav.management.FormValidation.field(
+          "redirects", "Enter redirect addresses in one of the supported formats.");
+    }
     if (clients.findByClientId(clientId) != null)
-      throw new IllegalArgumentException("OAuth client already exists");
+      throw org.busystack.caldav.management.FormValidation.conflict(
+          "clientId", "This client ID is already registered.");
     var builder =
         RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId(clientId)

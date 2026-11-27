@@ -3,14 +3,14 @@
 <meta name="csrf-token" th:content="${_csrf.token}"><meta name="csrf-header" th:content="${_csrf.headerName}">
 <script th:src="@{/assets/security.js}" defer></script><link rel="stylesheet" th:href="@{/assets/account.css}"><script th:src="@{/assets/portal.js}" defer></script></head>
 <body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
-<h1>Sign in to BusyStack</h1><p>Enter your account details to continue.</p>
-<p th:if="${viewer != null}">Your primary sign-in has expired. Sign in again to continue.</p>
+<h1 th:text="${param.reauthenticate != null and viewer != null ? &quot;Confirm it’s you&quot; : &quot;Sign in to BusyStack&quot;}">Sign in to BusyStack</h1><p th:if="${verifiedAction != null}" th:text="${&quot;Confirm it’s you to &quot; + verifiedAction + '.'}"></p><th:block th:replace="~{fragments/layout :: feedback}"></th:block><p>Enter your account details to continue.</p>
+<p th:if="${param.reauthenticate != null and viewer != null}">Enter your current sign-in details, then verify your passkey to return to your task.</p>
 <p th:if="${param.password}" role="status">Password changed. Sign in with your new password.</p>
 <p th:if="${param.recovered}" role="status">Recovery completed. Sign in again, then create a new passkey.</p>
 <p th:if="${param.session}" role="status">Your browser session ended. Sign in again.</p>
 <p th:if="${param.error}" class="notice error" role="alert">Sign in failed. Check your account details. If your account was disabled, contact your administrator.</p>
 <p th:if="${oidcEnabled}"><a th:href="@{/oauth2/authorization/upstream}">Sign in with your organization's identity provider</a></p>
 <p th:if="${viewer != null and externallyManaged}">Your organization manages sign-in. Use the identity provider link above.</p>
-<form th:unless="${viewer != null and externallyManaged}" th:action="@{/login}" method="post"><label for="username">Username</label><input id="username" name="username" autocomplete="username" required autofocus><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form>
-<p>Forgot your sign-in details? Contact your deployment operator for controlled account recovery.</p>
+<form th:unless="${viewer != null and externallyManaged}" th:action="@{/login}" method="post"><input type="hidden" name="flow" th:value="${signInFlow}"><label for="username">Username</label><input id="username" name="username" th:value="${initialUsername != null ? initialUsername : (viewer != null ? viewer.username : null)}" autocomplete="username" required autofocus><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form>
+<p><a th:href="@{/help/setup}">Setup and account recovery help</a></p>
 <p id="security-status" role="status" aria-live="polite"></p></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

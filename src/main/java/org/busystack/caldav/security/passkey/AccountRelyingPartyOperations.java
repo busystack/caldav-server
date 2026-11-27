@@ -135,6 +135,7 @@ public class AccountRelyingPartyOperations implements WebAuthnRelyingPartyOperat
               .backupState(backupState)
               .uvInitialized(record.isUvInitialized() || (flags & 0x04) != 0)
               .build());
+      AcceptedAssertion.record(verified.getCredentialId());
       return authenticated;
     }
   }

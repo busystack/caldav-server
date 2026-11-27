@@ -56,11 +56,11 @@ public final class FormRecovery {
         throw new org.busystack.caldav.storage.StoreException(
             org.busystack.caldav.storage.StoreException.Kind.FORBIDDEN);
       model.addAttribute("collection", collection);
+      model.addAttribute("hasItems", portal.hasItems(auth, collection.id()));
       view = "collection";
     } else if (path.equals("/admin/groups")) {
-      model.addAttribute("groupPage", groups.search(auth, "", 0));
-      model.addAttribute("query", "");
-      view = "groups";
+      groups.search(auth, "", 0);
+      view = "group-new";
     } else if (path.matches("/admin/groups/[a-f0-9-]{36}(/members(/[a-f0-9-]{36}/remove)?)?")) {
       UUID id = UUID.fromString(path.split("/")[3]);
       model.addAttribute("group", groups.detail(auth, id));
@@ -75,7 +75,8 @@ public final class FormRecovery {
       model.addAttribute("collection", portal.owner(auth, id));
       model.addAttribute("directGrants", portal.direct(auth, id, page(request, "directPage")));
       model.addAttribute("groupGrants", portal.groupGrants(auth, id, page(request, "groupPage")));
-      model.addAttribute("effectiveMembers", portal.effective(auth, id, 0));
+      model.addAttribute(
+          "effectiveMembers", portal.effective(auth, id, page(request, "effectivePage")));
       model.addAttribute("groupChoices", groups.choices(auth));
       view = "collection-sharing";
     } else if (path.equals("/credentials")) {
@@ -83,6 +84,9 @@ public final class FormRecovery {
           "client",
           PortalController.client(
               Objects.requireNonNullElse(request.getParameter("client"), "generic")));
+      model.addAttribute(
+          "credentialOrigin", PortalController.credentialOrigin(request.getParameter("from")));
+      model.addAttribute("issuanceIntent", request.getParameter("intent"));
       model.addAttribute("credentialPage", portal.credentials(auth, 0));
       view = "credentials";
     } else if (path.equals("/portability/preview")) {
@@ -113,7 +117,7 @@ public final class FormRecovery {
           case "account-detail" -> "account-edit";
           case "collection-new" -> "collection-create";
           case "collection" -> "collection-edit";
-          case "groups" -> "group-create";
+          case "group-new" -> "group-create";
           case "group-detail" ->
               path.endsWith("/remove")
                   ? "member-remove-" + path.split("/")[5]

@@ -2,7 +2,8 @@ package org.busystack.caldav.management;
 
 import static org.assertj.core.api.Assertions.*;
 
-import java.net.*;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -23,9 +24,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.*;
-import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.session.*;
 import org.springframework.test.context.*;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -66,7 +64,10 @@ class PortalManagementIT {
   @Autowired GroupService groups;
   @Autowired org.busystack.caldav.config.OperationalProblems problems;
   @Autowired JdbcTemplate jdbc;
-  @Autowired SessionRepository<? extends Session> repository;
+  @Autowired org.busystack.caldav.security.IssuanceIntents issuance;
+  @Autowired org.busystack.caldav.security.recovery.RecoveryService recovery;
+  private SignedPasskeyClient transport;
+  private final Map<UUID, SignedPasskeyClient.Credential> browserKeys = new HashMap<>();
   @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
   @LocalServerPort int port;
   UUID admin, owner, reader, other, collection;
@@ -74,6 +75,7 @@ class PortalManagementIT {
 
   @BeforeEach
   void prepare() {
+    transport = new SignedPasskeyClient(port, "/team", "https://localhost");
     FixtureDatabase.reset(
         jdbc,
         "TRUNCATE spring_session,security_audit RESTART IDENTITY CASCADE",
@@ -92,6 +94,80 @@ class PortalManagementIT {
             "VEVENT",
             "Description " + hostile,
             "#126A5EFF");
+  }
+
+  @AfterEach
+  void closeBrowserFixtures() {
+    transport.close();
+  }
+
+  @Test
+  void concurrentIssuanceAndRecoveryGenerationRejectReplayAndStaleSets() throws Exception {
+    var authentication = auth(owner, true);
+    var purpose = org.busystack.caldav.security.IssuanceIntents.Purpose.APPLICATION_PASSWORD;
+    var intent = issuance.prepare(authentication, purpose, "generic:security");
+    assertThatThrownBy(
+            () -> management.issue(authentication, "", 90, intent.id(), "generic:security"))
+        .isInstanceOf(FormValidation.class);
+    try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      var ready = new java.util.concurrent.CountDownLatch(1);
+      java.util.concurrent.Callable<ManagementService.CredentialResult> submit =
+          () -> {
+            ready.await();
+            return management.issue(
+                authentication, "Concurrent fixture", 90, intent.id(), "generic:security");
+          };
+      var first = workers.submit(submit);
+      var second = workers.submit(submit);
+      ready.countDown();
+      var a = first.get();
+      var b = second.get();
+      assertThat(a.credentialId()).isEqualTo(b.credentialId());
+      assertThat(java.util.stream.Stream.of(a, b).filter(result -> result.secret() != null))
+          .hasSize(1);
+    }
+    var recoveryPurpose = org.busystack.caldav.security.IssuanceIntents.Purpose.RECOVERY_CODES;
+    var left = issuance.prepare(authentication, recoveryPurpose, "");
+    var right = issuance.prepare(authentication, recoveryPurpose, "");
+    assertThat(recovery.issue(authentication, "127.0.0.1", left.id(), false).codes()).hasSize(10);
+    assertThat(recovery.issue(authentication, "127.0.0.1", left.id(), false)).isNull();
+    assertThatThrownBy(() -> recovery.issue(authentication, "127.0.0.1", right.id(), true))
+        .isInstanceOf(org.busystack.caldav.security.IssuanceIntents.Unavailable.class);
+    assertThat(recovery.status(authentication).remaining()).isEqualTo(10);
+  }
+
+  @Test
+  void opposingBrowserDisablesKeepAnEnabledAdministrator() throws Exception {
+    var second =
+        accounts.provision(
+            "second-administrator", "Second administrator", "Second administrator password", true);
+    var firstAuth = auth(admin, true);
+    var secondAuth = auth(second, true);
+    assertThatThrownBy(() -> administration.disable(firstAuth, admin, true))
+        .isInstanceOf(AccessDeniedException.class);
+    try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      var ready = new java.util.concurrent.CountDownLatch(1);
+      var left = workers.submit(() -> tryDisable(ready, firstAuth, second));
+      var right = workers.submit(() -> tryDisable(ready, secondAuth, admin));
+      ready.countDown();
+      assertThat(left.get()).isNotEqualTo(right.get());
+    }
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM accounts WHERE enabled AND administrator", Long.class))
+        .isEqualTo(1);
+  }
+
+  private boolean tryDisable(
+      java.util.concurrent.CountDownLatch ready, Authentication actor, UUID target)
+      throws InterruptedException {
+    ready.await();
+    try {
+      administration.disable(actor, target, true);
+      return true;
+    } catch (AccessDeniedException denied) {
+      return false;
+    }
   }
 
   @Test
@@ -1175,6 +1251,12 @@ class PortalManagementIT {
         400,
         "direct-add",
         "username");
+    var credentialForm = get(user, "/security/credentials");
+    var intent =
+        java.util.regex.Pattern.compile("name=\"intent\" value=\"([a-f0-9-]{36})\"")
+            .matcher(credentialForm.body());
+    assertThat(intent.find()).isTrue();
+    String intentId = intent.group(1);
     fieldError(
         post(
             user,
@@ -1192,7 +1274,10 @@ class PortalManagementIT {
         "credential-create",
         "days");
     fieldError(
-        post(user, "/credentials", Map.of("_csrf", userCsrf, "label", "", "days", "90")),
+        post(
+            user,
+            "/credentials",
+            Map.of("_csrf", userCsrf, "label", "", "days", "90", "intent", intentId)),
         400,
         "credential-create",
         "label");
@@ -1209,7 +1294,7 @@ class PortalManagementIT {
                     "/collections",
                     Map.of(
                         "_csrf",
-                        csrf(get(primaryOnly, "/collections").body()),
+                        csrf(get(primaryOnly, "/auth/continue").body()),
                         "name",
                         "",
                         "component",
@@ -1273,15 +1358,28 @@ class PortalManagementIT {
         administration.audit(auth(admin, true), "COLLECTION_CREATED", "", "", 0).rows().getFirst();
     assertThat(historical.targetType()).isNull();
     assertThat(historical.targetId()).isNull();
+    assertThat(
+            jdbc.queryForList("SELECT row_to_json(s)::text FROM security_audit s", String.class)
+                .toString())
+        .doesNotContain(
+            "Private personal label",
+            "Another private label",
+            "Private group label",
+            "Another group label",
+            hostile,
+            collection.toString());
     var response = get(browser(admin, true), "/admin/audit");
     assertThat(response.statusCode()).isEqualTo(200);
     assertThat(response.body())
         .contains(
-            created.toString(), group.toString(), "Not recorded (historical or untargeted event)")
+            created.toString(),
+            group.toString(),
+            "No target recorded",
+            "Another private label",
+            "Deleted or unavailable")
         .doesNotContain(
             "Never record this password",
             "Private personal label",
-            "Another private label",
             "Private group label",
             "Another group label",
             hostile,
@@ -1332,8 +1430,7 @@ class PortalManagementIT {
             "/security/password",
             "/security/sessions",
             "/oauth-grants",
-            "/security/passkeys",
-            "/auth/continue")) {
+            "/security/passkeys")) {
       var response = get(browser, path);
       assertThat(response.statusCode()).as(path).isEqualTo(200);
       assertThat(response.body())
@@ -1343,7 +1440,8 @@ class PortalManagementIT {
       assertThat(response.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
       if (path.equals("/connections?client=gnome")) {
         assertThat(response.body())
-            .contains("id=\"gnome-address\"", "value=\"https://portal-owner@localhost/team/dav/\"");
+            .contains(
+                "id=\"server-address\"", "value=\"https://portal-owner@localhost/team/dav/\"");
       }
     }
     var adminBrowser = browser(admin, true);
@@ -1472,13 +1570,13 @@ class PortalManagementIT {
     assertThat(
             get(browser(owner, false), "/portability/collections/" + collection + "/export")
                 .statusCode())
-        .isEqualTo(403);
+        .isEqualTo(302);
     var empty = get(ownerBrowser, "/portability/collections/" + collection + "/export");
     assertThat(empty.statusCode()).isEqualTo(302);
     assertThat(empty.headers().firstValue("Location").orElse(""))
         .endsWith("/team/collections/" + collection);
     assertThat(get(ownerBrowser, "/collections/" + collection).body())
-        .contains("This export snapshot contained no calendar or task items");
+        .contains("There are no events to export yet.");
     calendars.put(owner, collection, "one.ics", "one", event("one"), WriteCondition.create());
     calendars.share(owner, collection, reader, "READ");
     assertThat(
@@ -1599,31 +1697,22 @@ class PortalManagementIT {
     return UsernamePasswordAuthenticationToken.authenticated(a.username(), null, authorities);
   }
 
-  private <S extends Session> String persist(SessionRepository<S> repo, Authentication auth) {
-    S session = repo.createSession();
-    session.setAttribute(
-        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-        new SecurityContextImpl(auth));
-    repo.save(session);
-    return session.getId();
-  }
-
   private HttpClient browser(UUID id, boolean mfa) throws Exception {
-    var cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
-    String encoded =
-        Base64.getEncoder()
-            .encodeToString(persist(repository, auth(id, mfa)).getBytes(StandardCharsets.UTF_8));
-    cookies.put(
-        URI.create(base()),
-        Map.of(
-            "Set-Cookie",
-            List.of("JSESSIONID=" + encoded + "; Path=/team; Secure; HttpOnly; SameSite=Lax")));
-    return HttpClient.newBuilder()
-        .sslContext(TestTls.instance().context())
-        .cookieHandler(cookies)
-        .connectTimeout(Duration.ofSeconds(10))
-        .followRedirects(HttpClient.Redirect.NEVER)
-        .build();
+    var browser =
+        transport.passwordLogin(accounts.find(id).username(), "correct horse battery staple");
+    if (mfa) {
+      var key = browserKeys.get(id);
+      if (key == null) {
+        key = transport.enroll(browser);
+        browserKeys.put(id, key);
+      }
+      assertThat(
+              transport
+                  .assertCredential(transport.options(browser), key, "correct", 0x0d)
+                  .statusCode())
+          .isEqualTo(200);
+    }
+    return browser;
   }
 
   private HttpResponse<String> get(HttpClient browser, String path) throws Exception {
@@ -1645,13 +1734,17 @@ class PortalManagementIT {
                         + "="
                         + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
             .collect(java.util.stream.Collectors.joining("&"));
-    return browser.send(
-        HttpRequest.newBuilder(URI.create(base() + path))
-            .timeout(Duration.ofSeconds(660))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .POST(HttpRequest.BodyPublishers.ofString(form))
-            .build(),
-        HttpResponse.BodyHandlers.ofString());
+    var result =
+        browser.send(
+            HttpRequest.newBuilder(URI.create(base() + path))
+                .timeout(Duration.ofSeconds(660))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form))
+                .build(),
+            HttpResponse.BodyHandlers.ofString());
+    return path.matches("/portability/import/[a-f0-9-]{36}")
+        ? followImportRedirect(browser, result)
+        : result;
   }
 
   private HttpResponse<String> upload(
@@ -1696,7 +1789,8 @@ class PortalManagementIT {
                     HttpRequest.BodyPublishers.ofByteArray(content),
                     HttpRequest.BodyPublishers.ofString("\r\n--" + boundary + "--\r\n")));
     if (header) request.header("X-CSRF-TOKEN", csrf);
-    return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    return followImportRedirect(
+        browser, browser.send(request.build(), HttpResponse.BodyHandlers.ofString()));
   }
 
   private HttpResponse<String> uploadFile(
@@ -1710,22 +1804,32 @@ class PortalManagementIT {
             + "\r\n--"
             + boundary
             + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"export.ics\"\r\nContent-Type: text/calendar\r\n\r\n";
-    return browser.send(
-        HttpRequest.newBuilder(URI.create(base() + "/portability/preview"))
-            .timeout(Duration.ofSeconds(660))
-            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-            .header("X-CSRF-TOKEN", csrf)
-            .POST(
-                HttpRequest.BodyPublishers.concat(
-                    HttpRequest.BodyPublishers.ofString(head),
-                    HttpRequest.BodyPublishers.ofFile(file),
-                    HttpRequest.BodyPublishers.ofString("\r\n--" + boundary + "--\r\n")))
-            .build(),
-        HttpResponse.BodyHandlers.ofString());
+    return followImportRedirect(
+        browser,
+        browser.send(
+            HttpRequest.newBuilder(URI.create(base() + "/portability/preview"))
+                .timeout(Duration.ofSeconds(660))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .header("X-CSRF-TOKEN", csrf)
+                .POST(
+                    HttpRequest.BodyPublishers.concat(
+                        HttpRequest.BodyPublishers.ofString(head),
+                        HttpRequest.BodyPublishers.ofFile(file),
+                        HttpRequest.BodyPublishers.ofString("\r\n--" + boundary + "--\r\n")))
+                .build(),
+            HttpResponse.BodyHandlers.ofString()));
+  }
+
+  private HttpResponse<String> followImportRedirect(
+      HttpClient browser, HttpResponse<String> response) throws Exception {
+    if (response.statusCode() != 302) return response;
+    String location = response.headers().firstValue("Location").orElseThrow();
+    assertThat(URI.create(location).getPath()).matches("/team/portability/import/[a-f0-9-]{36}");
+    return get(browser, transport.localPath(location));
   }
 
   private String base() {
-    return "https://localhost:" + port + "/team";
+    return "https://127.0.0.1:" + port + "/team";
   }
 
   private static String csrf(String html) {

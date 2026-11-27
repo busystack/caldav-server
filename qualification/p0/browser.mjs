@@ -18,26 +18,26 @@ async function virtual(context,page) {
 async function shot(page,name,mask=[]) {
   await page.screenshot({path:output+'/'+name+'.png',fullPage:true,mask,maskColor:'#172b38'});
   console.log('P0_SCREEN_CAPTURED '+name);
-  await page.setViewportSize({width:390,height:900});
+  await page.setViewportSize({width:320,height:900});
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits mobile width');
   await page.setViewportSize({width:1280,height:900});
 }
 async function signIn(page,username) {
   await page.goto(base+'/login'); await page.locator('[name=username]').fill(username);
   await page.locator('[name=password]').fill(password);
-  await Promise.all([page.waitForURL(base+'/auth/continue'),page.getByRole('button',{name:'Sign in',exact:true}).click()]);
+  await Promise.all([page.waitForURL(url => url.pathname === prefix + '/auth/continue'),page.getByRole('button',{name:'Sign in',exact:true}).click()]);
 }
 async function enroll(page) {
   await page.getByRole('button',{name:'Create passkey',exact:true}).click();
-  await page.getByRole('heading',{name:'Passkey created',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Passkey saved',exact:true}).waitFor();
 }
 async function verify(page) {
   const cookie=(await page.context().cookies()).find(c=>c.name==='JSESSIONID').value;
-  await page.goto(base+'/auth/continue');
-  await Promise.all([page.waitForURL(base+'/auth/continue?verified'),page.getByRole('button',{name:'Verify passkey',exact:true}).click()]);
-  await page.getByRole('heading',{name:'Authentication successful',exact:true}).waitFor();
+  await Promise.all([
+    page.waitForURL(url => !url.pathname.endsWith('/auth/continue') && !url.pathname.endsWith('/login')),
+    page.getByRole('button',{name:'Verify and continue',exact:true}).click()
+  ]);
   check(cookie!==(await page.context().cookies()).find(c=>c.name==='JSESSIONID').value,'Session rotates after passkey assertion');
-  await page.getByRole('link',{name:'Continue',exact:true}).click();
 }
 async function mutate(page,path,values) {
   return page.evaluate(async ({path,values})=>{
@@ -53,17 +53,22 @@ try {
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   const remoteAssets=[];page.on('request',request=>{if(new URL(request.url()).origin!==new URL(base).origin)remoteAssets.push(request.resourceType());});
   await page.goto(base+'/'); await page.getByRole('heading',{name:'Set up BusyStack',exact:true}).waitFor();
-  await shot(page,'01-initial-setup');
-  await page.getByRole('link',{name:'Create administrator account',exact:true}).click();
-  await shot(page,'02-create-administrator');
-  check(await mutate(page,'/setup/administrator',{code:'wrong',username:'rejected',password,confirmation:password})===400,'Missing operator code rejected');
+  await shot(page,'01-protected-setup');
+  check((await page.request.get(base+'/setup/administrator',{maxRedirects:0})).status()===302,'Legacy setup leads to the canonical page');
+  check((await page.request.get(base+'/help/setup')).ok(),'Local setup help is served');
+  check(await mutate(page,'/setup/administrator',{code:'wrong',username:'rejected',password,confirmation:password})===400,'Invalid operator code rejected');
   await page.locator('[name=code]').fill(code);await page.locator('[name=username]').fill('demo-admin');
-  await page.locator('[name=password]').fill(password);await page.locator('[name=confirmation]').fill(password);
+  await page.locator('[name=password]').fill(password);await page.locator('[name=confirmation]').fill(password+'!');
   await page.getByRole('button',{name:'Create administrator account',exact:true}).click();
-  await page.getByRole('heading',{name:'Administrator account created',exact:true}).waitFor();
-  await shot(page,'03-setup-complete');
-  await page.getByRole('link',{name:'Sign in',exact:true}).click(); await shot(page,'04-sign-in');
-  await signIn(page,'demo-admin');await shot(page,'05-create-passkey');
+  check(page.url()===base+'/setup','Password mismatch is caught before submission');
+  check(await page.locator('[name=password]').inputValue()===password,'Mismatch retains the password in the current DOM');
+  await page.locator('[name=confirmation]').fill(password);
+  await Promise.all([page.waitForURL(base+'/login'),page.getByRole('button',{name:'Create administrator account',exact:true}).click()]);
+  await page.getByText('Administrator account created. Sign in to continue.').waitFor();
+  await shot(page,'02-sign-in');
+  await signIn(page,'demo-admin');await shot(page,'03-create-passkey');
+  check(await page.locator('.section-nav').count()===0,'Primary-only layout has no portal navigation');
+  check((await page.request.get(base+'/admin/accounts',{maxRedirects:0})).status()===302,'Primary-only direct admin request is routed to verification');
   check(await mutate(page,'/credentials',{label:'Denied password only',days:'1'})===403,'No passkeys: issuance denied');
   await page.evaluate(()=>{window.savedCreate=navigator.credentials.create.bind(navigator.credentials);navigator.credentials.create=async()=>{throw new DOMException('Interaction did not complete','NotAllowedError');};});
   await page.getByRole('button',{name:'Create passkey',exact:true}).click();
@@ -77,46 +82,47 @@ try {
   });
   await enroll(page);await cdp.send('Fetch.disable');
   check(lostRegistrationResponse,'A real committed registration with a lost response is reconciled');
-  await shot(page,'06-passkey-created');
+  await shot(page,'04-passkey-saved');
   check(!(await page.locator('main').innerText()).includes('No passkeys are enrolled.'),'Registration clears stale empty state');
   check(await mutate(page,'/credentials',{label:'Denied registration only',days:'1'})===403,'Registration alone: issuance denied');
-  await page.getByRole('link',{name:'Verify your passkey',exact:true}).click();await shot(page,'07-verify-passkey');
-  await verify(page);await page.getByRole('heading',{name:'Welcome to BusyStack',exact:true}).waitFor();
-  await shot(page,'08-administrator-welcome');
-  if(process.env.BUSYSTACK_ADMINISTRATOR_ACTIVITY==='personal') {
-    await page.getByRole('button',{name:'Set up my calendar',exact:true}).click();
-    check(new URL(page.url()).pathname===prefix+'/collections','Personal administrator choice opens collections');
-    await page.goto(base+'/admin/accounts');
-  } else await page.getByRole('button',{name:'Manage users',exact:true}).click();
-  await shot(page,'09-manage-users');
-  await page.goto(base+'/admin/accounts/new');await shot(page,'10-create-user');
+  await verify(page);await page.getByRole('heading',{name:'Overview',exact:true}).waitFor();
+  await shot(page,'05-overview');
+  await page.getByRole('link',{name:'Open server administration',exact:true}).click();
+  await shot(page,'06-server-administration');
+  await page.goto(base+'/admin/accounts');await shot(page,'07-accounts');
+  await page.goto(base+'/admin/accounts/new');await shot(page,'08-create-account');
   await provisionAccount(page,base,'demo-user','Demo User',password);
+  await shot(page,'09-account-handoff');
+  await page.goto(base+'/collections/new?component=VJOURNAL');await shot(page,'10-resource-type');
   const calendar=await createCollection(page,base,'Demo calendar','VEVENT');
-  await createCollection(page,base,'Demo tasks','VTODO');
-  await page.goto(base+'/collections');await shot(page,'12-calendars');
-  await grantDirect(page,base,calendar,'demo-user','READ');await shot(page,'19-sharing');
-  await page.goto(base+'/security');await shot(page,'17-security');
-  await page.goto(base+'/security/recovery');
+  await createCollection(page,base,'Demo tasks','VTODO');await shot(page,'11-empty-task-list');
+  const journal=await createCollection(page,base,'Demo journal','VJOURNAL');
+  await page.goto(base+'/collections');await shot(page,'12-resources');
+  await grantDirect(page,base,calendar,'demo-user','READ');await shot(page,'13-sharing');
+  await page.goto(base+'/security');await shot(page,'14-security');
+  await page.goto(base+'/security/recovery/codes/new');
   await page.getByRole('button',{name:'Generate ten codes',exact:true}).click();
   await page.getByRole('heading',{name:'Save your recovery codes',exact:true}).waitFor();
-  await shot(page,'18-recovery',[page.locator('main ol')]);
+  await shot(page,'15-recovery-codes',[page.locator('[data-one-time-secret]')]);
   check(await page.locator('main ol code').count()===10,'Protected recovery workflow issues ten one-time codes');
-  await page.goto(base+'/connections');await shot(page,'13-connect-application');
-  await page.getByRole('link',{name:'GNOME Calendar',exact:true}).click();await shot(page,'16-client-configuration');
+  await page.goto(base+'/connections');await shot(page,'16-connect-an-app');
+  await page.getByRole('link',{name:'GNOME Calendar',exact:true}).click();await shot(page,'17-client-configuration');
   check(await page.locator('#server-address').inputValue()===base+'/dav/','Configured root/subpath server address is correct');
+  check(await page.locator('#gnome-address').inputValue()===base.replace('://','://demo-admin@')+'/dav/','GNOME address retains username and prefix');
   await page.getByRole('button',{name:'Copy username',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Username copied.'}).waitFor();
   check(await page.evaluate(()=>navigator.clipboard.readText())==='demo-admin','Username copied accurately');
-  await page.getByRole('button',{name:'Copy server',exact:true}).click();
+  await page.getByRole('button',{name:'Copy address',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Server address copied.'}).waitFor();
   check(await page.evaluate(()=>navigator.clipboard.readText())===base+'/dav/','Server address copied accurately');
-  await page.getByRole('link',{name:'Create application password',exact:true}).click();await shot(page,'14-create-application-password');
+  await page.getByRole('link',{name:'Create application password',exact:true}).click();await shot(page,'18-create-application-password');
   await page.locator('[name=label]').fill('GNOME on demo laptop');
+  const intent=await page.locator('[name=intent]').inputValue();
   await page.getByRole('button',{name:'Create application password',exact:true}).click();
   await page.getByRole('heading',{name:'Application password created',exact:true}).waitFor();
   const secret=await page.locator('#issued-secret').innerText();privateValues.push(secret);
   writeFileSync('/fixture/issued-password',secret,{mode:0o600});
-  await shot(page,'15-password-created',[page.locator('main dd').filter({has:page.locator('#issued-secret')})]);
+  await shot(page,'19-password-created',[page.locator('[data-one-time-secret]')]);
   await page.getByRole('button',{name:'Copy password',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Password copied.'}).waitFor();
   check(await page.evaluate(()=>navigator.clipboard.readText())===secret,'Clipboard contains issued password');
@@ -125,36 +131,49 @@ try {
   await page.getByRole('status').filter({hasText:'Copy failed.'}).waitFor();
   check(await page.getByRole('button',{name:'Copy password',exact:true}).evaluate(button=>document.activeElement===button),'Clipboard failure keeps keyboard focus at the action');
   await page.evaluate(()=>{navigator.clipboard.writeText=window.savedClipboard;});
-  check(await mutate(page,'/credentials',{label:'MFA verified',days:'1'})===200,'Completed MFA: issuance succeeds');
-  await page.getByRole('link',{name:'Continue to application setup',exact:true}).click();
+  const receipt = await page.evaluate(async ({path,intent})=>{
+    const token=document.querySelector('meta[name=csrf-token]').content;
+    const response=await fetch(path,{method:'POST',headers:{'X-CSRF-TOKEN':token},body:new URLSearchParams({label:'GNOME on demo laptop',days:90,client:'gnome',from:'connect',intent})});
+    return await response.text();
+  },{path:prefix+'/credentials',intent});
+  check(receipt.includes('already created an application password') && !receipt.includes(secret),'Same intent produces a safe receipt');
+  await page.getByRole('link',{name:'Done',exact:true}).click();
   check(page.url().includes('client=gnome'),'Selected client preserved through issuance');
   check(!(await page.content()).includes(secret),'Secret absent from subsequent response');
-  await page.goto(base+'/portability');await shot(page,'20-import-export');
+  await page.goto(base+'/portability?destination='+journal);await shot(page,'20-import-destination');
+  await page.locator('input[type=file]').setInputFiles({name:'synthetic-journal.ics',mimeType:'text/calendar',buffer:Buffer.from('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Acceptance//EN\r\nBEGIN:VJOURNAL\r\nUID:ux-journal-fixture\r\nDTSTAMP:20261126T180000Z\r\nDTSTART;VALUE=DATE:20261126\r\nSUMMARY:Demo journal entry\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n')});
+  await Promise.all([page.waitForURL(/\/portability\/import\/[0-9a-f-]+/),page.getByRole('button',{name:'Validate and preview import'}).click()]);
+  await shot(page,'21-import-preview');
+  await page.locator('input[name=confirmed]').check();
+  await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Confirm import'}).click()]);
+  await page.getByRole('heading',{name:'Import results',exact:true}).waitFor();
+  await shot(page,'22-import-result');
+  await page.goto(base+'/admin/audit');await shot(page,'23-audit');
+  await page.goto(base+'/admin/diagnostics');await shot(page,'24-diagnostics');
   const userContext=await browser.newContext({viewport:{width:1280,height:900},colorScheme:'light'});
   const user=await userContext.newPage();await virtual(userContext,user);
   await user.goto(base+'/connections?client=thunderbird');
   await signIn(user,'demo-user');await enroll(user);await verify(user);
   const continued=new URL(user.url());
   check(continued.origin===new URL(base).origin && continued.pathname===prefix+'/connections' && continued.searchParams.get('client')==='thunderbird', 'Primary/session rotation preserves the intended application workflow; observed path='+continued.pathname+' query keys='+[...continued.searchParams.keys()].join(','));
-  await user.goto(base+'/');await shot(user,'11-user-onboarding');
+  await user.goto(base+'/');await shot(user,'25-shared-overview');
   check(await user.getByRole('link',{name:'Server administration',exact:true}).count()===0,'No administrator UI for ordinary user');
-  check((await user.locator('main').innerText()).includes('shared'),'Shared collections offered in onboarding');
+  check(/shared/i.test(await user.locator('main').innerText()),'Shared collections offered in onboarding');
   check(!(await user.locator('main').innerText()).includes('Create a calendar or task list'),'Shared recipient not forced to create collection');
   const clientStatus=await user.evaluate(async path=>(await fetch(path)).status,prefix+'/admin/accounts');check(clientStatus===403,'Ordinary account denied administration');
   await user.getByRole('button',{name:'Sign out',exact:true}).click();
-  await signIn(user,'demo-user');await user.getByRole('heading',{name:'Verify your passkey',exact:true}).waitFor();
+  await signIn(user,'demo-user');await user.getByRole('heading',{name:'Verify your passkey',exact:true}).waitFor();await shot(user,'26-returning-verification');
   check(await user.getByRole('button',{name:'Create passkey',exact:true}).count()===0,'Returning user verifies existing passkey');await verify(user);
-  await user.goto(base+'/security/passkeys');await user.getByRole('button',{name:/Remove passkey/}).click();
-  await user.waitForURL(/\/auth\/continue/);
+  await user.goto(base+'/security/passkeys');await user.getByRole('link',{name:/Remove passkey/}).click();
+  await user.getByRole('button',{name:'Remove passkey',exact:true}).click();
+  await user.getByRole('heading',{name:'Create a passkey',exact:true}).waitFor();
   const after=await user.evaluate(async path=>(await fetch(path)).json(),prefix+'/auth/state');
-  check(!after.enrolled && after.verified,'Last removal preserves existing current factor according to established policy');
-  check(await mutate(user,'/credentials',{label:'Existing recent factor',days:'1'})===200,'Prior completed MFA remains current after removal');
-  await user.getByRole('button',{name:'Sign out',exact:true}).click();await signIn(user,'demo-user');
-  check(await mutate(user,'/credentials',{label:'Password only again',days:'1'})===403,'New password-only session denied after last removal');
+  check(!after.enrolled && !after.verified,'Last removal invalidates the completed browser proof');
+  check(await mutate(user,'/credentials',{label:'Removed factor',days:'1'})===403,'Removed key does not authorize issuance');
   check(errors.length===0,'No page script errors');
   check(remoteAssets.length===0,'No externally loaded frontend resources');
-  writeFileSync(output+'/browser-result.json',JSON.stringify({status:'passed',assertions,playwright:'1.61.1',chromium:browser.version(),base,manualFirefoxBitwarden:'pending',screenshots:20},null,2));
-  console.log('P0_BROWSER_PASSED assertions='+assertions+' screenshots=20');
+  writeFileSync(output+'/browser-result.json',JSON.stringify({status:'passed',assertions,playwright:'1.61.1',chromium:browser.version(),base,manualFirefoxBitwarden:'pending',screenshots:26},null,2));
+  console.log('P0_BROWSER_PASSED assertions='+assertions+' screenshots=26');
 } catch(error) {
   let diagnostic=String(error.stack||error);
   for(const value of privateValues)diagnostic=diagnostic.replaceAll(value,'[redacted]');

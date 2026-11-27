@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Generate recovery codes')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <h1 th:text="${status.remaining > 0 ? 'Replace recovery codes' : 'Generate recovery codes'}"></h1>
+  <p>BusyStack displays the ten new codes once. Store them securely offline.</p>
+  <form th:action="@{/security/recovery/codes}" method="post" data-single-submit="Generating recovery codes…">
+    <input type="hidden" name="intent" th:value="${issuanceIntent}">
+    <p class="notice warning" th:if="${status.remaining > 0}">
+      <label><input type="checkbox" name="replace" value="true" required> I understand that my previous codes will stop working.</label>
+    </p>
+    <button type="submit" th:text="${status.remaining > 0 ? 'Replace recovery codes' : 'Generate ten codes'}"></button>
+    <a th:href="@{/security/recovery}">Cancel</a>
+  </form>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body>
+</html>

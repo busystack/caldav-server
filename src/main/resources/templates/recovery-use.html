@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Use a recovery code')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" class="auth-page" tabindex="-1">
+  <h1>Use a recovery code</h1>
+  <p>This consumes the code, removes all your passkeys, revokes client access and ends every browser session. Sign in again and create a new passkey after recovery.</p>
+  <th:block th:replace="~{fragments/layout :: feedback}"></th:block>
+  <form th:action="@{/security/recovery/use}" method="post">
+    <label for="recovery-use-code">Recovery code</label>
+    <input id="recovery-use-code" name="code" type="password" autocomplete="off" required maxlength="80"
+           th:attr="aria-invalid=${fieldErrors != null ? 'true' : null},aria-describedby=${fieldErrors != null ? 'recovery-use-code-error' : null}">
+    <p th:replace="~{fragments/layout :: fieldError('recovery-use','code')}"></p>
+    <button type="submit" class="danger">Use code and reset account access</button>
+    <a th:href="@{/auth/continue}">Cancel</a>
+  </form>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body>
+</html>

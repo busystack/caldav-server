@@ -16,18 +16,21 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
   private static final int MAX_JSON_BYTES = 65536;
   private final AccountPasskeyUsers users;
   private final CeremonyStore ceremonies;
+  private final org.busystack.caldav.security.session.BrowserSession sessions;
 
-  public PasskeyCeremonyGuard(AccountPasskeyUsers users, CeremonyStore ceremonies) {
+  public PasskeyCeremonyGuard(
+      AccountPasskeyUsers users,
+      CeremonyStore ceremonies,
+      org.busystack.caldav.security.session.BrowserSession sessions) {
     this.users = users;
     this.ceremonies = ceremonies;
+    this.sessions = sessions;
   }
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getServletPath();
-    return !(path.startsWith("/webauthn/")
-        || path.equals("/login/webauthn")
-        || path.equals("/security/passkeys"));
+    return !(path.startsWith("/webauthn/") || path.equals("/login/webauthn"));
   }
 
   @Override
@@ -35,12 +38,16 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
     String path = request.getServletPath();
-    if (path.startsWith("/webauthn/register") || path.equals("/security/passkeys")) {
+    if (path.startsWith("/webauthn/register")) {
       var authentication = SecurityContextHolder.getContext().getAuthentication();
       try {
         RecentAuthentication.requirePrimary(authentication);
-        if (users.hasCredentials(authentication.getName()))
+        if (users.hasCredentials(authentication.getName())) {
           RecentAuthentication.requireMfa(authentication);
+          if (sessions.state(request, authentication)
+              != org.busystack.caldav.security.session.BrowserSession.State.CURRENT)
+            throw new AccessDeniedException("Verify a current passkey to manage passkeys");
+        }
       } catch (AccessDeniedException ex) {
         if ("GET".equals(request.getMethod())) {
           new org.springframework.security.web.savedrequest.HttpSessionRequestCache()
@@ -118,7 +125,7 @@ public class PasskeyCeremonyGuard extends OncePerRequestFilter {
         && (path.equals("/webauthn/authenticate/options")
             || path.equals("/webauthn/register/options")))
       processed = new ChallengeRecordingRequest(processed, ceremonies);
-    try {
+    try (var assertion = new AcceptedAssertion(processed)) {
       chain.doFilter(processed, response);
     } catch (VerificationException | PasskeyRegistrationRejectedException ex) {
       // The configured registration filter has no failure handler. Its supported RP operation

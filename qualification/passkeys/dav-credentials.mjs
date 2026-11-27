@@ -30,7 +30,8 @@ export async function qualifyDavCredentials(page, base, privateValues, username 
   await page.goto(base + '/security/credentials');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in the management page');
   const entry = page.locator('tbody tr').filter({hasText: label});
-  await Promise.all([page.waitForURL(base + '/security/credentials'), entry.getByRole('button', {name: 'Revoke', exact: true}).click()]);
+  await entry.getByRole('link', {name: 'Revoke', exact: true}).click();
+  await Promise.all([page.waitForURL(base + '/security/credentials'), page.getByRole('button', {name: 'Revoke application password', exact: true}).click()]);
   assert.equal((await call(base, '/dav/missing', {headers: {Authorization: 'Basic ' + encoded}})).status, 401);
   console.log('BROWSER_DAV_CREDENTIAL_ISSUANCE_DISPLAY_ONCE_AND_REVOCATION_PASSED');
 }

@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 export async function verifyPasskey(page,base) {
-  await page.goto(base+'/auth/continue');
-  await Promise.all([page.waitForURL(base+'/auth/continue?verified'),page.getByRole('button',{name:'Verify passkey',exact:true}).click()]);
-  await page.getByRole('heading',{name:'Authentication successful',exact:true}).waitFor();
-  await page.getByRole('link',{name:'Continue',exact:true}).click();
+  const button = page.getByRole('button',{name:'Verify and continue',exact:true});
+  await Promise.all([
+    page.waitForURL(url => !url.pathname.endsWith('/auth/continue') && !url.pathname.endsWith('/login')),
+    button.click()
+  ]);
 }
 // A normal signed anonymous browser assertion still exercises revoked/disabled
 // cryptography even though primary login no longer offers an unordered passkey button.

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Find an account')}"></head>
+<body><header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <a th:href="@{/admin/groups/{id}(id=${group.id})}">Back to group</a>
+  <h1 th:text="${'Find an account for ' + group.name}"></h1>
+  <form class="filters" method="get" th:action="@{/admin/groups/{id}/members/new(id=${group.id})}">
+    <label>Search username or display name<input name="q" th:value="${query}" maxlength="200"></label>
+    <button type="submit">Search</button>
+  </form>
+  <p th:if="${lookupPage.rows.isEmpty()}">No enabled accounts on this page.</p>
+  <ul th:unless="${lookupPage.rows.isEmpty()}" class="resource-list">
+    <li th:each="account : ${lookupPage.rows}">
+      <a th:href="@{/admin/groups/{id}(id=${group.id},member=${account.username})}"
+        th:text="${account.displayName + ' (' + account.username + ')'}"></a>
+      <span>Enabled</span>
+    </li>
+  </ul>
+  <nav th:replace="~{fragments/layout :: pagination(${'/admin/groups/' + group.id + '/members/new'},${lookupPage})}"></nav>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

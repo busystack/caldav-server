@@ -29,6 +29,8 @@ public class PortabilityService {
 
   public record Report(
       UUID token,
+      UUID destination,
+      String component,
       String collectionName,
       Instant expires,
       List<ItemResult> items,
@@ -136,8 +138,7 @@ public class PortabilityService {
                 destination,
                 file,
                 reportBytes,
-                prepared ->
-                    report(prepared.token(), collection.name(), prepared.expires(), results));
+                prepared -> report(prepared.token(), collection, prepared.expires(), results));
         retained = true;
         return stage.report();
       } finally {
@@ -191,7 +192,7 @@ public class PortabilityService {
           SecurityAudit.Action.COLLECTION_IMPORTED,
           SecurityAudit.Outcome.SUCCESS,
           null);
-      var report = report(null, collection.name(), null, results);
+      var report = report(null, collection, null, results);
       outcome.set(report);
       return report;
     }
@@ -284,10 +285,16 @@ public class PortabilityService {
     return List.copyOf(result);
   }
 
-  private static Report report(UUID token, String name, Instant expires, List<ItemResult> results) {
+  private static Report report(
+      UUID token,
+      PortalService.CollectionView collection,
+      Instant expires,
+      List<ItemResult> results) {
     return new Report(
         token,
-        name,
+        collection.id(),
+        collection.component(),
+        collection.name(),
         expires,
         results,
         count(results, "Imported"),

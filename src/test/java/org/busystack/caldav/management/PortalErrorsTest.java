@@ -17,7 +17,7 @@ class PortalErrorsTest {
     request.setServletPath(path);
     var response = new MockHttpServletResponse();
     var model = new ExtendedModelMap();
-    var errors = new PortalErrors(mock(FormRecovery.class));
+    var errors = new PortalErrors(mock(FormRecovery.class), mock(PortalPageAdvice.class));
     String view =
         errors.failure(
             new TransactionTimedOutException("private internal deadline"),

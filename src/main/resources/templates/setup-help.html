@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Setup and recovery help')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main tabindex="-1" id="main" class="auth-page">
+  <h1>Setup and recovery help</h1>
+  <h2>Set up a new server</h2>
+  <p>From the extracted deployment directory on the server, run <code>bash scripts/initialize.sh</code>. Paste the code into the setup form within 15 minutes. Issuing a replacement invalidates the old code.</p>
+  <p><a th:href="@{/setup}">Open setup</a></p>
+  <h2>Recover an existing account</h2>
+  <p>Sign in with your password or organization account. If you lost your passkey, use a saved recovery code at the verification step. Contact the deployment operator for controlled offline recovery if you cannot use that option.</p>
+  <p>The extracted deployment includes <code>docs/GETTING_STARTED.md</code> and <code>docs/operations.md</code>.</p>
+  <p><a th:href="@{/login}">Open sign-in</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

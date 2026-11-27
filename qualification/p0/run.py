@@ -39,7 +39,6 @@ def main():
     parser.add_argument('--client-python',default=str(ROOT/'.client-venv/bin/python'))
     parser.add_argument('--thunderbird-binary',default=str(ROOT/'.client-tools/thunderbird/thunderbird'))
     parser.add_argument('--proxy',action='store_true',help='Use the package HTTPS proxy example, preserving root or /team paths')
-    parser.add_argument('--administrator-activity',choices=('personal','users'),default='users')
     parser.add_argument('--output',type=Path,default=ROOT/'target/qualification/p0')
     args=parser.parse_args(); args.output.mkdir(parents=True,exist_ok=True)
     operations.ROOT=args.deployment_directory.resolve()
@@ -77,9 +76,8 @@ def main():
             codes=re.findall(r'(?m)^[A-Za-z0-9_-]{43}$',result);assert len(codes)==1,'Expected exactly one operator-only code'
             code=fixture/'initialization-code';code.write_text(codes[0]);code.chmod(0o600)
             issued=fixture/'issued-password';issued.touch(mode=0o600)
-            command=['docker','run','--rm','--network','host','--volume',str(fixture/'ca.pem')+':/fixture/ca.pem:ro','--volume',str(fixture/'password')+':/fixture/password:ro','--volume',str(code)+':/fixture/initialization-code:ro','--volume',str(issued)+':/fixture/issued-password:rw','--volume',str(args.output.resolve())+':/evidence','--volume',str(ROOT/'qualification/p0/browser.mjs')+':/qualification/passkeys.mjs:ro','--volume',str(ROOT/'qualification/passkeys/portal-helpers.mjs')+':/qualification/portal-helpers.mjs:ro','--env','BUSYSTACK_BROWSER_CA_FILE=/fixture/ca.pem','--env','BUSYSTACK_BROWSER_URL='+base,args.browser_image]
+            command=['docker','run','--rm','--network','host','--volume',str(fixture/'ca.pem')+':/fixture/ca.pem:ro','--volume',str(fixture/'password')+':/fixture/password:ro','--volume',str(code)+':/fixture/initialization-code:ro','--volume',str(issued)+':/fixture/issued-password:rw','--volume',str(args.output.resolve())+':/evidence','--volume',str(ROOT/'qualification/p0/browser.mjs')+':/qualification/passkeys.mjs:ro','--volume',str(ROOT/'qualification/passkeys/portal-helpers.mjs')+':/qualification/portal-helpers.mjs:ro','--env','BUSYSTACK_BROWSER_CA_FILE=/fixture/ca.pem','--env','NODE_EXTRA_CA_CERTS=/fixture/ca.pem','--env','BUSYSTACK_BROWSER_URL='+base,args.browser_image]
             print('P0_BROWSER_START',flush=True)
-            command[-1:-1]=['--env','BUSYSTACK_ADMINISTRATOR_ACTIVITY='+args.administrator_activity]
             subprocess.run(command,check=True,timeout=600)
             if args.clients:
                 client_environment=os.environ.copy()

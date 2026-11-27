@@ -101,5 +101,6 @@ public class SessionSecurity {
         names.getFirst(),
         accountId.toString());
     jdbc.update("DELETE FROM webauthn_ceremonies WHERE account_id=?", accountId);
+    jdbc.update("DELETE FROM browser_issuance_intents WHERE account_id=?", accountId);
   }
 }

@@ -18,7 +18,10 @@ class PasskeyCeremonyGuardTest {
   @Test
   void streamedJsonIsBoundedAndEncodedBodiesAreRejected() throws Exception {
     var guard =
-        new PasskeyCeremonyGuard(mock(AccountPasskeyUsers.class), mock(CeremonyStore.class));
+        new PasskeyCeremonyGuard(
+            mock(AccountPasskeyUsers.class),
+            mock(CeremonyStore.class),
+            mock(org.busystack.caldav.security.session.BrowserSession.class));
     var request = request("/webauthn/authenticate/options", new MockHttpSession());
     request.setContentType("application/json");
     request.setContent(new byte[65537]);
@@ -51,7 +54,10 @@ class PasskeyCeremonyGuardTest {
   @Test
   void frameworkCanReadBoundedJsonAndFormsKeepTheirParameters() throws Exception {
     var guard =
-        new PasskeyCeremonyGuard(mock(AccountPasskeyUsers.class), mock(CeremonyStore.class));
+        new PasskeyCeremonyGuard(
+            mock(AccountPasskeyUsers.class),
+            mock(CeremonyStore.class),
+            mock(org.busystack.caldav.security.session.BrowserSession.class));
     var request = request("/webauthn/authenticate/options", new MockHttpSession());
     request.setContentType("application/json");
     request.setContent(
@@ -80,7 +86,8 @@ class PasskeyCeremonyGuardTest {
   void firstEnrollmentRequiresPasswordAndSubsequentEnrollmentRequiresBothFactors()
       throws Exception {
     var users = mock(AccountPasskeyUsers.class);
-    var guard = new PasskeyCeremonyGuard(users, mock(CeremonyStore.class));
+    var sessions = mock(org.busystack.caldav.security.session.BrowserSession.class);
+    var guard = new PasskeyCeremonyGuard(users, mock(CeremonyStore.class), sessions);
     var calls = new AtomicInteger();
     var request = request("/webauthn/register/options", new MockHttpSession());
     var denied = new MockHttpServletResponse();
@@ -112,6 +119,11 @@ class PasskeyCeremonyGuardTest {
                     FactorGrantedAuthority.fromAuthority(FactorGrantedAuthority.PASSWORD_AUTHORITY),
                     FactorGrantedAuthority.fromAuthority(
                         FactorGrantedAuthority.WEBAUTHN_AUTHORITY))));
+    var unverified = new MockHttpServletResponse();
+    guard.doFilter(request, unverified, (q, response) -> calls.incrementAndGet());
+    assertThat(unverified.getStatus()).isEqualTo(403);
+    when(sessions.state(eq(request), any()))
+        .thenReturn(org.busystack.caldav.security.session.BrowserSession.State.CURRENT);
     guard.doFilter(request, new MockHttpServletResponse(), (q, s) -> calls.incrementAndGet());
     assertThat(calls).hasValue(2);
   }
@@ -119,7 +131,11 @@ class PasskeyCeremonyGuardTest {
   @Test
   void frameworkChallengeIsRecordedAndDurableConsumeDecisionGatesAssertion() throws Exception {
     var store = mock(CeremonyStore.class);
-    var guard = new PasskeyCeremonyGuard(mock(AccountPasskeyUsers.class), store);
+    var guard =
+        new PasskeyCeremonyGuard(
+            mock(AccountPasskeyUsers.class),
+            store,
+            mock(org.busystack.caldav.security.session.BrowserSession.class));
     var session = new MockHttpSession();
     var challenge = org.springframework.security.web.webauthn.api.Bytes.random();
     var options =

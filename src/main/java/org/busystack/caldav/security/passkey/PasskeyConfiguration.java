@@ -72,7 +72,8 @@ public class PasskeyConfiguration {
       DeploymentProperties properties,
       AccountPasskeyUsers users,
       CeremonyStore ceremonies,
-      org.busystack.caldav.security.AuthenticationJourney journey) {
+      org.busystack.caldav.security.AuthenticationJourney journey,
+      org.busystack.caldav.security.session.BrowserSession browserSessions) {
     var base = properties.publicBaseUrl();
     http.webAuthn(
         web -> {
@@ -85,12 +86,19 @@ public class PasskeyConfiguration {
                 @Override
                 public <O extends WebAuthnAuthenticationFilter> O postProcess(O filter) {
                   filter.setSessionAuthenticationStrategy(new SessionFixationProtectionStrategy());
-                  filter.setAuthenticationSuccessHandler(journey::passkeySuccess);
+                  filter.setAuthenticationSuccessHandler(
+                      (request, response, auth) -> {
+                        if (org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth))
+                          browserSessions.complete(
+                              request, auth, (String) request.getAttribute(AcceptedAssertion.KEY));
+                        journey.passkeySuccess(request, response, auth);
+                      });
                   return filter;
                 }
               });
         });
     http.addFilterBefore(
-        new PasskeyCeremonyGuard(users, ceremonies), UsernamePasswordAuthenticationFilter.class);
+        new PasskeyCeremonyGuard(users, ceremonies, browserSessions),
+        UsernamePasswordAuthenticationFilter.class);
   }
 }

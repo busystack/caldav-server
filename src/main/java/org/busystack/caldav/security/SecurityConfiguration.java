@@ -146,6 +146,7 @@ public class SecurityConfiguration {
       org.busystack.caldav.security.session.SessionSecurity sessions,
       org.busystack.caldav.security.throttle.LoginThrottleService throttle,
       AuthenticationJourney journey,
+      org.busystack.caldav.security.session.BrowserSession browserSessions,
       org.busystack.caldav.account.InitializationService initialization,
       org.springframework.beans.factory.ObjectProvider<
               org.busystack.caldav.security.oidc.OidcLoginSupport>
@@ -156,7 +157,9 @@ public class SecurityConfiguration {
       throws Exception {
     http.authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(
+                auth.requestMatchers(org.springframework.http.HttpMethod.GET, "/help/setup")
+                    .permitAll()
+                    .requestMatchers(
                         "/.well-known/caldav",
                         "/assets/**",
                         "/login",
@@ -175,6 +178,13 @@ public class SecurityConfiguration {
                     .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
+        .requestCache(
+            cache -> {
+              var safe =
+                  new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
+              safe.setRequestMatcher(request -> "GET".equals(request.getMethod()));
+              cache.requestCache(safe);
+            })
         .formLogin(
             login -> login.loginPage("/login").successHandler(journey::primarySuccess).permitAll())
         // This endpoint only returns a configured 308; it has no cookie-authenticated mutation.
@@ -199,11 +209,14 @@ public class SecurityConfiguration {
     http.addFilterBefore(
         new org.busystack.caldav.security.throttle.LoginThrottleFilter(throttle),
         org.springframework.security.web.authentication.logout.LogoutFilter.class);
+    http.addFilterAfter(
+        new BrowserAccessFilter(browserSessions, journey),
+        org.springframework.security.web.access.intercept.AuthorizationFilter.class);
     http.setSharedObject(
         UserDetailsService.class,
         org.busystack.caldav.security.oidc.OidcConfiguration.passkeyUsers(accounts));
     org.busystack.caldav.security.passkey.PasskeyConfiguration.configure(
-        http, deployment, passkeyUsers, ceremonies, journey);
+        http, deployment, passkeyUsers, ceremonies, journey, browserSessions);
     var upstream = upstreamUsers.getIfAvailable();
     if (upstream != null)
       org.busystack.caldav.security.oidc.OidcConfiguration.configure(

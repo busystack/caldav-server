@@ -39,8 +39,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version='1' AND success) THEN
     RAISE EXCEPTION 'Missing V1 migration history; leave application stopped';
   END IF;
-  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17')) THEN
-    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 17 only; leave application stopped and update recovery procedure';
+  IF EXISTS (SELECT 1 FROM flyway_schema_history WHERE version IS NOT NULL AND version NOT IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18')) THEN
+    RAISE EXCEPTION 'This recovery script supports schema versions 1 through 18 only; leave application stopped and update recovery procedure';
   END IF;
   IF EXISTS (SELECT version FROM flyway_schema_history WHERE version IS NOT NULL GROUP BY version HAVING count(*) <> 1) THEN
     RAISE EXCEPTION 'Duplicate migration versions; leave application stopped';
@@ -77,6 +77,9 @@ BEGIN
   END IF;
   IF to_regclass('public.external_identities') IS NOT NULL THEN
     UPDATE external_identities SET last_verified_at = timestamptz '1970-01-01 00:00:00+00';
+  END IF;
+  IF to_regclass('public.browser_issuance_intents') IS NOT NULL THEN
+    DELETE FROM browser_issuance_intents;
   END IF;
   IF to_regclass('public.spring_session') IS NOT NULL THEN
     DELETE FROM spring_session;

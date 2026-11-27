@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Remove passkey')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <h1 th:text="${'Remove ' + credential.label + '?'}"></h1>
+  <p class="notice warning">Any browser session verified with this passkey will need to verify again.</p>
+  <p th:if="${lastKey}">This is your last passkey. Add a replacement first, or remove it and create and verify a new one before you return to your account.</p>
+  <div class="actions">
+    <button type="button" class="danger remove-passkey" th:attr="data-id=${credential.credentialId.toBase64UrlString()},data-context=@{/}">Remove passkey</button>
+    <a th:if="${lastKey}" th:href="@{/security/passkeys#passkey-label}">Add a replacement first</a>
+    <a th:href="@{/security/passkeys}">Cancel</a>
+  </div>
+  <p id="security-status" role="status" aria-live="polite"></p>
+</main>
+<script th:src="@{/assets/security.js}" defer></script>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body></html>

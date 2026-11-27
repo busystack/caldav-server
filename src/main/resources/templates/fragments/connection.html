@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="settings" th:if="${davConnection != null}">
+  <h2>Connection settings</h2>
+  <label for="server-address" >Server address</label>
+  <div class="copy-field">
+    <input id="server-address" th:value="${davConnection.url}" readonly>
+    <button type="button" class="secondary" data-copy="server-address">Copy address</button>
+  </div>
+  <div th:if="${client == 'gnome'}">
+    <label for="gnome-address">GNOME connection address</label>
+    <div class="copy-field">
+      <input id="gnome-address" th:value="${davConnection.gnomeUrl()}" readonly>
+      <button type="button" class="secondary" data-copy="gnome-address" data-copy-message="GNOME address copied.">Copy GNOME address</button>
+    </div>
+  </div>
+  <label for="dav-username">Username</label>
+  <div class="copy-field">
+    <input id="dav-username" th:value="${davConnection.username}" readonly>
+    <button type="button" class="secondary" data-copy="dav-username">Copy username</button>
+  </div>
+</section>
+<section th:fragment="instructions">
+  <h2 th:text="${client == 'thunderbird' ? 'Set up Thunderbird' : (client == 'gnome' ? 'Set up GNOME Calendar' : 'Set up a CalDAV app')}"></h2>
+  <ol th:if="${client == 'thunderbird'}">
+    <li>Open the Calendar tab. Choose <strong>New Calendar → On the Network</strong>.</li>
+    <li>Enter your username and the server address as <strong>Location</strong>. Leave <strong>This location doesn’t require credentials</strong> unchecked, then choose <strong>Find Calendars</strong>.</li>
+    <li>Enter your BusyStack application password in Thunderbird’s password prompt.</li>
+    <li>Choose <strong>CalDAV</strong>, select the calendars and task lists you need, then choose <strong>Subscribe</strong>. Use Thunderbird’s task view for tasks.</li>
+  </ol>
+  <ol th:if="${client == 'gnome'}">
+    <li>Open <strong>Manage Calendars → Add Calendar</strong>. GNOME Calendar manages events.</li>
+    <li>Paste the GNOME connection address into <strong>Connect to an Online Calendar</strong>. The address includes your username.</li>
+    <li>In <strong>Credentials</strong>, enter your username and application password. Select <strong>Connect</strong>, then <strong>Add Calendar</strong> once the address validates.</li>
+    <li>Use the same application password if GNOME prompts again during synchronization.</li>
+  </ol>
+  <p th:if="${client == 'generic'}">Choose CalDAV with password authentication using the configured server address. Enter your username and a BusyStack application password. Discovery can find resources you own or can access by sharing. Select an app that supports the resource types you need.</p>
+  <p>Refresh in your app and check that the expected resources appear. For a writable resource, create a test item and check that it synchronizes before adding important data.</p>
+</section>
+</body>
+</html>

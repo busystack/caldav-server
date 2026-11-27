@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Issuance result')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="main" tabindex="-1">
+  <h1>Issuance result</h1>
+  <p class="notice info" role="status" th:text="${issuanceMessage}"></p>
+  <p th:if="${issuedId != null}">Credential reference <code th:text="${issuedId}"></code></p>
+  <a th:if="${recoveryIssuance}" th:href="@{/security/recovery}">Review recovery settings</a>
+  <a th:unless="${recoveryIssuance}" th:href="@{/security/credentials(client=${client},from=${credentialOrigin})}">Review application passwords</a>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

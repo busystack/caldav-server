@@ -28,13 +28,22 @@ public class PasskeyPages {
   @GetMapping("/login")
   public String login(
       Authentication auth,
+      Model model,
       jakarta.servlet.http.HttpServletRequest request,
       jakarta.servlet.http.HttpServletResponse response) {
     response.setHeader("Cache-Control", "no-store");
     if (initialization.available()) return "redirect:/setup";
     journey.capture(request, response);
-    if (org.busystack.caldav.security.RecentAuthentication.primaryCurrent(auth))
-      return "redirect:/auth/continue";
+    String next = request.getParameter("next");
+    String flow = next == null ? journey.handle(request) : journey.start(request, next, auth);
+    model.addAttribute("signInFlow", flow);
+    model.addAttribute("verifiedAction", journey.action(request, auth, flow));
+    if (org.busystack.caldav.security.session.BrowserSession.completed(request)
+        && request.getParameter("reauthenticate") == null
+        && flow.isEmpty()) return "redirect:/";
+    if (org.busystack.caldav.security.RecentAuthentication.primaryCurrent(auth)
+        && request.getParameter("reauthenticate") == null)
+      return "redirect:/auth/continue?flow=" + flow;
     return "login";
   }
 
@@ -48,30 +57,65 @@ public class PasskeyPages {
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Referrer-Policy", "no-referrer");
     journey.capture(request, response);
-    if (next != null) journey.remember(request, next);
+    String flow = next == null ? journey.handle(request) : journey.start(request, next, auth);
+    boolean completed = org.busystack.caldav.security.session.BrowserSession.completed(request);
+    if (completed
+        && (flow.isEmpty() || org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth)))
+      return "redirect:" + stripContext(request, journey.consume(request, auth, flow));
     if (!org.busystack.caldav.security.RecentAuthentication.primaryCurrent(auth))
-      return "redirect:/login";
-    boolean enrolled = users.hasCredentials(auth.getName());
-    model.addAttribute("enrolled", enrolled);
-    model.addAttribute("destination", journey.destination(request));
-    return !enrolled
-        ? "enroll-passkey"
-        : org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth)
-            ? "authentication-complete"
-            : "verify-passkey";
+      return "redirect:/login?reauthenticate&flow=" + flow;
+    model.addAttribute("signInFlow", flow);
+    model.addAttribute("verifiedAction", journey.action(request, auth, flow));
+    model.addAttribute("confirmingAction", completed);
+    return users.hasCredentials(auth.getName()) ? "verify-passkey" : "enroll-passkey";
+  }
+
+  private static String stripContext(jakarta.servlet.http.HttpServletRequest request, String path) {
+    return path.substring(request.getContextPath().length());
   }
 
   @GetMapping("/auth/state")
   @org.springframework.web.bind.annotation.ResponseBody
   public java.util.Map<String, Boolean> state(
-      Authentication auth, jakarta.servlet.http.HttpServletResponse response) {
+      Authentication auth,
+      jakarta.servlet.http.HttpServletRequest request,
+      jakarta.servlet.http.HttpServletResponse response) {
     response.setHeader("Cache-Control", "no-store");
     org.busystack.caldav.security.RecentAuthentication.requirePrimary(auth);
     return java.util.Map.of(
         "enrolled",
         users.hasCredentials(auth.getName()),
         "verified",
-        org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth));
+        org.busystack.caldav.security.session.BrowserSession.completed(request)
+            && org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth));
+  }
+
+  @GetMapping("/security/passkeys/remove/{id}")
+  public String confirmRemove(
+      Authentication auth,
+      @org.springframework.web.bind.annotation.PathVariable String id,
+      Model model) {
+    var user = users.findByUsername(auth.getName());
+    if (user == null || !id.matches("[A-Za-z0-9_-]{1,2048}"))
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND);
+    var records = credentials.findByUserId(user.getId());
+    var key =
+        records.stream()
+            .filter(record -> record.getCredentialId().toBase64UrlString().equals(id))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new org.busystack.caldav.storage.StoreException(
+                        org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND));
+    model.addAttribute("credential", key);
+    model.addAttribute("lastKey", records.size() == 1);
+    return "passkey-remove";
+  }
+
+  @GetMapping("/security/passkeys/add")
+  public String add() {
+    return "redirect:/security/passkeys#passkey-label";
   }
 
   @GetMapping("/security/passkeys")

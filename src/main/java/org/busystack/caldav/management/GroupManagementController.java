@@ -13,10 +13,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class GroupManagementController {
   private final GroupService groups;
   private final SharingManagementService sharing;
+  private final AdministrationService administration;
 
-  public GroupManagementController(GroupService groups, SharingManagementService sharing) {
+  public GroupManagementController(
+      GroupService groups, SharingManagementService sharing, AdministrationService administration) {
     this.groups = groups;
     this.sharing = sharing;
+    this.administration = administration;
   }
 
   @GetMapping("/admin/groups")
@@ -30,13 +33,21 @@ public class GroupManagementController {
     return "groups";
   }
 
+  @GetMapping("/admin/groups/new")
+  String createForm(@RequestParam(required = false) UUID returnCollection, Model model) {
+    model.addAttribute("returnCollection", returnCollection);
+    return "group-new";
+  }
+
   @GetMapping("/admin/groups/{id}")
   String detail(
       Authentication auth,
       @PathVariable UUID id,
       @RequestParam(defaultValue = "") String q,
       @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "") String member,
       Model model) {
+    model.addAttribute("selectedMember", member.length() <= 64 ? member : "");
     model.addAttribute("group", groups.detail(auth, id));
     model.addAttribute("memberPage", groups.members(auth, id, q, page));
     model.addAttribute("query", q);
@@ -45,9 +56,13 @@ public class GroupManagementController {
 
   @PostMapping("/admin/groups")
   String create(
-      Authentication auth, @RequestParam(defaultValue = "") String name, RedirectAttributes flash) {
+      Authentication auth,
+      @RequestParam(defaultValue = "") String name,
+      @RequestParam(required = false) UUID returnCollection,
+      RedirectAttributes flash) {
     UUID id = groups.create(auth, name, Set.of());
-    flash.addFlashAttribute("notice", "Group created. Add members individually below.");
+    flash.addFlashAttribute("notice", "Group created.");
+    if (returnCollection != null) return "redirect:/collections/" + returnCollection + "/sharing";
     return "redirect:/admin/groups/" + id;
   }
 
@@ -63,17 +78,55 @@ public class GroupManagementController {
     return "redirect:/admin/groups/" + id;
   }
 
+  @GetMapping("/admin/groups/{id}/members/new")
+  String lookup(
+      Authentication auth,
+      @PathVariable UUID id,
+      @RequestParam(defaultValue = "") String q,
+      @RequestParam(defaultValue = "0") int page,
+      Model model) {
+    model.addAttribute("group", groups.detail(auth, id));
+    model.addAttribute("lookupPage", administration.accounts(auth, q, "enabled", "all", page));
+    model.addAttribute("query", q);
+    return "group-member-lookup";
+  }
+
   @PostMapping("/admin/groups/{id}/members")
   String add(
       Authentication auth,
       @PathVariable UUID id,
       @RequestParam(defaultValue = "") String username,
       @RequestParam(defaultValue = "false") boolean confirmed,
+      @RequestParam(required = false) Long expectedGrants,
       RedirectAttributes flash) {
-    groups.changeMember(auth, id, username, null, true, confirmed);
-    flash.addFlashAttribute(
-        "notice", "Member added. Existing group grants now apply to this account.");
+    var group = groups.detail(auth, id);
+    groups.changeMember(
+        auth,
+        id,
+        username,
+        null,
+        true,
+        confirmed || group.grants() == 0,
+        expectedGrants == null ? group.grants() : expectedGrants);
+    flash.addFlashAttribute("notice", "Added " + username + " to " + group.name() + ".");
     return "redirect:/admin/groups/" + id;
+  }
+
+  @GetMapping("/admin/groups/{id}/members/{account}/remove")
+  String confirmRemove(
+      Authentication auth, @PathVariable UUID id, @PathVariable UUID account, Model model) {
+    var group = groups.detail(auth, id);
+    var member = groups.member(auth, id, account);
+    model.addAttribute(
+        "actionTitle", "Remove " + member.username() + " from " + group.name() + "?");
+    model.addAttribute(
+        "consequence",
+        "Access granted by this group may end. Other direct or group grants continue to apply.");
+    model.addAttribute("actionLabel", "Remove member");
+    model.addAttribute("actionPath", "/admin/groups/" + id + "/members/" + account + "/remove");
+    model.addAttribute("cancelPath", "/admin/groups/" + id);
+    model.addAttribute("expectedGrants", group.grants());
+    return "confirm-action";
   }
 
   @PostMapping("/admin/groups/{id}/members/{account}/remove")
@@ -82,12 +135,34 @@ public class GroupManagementController {
       @PathVariable UUID id,
       @PathVariable UUID account,
       @RequestParam(defaultValue = "false") boolean confirmed,
+      @RequestParam(required = false) Long expectedGrants,
       RedirectAttributes flash) {
-    groups.changeMember(auth, id, null, account, false, confirmed);
+    var group = groups.detail(auth, id);
+    var member = groups.member(auth, id, account);
+    groups.changeMember(
+        auth,
+        id,
+        null,
+        account,
+        false,
+        confirmed,
+        expectedGrants == null ? group.grants() : expectedGrants);
     flash.addFlashAttribute(
-        "notice",
-        "Group membership removed. Other direct or group grants may still provide access.");
+        "notice", "Removed " + member.username() + " from " + group.name() + ".");
     return "redirect:/admin/groups/" + id;
+  }
+
+  @GetMapping("/admin/groups/{id}/delete")
+  String confirmDelete(Authentication auth, @PathVariable UUID id, Model model) {
+    var group = groups.detail(auth, id);
+    model.addAttribute("actionTitle", "Delete " + group.name() + "?");
+    model.addAttribute(
+        "consequence",
+        "This removes the group, its memberships and grants. The underlying resources remain. Access through other grants continues.");
+    model.addAttribute("actionLabel", "Delete group");
+    model.addAttribute("actionPath", "/admin/groups/" + id + "/delete");
+    model.addAttribute("cancelPath", "/admin/groups/" + id);
+    return "confirm-action";
   }
 
   @PostMapping("/admin/groups/{id}/delete")

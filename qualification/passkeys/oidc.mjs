@@ -15,7 +15,7 @@ export async function organizationPrimary(page, base, privateValues, requirePass
   privateValues.push(password);
   await page.goto(base + '/login');
   await page.getByRole('link', {name: "Sign in with your organization's identity provider", exact: true}).click();
-  const dashboard = page.getByRole('heading', {name: /^(Secure your account|Verify your passkey|Authentication successful)$/});
+  const dashboard = page.getByRole('heading', {name: /^(Create a passkey|Verify your passkey|Overview)$/});
   let destination;
   try {
     destination = await Promise.race([
@@ -79,7 +79,7 @@ export async function newFederatedUser(browser, base, privateValues) {
   await primaryCannotMutate(page, base);
   await page.goto(base + '/security/passkeys');
   await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
-  await page.locator('#security-status').filter({hasText: 'Passkey created.'}).waitFor();
+  await page.locator('#security-status').filter({hasText: 'Passkey saved.'}).waitFor();
   await verifyPasskey(page,base);
   const prefix = new URL(base).pathname.replace(/\/$/, '');
   await createCollection(page,base,'Federated browser-qualified tasks','VTODO');

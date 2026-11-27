@@ -2,7 +2,6 @@ package org.busystack.caldav.management;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.busystack.caldav.storage.StoreException;
 import org.springframework.dao.DataAccessException;
@@ -18,13 +17,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
       PortalController.class,
       AdministrationController.class,
       GroupManagementController.class,
-      PortabilityController.class
+      PortabilityController.class,
+      ReviewFormController.class,
+      OperationalDiagnostics.class,
+      org.busystack.caldav.security.oauth.OAuthManagementController.class,
+      org.busystack.caldav.security.passkey.PasskeyPages.class,
+      org.busystack.caldav.security.session.SessionController.class
     })
 public class PortalErrors {
   private final FormRecovery forms;
+  private final PortalPageAdvice pages;
 
-  public PortalErrors(FormRecovery forms) {
+  public PortalErrors(FormRecovery forms, PortalPageAdvice pages) {
     this.forms = forms;
+    this.pages = pages;
   }
 
   @ExceptionHandler({
@@ -46,6 +52,7 @@ public class PortalErrors {
       HttpServletResponse response,
       Model model,
       org.springframework.security.core.Authentication auth) {
+    pages.layout(auth, request, model);
     Map<String, String> errors = null;
     if (failure instanceof FormValidation invalid) errors = invalid.errors();
     else if (failure instanceof org.busystack.caldav.calendar.CalendarValidationException
@@ -93,7 +100,7 @@ public class PortalErrors {
       status = 403;
       title = "Action not allowed";
       message =
-          "This action requires current permission and primary sign-in plus passkey verification within ten minutes. Verify your factors, then return to the page.";
+          "This account cannot perform that action. Return to a page available to your account.";
     } else if (failure instanceof StoreException error) {
       status =
           switch (error.kind()) {
@@ -114,7 +121,7 @@ public class PortalErrors {
       message =
           switch (status) {
             case 404, 403 ->
-                "The resource is unavailable to this account. An administrator role does not grant access to private collections.";
+                "The resource is no longer available to this account. Return to your available resources or ask the owner to review your access.";
             case 412 ->
                 "The resource or access changed since this form was opened. Reload its management page and review the current state before trying again.";
             case 413 ->
@@ -145,17 +152,16 @@ public class PortalErrors {
       message =
           "Temporary portability capacity is busy. Retry later or discard an unused preview. Existing data and previews are preserved.";
     }
+    if (request.getServletPath().startsWith("/portability/import/") && status == 404) {
+      title = "Import report unavailable";
+      message =
+          "This report may have expired, been replaced, or been lost after a restart. If you submitted confirmation, inspect the destination before importing again.";
+    }
     response.setStatus(status);
     response.setHeader("Cache-Control", "no-store");
     model.addAttribute("errorTitle", title);
     model.addAttribute("message", message);
-    Map<String, String> submitted = new LinkedHashMap<>();
-    for (String name :
-        new String[] {"name", "displayName", "description", "color", "username", "label"}) {
-      String value = request.getParameter(name);
-      if (value != null && value.length() <= 8000) submitted.put(name, value);
-    }
-    model.addAttribute("submitted", submitted);
+    model.addAttribute("requestReference", response.getHeader("X-Request-ID"));
     String path = request.getServletPath();
     String retry = "/";
     if (path.equals("/collections")) retry = "/collections/new";
@@ -184,7 +190,7 @@ public class PortalErrors {
       }
     }
     model.addAttribute("retryPath", retry);
-    model.addAttribute("authenticationRetry", request.getContextPath() + retry);
+
     return "portal-error";
   }
 }
