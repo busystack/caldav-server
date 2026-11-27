@@ -91,10 +91,12 @@ try {
   await shot(page,'05-overview');
   await page.setViewportSize({width:320,height:900});
   const menu = page.getByText('Menu',{exact:true}).and(page.locator('summary'));
+  await page.waitForFunction(()=>!document.querySelector('.section-disclosure').open);
   await menu.focus();
-  await page.keyboard.press('Enter');
-  check(await page.locator('.section-disclosure').evaluate(element=>element.open),'Keyboard opens mobile navigation');
-  await page.keyboard.press('Escape');
+  await menu.press('Enter');
+  await page.waitForFunction(()=>document.querySelector('.section-disclosure').open);
+  check(await menu.evaluate(element=>document.activeElement===element),'Keyboard opens mobile navigation');
+  await menu.press('Escape');
   check(await menu.evaluate(element=>document.activeElement===element && !element.parentElement.open),'Escape closes navigation and returns focus');
   await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce',forcedColors:'active'});
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Dark forced-color view fits width with reduced motion');

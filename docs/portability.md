@@ -1,8 +1,7 @@
 # iCalendar import and export
 
 The account portal exposes data portability through the same CalendarStore,
-DavStore and CalendarAdmission used by DAV. It does not add an event/task editor,
-a weaker calendar profile or scheduling actions.
+DavStore and CalendarAdmission used by DAV. Use a compatible CalDAV app to edit events, tasks and journal entries.
 
 ## Export
 
@@ -17,12 +16,11 @@ uses `text/calendar; charset=utf-8`, a fixed safe attachment filename and
 If the snapshot transaction cannot commit, transaction completion discards the
 completed file before any download is issued. Failed deletion remains charged to
 the shared capacity budget until cleanup succeeds.
-An empty export snapshot returns to the collection with a notice; no unusable
-empty interchange file is downloaded.
+An empty resource explains how to add or import content. If the resource becomes empty after opening its details, the export returns to the resource with a neutral notice.
 
 For multiple resources with byte-identical calendar headers, embedded timezone
 definitions and closing framing, export produces one VCALENDAR containing all their components. Headers,
-VTIMEZONEs and every event/task component retain their original bytes; only repeated
+VTIMEZONEs and every event, task or journal component retain their original bytes; only repeated
 identical wrappers and timezone definitions are removed. A single resource retains
 its calendar content; terminal transport line endings may be completed. No serializer
 rewrites recurrence, properties or parameter values.
@@ -47,10 +45,10 @@ calendar-context merging is required. Arbitrary larger migrations are not suppor
 
 ## Preview, confirm and results
 
-Select an authorized collection and upload actual iCalendar content. File names
+Open a writable destination and choose Import an iCalendar file. Verify your sign-in when prompted before selecting the file. File names
 are ignored and never select server paths. The server's existing parser, text and
 complexity limits locate UID series; every resulting resource goes through full
-CalendarAdmission and the existing VEVENT/VTODO validation. All exceptions for a
+CalendarAdmission and the existing VEVENT, VTODO or VJOURNAL validation. All exceptions for a
 UID remain with the master. Unsupported components and wrong-destination types
 are reported explicitly. Malformed framing rejects the file before mutation.
 
@@ -62,7 +60,7 @@ timezone bytes are not removed. The resulting resource still passes the unchange
 is rejected. This also preserves round trips for admitted resources exactly at
 the limit when an interchange stream adds a line-ending separator.
 
-Preview and actual results show 50 entries per page with whole-file counts. An
+Preview and confirmation redirect to the same authorized report address. The preview and final results show 50 entries per page with whole-file counts. An
 identical existing UID/resource is **Skipped**. Different content with an existing
 UID is **Conflicting** and is preserved. Multiple masters or repeated valid UIDs in
 separate input objects are rejected rather than guessed or discarded. Unsupported

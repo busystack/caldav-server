@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+from ipaddress import IPv4Network
 from pathlib import Path
 import secrets
 import subprocess
@@ -165,7 +166,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
     parser.add_argument("--baseline-image", help="Existing qualified internal baseline for actual replacement; not an older public release")
+    parser.add_argument("--fixture-network-pool", type=IPv4Network, help="Available private /24 for disposable /28 fixture networks if Docker default pools are exhausted")
     args = parser.parse_args()
+    if args.fixture_network_pool and (not args.fixture_network_pool.is_private or args.fixture_network_pool.prefixlen > 24):
+        parser.error("--fixture-network-pool must be a private /24 or larger network")
+    args.fixture_networks = (iter(args.fixture_network_pool.subnets(new_prefix=28))
+                             if args.fixture_network_pool else None)
     if not args.image or any(character.isspace() for character in args.image):
         parser.error("--image must be a single Docker image reference")
     if args.baseline_image and any(character.isspace() for character in args.baseline_image):
@@ -198,7 +204,12 @@ def verify(args, initial_version):
             f"    image: {json.dumps(initial_image)}\n"
             "    ports: !override\n      - '127.0.0.1::8080'\n"
         )
+        if args.fixture_networks:
+            with override.open("a") as settings:
+                settings.write("networks:\n  default:\n    ipam:\n      config:\n        - subnet: ${BUSYSTACK_QUALIFICATION_SUBNET:?fixture subnet required}\n")
         environment = os.environ.copy()
+        if args.fixture_networks:
+            environment["BUSYSTACK_QUALIFICATION_SUBNET"] = str(next(args.fixture_networks))
         environment.update(development_environment(initial_image))
         environment.update(
             COMPOSE_FILE=f"{ROOT / 'compose.yaml'}:{override}",
@@ -358,6 +369,11 @@ COMMIT;""")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
             if initial_version is None:
+                sql(environment, """INSERT INTO browser_issuance_intents
+                    (id,account_id,security_epoch,purpose,context,expires_at)
+                    SELECT gen_random_uuid(),id,security_epoch,'APPLICATION_PASSWORD','generic:security',now()+interval '15 minutes'
+                    FROM accounts WHERE username='opsadmin';""")
+                assert sql(environment, "SELECT count(*) FROM browser_issuance_intents;") == "1"
                 execute(["./scripts/backup.sh", str(archive)], environment)
             execute(["./scripts/backup.sh", str(archive)], environment, expected=2)
             compose(environment, "stop", "application")
@@ -365,9 +381,14 @@ COMMIT;""")
 
             restored = environment.copy()
             restored["COMPOSE_PROJECT_NAME"] += "-restore"
+            if args.fixture_networks:
+                restored["BUSYSTACK_QUALIFICATION_SUBNET"] = str(next(args.fixture_networks))
             projects.append(restored)
             compose(restored, "up", "-d", "--wait", "--wait-timeout", "120", "database")
             execute(["./scripts/restore.sh", str(archive)], restored)
+            if initial_version is None:
+                assert sql(restored, "SELECT count(*) FROM browser_issuance_intents;") == "0"
+                print("OPERATIONS_RESTORED_ISSUANCE_INTENTS_CLEARED", flush=True)
             if journal_checksum is not None:
                 assert sql(restored, """SELECT c.component || '|' || encode(sha256(r.content),'hex')
                     || '|' || r.etag FROM calendar_resources r JOIN collections c ON c.id=r.collection_id
@@ -473,7 +494,7 @@ COMMIT;""")
             checks(restored)
             if initial_version is None:
                 compose(environment, "stop", "application")
-                negative_restores(environment, private, projects)
+                negative_restores(environment, private, projects, args.fixture_networks)
             print("PASS: packaged startup, non-root/read-only runtime, probes, configured discovery/issuer, DAV challenge, restart, database backup/restore, data/ownership/share preservation, restored credential/grant invalidation, controlled local/external account recovery (including rejected external subject mismatch).")
             print("Not qualified here: interactive authentication, HTTP calendar/task content operations, HTTPS/proxy paths or independent clients.")
         except Exception:
@@ -497,7 +518,7 @@ COMMIT;""")
                 compose(created, "down", "--volumes", "--remove-orphans", "--timeout", "10")
 
 
-def negative_restores(source, private, projects):
+def negative_restores(source, private, projects, networks=None):
     """Malformed histories are restored only into new owned DBs, never started as applications."""
     assert "application" not in compose(source, "ps", "--status", "running", "--services").splitlines()
     original = sql(source, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;")
@@ -520,6 +541,8 @@ def negative_restores(source, private, projects):
             sql(source, restore_history)
         target = source.copy()
         target["COMPOSE_PROJECT_NAME"] += "-negative-" + label
+        if networks:
+            target["BUSYSTACK_QUALIFICATION_SUBNET"] = str(next(networks))
         projects.append(target)
         compose(target, "up", "-d", "--wait", "--wait-timeout", "120", "database")
         result = subprocess.run(["./scripts/restore.sh", str(archive)], cwd=ROOT, env=target,

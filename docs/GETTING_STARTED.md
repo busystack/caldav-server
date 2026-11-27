@@ -5,6 +5,11 @@ Release packages replace `@VERSION@` below with their exact version. When readin
 this file in the source repository, substitute `0.2.0` for that placeholder.
 Only download a version whose official release assets are available.
 
+The illustrations show a disposable deployment in Chromium 149.0.7827.55
+with Playwright 1.61.1 and a CTAP2 virtual authenticator. They use synthetic
+accounts and resources. One-time passwords and recovery codes were masked
+before capture. Your browser and passkey provider supply their own prompts.
+
 ## 1 — What BusyStack does
 
 BusyStack stores calendars, task lists and journals on a server you control. CalDAV is the
@@ -310,7 +315,7 @@ resources. Select the resource name to open its details. Owners can review
 deletion there. A confirmed deletion removes contents, synchronization history,
 bindings and grants. Export or obtain a backup before deleting data you need.
 
-![A calendar with direct access and the resulting effective permissions](images/getting-started/13-sharing.png)
+![A calendar with a direct grant and its access controls](images/getting-started/13-sharing.png)
 
 Owners open **Manage sharing** and choose an account by exact username, or an
 available group. **Read-only** allows reading and export. **Read and write**

@@ -2,6 +2,7 @@
 """Real HTTPS protected initialization and screenshot qualification; owned disposable projects only."""
 import argparse, importlib.util, json, os
 from pathlib import Path
+from ipaddress import IPv4Network
 import re, secrets, socket, subprocess, sys, tempfile
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'qualification/passkeys'))
@@ -39,6 +40,7 @@ def main():
     parser.add_argument('--client-python',default=str(ROOT/'.client-venv/bin/python'))
     parser.add_argument('--thunderbird-binary',default=str(ROOT/'.client-tools/thunderbird/thunderbird'))
     parser.add_argument('--proxy',action='store_true',help='Use the package HTTPS proxy example, preserving root or /team paths')
+    parser.add_argument('--network-subnet',type=IPv4Network,help='Optional disposable fixture subnet when Docker default pools are exhausted')
     parser.add_argument('--output',type=Path,default=ROOT/'target/qualification/p0')
     args=parser.parse_args(); args.output.mkdir(parents=True,exist_ok=True)
     operations.ROOT=args.deployment_directory.resolve()
@@ -53,6 +55,10 @@ def main():
         override=fixture/'override.yaml'
         override.write_text('services:\n  application:\n    ports: !override\n      - "127.0.0.1:'+str(port)+':8443"\n    environment:\n      SERVER_PORT: "8443"\n      SERVER_SSL_ENABLED: "true"\n      SERVER_SSL_KEY_STORE: file:/tls/server.p12\n      SERVER_SSL_KEY_STORE_TYPE: PKCS12\n    volumes:\n      - '+json.dumps(str(fixture/'server.p12')+':/tls/server.p12:ro')+'\n    secrets:\n      - source: tls_password\n        target: server.ssl.key-store-password\n    healthcheck:\n      disable: true\nsecrets:\n  tls_password:\n    file: '+json.dumps(str(fixture/'server-password'))+'\n')
         if args.proxy: override.write_text(proxy_override(operations.ROOT,fixture,base,port))
+        if args.network_subnet:
+            assert args.network_subnet.is_private, 'Choose a private unallocated fixture subnet'
+            with override.open('a') as settings:
+                settings.write('networks:\n  default:\n    ipam:\n      config:\n        - subnet: '+str(args.network_subnet)+'\n')
         environment.update(COMPOSE_FILE=str(operations.ROOT/'compose.yaml')+':'+str(override),COMPOSE_PROJECT_NAME='busystack-p0-'+secrets.token_hex(6),COMPOSE_PATH_SEPARATOR=':',BUSYSTACK_DATABASE_PASSWORD_FILE=str(fixture/'database-password'),BUSYSTACK_POSTGRES_ADMIN_PASSWORD_FILE=str(fixture/'admin-password'),BUSYSTACK_PUBLIC_BASE_URL=base,BUSYSTACK_ISSUER=base)
         try:
             print('P0_CONFIG_VALIDATION',flush=True)

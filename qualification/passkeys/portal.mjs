@@ -209,10 +209,10 @@ export async function qualifyPortalPresentation(page,base,collection,administrat
     }
     await page.setViewportSize({width:1280,height:900});
     await page.goto(base+'/connections?client=gnome');
-    await page.getByRole('button',{name:'Copy server',exact:true}).focus();
+    await page.getByRole('button',{name:'Copy address',exact:true}).focus();
     assert.ok(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle!=='none'));
     await page.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:new URL(base).origin});
-    await page.getByRole('button',{name:'Copy server',exact:true}).click();
+    await page.getByRole('button',{name:'Copy address',exact:true}).click();
     assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#server-address').inputValue());
     await page.getByRole('button',{name:'Copy GNOME address',exact:true}).click();
     assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),await page.locator('#gnome-address').inputValue());
