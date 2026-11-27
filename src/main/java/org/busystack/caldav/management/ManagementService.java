@@ -45,6 +45,7 @@ public class ManagementService {
 
   private final AccountService accounts;
   private final IssuanceIntents intents;
+  private final org.busystack.caldav.security.audit.SecurityAudit audit;
   private final CalendarStore calendars;
   private final JdbcTemplate jdbc;
   private final org.busystack.caldav.security.session.SessionSecurity sessions;
@@ -54,12 +55,14 @@ public class ManagementService {
       CalendarStore calendars,
       JdbcTemplate jdbc,
       org.busystack.caldav.security.session.SessionSecurity sessions,
-      IssuanceIntents intents) {
+      IssuanceIntents intents,
+      org.busystack.caldav.security.audit.SecurityAudit audit) {
     this.accounts = accounts;
     this.calendars = calendars;
     this.jdbc = jdbc;
     this.sessions = sessions;
     this.intents = intents;
+    this.audit = audit;
   }
 
   public UserView current(Authentication auth) {
@@ -223,6 +226,11 @@ public class ManagementService {
         intents.claim(account, intent, IssuanceIntents.Purpose.APPLICATION_PASSWORD, context);
     if (claim.consumed()) return new CredentialResult(null, claim.result());
     var issued = issue(auth, label, days);
+    audit.record(
+        account.id(),
+        org.busystack.caldav.security.audit.SecurityAudit.Action.APPLICATION_PASSWORD_ISSUED,
+        org.busystack.caldav.security.audit.SecurityAudit.Outcome.SUCCESS,
+        null);
     intents.consume(claim, issued.id());
     return new CredentialResult(issued, issued.id());
   }

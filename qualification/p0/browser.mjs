@@ -18,8 +18,10 @@ async function virtual(context,page) {
 async function shot(page,name,mask=[]) {
   await page.screenshot({path:output+'/'+name+'.png',fullPage:true,mask,maskColor:'#172b38'});
   console.log('P0_SCREEN_CAPTURED '+name);
-  await page.setViewportSize({width:320,height:900});
-  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits mobile width');
+  for (const width of [320, 390]) {
+    await page.setViewportSize({width,height:900});
+    check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits '+width+'px');
+  }
   await page.setViewportSize({width:1280,height:900});
 }
 async function signIn(page,username) {
@@ -87,6 +89,17 @@ try {
   check(await mutate(page,'/credentials',{label:'Denied registration only',days:'1'})===403,'Registration alone: issuance denied');
   await verify(page);await page.getByRole('heading',{name:'Overview',exact:true}).waitFor();
   await shot(page,'05-overview');
+  await page.setViewportSize({width:320,height:900});
+  const menu = page.getByText('Menu',{exact:true}).and(page.locator('summary'));
+  await menu.focus();
+  await page.keyboard.press('Enter');
+  check(await page.locator('.section-disclosure').evaluate(element=>element.open),'Keyboard opens mobile navigation');
+  await page.keyboard.press('Escape');
+  check(await menu.evaluate(element=>document.activeElement===element && !element.parentElement.open),'Escape closes navigation and returns focus');
+  await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce',forcedColors:'active'});
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Dark forced-color view fits width with reduced motion');
+  await page.emulateMedia({colorScheme:'light',reducedMotion:'no-preference',forcedColors:'none'});
+  await page.setViewportSize({width:1280,height:900});
   await page.getByRole('link',{name:'Open server administration',exact:true}).click();
   await shot(page,'06-server-administration');
   await page.goto(base+'/admin/accounts');await shot(page,'07-accounts');
@@ -99,11 +112,19 @@ try {
   const journal=await createCollection(page,base,'Demo journal','VJOURNAL');
   await page.goto(base+'/collections');await shot(page,'12-resources');
   await grantDirect(page,base,calendar,'demo-user','READ');await shot(page,'13-sharing');
+  const grant = page.locator('form').filter({has:page.locator('input[name=username]:not([type=hidden])')});
+  await grant.locator('..').locator('summary').click();
+  await grant.locator('input[name=username]').fill('unknown-demo-user');
+  const shareError = await Promise.all([page.waitForNavigation(),grant.getByRole('button',{name:'Grant account access',exact:true}).click()]);
+  check(shareError[0].status()===400,'Unknown recipient returns the editable form');
+  check(await page.locator('.section-nav [aria-current=page]').textContent()==='Calendars, tasks & journals','Collection navigation stays current after validation');
+  check(await page.locator('#direct-add-username').inputValue()==='unknown-demo-user','Recipient input survives validation');
+  await shot(page,'27-sharing-error');
   await page.goto(base+'/security');await shot(page,'14-security');
   await page.goto(base+'/security/recovery/codes/new');
   await page.getByRole('button',{name:'Generate ten codes',exact:true}).click();
   await page.getByRole('heading',{name:'Save your recovery codes',exact:true}).waitFor();
-  await shot(page,'15-recovery-codes',[page.locator('[data-one-time-secret]')]);
+  await shot(page,'15-recovery-codes',[page.locator('[data-one-time-secret] code')]);
   check(await page.locator('main ol code').count()===10,'Protected recovery workflow issues ten one-time codes');
   await page.goto(base+'/connections');await shot(page,'16-connect-an-app');
   await page.getByRole('link',{name:'GNOME Calendar',exact:true}).click();await shot(page,'17-client-configuration');
@@ -122,7 +143,7 @@ try {
   await page.getByRole('heading',{name:'Application password created',exact:true}).waitFor();
   const secret=await page.locator('#issued-secret').innerText();privateValues.push(secret);
   writeFileSync('/fixture/issued-password',secret,{mode:0o600});
-  await shot(page,'19-password-created',[page.locator('[data-one-time-secret]')]);
+  await shot(page,'19-password-created',[page.locator('#issued-secret')]);
   await page.getByRole('button',{name:'Copy password',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Password copied.'}).waitFor();
   check(await page.evaluate(()=>navigator.clipboard.readText())===secret,'Clipboard contains issued password');
@@ -172,8 +193,8 @@ try {
   check(await mutate(user,'/credentials',{label:'Removed factor',days:'1'})===403,'Removed key does not authorize issuance');
   check(errors.length===0,'No page script errors');
   check(remoteAssets.length===0,'No externally loaded frontend resources');
-  writeFileSync(output+'/browser-result.json',JSON.stringify({status:'passed',assertions,playwright:'1.61.1',chromium:browser.version(),base,manualFirefoxBitwarden:'pending',screenshots:26},null,2));
-  console.log('P0_BROWSER_PASSED assertions='+assertions+' screenshots=26');
+  writeFileSync(output+'/browser-result.json',JSON.stringify({status:'passed',assertions,playwright:'1.61.1',chromium:browser.version(),base,manualFirefoxBitwarden:'pending',screenshots:27},null,2));
+  console.log('P0_BROWSER_PASSED assertions='+assertions+' screenshots=27');
 } catch(error) {
   let diagnostic=String(error.stack||error);
   for(const value of privateValues)diagnostic=diagnostic.replaceAll(value,'[redacted]');

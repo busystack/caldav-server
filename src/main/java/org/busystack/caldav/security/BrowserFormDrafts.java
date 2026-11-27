@@ -57,7 +57,12 @@ final class BrowserFormDrafts {
 
   static String returnPath(HttpServletRequest request) {
     String path = request.getServletPath();
-    if (path.equals("/portability/preview")) return "/portability";
+    if (path.equals("/portability/preview")) {
+      String query = request.getQueryString();
+      if (query != null && query.matches("uploadTarget=" + ID))
+        return "/portability?destination=" + query.substring("uploadTarget=".length());
+      return "/portability";
+    }
     if (path.endsWith("/cancel") && path.startsWith("/portability/import/"))
       return path.substring(0, path.length() - "/cancel".length());
     if (path.equals("/security/recovery/codes")) return "/security/recovery/codes/new";

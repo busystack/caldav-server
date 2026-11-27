@@ -1,41 +1,37 @@
 # Your BusyStack account
 
-BusyStack manages your account, collections and client access. Edit events, tasks, and journal entries in your CalDAV application. Local authentication requires no identity
+BusyStack manages your account, collections and client access. Edit events, tasks and journal entries in your CalDAV application. Local authentication requires no identity
 provider, email service or vendor account.
 
 ## First sign-in
 
-Open your operator's configured HTTPS address. Verify your local password, or use
-the configured organization sign-in. After primary sign-in, **Secure your account** guides first enrollment. Create the passkey, then choose **Verify your passkey** to complete MFA. Returning users verify the existing passkey. Registration alone does not
-complete authentication. Sensitive changes require primary sign-in and passkey
-verification within ten minutes. The overview and security pages explain which
-step is needed. Renew both factors for the same account when they expire.
+Open the configured HTTPS address. Enter your account password or use
+organization sign-in. On first sign-in, select **Create passkey**, then **Verify
+and continue**. Returning users verify an existing passkey. After verification,
+BusyStack opens Overview or the task that prompted sign-in.
 
-The overview adapts to actual passkeys, owned/shared collections, unexpired DAV
-credentials and unused recovery codes. It never claims that a device is connected.
-Save recovery codes offline; see [account security](account-security.md). There is
-no public registration, email recovery or browser-based operator recovery.
+A completed session supports ordinary navigation for up to 30 minutes of
+inactivity and eight hours overall. Protected actions require both factors to
+be under ten minutes old. BusyStack prompts when you initiate a protected
+action and returns you to the task to review and submit again. Recovery codes
+are available in [Security](account-security.md).
 
-## Calendar collections
+## Calendars, tasks & journals
 
-Open **Calendar collections**. **My collections** contains your owned
-collections; **Shared with me** contains direct/group shared collections. Search
-and page through names. Select a collection for its details and address.
+Open **Calendars, tasks & journals** and choose **All**, **Owned by me** or
+**Shared with me**. Search by name. Open a result for its details, access and
+CalDAV address.
 
-Choose **Create a collection**, supply a name, choose Calendar, Task list, or Journal and
-optionally enter a description and colour. Types stay fixed. Metadata changes
-preserve the collection's identity, address and stored resources. Descriptions use
-CalDAV `calendar-description`; colour uses the Apple `calendar-color` convention,
-with #RRGGBB or #RRGGBBAA values. This is not a universal client-colour guarantee.
-A client may maintain its own local colour preference.
+Use **Create a resource** to choose Calendar, Task list or Journal. Provide a
+name and optional description and color. The type stays fixed. Metadata edits
+preserve identity, address and stored resources. Use #RRGGBB or #RRGGBBAA for
+the color property. A client can maintain its own local color preference.
 
-Read/write recipients can change shared metadata and import contents according to
-the existing DAV permissions. Only owners can manage sharing or delete a
-collection. Deletion has a separate review page and requires server-checked
-confirmation of the current state. It removes resources, history, bindings and
-sharing grants. Export before deletion when a migration copy is needed; operator
-backups are separate. If another request changes the target, reload and review the
-new state instead of retrying a stale form.
+Read/write recipients can edit shared metadata and import. Read-only recipients
+can read and export accessible contents. Owners can manage sharing and delete
+a resource. Confirming deletion removes its contents, history, bindings and
+sharing grants. For important data, export or obtain an operator backup before
+deletion. Reload a stale form and review the current state.
 
 ## Sharing and effective access
 
@@ -54,17 +50,18 @@ clients must perform initial synchronization when a token is rejected.
 
 ## Connect an application
 
-Open **Connections**, select the application, then create an application password under **Security → Application passwords**. Copy its once-shown secret directly into the application's password
-settings. The account password is not the DAV password. Secrets cannot be retrieved
-later. Credential labels, creation/expiration and active/expired/revoked status are
-available without displaying verifiers. To replace one, issue a replacement,
-configure the client, then revoke the old credential.
+Open **Connect an app** and select your app. Use an existing application
+password or create a separate one for this app or device. The one-time result
+has the selected app’s setup steps, addresses, username, expiry and password.
+Keep it open while setting up the app. The original password cannot be retrieved
+afterward. To replace it, issue another, configure the client and revoke the
+previous password when ready.
 
 Copy the displayed server address, username and, when needed, collection address.
 Addresses include the operator's configured subpath and never depend on request
 Host or forwarding headers. Use normal TLS verification.
 
-Thunderbird instructions on Connections follow the documented network-calendar
+Thunderbird instructions under Connect an app follow the documented network-calendar
 wizard. Historical qualification covers Thunderbird 159.0 and GNOME Calendar 50.0 /
 EDS 3.56.2 on the exact 0.1.0 executable and configurations in the
 [client record](observance-until-compatibility.md#qualified-client-configurations).
@@ -80,11 +77,10 @@ the password: GNOME otherwise fails to retain the authentication user after
 discovery. The qualification requires both imported UIDs, the recurrence exception,
 extension data and native owner write permission; it does not claim full native
 editor or assistive-technology coverage. Exact artifact/configuration results are
-recorded separately. BusyMax and other untested clients are not advertised as
-supported.
+recorded separately.
 
 Registered OAuth applications may use browser consent instead of a DAV credential.
-Review them under **Security → OAuth applications**; see [OAuth](oauth.md).
+Review them under **Security → Authorized applications**; see [OAuth](oauth.md).
 
 ## Security and data portability
 
@@ -94,8 +90,7 @@ change primary credentials at their identity provider; there is no local-passwor
 fallback. Local passkeys, credentials and permissions still belong to BusyStack.
 Provider outages/freshness retain the [existing identity policy](keycloak.md).
 
-Use **Import & Export** for validated, confirmed iCalendar migration. See
-[portability](portability.md) for conflict handling, limits and representation.
+Open a resource to **Import an iCalendar file** or export available contents. Use the [portability guide](portability.md) for conflict handling, limits and representation.
 
 Ordinary form errors return to the editable form, preserve nonsensitive values and
 associate fixed explanations with the affected controls. The focused validation

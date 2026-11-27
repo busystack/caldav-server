@@ -16,9 +16,13 @@ final class LinkingAuthorizationRequestResolver implements OAuth2AuthorizationRe
       implements Serializable {}
 
   private final OAuth2AuthorizationRequestResolver delegate;
+  private final org.busystack.caldav.security.AuthenticationJourney journey;
 
-  LinkingAuthorizationRequestResolver(OAuth2AuthorizationRequestResolver delegate) {
+  LinkingAuthorizationRequestResolver(
+      OAuth2AuthorizationRequestResolver delegate,
+      org.busystack.caldav.security.AuthenticationJourney journey) {
     this.delegate = delegate;
+    this.journey = journey;
   }
 
   @Override
@@ -35,6 +39,7 @@ final class LinkingAuthorizationRequestResolver implements OAuth2AuthorizationRe
       HttpServletRequest request, OAuth2AuthorizationRequest authorization) {
     var session = request.getSession(false);
     if (authorization == null || session == null) return authorization;
+    journey.rememberProviderFlow(request, authorization.getState());
     synchronized (session) {
       Object pending = session.getAttribute(PENDING_LINK);
       if (pending instanceof ExternalIdentityService.LinkIntent intent) {

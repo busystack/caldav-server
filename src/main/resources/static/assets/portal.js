@@ -87,24 +87,61 @@ document.querySelectorAll('[data-password-policy]').forEach(form => {
     });
   }
 
-  const fields = [password, confirmation].filter(Boolean);
-  fields.forEach(field => field.addEventListener('input', () => {
-    fields.forEach(input => input.setCustomValidity(''));
-  }));
+  let localSummary;
+  let localMessage;
+  let invalidField;
+  let originalDescription;
+  let originalInvalid;
+  const clear = () => {
+    if (!invalidField) return;
+    if (originalDescription == null) invalidField.removeAttribute('aria-describedby');
+    else invalidField.setAttribute('aria-describedby', originalDescription);
+    if (originalInvalid == null) invalidField.removeAttribute('aria-invalid');
+    else invalidField.setAttribute('aria-invalid', originalInvalid);
+    localSummary.remove();
+    localMessage.remove();
+    invalidField = null;
+  };
+  [password, confirmation].filter(Boolean).forEach(field => field.addEventListener('input', clear));
   form.addEventListener('submit', event => {
-    let invalid;
+    clear();
+    let message;
     if ([...password.value].length < 14 || new TextEncoder().encode(password.value).length > 72
         || /[\uD800-\uDFFF]/u.test(password.value)) {
-      invalid = password;
-      invalid.setCustomValidity('Use at least 14 Unicode characters and at most 72 UTF-8 bytes.');
+      invalidField = password;
+      message = 'Use at least 14 Unicode characters and at most 72 UTF-8 bytes.';
     } else if (confirmation && confirmation.value !== password.value) {
-      invalid = confirmation;
-      invalid.setCustomValidity('Enter the same password in both fields.');
+      invalidField = confirmation;
+      message = 'Enter the same password in both fields.';
     }
-    if (invalid) {
+    if (!invalidField) return;
+    event.preventDefault();
+    localSummary = document.createElement('div');
+    localSummary.className = 'notice error-summary';
+    localSummary.tabIndex = -1;
+    localSummary.setAttribute('role', 'alert');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Check the submitted details';
+    const link = document.createElement('a');
+    link.href = '#' + invalidField.id;
+    link.textContent = message;
+    link.addEventListener('click', event => {
       event.preventDefault();
-      invalid.reportValidity();
-    }
+      invalidField?.focus();
+    });
+    localSummary.append(heading, link);
+    form.before(localSummary);
+    localMessage = document.createElement('p');
+    localMessage.className = 'field-error';
+    localMessage.id = invalidField.id + '-local-error';
+    localMessage.textContent = message;
+    const anchor = invalidField.closest('label') || invalidField;
+    anchor.after(localMessage);
+    originalDescription = invalidField.getAttribute('aria-describedby');
+    originalInvalid = invalidField.getAttribute('aria-invalid');
+    invalidField.setAttribute('aria-invalid', 'true');
+    invalidField.setAttribute('aria-describedby', [originalDescription, localMessage.id].filter(Boolean).join(' '));
+    localSummary.focus();
   });
 });
 

@@ -1,7 +1,7 @@
 # Account security workflows
 
 Account management provides **Sessions**, **Recovery**, **Password**, and passkey
-settings. These are account controls; calendar and task content remains in CalDAV
+settings. These are account controls; event, task and journal content remains in CalDAV
 clients. Local accounts work without an identity provider or email service.
 
 ## Browser sessions
@@ -17,9 +17,7 @@ for concurrent attribute creation.
 The `JSESSIONID` cookie is Secure and HttpOnly, with SameSite=Lax. Lax permits the
 safe top-level redirect back from an upstream OIDC provider. Cookie-authenticated
 mutations still require CSRF tokens; relaxing SameSite does not remove that
-protection. Sessions expire after thirty minutes of inactivity. Recent primary and
-passkey factors expire for sensitive-operation authorization after ten minutes,
-even when a browser session remains active.
+protection. Sessions expire after thirty minutes of inactivity or eight hours since completed sign-in. The Stay signed in action extends idle time only. Recent primary and passkey factors expire for sensitive actions after ten minutes. A completed session refers to the verified active key and captured account epoch.
 
 `/security/sessions` lists creation, last-access and expiration times, and marks
 the current browser. It does not reveal session bearer values. Ending a session
@@ -40,12 +38,12 @@ there is no process-local revocation cache.
 After recent primary and passkey verification, `/security/recovery` generates ten
 independent high-entropy recovery codes. They are shown once on a response marked
 `Cache-Control: no-store`. Store them securely offline. Generating another set
-revokes every unused code in the earlier set. Each code expires after one year.
+revokes every unused code in the earlier set after explicit confirmation. The server consumes the issuance intent with the password or code transaction. Repeating the same intent returns a safe receipt. An older recovery-code form cannot replace a newer set without a new review. Each code expires after one year.
 The database stores a SHA-256 verifier of the random credential, not the credential
 itself; human passwords use adaptive password hashing instead.
 
 If a passkey is lost, first complete a recent primary sign-in, then submit one
-code at `/security/recovery`. Recovery is an alternative second-factor operation;
+code at `/security/recovery/use`. Recovery is an alternative second-factor operation;
 it does not replace a password or a trusted upstream sign-in. The code is consumed
 atomically with removing passkeys, recording their revocation tombstones, revoking
 DAV and OAuth access, and ending all browser sessions. Sign in again and enroll a
@@ -122,7 +120,7 @@ challenge guards. No telemetry or remote audit service is required.
 
 Normal restarts retain session, credential and revocation state. Restoring older
 database state uses the explicit recovery policy in the operations procedure:
-clear browser sessions and recovery codes, change the global recovery epoch and
+clear browser sessions, recovery codes and issuance intents, change the global recovery epoch and
 account generations, and revoke other independently issued credentials. Old
 backups must never silently revive a previously revoked session or recovery code.
 

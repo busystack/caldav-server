@@ -153,7 +153,7 @@ public final class SignedPasskeyClient implements AutoCloseable {
 
   private Registration registration(HttpClient browser, String mode, String algorithm)
       throws Exception {
-    String csrf = csrf(browser, "/security/passkeys");
+    String csrf = csrf(browser, "/login");
     var response = request(browser, "/webauthn/register/options", "POST", csrf, null);
     assertThat(response.statusCode()).isEqualTo(200);
     JsonNode options = JSON.readTree(response.body());

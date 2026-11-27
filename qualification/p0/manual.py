@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare a fresh operator-controlled Firefox/Bitwarden acceptance deployment; no account seeding."""
+"""Prepare a fresh operator-controlled browser and passkey acceptance deployment; no account seeding."""
 import argparse,json,os,secrets,shutil,socket,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'qualification/passkeys'));import run as established
@@ -23,6 +23,9 @@ def main():
     def command(*args):subprocess.run(args,cwd=install,check=True)
     command('docker','compose','config','--quiet');command('docker','compose','pull','--policy','missing');command('docker','compose','up','-d','--no-build','--wait','--wait-timeout','240')
     established.ready(base,directory/'ca.pem',True)
-    (directory/'acceptance.json').write_text(json.dumps({'status':'ready-manual-acceptance-pending','url':base,'directory':str(install),'ca':str(directory/'ca.pem'),'noAccountCreated':True,'initializationCommand':'bash scripts/initialize.sh','cleanup':'docker compose down --volumes --remove-orphans'},indent=2)+'\n')
+    subprocess.run(['openssl','x509','-checkend','60','-noout','-in',str(directory/'server.pem')],check=True)
+    with established.tls.opener(directory/'ca.pem').open(base+'/setup',timeout=10) as setup:
+        assert setup.status==200 and b'Set up BusyStack' in setup.read(), 'Protected setup did not render'
+    (directory/'acceptance.json').write_text(json.dumps({'status':'ready-manual-acceptance-pending','url':base,'directory':str(install),'ca':str(directory/'ca.pem'),'noAccountCreated':True,'setupVerifiedOverTrustedTls':True,'initializationCommand':'bash scripts/initialize.sh','cleanup':'docker compose down --volumes --remove-orphans'},indent=2)+'\n')
     print((directory/'acceptance.json').read_text())
 if __name__=='__main__':main()

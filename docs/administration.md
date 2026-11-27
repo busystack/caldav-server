@@ -1,49 +1,42 @@
 # Server administration
 
-Complete recent primary and passkey verification, then select **Server
-administration**. This area is distinct from your personal account. Administrator
-status does not bypass private calendar permissions.
+Complete browser sign-in, then select **Server administration**. Ordinary
+administrative reads remain available in a completed browser session. Protected
+actions prompt for recent verification. Resource owners control private access.
 
-The overview shows the packaged application version, enabled/disabled account
-counts, calendar/task-list and current resource counts, queried PostgreSQL/migration
-versions, and observed HTTP errors. Database availability means its queries
-succeeded for that request. Backup status is **Unknown** because backups are an
-external operator responsibility. No automatic update check or telemetry runs.
+The overview shows enabled and disabled account counts, groups, calendars,
+task lists, journals and stored UID series. **System & diagnostics** shows
+versions, the applied schema and HTTP observations.
 
 ## Accounts
 
-Search and filter **Accounts** in 50-row pages. Select one for identity type,
+Search **Accounts** in 50-row pages. Combine Status and Sign-in method filters. Select one for identity type,
 status, role and display-name maintenance. Username, UUID, privileges and external
 issuer/subject mappings cannot be edited here. Profile edits detect stale values.
 
-**Create account** provisions an ordinary local account. Transfer the initial
-password securely; the user must enroll/verify their own passkey before sensitive
-changes. Organization accounts use the configured closed allowlist or protected
+**Create account** creates a local account. Copy the nonsecret sign-in instructions from the new account’s detail page. Share the initial password separately through a trusted channel. The user registers and verifies their own passkey. Organization accounts use the configured closed allowlist or protected
 user identity linking. Provider roles do not grant application administration.
 
-Disabling requires explicit confirmation, invalidates sessions and independently
-issued client access, and retains stored data/membership. After the protected first-administrator setup, there is no browser
+Disabling requires confirmation, ends sessions, revokes client access and retains stored data and membership. Browser administration prevents self-disable and lockout of the last enabled administrator. After the protected first-administrator setup, there is no browser
 reactivation, password reset or further administrator creation. Use controlled offline
 [bootstrap/recovery](operations.md) after independent identity verification.
 
 ## Groups
 
-Search groups and page through members without loading the account directory.
+Search groups and page through members. Use the bounded administrator account lookup to find a new member.
 Create an empty group, rename it, add an exact active username, remove an individual
 member, or confirm group deletion. Single-member operations do not replace the
 remaining membership set. Disabled memberships can be removed.
 
-Before adding/removing a member, review the access-consequence explanation and
-confirm it. Existing/future grants apply on addition; other direct/group grants
+Review how membership affects current and future grants before adding or removing members. Existing/future grants apply on addition; other direct/group grants
 remain on removal. Group administration shows grant counts, not private collection
 names or contents. Existing directory limits, mutation locks and V13 transactional
 binding/synchronization reconciliation remain authoritative. See [groups](groups.md).
 
 ## Security audit and diagnostics
 
-**Security & Audit** filters retained fixed action/outcome metadata and exact
-account usernames in 50-row pages. Account and group administrative changes include opaque target UUIDs; membership
-changes also identify the affected account UUID. Internal atomic membership
+**Security & audit** filters retained fixed action/outcome metadata and exact
+account usernames in 50-row pages. Administrative targets show current authorized directory labels. Recorded references retain the opaque target and affected-account UUIDs. Deleted or unavailable targets keep their IDs. Internal atomic membership
 replacement records each actual addition/removal in a bounded batch; unchanged
 members do not produce membership events. The actor UUID remains available
 when its username no longer exists. Historical entries without targets are labelled
@@ -53,7 +46,7 @@ retention remains. New account/profile, collection lifecycle/import and direct-s
 mutations use that same structured audit. Export reads do not add activity tracking.
 OAuth client registration remains administrator-controlled.
 
-**System & Diagnostics** shows configured deployment addresses, runtime/database
+**System & diagnostics** shows configured deployment addresses, runtime/database
 versions, applied migration and HTTP observations. A process-local buffer retains
 up to fifty actual server failures with time, coarse surface, method, status and
 server-generated request ID. It contains no resource paths, usernames or contents

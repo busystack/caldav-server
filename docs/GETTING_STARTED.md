@@ -318,6 +318,11 @@ also allows permitted content and metadata changes and import. The owner alone
 manages sharing or deletes the resource. Any read/write grant makes read/write
 access effective. Removing one grant leaves other grants in effect.
 
+![Sharing error with the typed username, linked correction and signed-in navigation](images/getting-started/27-sharing-error.png)
+
+If BusyStack cannot find the recipient, check their exact username, correct the
+highlighted field and submit again.
+
 Administrators create and manage groups from **Server administration → Groups**.
 Open the group, find or enter the member's account, and review how many current
 grants apply. Future grants follow membership. Group deletion removes memberships

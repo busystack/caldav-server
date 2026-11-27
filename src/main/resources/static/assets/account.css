@@ -724,6 +724,7 @@ fieldset label {
 
   body:has(> .application-shell) > footer {
     grid-column: 2;
+    grid-row: 4;
     width: 100%;
     margin: 0;
   }
@@ -758,4 +759,8 @@ fieldset label {
 
 .session-warning p {
   margin-top: 0;
+}
+
+.audit-table td details {
+  margin: .25rem 0 0;
 }

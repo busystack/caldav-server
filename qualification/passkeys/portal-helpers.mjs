@@ -86,8 +86,8 @@ export async function revokeDirect(page,base,collection,username) {
 }
 
 export async function expectFieldError(page,form,field,status,label) {
-  await form.evaluate(element=>{element.noValidate=true;});
-  const [response]=await Promise.all([page.waitForNavigation(),form.locator('button').first().click()]);
+  // Submit through the native form serializer to exercise authoritative server errors.
+  const [response]=await Promise.all([page.waitForNavigation(),form.evaluate(element=>HTMLFormElement.prototype.submit.call(element))]);
   assert.equal(response.status(),status,label);
   const summary=page.locator('[data-error-summary]');
   await summary.waitFor();

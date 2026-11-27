@@ -12,6 +12,35 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 class RecentAuthenticationTest {
   @Test
+  void bothFactorsShareTheStrictTenMinuteBoundary() {
+    Instant now = Instant.parse("2026-01-01T00:10:00Z");
+    var bothRecent = at(now.minusSeconds(599), now.minusSeconds(599));
+    assertThatCode(() -> RecentAuthentication.requireMfa(bothRecent, now))
+        .doesNotThrowAnyException();
+    for (long age : List.of(600L, 601L)) {
+      var oldPrimary = at(now.minusSeconds(age), now);
+      var oldPasskey = at(now, now.minusSeconds(age));
+      assertThatThrownBy(() -> RecentAuthentication.requireMfa(oldPrimary, now))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> RecentAuthentication.requireMfa(oldPasskey, now))
+          .isInstanceOf(AccessDeniedException.class);
+    }
+  }
+
+  private static UsernamePasswordAuthenticationToken at(Instant password, Instant passkey) {
+    return UsernamePasswordAuthenticationToken.authenticated(
+        "fixture",
+        null,
+        List.of(
+            FactorGrantedAuthority.withAuthority(FactorGrantedAuthority.PASSWORD_AUTHORITY)
+                .issuedAt(password)
+                .build(),
+            FactorGrantedAuthority.withAuthority(FactorGrantedAuthority.WEBAUTHN_AUTHORITY)
+                .issuedAt(passkey)
+                .build()));
+  }
+
+  @Test
   void acceptsOnlyVerifiedUpstreamPrimaryProof() {
     var code =
         FactorGrantedAuthority.fromAuthority(FactorGrantedAuthority.AUTHORIZATION_CODE_AUTHORITY);

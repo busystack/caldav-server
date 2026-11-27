@@ -23,6 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class AuthenticationJourney {
   private static final String FLOWS = "SPRING_SECURITY_BUSYSTACK_FLOWS";
+  private static final String UPSTREAM = "SPRING_SECURITY_BUSYSTACK_UPSTREAM_FLOW";
   private static final String DEFAULT = "SPRING_SECURITY_BUSYSTACK_FLOW";
   private static final Duration LIFETIME = Duration.ofMinutes(15);
   private static final int MAX_FLOWS = 8;
@@ -199,6 +200,23 @@ public class AuthenticationJourney {
     return flows;
   }
 
+  private record ProviderFlow(String state, String handle) implements Serializable {}
+
+  public void rememberProviderFlow(HttpServletRequest request, String state) {
+    String handle = handle(request);
+    if (state != null && !handle.isEmpty() && flows(request).containsKey(handle))
+      request.getSession().setAttribute(UPSTREAM, new ProviderFlow(state, handle));
+  }
+
+  private String providerFlow(HttpServletRequest request) {
+    var session = request.getSession(false);
+    if (session == null
+        || !(session.getAttribute(UPSTREAM) instanceof ProviderFlow flow)
+        || !flow.state().equals(request.getParameter("state"))) return null;
+    session.removeAttribute(UPSTREAM);
+    return flow.handle();
+  }
+
   public String handle(HttpServletRequest request) {
     String explicit = request.getParameter("flow");
     if (explicit != null) return explicit.matches("[a-f0-9-]{36}") ? explicit : "";
@@ -266,7 +284,8 @@ public class AuthenticationJourney {
       throws IOException {
     capture(request, response);
     var flows = flows(request);
-    String handle = handle(request);
+    String upstream = providerFlow(request);
+    String handle = upstream == null ? handle(request) : upstream;
     Owner current = owner(auth);
     flows.values().removeIf(flow -> !flow.belongsTo(current));
     if (flows.containsKey(handle))

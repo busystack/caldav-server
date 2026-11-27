@@ -9,6 +9,43 @@ import org.junit.jupiter.api.Test;
 
 class AuthenticationJourneyTest {
   @Test
+  void handlesKeepIndependentDestinationsAndRejectReplayAndChangedAccounts() {
+    var base = URI.create("https://calendar.example/team");
+    var journey = new AuthenticationJourney(new DeploymentProperties(base, base, false));
+    var request = new org.springframework.mock.web.MockHttpServletRequest();
+    var actor = browserIdentity("owner");
+    var other = browserIdentity("other");
+    String connection = journey.start(request, "/team/connections?client=gnome", actor);
+    String collections = journey.start(request, "/team/collections?scope=shared", actor);
+    assertThat(journey.consume(request, actor, connection))
+        .isEqualTo("/team/connections?client=gnome");
+    assertThat(journey.consume(request, actor, connection)).isEqualTo("/team/");
+    assertThat(journey.consume(request, other, collections)).isEqualTo("/team/");
+    assertThat(journey.safe("/team-other/collections")).isEqualTo("/team/");
+    assertThat(journey.safe("/team/connections?client=gnome&password=ignore"))
+        .isEqualTo("/team/connections?client=gnome");
+    assertThat(
+            journey.safe(
+                "/team/oauth2/authorize?redirect_uri=https%3A%2F%2Fapp.example%2Fcallback&state=a%3Db"))
+        .isEqualTo(
+            "/team/oauth2/authorize?redirect_uri=https%3A%2F%2Fapp.example%2Fcallback&state=a%3Db");
+    String oldest = journey.start(request, "/team/security", actor);
+    for (int index = 0; index < 8; index++)
+      journey.start(request, "/team/collections?page=" + index, actor);
+    assertThat(journey.consume(request, actor, oldest)).isEqualTo("/team/");
+  }
+
+  private static org.springframework.security.core.Authentication browserIdentity(String name) {
+    return org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+        .authenticated(
+            name,
+            null,
+            List.of(
+                org.busystack.caldav.security.session.SessionSecurity.authority(
+                    java.util.UUID.randomUUID())));
+  }
+
+  @Test
   void validatedContinuationSurvivesPrimarySessionRotationWithoutKeepingOrdinaryState() {
     var base = URI.create("https://calendar.example/team");
     var journey = new AuthenticationJourney(new DeploymentProperties(base, base, false));

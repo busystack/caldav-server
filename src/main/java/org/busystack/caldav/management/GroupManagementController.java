@@ -114,17 +114,24 @@ public class GroupManagementController {
 
   @GetMapping("/admin/groups/{id}/members/{account}/remove")
   String confirmRemove(
-      Authentication auth, @PathVariable UUID id, @PathVariable UUID account, Model model) {
+      Authentication auth,
+      @PathVariable UUID id,
+      @PathVariable UUID account,
+      @RequestParam(defaultValue = "") String q,
+      @RequestParam(defaultValue = "0") int page,
+      Model model) {
     var group = groups.detail(auth, id);
     var member = groups.member(auth, id, account);
+    String parameters = memberSearch(q, page);
     model.addAttribute(
         "actionTitle", "Remove " + member.username() + " from " + group.name() + "?");
     model.addAttribute(
         "consequence",
         "Access granted by this group may end. Other direct or group grants continue to apply.");
     model.addAttribute("actionLabel", "Remove member");
-    model.addAttribute("actionPath", "/admin/groups/" + id + "/members/" + account + "/remove");
-    model.addAttribute("cancelPath", "/admin/groups/" + id);
+    model.addAttribute(
+        "actionPath", "/admin/groups/" + id + "/members/" + account + "/remove" + parameters);
+    model.addAttribute("cancelPath", "/admin/groups/" + id + parameters);
     model.addAttribute("expectedGrants", group.grants());
     return "confirm-action";
   }
@@ -136,20 +143,37 @@ public class GroupManagementController {
       @PathVariable UUID account,
       @RequestParam(defaultValue = "false") boolean confirmed,
       @RequestParam(required = false) Long expectedGrants,
+      @RequestParam(defaultValue = "") String q,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(required = false) String memberQuery,
+      @RequestParam(required = false) Integer memberPage,
       RedirectAttributes flash) {
     var group = groups.detail(auth, id);
     var member = groups.member(auth, id, account);
+    String parameters =
+        memberSearch(memberQuery == null ? q : memberQuery, memberPage == null ? page : memberPage);
+    if (!confirmed)
+      return "redirect:/admin/groups/" + id + "/members/" + account + "/remove" + parameters;
     groups.changeMember(
         auth,
         id,
         null,
         account,
         false,
-        confirmed,
+        true,
         expectedGrants == null ? group.grants() : expectedGrants);
     flash.addFlashAttribute(
         "notice", "Removed " + member.username() + " from " + group.name() + ".");
-    return "redirect:/admin/groups/" + id;
+    return "redirect:/admin/groups/" + id + parameters;
+  }
+
+  private static String memberSearch(String query, int page) {
+    PortalService.checkQuery(query);
+    PortalPage.offset(page);
+    var parameters = org.springframework.web.util.UriComponentsBuilder.newInstance();
+    if (!query.isEmpty()) parameters.queryParam("q", query);
+    if (page > 0) parameters.queryParam("page", page);
+    return parameters.build().encode().toUriString();
   }
 
   @GetMapping("/admin/groups/{id}/delete")

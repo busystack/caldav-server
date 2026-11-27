@@ -47,6 +47,8 @@ OPERATOR_DOCUMENTS = (
     'investigation/protocol/src/test/java/org/busystack/caldav/investigation/BedeworkHttpTest.java',
     'qualification/clients/README.md',
     'qualification/evidence/README.md',
+    'qualification/evidence/vjournal-admission.md',
+    'qualification/evidence/vjournal-nextcloud-35.0.3.jsonl',
     'qualification/evidence/releases/0.0.1/summary.json',
     'qualification/evidence/releases/0.1.0/README.md',
     'qualification/evidence/releases/0.1.0/verification.json',
@@ -84,6 +86,7 @@ SCREENSHOTS = tuple(f'docs/images/getting-started/{name}.png' for name in (
     '24-diagnostics',
     '25-shared-overview',
     '26-returning-verification',
+    '27-sharing-error',
 ))
 
 

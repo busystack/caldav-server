@@ -75,7 +75,8 @@ class LinkingAuthorizationRequestResolverTest {
             .build();
     return new LinkingAuthorizationRequestResolver(
         new DefaultOAuth2AuthorizationRequestResolver(
-            new InMemoryClientRegistrationRepository(client), "/oauth2/authorization"));
+            new InMemoryClientRegistrationRepository(client), "/oauth2/authorization"),
+        org.mockito.Mockito.mock(org.busystack.caldav.security.AuthenticationJourney.class));
   }
 
   private MockHttpServletRequest start(MockHttpSession session) {

@@ -199,13 +199,10 @@ locks a singleton database row and uses AccountService transactionally. V15
 permanently closes setup when any account is inserted, including offline bootstrap
 and allowlisted federation. Existing accounts, including disabled ones, seed the
 closed latch on upgrade. Restore invalidates pending codes and preserves closure.
-The first-administrator welcome dismissal is retained only in that installation
-record; ordinary-user progress comes from existing resource/security state.
-
-After browser creation, use normal sign-in, first-passkey enrollment, then a
-separate assertion. Registration never grants WebAuthn authentication authority.
-The ten-minute policy and management guards are unchanged. A dedicated verification
-page avoids refreshing directly into a guarded management page after registration.
+After browser creation, BusyStack redirects to normal sign-in. Register the first
+passkey and use Verify and continue to supply the separate assertion. BusyStack
+then opens Overview or the saved task. Registration alone leaves the browser
+session incomplete. Sensitive actions use the ten-minute freshness policy.
 
 ## Local administrator bootstrap
 
@@ -251,8 +248,7 @@ and verification, collection creation, credential issuance and client configurat
 Administrators use **Server administration → Accounts → Create account**, transfer
 the initial password securely, and let the user enroll their own factors. See
 [administration](administration.md) for account/group/audit workflows and boundaries.
-No email service is required. The existing password, recent-factor, session,
-recovery and identity-provider policies remain unchanged.
+The account detail page supplies nonsecret handoff instructions. A completed browser session has thirty minutes of idle time and an eight-hour overall limit.
 
 For portal imports, add a proxy location allowing a 65 MiB multipart request only
 at `/portability/preview`, preserving any application prefix. The supplied

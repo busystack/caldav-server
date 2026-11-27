@@ -31,29 +31,36 @@ public final class RecentAuthentication {
   }
 
   public static void requirePassword(Authentication authentication) {
-    if (!has(authentication, FactorGrantedAuthority.PASSWORD_AUTHORITY))
+    if (!has(authentication, FactorGrantedAuthority.PASSWORD_AUTHORITY, Instant.now()))
       throw new AccessDeniedException("Recent password authentication is required");
   }
 
   public static void requireMfa(Authentication authentication) {
-    requirePrimary(authentication);
-    if (!has(authentication, FactorGrantedAuthority.WEBAUTHN_AUTHORITY))
-      throw new AccessDeniedException("Recent password and passkey authentication are required");
+    requireMfa(authentication, Instant.now());
+  }
+
+  static void requireMfa(Authentication authentication, Instant now) {
+    requirePrimary(authentication, now);
+    if (!has(authentication, FactorGrantedAuthority.WEBAUTHN_AUTHORITY, now))
+      throw new AccessDeniedException("Recent password and passkey authentication is required");
   }
 
   public static void requirePrimary(Authentication authentication) {
+    requirePrimary(authentication, Instant.now());
+  }
+
+  private static void requirePrimary(Authentication authentication, Instant now) {
     boolean upstream =
-        has(authentication, FactorGrantedAuthority.AUTHORIZATION_CODE_AUTHORITY)
+        has(authentication, FactorGrantedAuthority.AUTHORIZATION_CODE_AUTHORITY, now)
             && authentication.getAuthorities().stream()
                 .anyMatch(
                     authority -> "BUSYSTACK_TRUSTED_UPSTREAM".equals(authority.getAuthority()));
-    if (!has(authentication, FactorGrantedAuthority.PASSWORD_AUTHORITY) && !upstream)
+    if (!has(authentication, FactorGrantedAuthority.PASSWORD_AUTHORITY, now) && !upstream)
       throw new AccessDeniedException("Recent primary authentication is required");
   }
 
-  private static boolean has(Authentication authentication, String authority) {
+  private static boolean has(Authentication authentication, String authority, Instant now) {
     if (authentication == null || !authentication.isAuthenticated()) return false;
-    Instant now = Instant.now();
     return authentication.getAuthorities().stream()
         .anyMatch(
             granted ->

@@ -615,6 +615,17 @@ class GuideIntegrityTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'Broken deployment document reference'):
             bundle.validate_document_links(files)
 
+    def test_heading_anchors_match_document_headings_and_reject_missing_anchors(self):
+        files = {
+            'docs/start.md': b'[Relative](help.md#using-a-passkey) [Local](#use-a-password)\n## Use a password',
+            'docs/help.md': '## Using a passkey\n## Using a passkey\n## Setup & recovery'.encode(),
+        }
+        self.assertIn('using-a-passkey-1', bundle.heading_anchors(files['docs/help.md'].decode()))
+        bundle.validate_document_links(files)
+        files['docs/start.md'] += b'\n[Broken](help.md#gone)'
+        with self.assertRaisesRegex(AssertionError, 'Broken deployment document heading anchor'):
+            bundle.validate_document_links(files)
+
     def test_missing_guide_missing_screenshot_and_broken_link_fail_validation(self):
         files = {str(p.relative_to(ROOT)): p.read_bytes()
                  for base in ('docs', 'deployment') for p in (ROOT / base).rglob('*') if p.is_file()}

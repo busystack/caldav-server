@@ -17,6 +17,7 @@ public class SecurityAudit {
     OFFLINE_RECOVERY("Offline account recovery"),
     PASSKEY_LOGIN("Passkey verification"),
     SESSION_REVOKED("Browser session ended"),
+    APPLICATION_PASSWORD_ISSUED("Application password created"),
     RECOVERY_CODES_ISSUED("Recovery codes generated"),
     RECOVERY_USED("Recovery code used"),
     GROUP_CREATED("Group created"),

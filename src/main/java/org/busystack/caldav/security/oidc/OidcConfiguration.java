@@ -63,7 +63,7 @@ public class OidcConfiguration {
                 .authorizationEndpoint(
                     endpoint ->
                         endpoint.authorizationRequestResolver(
-                            new LinkingAuthorizationRequestResolver(resolver)))
+                            new LinkingAuthorizationRequestResolver(resolver, journey)))
                 .userInfoEndpoint(endpoint -> endpoint.oidcUserService(users))
                 .authorizedClientRepository(repository)
                 .successHandler(

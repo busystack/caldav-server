@@ -257,21 +257,17 @@ class PortalManagementIT {
     var administrator = browser(admin, true);
     var members = get(administrator, "/admin/groups/" + group + "?page=1");
     UUID last = accounts.find("paged-50").id();
-    fieldError(
+    var unconfirmed =
         post(
             administrator,
             "/admin/groups/" + group + "/members/" + last + "/remove",
-            Map.of("_csrf", csrf(members.body()), "memberPage", "1")),
-        400,
-        "member-remove-" + last,
-        "confirmed");
-    var filtered =
-        post(
-            administrator,
-            "/admin/groups/" + group + "/members/" + last + "/remove",
-            Map.of("_csrf", csrf(members.body()), "memberQuery", "paged-50"));
-    fieldError(filtered, 400, "member-remove-" + last, "confirmed");
-    assertThat(filtered.body()).contains("name=\"q\" value=\"paged-50\"");
+            Map.of("_csrf", csrf(members.body()), "memberPage", "1", "memberQuery", "paged-50"));
+    assertThat(unconfirmed.statusCode()).isEqualTo(302);
+    String location = unconfirmed.headers().firstValue("Location").orElseThrow();
+    assertThat(location).contains("q=paged-50", "page=1");
+    assertThat(get(administrator, transport.localPath(location)).body())
+        .contains("Remove paged-50 from Paged group");
+    assertThat(groups.detail(auth(admin, true), group).members()).isEqualTo(51);
   }
 
   @Test
