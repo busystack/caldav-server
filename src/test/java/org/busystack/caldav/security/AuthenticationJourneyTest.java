@@ -19,8 +19,8 @@ class AuthenticationJourneyTest {
     String collections = journey.start(request, "/team/collections?scope=shared", actor);
     assertThat(journey.consume(request, actor, connection))
         .isEqualTo("/team/connections?client=gnome");
-    assertThat(journey.consume(request, actor, connection)).isEqualTo("/team/");
-    assertThat(journey.consume(request, other, collections)).isEqualTo("/team/");
+    assertThat(journey.consume(request, actor, connection)).isEqualTo("/team/?interrupted");
+    assertThat(journey.consume(request, other, collections)).isEqualTo("/team/?interrupted");
     assertThat(journey.safe("/team-other/collections")).isEqualTo("/team/");
     assertThat(journey.safe("/team/connections?client=gnome&password=ignore"))
         .isEqualTo("/team/connections?client=gnome");
@@ -32,7 +32,7 @@ class AuthenticationJourneyTest {
     String oldest = journey.start(request, "/team/security", actor);
     for (int index = 0; index < 8; index++)
       journey.start(request, "/team/collections?page=" + index, actor);
-    assertThat(journey.consume(request, actor, oldest)).isEqualTo("/team/");
+    assertThat(journey.consume(request, actor, oldest)).isEqualTo("/team/?interrupted");
   }
 
   private static org.springframework.security.core.Authentication browserIdentity(String name) {

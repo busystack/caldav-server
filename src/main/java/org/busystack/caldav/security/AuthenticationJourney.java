@@ -356,7 +356,8 @@ public class AuthenticationJourney {
         state -> {
           var flows = flows(state);
           var flow = flows.get(handle);
-          if (flow == null || !flow.belongsTo(current) || flow.ready()) return prefix + "/";
+          if (flow == null || !flow.belongsTo(current) || flow.ready())
+            return prefix + "/?interrupted";
           state.defaults().remove("default", handle);
           if (flow.draft() == null) {
             flows.remove(handle);
