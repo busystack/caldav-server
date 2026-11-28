@@ -79,6 +79,8 @@ def main():
     parser.add_argument("--workload", action="store_true", help="Measure the bounded independent-client workload during local HTTPS restoration")
     parser.add_argument("--clients", action="store_true", help="Run existing Python/native Thunderbird correctness profiles on the packaged server, without performance workload")
     parser.add_argument("--client-python", default=os.environ.get("BUSYSTACK_CLIENT_PYTHON", str(ROOT / ".client-venv/bin/python")))
+    parser.add_argument("--evidence-directory", type=Path, default=ROOT / "target/qualification/portal-browser",
+                        help="Parent directory for local browser qualification evidence")
     parser.add_argument("--workload-output", default=str(ROOT / "target/qualification/workload.json"))
     parser.add_argument("--strict-sync-depth", action="store_true", help="Explicit false override; default qualification leaves the setting absent")
     parser.add_argument("--thunderbird-binary", default=os.environ.get("BUSYSTACK_THUNDERBIRD_BINARY", str(ROOT / ".client-tools/thunderbird/thunderbird")))
@@ -233,7 +235,7 @@ def main():
                     "--env", "BUSYSTACK_BROWSER_READER_PASSWORD_FILE=/fixture/reader-restore-password",
                     "--volume", f"{directory / 'reader-restore-password'}:/fixture/reader-restore-password:ro",
                     "--volume", f"{checkpoint.exchange}:/fixture/recovery.json:rw", "--volume", f"{directory / 'restore-password'}:/fixture/restore-password:ro"]
-            evidence = ROOT / "target/qualification/portal-browser" / project
+            evidence = args.evidence_directory.resolve() / project
             evidence.mkdir(parents=True, mode=0o700)
             browser_command += ["--volume", f"{evidence}:/evidence:rw", "--env", "BUSYSTACK_PORTAL_EVIDENCE=/evidence"]
             browser_command.append(args.browser_image)

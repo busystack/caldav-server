@@ -24,8 +24,13 @@ async function shot(page,name,mask=[]) {
   }
   await page.setViewportSize({width:1280,height:900});
 }
-async function signIn(page,username) {
-  await page.goto(base+'/login'); await page.locator('[name=username]').fill(username);
+async function signIn(page,username,preserveContinuation=false) {
+  if(preserveContinuation) {
+    await page.waitForURL(url=>url.pathname===prefix+'/login' && url.searchParams.has('flow'));
+  } else {
+    await page.goto(base+'/login');
+  }
+  await page.locator('[name=username]').fill(username);
   await page.locator('[name=password]').fill(password);
   await Promise.all([page.waitForURL(url => url.pathname === prefix + '/auth/continue'),page.getByRole('button',{name:'Sign in',exact:true}).click()]);
 }
@@ -47,6 +52,21 @@ async function mutate(page,path,values) {
     const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-TOKEN':token},body:new URLSearchParams(values)});
     return response.status;
   },{path:prefix+path,values});
+}
+async function lostIssuance(page,expectedReceipt) {
+  const form = page.locator('form[data-single-submit]');
+  const endpoint = await form.evaluate(element=>element.action);
+  let committedStatus;
+  await page.route(endpoint, async route=>{
+    const response=await route.fetch();
+    committedStatus=response.status();
+    await route.abort('failed');
+  }, {times:1});
+  const submit=element=>fetch(element.action,{method:'POST',body:new URLSearchParams(new FormData(element))})
+    .then(response=>response.text()).catch(()=>null);
+  check(await form.evaluate(submit)===null && committedStatus===200,'Issuance committed but the caller lost the response');
+  const retry=await form.evaluate(submit);
+  check(typeof retry==='string' && retry.includes(expectedReceipt) && !retry.includes('data-one-time-secret'),'Retry receives a receipt without any one-time value');
 }
 try {
   const context=await browser.newContext({viewport:{width:1280,height:900},colorScheme:'light'});
@@ -74,7 +94,12 @@ try {
   check(await mutate(page,'/credentials',{label:'Denied password only',days:'1'})===403,'No passkeys: issuance denied');
   await page.evaluate(()=>{window.savedCreate=navigator.credentials.create.bind(navigator.credentials);navigator.credentials.create=async()=>{throw new DOMException('Interaction did not complete','NotAllowedError');};});
   await page.getByRole('button',{name:'Create passkey',exact:true}).click();
-  await page.locator('#security-status').filter({hasText:'may have been cancelled'}).waitFor();
+  try {
+    await page.locator('#security-status').filter({hasText:'may have been cancelled'}).waitFor();
+  } catch (error) {
+    console.error('P0_PASSKEY_CANCELLATION_STATUS',await page.locator('#security-status').textContent());
+    throw error;
+  }
   await page.evaluate(()=>{navigator.credentials.create=window.savedCreate;});
   let lostRegistrationResponse=false;
   await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*webauthn/register',requestStage:'Response'}]});
@@ -138,6 +163,9 @@ try {
   await page.getByRole('heading',{name:'Save your recovery codes',exact:true}).waitFor();
   await shot(page,'15-recovery-codes',[page.locator('[data-one-time-secret] code')]);
   check(await page.locator('main ol code').count()===10,'Protected recovery workflow issues ten one-time codes');
+  await page.goto(base+'/security/recovery/codes/new');
+  await page.locator('input[name=replace]').check();
+  await lostIssuance(page,'already generated recovery codes');
   await page.goto(base+'/connections');await shot(page,'16-connect-an-app');
   await page.getByRole('link',{name:'GNOME Calendar',exact:true}).click();await shot(page,'17-client-configuration');
   check(await page.locator('#server-address').inputValue()===base+'/dav/','Configured root/subpath server address is correct');
@@ -156,6 +184,8 @@ try {
   const secret=await page.locator('#issued-secret').innerText();privateValues.push(secret);
   writeFileSync('/fixture/issued-password',secret,{mode:0o600});
   await shot(page,'19-password-created',[page.locator('#issued-secret')]);
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+  check(await page.locator('#issued-secret').innerText()===secret,'Focus loss keeps the one-time password in the open result');
   await page.getByRole('button',{name:'Copy password',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Password copied.'}).waitFor();
   check(await page.evaluate(()=>navigator.clipboard.readText())===secret,'Clipboard contains issued password');
@@ -176,6 +206,11 @@ try {
   await page.goto(base+'/security/credentials');
   check(await page.getByRole('link',{name:'Create application password',exact:true}).isVisible(),'Password inspection has a separate creation link');
   await shot(page,'29-credential-management');
+  await page.getByRole('link',{name:'Create application password',exact:true}).click();
+  await page.locator('[name=label]').fill('Interrupted browser request');
+  await lostIssuance(page,'already created an application password');
+  await page.goto(base+'/security/credentials');
+  check(await page.getByText('Interrupted browser request',{exact:true}).count()===1,'Ambiguous issuance creates exactly one visible credential');
   await page.goto(base+'/portability?destination='+journal);await shot(page,'20-import-destination');
   await page.locator('input[type=file]').setInputFiles({name:'synthetic-journal.ics',mimeType:'text/calendar',buffer:Buffer.from('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Acceptance//EN\r\nBEGIN:VJOURNAL\r\nUID:ux-journal-fixture\r\nDTSTAMP:20261126T180000Z\r\nDTSTART;VALUE=DATE:20261126\r\nSUMMARY:Demo journal entry\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n')});
   await Promise.all([page.waitForURL(/\/portability\/import\/[0-9a-f-]+/),page.getByRole('button',{name:'Validate and preview import'}).click()]);
@@ -220,7 +255,7 @@ try {
   const user=await userContext.newPage();await virtual(userContext,user);
   connectionStart.searchParams.set('client','thunderbird');
   await user.goto(connectionStart.toString());
-  await signIn(user,'demo-user');await enroll(user);await verify(user);
+  await signIn(user,'demo-user',true);await enroll(user);await verify(user);
   const continued=new URL(user.url());
   check(continued.origin===new URL(base).origin && continued.pathname===prefix+'/connections' && continued.searchParams.get('client')==='thunderbird' && continued.searchParams.get('resource')===calendar, 'Primary/session rotation preserves the selected client and shared resource');
   check(await user.locator('#selected-resource-address').count()===1,'The shared resource address is available after verification');

@@ -3,6 +3,7 @@
 import http.client
 import json
 from pathlib import Path
+import re
 import ssl
 import urllib.error
 import urllib.parse
@@ -69,11 +70,17 @@ def verify(base, ca):
     assert status == 200 and json.loads(body)["issuer"] == base
     status, headers, _ = call(base, headers=forged)
     assert status == 308 and headers["Location"] == base + "/"
+    flows = set()
     for path in ("/security/passkeys", "/portability", "/portability?destination=11111111-1111-4111-8111-111111111111"):
         status, headers, _ = call(base + path, headers={**forged, "Accept": "text/html"})
         target = urllib.parse.urlsplit(headers.get("Location", ""))
         assert status == 302 and (target.scheme, target.netloc, target.path) == (public.scheme, public.netloc, public.path + "/login"), f"Expected configured browser login redirect for {path}; status={status}, location={headers.get('Location')}"
-        assert urllib.parse.parse_qs(target.query) in ({}, {"factor": ["required"]}) and not target.fragment
+        query = urllib.parse.parse_qs(target.query, keep_blank_values=True)
+        assert set(query) == {"flow"} and len(query["flow"]) == 1 and not target.fragment
+        handle = query["flow"][0]
+        assert re.fullmatch(r"[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}", handle)
+        assert handle not in flows, 'Each request must receive its own continuation'
+        flows.add(handle)
     print("PROXY_PORTABILITY_BASE_ROUTE_CANONICAL_LOCATION_PASSED", flush=True)
     for path in ("/actuator", "/actuator/health", public.path + "/actuator", public.path + "/actuator/health/readiness"):
         assert call(origin + path)[0] == 404

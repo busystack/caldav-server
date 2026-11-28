@@ -354,6 +354,9 @@ password. Supported registered apps may use browser authorization.
 
 Choose **Connect an app** from a resource's detail page to keep its individual
 address available during setup and after signing in again.
+If a password is rejected, retry from the same sign-in page to return to that
+resource. When BusyStack asks you to verify before saving a change, review the
+reopened form and submit again.
 
 ![GNOME Calendar settings with the configured username-bearing address](images/getting-started/17-client-configuration.png)
 
@@ -534,6 +537,10 @@ Upstream roles do not grant BusyStack administrator privileges. Existing users m
 explicitly link an organization identity only after recent MFA. Linking removes
 local-password fallback, preserves local collection identity/passkeys, rotates the
 security generation and revokes existing independent access.
+Start linking from **Security** and continue from that page to the provider. If
+you cancel the provider prompt, return to Security to begin again. The passkey
+that verified the current browser session must remain active until linking
+finishes.
 
 Users choose organizational sign-in, then the same local passkey enrollment or
 verification appropriate to actual account state. They do not configure Keycloak.
