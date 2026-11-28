@@ -82,9 +82,10 @@ class PortalManagementIT {
   @BeforeEach
   void prepare() {
     transport = new SignedPasskeyClient(port, "/team", "https://localhost");
+    // Each separate case starts with a new request quota for the shared loopback peer.
     FixtureDatabase.reset(
         jdbc,
-        "TRUNCATE spring_session,security_audit,browser_flow_state RESTART IDENTITY CASCADE",
+        "TRUNCATE spring_session,security_audit,browser_flow_state,login_throttle RESTART IDENTITY CASCADE",
         "TRUNCATE accounts CASCADE");
     admin =
         accounts.provision("portal-admin", "Administrator", "correct horse battery staple", true);
