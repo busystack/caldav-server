@@ -1,101 +1,171 @@
-# BusyStack CalDAV UX repair
+# BusyStack CalDAV UX corrective engineering report
 
-The protected setup, browser sign-in, account portal and administrative workflows were revised on `release/v0.2.0`. The illustrated guide follows the actual application, including its one-time credential and recovery screens. Trusted-HTTPS walkthroughs ran against extracted bundles at the root and under `/team`. Python CalDAV and native Thunderbird used a password issued during a real virtual-authenticator sign-in and completed content and synchronization operations. A separate uninitialized installation is available for manual testing with the user's passkey provider.
+The corrective pass started from the clean `release/v0.2.0` checkout at
+`230c59b3302689200ad79a116b5d64ee06686bcf`. The independent review and its
+companion archive agree byte for byte on the review text. The two supplied
+probes were rerun against the starting source and reproduced the continuation,
+draft and provider-binding failures. Their isolated Java results establish the
+failure mechanisms. Real application tests exercise the corrected Spring,
+PostgreSQL, HTTPS and Keycloak boundaries.
 
-The [acceptance register](UX_REPAIR_ACCEPTANCE.json) records each of the 21 findings and 38 acceptance rows. Nineteen rows passed and eighteen await additional evidence. One row failed because direct and group share revocations still use inline review where the brief requires a named final confirmation. Some form and step-up routes need broader coverage, particularly simultaneous browser-tab continuation, ambiguous issuance outcomes, and accessibility with the user's browser and provider. The bundle serves local acceptance. A public release remains a separate qualification decision.
+The [acceptance register](UX_REPAIR_ACCEPTANCE.json) records the original 38
+acceptance criteria, the 12 corrective findings, previous evidence and the
+specific checks that still need evidence. The [illustrated Getting Started
+guide](GETTING_STARTED.md) follows the updated workflows.
 
-## Functional changes
+## Findings, corrections and regression evidence
 
-| Area | Root cause and repair |
+The baseline reproductions, final test logs and build receipts are indexed in
+the register. Java test names identify exact cases in the local reports.
+
+| Finding | Starting behavior and cause | Correction and regression |
+| --- | --- | --- |
+| R01 | A real Keycloak callback linked an account after a second signed browser session removed the original proving key. The callback trusted an intent created while MFA was valid. | `BrowserSession` and `ExternalIdentityService` bind the intent to its original session, account epoch, accepted key and verification time. The conversion transaction locks and rechecks the current account and key before mutation. `removingTheProvingKeyBeforeTheProviderCallbackPreservesTheLocalAccount` checks the callback fails while the second key, local password and independently issued DAV authorization remain valid. |
+| R02 | On the baseline, a normal provider start consumed a pending linking intent from another tab. The isolated resolver and real provider regressions reproduced the mismatch. | `ProviderNavigation` gives linking its own single-use start handle, binds it to one provider state, and keeps ordinary sign-in independent. `explicitMfaLinkingKeepsOwnershipAndReplacesTheOldSecurityContext` uses the actual provider, two starts and differing callback order. Resolver tests cover cancellation, expired handles and actor mismatch. |
+| R03 | Inspecting the password list implicitly took an issuance slot. Over baseline HTTPS, eight mixed issuance intentions made the ordinary list return 503 and blocked the path to revocation. | `ManagementController` and the credential templates split listing from explicit creation. `credentialInspectionAndRevocationStayAvailableAtIssuanceCapacity` fills the ledger with mixed intentions, checks a contextual 503, uses the signed-in navigation and revokes from the list. |
+| R04 | Spring's default bad-password redirect lost the explicit flow. The supplied source probe returned a login retry with no handle. | `AuthenticationJourney` retries with that specific handle and bounded valid username. `simultaneousAnonymousDestinationsAndWrongPasswordKeepTheirOwnFlow` uses actual HTTPS/password/MFA and verifies the other tab's destination is unaffected. |
+| R05 | Two writes copied and replaced a common session map. A second provider start overwrote the single return association. Both mechanisms reproduced in the baseline probes. | `BrowserFlowStore` uses a stable hashed JDBC session scope and PostgreSQL transaction locks. The journey and provider states have independent sections. The concurrent HTTPS test overlaps two same-cookie requests, verifies both handles in the database, and resumes them after rotation. The real provider and repository tests exercise independent callbacks and single-use intent association. |
+| R06 | Member removal lacked a recoverable review, registration lost the entered fields, consent lost its pending context, and stale primary recovery returned generic denial. | `BrowserFormDrafts`, `RecentMfaAuthorizationFilter`, `OAuthConsentController` and `RecoveryController` restore the named member review, safe native app fields and verified pending consent. Recovery prompts for primary sign-in and then asks for the code again. The HTTPS tests exercise stale member intent, registration, stale consent GET and POST and recovery without a registered key. Recovered pages require their own explicit submission. |
+| R07 | Form recovery could rebuild a membership confirmation against new grants and implicitly approve different access. | `ReviewFormController` carries the original grant digest and links to the relevant workflow on conflict. `aStaleMemberDraftRetainsTheOriginalGrantReviewAfterReauthentication` lets another request change a grant during reauthentication and checks the original removal is rejected. |
+| R08 | The resource page's primary Connect action omitted its ID and the continuation sanitizer discarded a supplied ID. | `collection.html`, `AuthenticationJourney` and the connection/credential controllers carry the canonical resource through authorized stages. The browser follows the actual resource link and completes primary sign-in and passkey enrollment as a shared reader. HTTP tests also check paging, validation, issuance and denial after access changes. |
+| R09 | Group creation reset the user's return from sharing when validation or MFA interrupted it. | `GroupManagementController` and the draft controller preserve the original collection UUID and recheck ownership before return. `groupCreationReturnsToSharingAfterValidationAndFreshAuthentication` resumes the resource from both interruptions. |
+| R10 | The UI offered current members and already-granted groups in addition lists. Duplicate member submission could look successful. | `GroupService`, `SharingManagementService` and the group/sharing views filter eligible choices and surface an explicit duplicate-member error. The HTTP group test checks duplicate handling and that the existing group remains available for managing its grant. |
+| R11 | An unavailable import report linked to the same unavailable URL. Generic validation obscured terminal report loss and left no usable next action. | `ImportStaging` and `PortalErrors` render a typed unavailable result and a working authorized picker, with separate in-place retry after known rollback. The HTTP and browser tests follow that link and the proxy interruption profile exercises restart after an interrupted confirmation. |
+| R12 | Removing access was an inline permission change without a final named review. | `SharingReviewController`, `confirm-action.html` and `collection-sharing.html` identify the resource, recipient, old permission and effective-access consequences. The confirmed POST checks fresh authority, CSRF and the original grant state. HTTP and browser cases cover cancellation and the changed-grant recovery path. |
+
+The collection settings form now uses the creation color control and preserves
+empty values, six-digit colors and eight-digit values with alpha. Optional
+labels, empty read-only guidance, the app-specific page heading and group
+navigation wording match their current UI. Operations and restore
+documentation now describes V19.
+
+## Security, recovery and privacy
+
+V19 stores short-lived browser navigation separately from content and durable
+authorization. Per-journey limits remain eight handles, a 15-minute lifetime
+and a 32 KiB destination and draft budget. Draft fields are allowlisted by
+route. Passwords, application secrets, recovery codes, uploaded contents and
+consent POSTs are excluded. Keycloak's temporary protocol state is scoped to
+the original browser and callback. Application-level mutations reload current
+authority and require fresh CSRF and explicit resubmission. Existing idle and
+overall browser deadlines, the strict ten-minute rule for each factor, and
+CalDAV and OAuth authorization rules continue to apply.
+
+Backups restore with prior browser authority invalidated. Successful recovery
+clears pending V18 issuance intentions and V19 navigation state. Current and
+old data-schema fixtures preserve calendar and journal bytes, ETags, immutable
+history and share bindings. Operators still require the protected
+initialization code from the local command for a new installation.
+
+The previous Keycloak restore fixture made a disposable account's display
+name equal its login name. The protected restore parser checks the exact
+username as a visible HTML text node and a working CSRF-bearing form before the
+backup. The repaired Overview renders both values as separately readable text.
+The fixture again uses the login `federated-browser` and display name
+`Federated Browser`. The published trust model still uses verified issuer and
+subject, with no role elevation from Keycloak or local-password fallback for a
+managed account.
+
+The protected SHA-256 values, checked at the start and end, are:
+
+| File | SHA-256 |
 | --- | --- |
-| Setup and first sign-in | The introduction, protected form and success interstitial split one task into several routes. Setup now combines the operator code and administrator fields, checks password matching before submission, links to local help and redirects to sign-in. Passkey registration reveals one explicit verification action. A successful assertion goes to Overview or the validated destination. |
-| Authentication and navigation | A factor freshness check previously stood in for a completed browser session. Accepted WebAuthn assertions now establish a browser session bound to the account, security epoch, authenticating credential and overall deadline. Normal authorized navigation uses that proof. Sensitive actions independently require recent primary and passkey factors. Application and authentication shells reflect the actual state. The application uses a section rail or a mobile disclosure. |
-| Continuations and validation | A global destination let unrelated actions compete for the same continuation. Per-flow handles now carry validated same-deployment destinations or allowlisted drafts. Provider callbacks preserve their flow identity. Review GETs use the current authority and version before the user explicitly resubmits with fresh CSRF. Editable errors recover authorized identity and safe values where the form has a recovery handler. |
-| Resources, sharing and portability | Scoped lists distinguish All, Owned and Shared. Creation starts with calendar, task list or journal. Editing keeps the resource identity and component type. Sharing consolidates direct/group/effective access, and member review detects a changed grant set even when its count matches. Import stages a preview and redirects to GET reports. Empty export uses resource-specific guidance. Oversized multipart CSRF and header uploads return the same styled 413. |
-| Connections and security | Connection setup keeps the selected application and authorized resource through list navigation, issuance, validation and return. Application password results display client steps, server settings, username, password and expiry together. The one-time result clears secrets on departure. Security screens distinguish enrolled protection from factor freshness. Named reviews explain several destructive operations. |
-| Administration | Account status and sign-in method are distinct filters. Handoff describes the sign-in method and identifies how to share the initial password. Concurrent browser administrator disables preserve at least one enabled administrator. Group pages prioritize membership. Audit translates stored codes and uses current names where possible. Diagnostics explain their origin and bounded measurements. |
-| Documentation | The guide and deployment/operations documentation follow protected setup, the assertion, direct Overview, three supported resource types, sharing, recovery, app passwords, staged import and restore. The capture manifests and packaging validator check the images, local relative links and heading anchors. |
+| `qualification/passkeys/README.md` | `e8de08d838411e5a25fa19709ed9ab6f96dad8b04ae1a7be500ff215954e5c1b` |
+| `qualification/passkeys/recovery.py` | `45d9ca63c2519c3a5ced5e182e2a352cb306511d5f01135c94f16a163f93099a` |
+| `qualification/passkeys/test_recovery_refresh.py` | `7407ba56c278bae926e066ce127618dfb78ecaebe4ae34d327e674097c77dc90` |
 
-## Security behavior and evidence
+## Container advisories and official fixes
 
-The deployment keeps a 30-minute idle limit and an eight-hour overall browser-session limit. The explicit session-extension control preserves the original proof deadline and both factor timestamps. Cookie rotation, account epochs and checking the original live authenticating credential on protected requests keep a primary-only or revoked session out of the application shell. Browser validation and access-denied rendering use current authority.
+Trivy 0.76.1 inventoried 115 Ubuntu 26.04 runtime packages. The exact image
+produced 253 package/CVE findings across 65 CVE IDs, with 248 Medium and 5 Low.
+There were zero High, Critical or Unknown findings under the established gate.
+The raw scan and all severity rows are retained. The scan covers the OS package
+inventory. The separately executed OSV query covered all 112 resolved Maven
+coordinates, returned no advisories and detected the existing Log4j positive
+control. The optional NVD audit requires an unavailable feed credential.
 
-V18 adds a transactional issuance ledger for application passwords and recovery sets. Its limits are 15 minutes, eight pending intents per account and 8,192 retained records. The credential or recovery set and its receipt commit together. The receipt retains a safe identifier. A repeated request cannot obtain the original plaintext or silently regenerate it. Distinct recovery intents compare the expected recovery-set generation. Same-version restoration of a backup containing a real pending intent removed it, along with restored credentials and grants according to existing restore policy. The three protected recovery qualification files stayed byte-identical.
+Canonical's Ubuntu 26.04 records were checked for all 65 CVEs and matched to
+the source package behind each binary. Canonical marks 123 package/CVE rows
+released, 89 deferred and 41 needed. The Ubuntu archive snapshot at
+`20261127T180000Z`, verified with the Ubuntu archive keyring, resolved all
+released upgrades across 15 binary packages in an APT simulation. These builds are available upstream.
+The local delivery still uses the current pinned dependency and OS layer
+inventory. [Canonical snapshot service](https://snapshot.ubuntu.com/)
 
-Security regression evidence includes real signed HTTP WebAuthn, actual Keycloak login and signed issuer/subject handling, OAuth request/consent/token/refresh and revocation, protected initialization, DAV security boundaries and concurrent administrator disables. Browser qualification uses synthetic principals, an isolated browser profile, a disposable trusted CA and a virtual CTAP2 authenticator. [Spring Security MFA](https://docs.spring.io/spring-security/reference/7.1/servlet/authentication/mfa.html) · [OWASP Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) · [OWASP Logging](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
+| Source package | Tested → signed Ubuntu candidate | Canonical security notice |
+| --- | --- | --- |
+| binutils | `2.46-3ubuntu2` → `2.46-3ubuntu2.1` | [USN-9214-1](https://ubuntu.com/security/notices/USN-9214-1) |
+| glibc | `2.43-2ubuntu2.4` → `2.43-2ubuntu2.7` | [USN-9065-1](https://ubuntu.com/security/notices/USN-9065-1) |
+| Expat | `2.7.4-1ubuntu0.2` → `2.7.4-1ubuntu0.3` | [USN-9196-1](https://ubuntu.com/security/notices/USN-9196-1) |
+| PCRE2 | `10.46-1build1` → `10.46-1ubuntu0.1` | [USN-8974-1](https://ubuntu.com/security/notices/USN-8974-1) |
+| Perl | `5.40.1-7ubuntu0.3` → `5.40.1-7ubuntu0.4` | [USN-9006-1](https://ubuntu.com/security/notices/USN-9006-1) |
 
-The captured OSV feed returned no advisories across 112 Maven package versions. The deliberately vulnerable positive-control dependency returned advisories, including `GHSA-jfh8-c2jp-5v3q`. Trivy 0.76.1 scanned 115 Ubuntu 26.04 OS packages in the exact final container and returned zero High, Critical or Unknown findings under the existing gate. The report retains 248 Medium findings, 123 with a published fixed version, and five Low findings with no fixed version returned. Examples with fixes include binutils from `2.46-3ubuntu2` to `2.46-3ubuntu2.1`, libc-bin from `2.43-2ubuntu2.4` to `2.43-2ubuntu2.7`, and libexpat1 from `2.7.4-1ubuntu0.2` to `2.7.4-1ubuntu0.3`. The feeds record package findings and severities as of the checks.
+## Final verification
 
-## Interoperability
-
-On Chromium 149.0.7827.55 and Playwright 1.61.1, the expanded browser qualification completed 94 assertions and captured 27 screens. Python CalDAV 3.6.0 with icalendar 7.3.0 exercised principal/home discovery, event and task CRUD, recurrence expansion and exceptions, and initial/incremental sync. Thunderbird 157.0.1 used its native CalDAV provider with an isolated profile. It exercised event and task creation, edit, deletion and sync, and exchanged four resources with Python while preserving recurrence, exceptions, alarms, all-day and floating times, unknown properties and task completion. These runs came from a portal-issued application password. GNOME desktop behavior and other clients require their own evidence.
-
-## Accessibility and manual acceptance
-
-The browser exercised the 320px, 390px and desktop layouts, keyboard menu opening and Escape/focus return, dark mode, forced colors and reduced-motion preference. I visually inspected all 27 illustrations and reviewed the one-time password, recovery and validation screens at full size. Captures masked generated credentials and recovery codes before writing images. The UI also carries associated field errors and safe summary focus. The remaining evaluation covers complete keyboard journeys, screen-reader announcements, text enlargement/zoom, the actual browser and passkey provider, and the two session deadlines. [WCAG 2.2 Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow) · [WCAG 2.2 Timing Adjustable](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html) · [FIDO Passkey Design Principles](https://www.passkeycentral.org/design-user-journeys/principles)
-
-The manual instance is at `https://localhost:34603`. Its certificate expires on November 30, 2026 at 00:06:03 UTC. The receipt in `.qualification-runs/ux-1246f565b115/delivery-manual/acceptance.json` identifies the installation directory and disposable CA. Trust that CA in a disposable browser profile and open setup over HTTPS. Run `bash scripts/initialize.sh` from the receipt's installation directory to obtain the operator code privately. [Getting Started guide](GETTING_STARTED.md#6--create-the-first-administrator)
-
-1. Deliberately enter mismatched passwords, correct the form and create the administrator.
-2. Sign in, then create and verify a passkey with your chosen provider.
-3. Confirm direct arrival at Overview and open Server administration.
-4. Create a calendar, task list and journal and explore their empty states.
-5. Issue an application password and configure a supported client while keeping the result open.
-6. Create, read and update a synthetic item in that client and check synchronization.
-7. Share a resource and deliberately enter an invalid sharing recipient.
-8. Continue browsing after ten minutes, then try a sensitive action and check where verification returns you.
-9. Sign out and back in with your existing passkey.
-10. Review keyboard operation, error announcements and assistive technology as available.
-
-After testing, destructive cleanup applies to this fixture only. Run `docker compose down --volumes --remove-orphans` in its installation directory.
-
-## Packaging, installation and restore
-
-The bundle was produced by the local packaging workflow with source, notices and a CycloneDX SBOM. It references an immutable local image ID with `published: false` and a null registry digest. The source-free extraction walkthroughs used normal TLS validation, installation scripts and real proxy prefixes. Operations checks covered packed startup, private storage and database networking, probes, configured DAV discovery, restart, same-version database backup and restore, and V9/V17 upgrades through V18. Upgrade and restore preserved journal bytes, ETags, ownership, bindings and migration history. Restore kept initialization closed and removed stale issuance intents. Unsupported future, failed, gapped, duplicate and missing-first migration histories were rejected.
-
-Docker's default subnet pools exhausted during parallel checks. Subsequent P0 and operations runs used explicit unused private fixture subnet pools. Those settings were confined to the task's disposable Compose projects. The existing port 18080 deployment, original volumes and normal browser profiles were left in place.
-
-## Automated verification
-
-The earlier runtime's clean Maven run passed 652 unit tests and ran 274 integration tests with two failures. One expected an old select control's markup after the form changed to a radio group. The other exposed multipart parameter parsing during the error dispatch for a large form-body CSRF upload. The portal layout now reads the connection origin only on credential routes. The revised assertion and targeted coverage for both multipart admission paths, grant review and client resource context then passed four real HTTPS integration tests. The earlier logs remain under `.qualification-runs/ux-6948c298ca07/`.
-
-| Gate | Executed result |
+| Gate | Result |
 | --- | --- |
-| Final Maven clean verify | 652 unit tests and 276 integration tests passed, with zero failures, errors or skips. |
-| Final Java portal integration | 36 passed with zero failures, errors or skips. This includes bounded import paths, transaction rollback, genuine signed WebAuthn, contextual validation and the two follow-up regressions. |
-| Release, distribution, P0, passkeys and security Python tooling | 34, 11, 6, 14 and 11 tests passed, respectively. |
-| Protocol and OAuth investigations | 6 and 4 tests passed, respectively. Their source stayed byte-identical during the repair. |
-| Final archive root and `/team` | Both passed 94 browser assertions and 27 captures. The root run also passed native Python CalDAV and Thunderbird content checks. |
-| Final archive native application review | The expanded `/team` run passed 100 assertions. It exercised invalid redirects, editable recovery, cancellation and named removal of a registered application. |
-| Maintained root and strict synchronization browser profiles | Passed Groups, recovery-code reset, one-time application password, OAuth consent, restart and disabled-account checks. Strict mode rejected the Depth: 1 accommodation. |
-| Maintained proxy and import interruption profile | Passed trusted TLS, prefixed discovery, body limits and the full browser profile. A real interruption after the first import write rolled back the transaction. Startup rejected the old preview, and a fresh preview imported successfully. |
-| Maintained Keycloak browser profile | Passed on rerun with the same application image. It exercised a cross-site provider login, local-fallback denial, passkey enrollment and recovery, DAV and OAuth revocation, restart and disabled account denial. The first attempt timed out during an upstream transition after code recovery. |
-| Native-client and local browser restore | Passed on rerun. The fixture accepted the new bounded continuation URL, recovered fresh passkeys and checked private and shared DAV content, sync, revocation, restart and replay rejection. Python CalDAV and Thunderbird passed before the restore. |
-| Keycloak browser restore | Passed through real provider login, a previously live session at backup, replay rejection, fresh authentication after restore, preserved journal and task bytes, restored share permissions and revoked-reader denial. The initial attempt with a distinct display name reached the protected probe, which expects the username as an exact visible text node. The rerun labels the disposable restore principal with its login name. The protected probe, authentication and provider checks kept their original assertions. |
-| Distribution and advisory policies | Exact JAR and image contents matched. Maven advisory and container blocking policies passed with the retained results described above. The optional additional NVD audit requires a feed credential. |
+| Maven clean verify, Eclipse Temurin 25.0.5+8 | Passed with 653 unit and 288 integration tests. There were no failures, errors or skips. SpotBugs reported zero findings. The full Maven run includes 47 portal cases. |
+| JDBC continuation follow-up | Both added HTTPS cases passed, covering concurrent claims, wrong-password retry, eviction and expiry. |
+| Python tooling | 76 passed across release (34), distribution (11), P0 (6), passkeys (14) and security (11). |
+| Protocol and OAuth investigations | Six protocol cases and four OAuth cases passed, unchanged from their established qualification definitions. |
+| Extracted root bundle | 119 browser assertions and 30 captures passed, including independent Python CalDAV 3.6.0 and Thunderbird 157.0.1 round trips. |
+| Extracted `/team` bundle | 119 browser assertions and 30 captures passed behind Nginx, including resource-specific sign-in, issuance response loss and import report recovery. |
+| Maintained root and strict-sync browser profiles | Passed protected routes, group management, recovery and restart. Strict mode rejected the Depth: 1 accommodation. |
+| Maintained proxy and transaction interruption | Passed real TLS and forwarding boundaries. Killing the disposable application after an uncommitted database write rolled the transaction back. A restarted application rejected the old preview, and a new preview imported successfully. |
+| Local browser restoration and clients | Passed with Python CalDAV and native Thunderbird against a browser-issued password. Stale browser and DAV/OAuth credentials, pre-restore sync state and revoked readers were rejected after restore. |
+| Real Keycloak browser restoration | Passed using the distinct names above. The protected checkpoint verified a previously live session before backup, rejected old credentials and sync state after restore, and verified fresh MFA, private and shared content, revoked-reader denial and journal synchronization. The provider-restore profile exercised ordinary Keycloak sign-in and local-fallback denial. The separate standalone attempts ended in a Chromium network-interface change and a navigation wait timeout. The complete restore profile supplied the normal sign-in and recovery evidence. |
+| Portability | A 10,000-resource, more-than-60-MiB round trip overlapped with real exports. The private 8-MiB export mount also reached actual ENOSPC. BusyStack returned 503 before exposing a partial download, cleaned its staging file and exported the same bytes after space returned. The temporary-storage and fatal-allocation probes passed. |
+| Empty export and stale link | All three resource types and a real last-object removal race passed over packaged HTTPS. |
+| Secret-page history | Both one-time results stayed clear during Back and normal refresh. Chromium supplied persisted page events for 0 of the two results and reported `HTTPMethodNotGET` for both. [Chromium cache eligibility](https://chromium.googlesource.com/chromium/src/%2B/18aacd316ac7976d3336362b4d2dd8ad51022fe9/content/browser/back_forward_cache/back_forward_cache_impl.cc) |
+| Old and current database schemas | V18 upgraded to V19. V9 restore and V19 same-version restore passed. Unsupported history left the application stopped. Pending V18 issuance intentions and V19 navigation rows were cleared. |
+| Exact distribution and advisory inventory | The packaged JAR content matches the image. Maven advisory and container blocking gates passed, with individual OS findings retained. |
+| Native GNOME | The graphical profile reached the application handoff. The established fixture requires Calendar `50.0-1` and Evolution Data Server `3.56.2-8`. The host provides `46.1-0ubuntu2` and `3.52.3-0ubuntu1.2`, respectively, so native GNOME qualification remains open. |
 
-## Build identity and retained evidence
+The build used the project Maven wrapper. The automated port, cross-site
+Keycloak, database and native profile jobs each used owned disposable projects.
+An earlier full test run shared the portal test login quota across unrelated
+cases, producing 429 responses. It also exposed outdated credential-link and
+OAuth redirect expectations in two fixtures. The suite now gives each portal
+case a fresh throttle table, follows the explicit creation link from setup and
+checks separate canonical OAuth handles together with the exact saved request.
+A later stress schedule showed one atomic claimant could reach Overview without an interruption notice. The final build returns the same recovery notice for both ways a claim can lose. The case still requires exactly one claimant to resume the task. Production limits and assertions about application authority remain in force. The first repeat on the corrected image also recorded database storage errors while the scanner cached its feed. The scanner cache was removed after its successful verification, and the full Java suite ran again without that concurrent scan.
 
-Evidence is retained locally under `.qualification-runs/ux-1246f565b115/` and indexed by the [acceptance register](UX_REPAIR_ACCEPTANCE.json). The Java build used Eclipse Temurin 25.0.5+8. Packaging and qualification used Docker 29.9.2, Compose 5.6.1 and Linux amd64. The third-party runtime dependency inventory was unchanged.
+### Commands and evidence
 
-| Artifact | Identity |
+- `./mvnw -B -ntp -DforkCount=2 clean verify` used the pinned JDK, independent-client environment and existing PostgreSQL/Testcontainers configuration. The raw Maven logs include exit codes, suite totals and class-level reports.
+- `python3 -m unittest discover -s qualification/<suite> -p 'test_*.py'` ran the five tooling suites. The independent protocol and OAuth POMs ran with the same Java toolchain.
+- `qualification/p0/package.py` staged and validated both local asset sets at the current package source. The extracted workflows used `qualification/p0/run.py --proxy` with the exact application and browser image IDs. The maintained browser profiles used `qualification/passkeys/run.py` with locally retained evidence.
+- The startup, V18 and V9 fixture logs were generated by `scripts/verify-operations.py`. The packaged disk-full probe used an additional private 8-MiB tmpfs, filled only inside its disposable container, and recorded the rejection and successful retry.
+- The retained [acceptance register](UX_REPAIR_ACCEPTANCE.json) indexes raw logs and records individual R and A states. Its evidence archive includes the actual package receipts, the baseline source probes and HTTPS reproductions, the protected hashes, scanner outputs and the official upstream status mapping.
+
+## Artifact identity and local handoff
+
+| Artifact | Verified identity |
 | --- | --- |
-| Runtime commit | `1246f565b11570ddf761089b38479061773028cd` |
-| Delivery source commit | `997283b976650f97b10a57bb13361d55fba52c07` |
-| JAR SHA-256 | `ec28ec6d5dd46e5e73ac438aa800d8a2b466d508c619ceed4d47104677bbc2d9` |
-| Local image ID | `sha256:07e9a4306b4c6c0161442a50dffcbf5a3747fe792a3b2ddb78337f365e5f2c93` |
-| Browser fixture image ID | `sha256:8daae839696b52dd625ce58c4f149ca6d8b02385d81ee7d5a6a1acb82c3ca276` |
-| Runtime source archive SHA-256 | `965474b36834986b3145c42196c302913ac8c2c74dc8a9babb2dcebdcad0e442` |
-| Delivery source snapshot SHA-256 | `f36d1156b2243a8e1e34aaac24994320e56acefc11ab352b54020b3976a55a6f` |
-| Delivery archive SHA-256 | `145d77371dcff608ab044b559638e93d6fc591cd23ae188195c592e281a8415d` |
+| Runtime source commit | `7f6568fa7990e7e35220430e8952cfb9186626b8` |
+| Package source commit | `7f6568fa7990e7e35220430e8952cfb9186626b8` |
+| JAR SHA-256 | `8de40c38d57c6b55bc1cc5197ccb8f2967206c8cf8dc9907ef97f46c5293ff61` |
+| Local application image ID | `sha256:f0ed8a6efee98572cf227875a01d61fb3d9c1617d909c03582dfaf789a245f96` |
+| Local browser image ID | `sha256:e81f60d1e3848e7a5702a209b21cf4c2dd87df7cc261ec5521c29bf087a67f99` |
+| Runtime source archive SHA-256 | `b44acce8e307fcf6ab5c8d3baa1b56f132674d363c1ea6ede5a47920b0e28052` |
+| Package source snapshot SHA-256 | `d552c1bcc492360dd535bef41a35df082266b5aaba2605a5777e415a09d3f3d7` |
+| Deployment archive SHA-256 | `48d6ea7ad56db0ef40137303d6a07e107ac72e7a438ca18c9256fa8ea6f20912` |
 
-The image receipt hashes every runtime input. The distribution verifier matched the embedded JAR and its SBOM to that runtime. The delivery source commit changes seven image assets relative to the runtime commit. Packaging verified equality of runtime source inputs before assembling the bundle. Two independent packaging runs produced byte-identical assets.
+Two independent package assemblies produced identical assets. All image
+runtime inputs match the package source snapshot. The manual installation was extracted from the final archive.
+The fixture has its own Compose project,
+private PostgreSQL volume and localhost-only proxy. At handoff no accounts
+or initialization code existed, and protected setup rendered over verified TLS.
 
-| Starting checkout and protected files | Observed value |
-| --- | --- |
-| Starting HEAD, clean working tree | `75685be70c48a776322f957a17d937b5352a279b` |
-| `qualification/passkeys/README.md` SHA-256 | `e8de08d838411e5a25fa19709ed9ab6f96dad8b04ae1a7be500ff215954e5c1b` |
-| `qualification/passkeys/recovery.py` SHA-256 | `45d9ca63c2519c3a5ced5e182e2a352cb306511d5f01135c94f16a163f93099a` |
-| `qualification/passkeys/test_recovery_refresh.py` SHA-256 | `7407ba56c278bae926e066ce127618dfb78ecaebe4ae34d327e674097c77dc90` |
+Visit [https://localhost:56145](https://localhost:56145) after trusting the fixture's public CA
+in a disposable browser profile. From the fixture's `manual/install` directory,
+run `bash scripts/initialize.sh` to obtain the operator code, then complete the
+protected setup page. The [Getting Started guide](GETTING_STARTED.md) covers
+passkey setup and ordinary administration. The leaf certificate is valid through November 30, 2026 at 05:02 UTC. The fixture's public CA and verified certificate dates are recorded in its handoff evidence.
 
-The final documentation commit records acceptance evidence and can be located with `git log -1 -- docs/UX_REPAIR_ENGINEERING_REPORT.md`. Publication and production deployment were outside this local run.
+The register records **12 passed** of 12 reviewed corrections and
+**25 passed, 13 blocked** across the original 38 acceptance rows. Manual browser
+and authenticator acceptance remains pending, including a user-controlled
+software provider, any physical key ceremonies and assistive technology.
+The register identifies each remaining exhaustive-case check. This is a local
+unpublished qualification bundle.

@@ -1,49 +1,66 @@
 {
   "branch": "release/v0.2.0",
   "artifacts": {
-    "baselineCommit": "75685be70c48a776322f957a17d937b5352a279b",
-    "runtimeCommit": "1246f565b11570ddf761089b38479061773028cd",
-    "packageSourceCommit": "997283b976650f97b10a57bb13361d55fba52c07",
-    "qualificationFollowupCommits": [
-      "d48f7637a8c4e778f6a128e197c36ffd7751a195",
-      "0dd9629603053a5e2232f0ba5388ea3e5d77a64f"
-    ],
-    "jarSha256": "ec28ec6d5dd46e5e73ac438aa800d8a2b466d508c619ceed4d47104677bbc2d9",
-    "localImageId": "sha256:07e9a4306b4c6c0161442a50dffcbf5a3747fe792a3b2ddb78337f365e5f2c93",
+    "baselineCommit": "230c59b3302689200ad79a116b5d64ee06686bcf",
+    "runtimeCommit": "7f6568fa7990e7e35220430e8952cfb9186626b8",
+    "packageSourceCommit": "7f6568fa7990e7e35220430e8952cfb9186626b8",
+    "jarSha256": "8de40c38d57c6b55bc1cc5197ccb8f2967206c8cf8dc9907ef97f46c5293ff61",
+    "localImageId": "sha256:f0ed8a6efee98572cf227875a01d61fb3d9c1617d909c03582dfaf789a245f96",
+    "browserImageId": "sha256:e81f60d1e3848e7a5702a209b21cf4c2dd87df7cc261ec5521c29bf087a67f99",
     "registryDigest": null,
-    "deploymentSha256": "145d77371dcff608ab044b559638e93d6fc591cd23ae188195c592e281a8415d",
-    "sourceSnapshotSha256": "f36d1156b2243a8e1e34aaac24994320e56acefc11ab352b54020b3976a55a6f",
-    "manifest": ".qualification-runs/ux-1246f565b115/delivery/assets/release-manifest.json"
+    "deploymentSha256": "48d6ea7ad56db0ef40137303d6a07e107ac72e7a438ca18c9256fa8ea6f20912",
+    "sourceSnapshotSha256": "d552c1bcc492360dd535bef41a35df082266b5aaba2605a5777e415a09d3f3d7",
+    "manifest": ".qualification-runs/ux-independent-review/qualified/delivery/assets/release-manifest.json",
+    "evidenceArchive": ".qualification-runs/ux-independent-review/delivery-evidence.tar.gz"
   },
   "evidence": {
-    "browser": ".qualification-runs/ux-1246f565b115/delivery-root/browser-result.json",
-    "clients": ".qualification-runs/ux-1246f565b115/delivery-root/clients-result.json",
-    "rootBundle": ".qualification-runs/ux-1246f565b115/delivery-root.log",
-    "teamBundle": ".qualification-runs/ux-1246f565b115/delivery-team.log",
-    "maven": ".qualification-runs/ux-1246f565b115/maven-clean-verify.log",
-    "operations": ".qualification-runs/ux-1246f565b115/operations-same-version.log",
-    "upgradeV17": ".qualification-runs/ux-1246f565b115/operations-v17-and-v9.log",
-    "distribution": ".qualification-runs/ux-1246f565b115/distribution.log",
-    "releaseTools": ".qualification-runs/ux-1246f565b115/tools-release.log",
-    "manual": ".qualification-runs/ux-1246f565b115/delivery-manual/acceptance.json",
-    "standardBrowser": ".qualification-runs/ux-1246f565b115/ci-browser-root.log",
-    "oidcBrowser": ".qualification-runs/ux-1246f565b115/ci-browser-oidc-rerun.log",
-    "proxyBrowser": ".qualification-runs/ux-1246f565b115/ci-browser-proxy-rerun.log",
-    "strictBrowser": ".qualification-runs/ux-1246f565b115/ci-browser-strict.log",
-    "localBrowserRestore": ".qualification-runs/ux-1246f565b115/ci-browser-local-restore-rerun.log",
-    "providerBrowserRestore": ".qualification-runs/ux-1246f565b115/ci-browser-provider-restore-identity-label.log",
-    "reproducibleBundle": ".qualification-runs/ux-1246f565b115/delivery-reproduced.log",
-    "runtimeInputs": ".qualification-runs/ux-1246f565b115/p0-image-inputs.json",
-    "preservation": ".qualification-runs/ux-1246f565b115/source-and-preservation.txt",
-    "checksums": ".qualification-runs/ux-1246f565b115/delivery-checksums.log",
-    "mavenAdvisories": ".qualification-runs/ux-1246f565b115/osv-runtime.json",
-    "containerAdvisories": ".qualification-runs/ux-1246f565b115/container-os-advisories.json",
-    "optionalNvd": ".qualification-runs/ux-1246f565b115/nvd-audit.log",
-    "protocolInvestigation": ".qualification-runs/ux-baseline/investigation-protocol.log",
-    "oauthInvestigation": ".qualification-runs/ux-baseline/investigation-oauth.log",
-    "nativeAppReview": ".qualification-runs/ux-1246f565b115/native-app-review-rerun.log",
-    "mavenSummary": ".qualification-runs/ux-1246f565b115/failsafe-summary.xml",
-    "followupTests": ".qualification-runs/ux-6948c298ca07/maven-followup-rerun.log"
+    "reviewSourceProbes": ".qualification-runs/ux-independent-review/baseline-probes/source-probes-result.json",
+    "reviewLinkProbe": ".qualification-runs/ux-independent-review/baseline-probes/linking-resolver-probe-result.json",
+    "baselineCapacity": ".qualification-runs/ux-independent-review/baseline-capacity.log",
+    "diskFullExport": ".qualification-runs/ux-independent-review/disk-probe.log",
+    "oneTimeHistory": ".qualification-runs/ux-independent-review/history-and-export/history-result.json",
+    "baselineLiveKey": ".qualification-runs/ux-independent-review/baseline-live-key.log",
+    "baselineLinkTabs": ".qualification-runs/ux-independent-review/baseline-keycloak-rerun.log",
+    "browser": ".qualification-runs/ux-independent-review/qualified/delivery-root/browser-result.json",
+    "clients": ".qualification-runs/ux-independent-review/qualified/delivery-root/clients-result.json",
+    "rootBundle": ".qualification-runs/ux-independent-review/qualified/delivery-root.log",
+    "teamBundle": ".qualification-runs/ux-independent-review/qualified/delivery-team.log",
+    "maven": ".qualification-runs/ux-independent-review/qualified/maven-stable.log",
+    "additionalContinuation": ".qualification-runs/ux-independent-review/additional-continuation.log",
+    "followupTests": ".qualification-runs/ux-independent-review/additional-continuation.log",
+    "operations": ".qualification-runs/ux-independent-review/qualified/operations.log",
+    "previousV19Operations": ".qualification-runs/ux-independent-review/operations-v19.log",
+    "upgradeV18": ".qualification-runs/ux-independent-review/qualified/operations.log",
+    "previousUpgradeV18": ".qualification-runs/ux-independent-review/operations-v18-v9.log",
+    "distribution": ".qualification-runs/ux-independent-review/qualified/distribution.json",
+    "releaseTools": ".qualification-runs/ux-independent-review/qualified/tooling-status.txt",
+    "manual": ".qualification-runs/ux-independent-review/qualified/manual/acceptance.json",
+    "standardBrowser": ".qualification-runs/ux-independent-review/ci-browser-root.log",
+    "strictBrowser": ".qualification-runs/ux-independent-review/ci-browser-strict-final.log",
+    "proxyBrowser": ".qualification-runs/ux-independent-review/ci-browser-proxy-final.log",
+    "oidcBrowser": ".qualification-runs/ux-independent-review/qualified/keycloak-restore.log",
+    "standaloneOidcAttempt": ".qualification-runs/ux-independent-review/ci-browser-oidc-standalone.log",
+    "localBrowserRestore": ".qualification-runs/ux-independent-review/ci-browser-local-restore.log",
+    "providerBrowserRestore": ".qualification-runs/ux-independent-review/qualified/keycloak-restore.log",
+    "previousProviderBrowserRestore": ".qualification-runs/ux-independent-review/ci-browser-provider-restore.log",
+    "previousCleanVerify": ".qualification-runs/ux-independent-review/maven-clean-verify-certified.log",
+    "diskConstrainedVerify": ".qualification-runs/ux-independent-review/qualified/maven.log",
+    "nativeGnome": ".qualification-runs/ux-independent-review/ci-browser-gnome-final.log",
+    "nativeAppReview": ".qualification-runs/ux-independent-review/qualified/delivery-team.log",
+    "reproducibleBundle": ".qualification-runs/ux-independent-review/qualified/package-reproducible.log",
+    "runtimeInputs": ".qualification-runs/ux-independent-review/qualified/p0-image-inputs.json",
+    "maximumPortability": ".qualification-runs/ux-independent-review/qualified/large-http.json",
+    "temporaryStorage": ".qualification-runs/ux-independent-review/temporary-storage.json",
+    "mavenAdvisories": ".qualification-runs/ux-independent-review/qualified/osv-runtime.json",
+    "advisoryPositiveControl": ".qualification-runs/ux-independent-review/osv-positive-control.json",
+    "containerAdvisories": ".qualification-runs/ux-independent-review/qualified/container-os-advisories.json",
+    "containerRawScan": ".qualification-runs/ux-independent-review/qualified/container-os-advisories-raw.json",
+    "officialCveStatus": ".qualification-runs/ux-independent-review/ubuntu-upstream-status.json",
+    "signedSnapshot": ".qualification-runs/ux-independent-review/ubuntu-pinned-snapshot.log",
+    "releaseManifest": ".qualification-runs/ux-independent-review/qualified/delivery/assets/release-manifest.json",
+    "emptyExport": ".qualification-runs/ux-independent-review/history-and-export/empty-export-result.json",
+    "imageCaptures": ".qualification-runs/ux-independent-review/guide-screenshots.sha256",
+    "manualVerification": ".qualification-runs/ux-independent-review/qualified/manual-verification.log"
   },
   "issues": {
     "UX-01": {
@@ -124,7 +141,7 @@
     },
     "UX-10": {
       "criteria": "Sharing displays three empty projections and page-one footers; some role guidance is wrong.",
-      "status": "Failed",
+      "status": "Passed",
       "acceptance": [
         "A18",
         "A19"
@@ -140,7 +157,7 @@
     },
     "UX-12": {
       "criteria": "Empty export uses generic wording and green success treatment.",
-      "status": "Blocked",
+      "status": "Passed",
       "acceptance": [
         "A26"
       ]
@@ -172,7 +189,7 @@
     },
     "UX-16": {
       "criteria": "Standalone portability navigation duplicates resource context; successful preview/confirm render from POST despite a GET report route.",
-      "status": "Blocked",
+      "status": "Passed",
       "acceptance": [
         "A27",
         "A28",
@@ -189,7 +206,7 @@
     },
     "UX-18": {
       "criteria": "Group renaming dominates membership work; generic confirmations and messages are inaccurate for some states.",
-      "status": "Failed",
+      "status": "Passed",
       "acceptance": [
         "A19",
         "A32"
@@ -218,6 +235,396 @@
       ]
     }
   },
+  "reviewFindings": {
+    "R01": {
+      "priority": "P1",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Keycloak completed identity linking after removal of the passkey that established the initiating proof.",
+      "baselineEvidence": [
+        "baselineLiveKey"
+      ],
+      "baselineSource": "Independent review §3, R01",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/security/oidc/ExternalIdentityService.java",
+        "src/main/java/org/busystack/caldav/security/session/BrowserSession.java"
+      ],
+      "implementationReferences": [
+        "BrowserSession.java",
+        "ExternalIdentityService.java"
+      ],
+      "regressions": [
+        "KeycloakOidcIT#removingTheProvingKeyBeforeTheProviderCallbackPreservesTheLocalAccount"
+      ],
+      "evidence": [
+        "maven"
+      ],
+      "acceptance": [
+        "A09",
+        "A10",
+        "A25"
+      ]
+    },
+    "R02": {
+      "priority": "P1",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Ordinary Keycloak login consumed another tab’s pending linking intent.",
+      "baselineEvidence": [
+        "reviewLinkProbe",
+        "baselineLinkTabs"
+      ],
+      "baselineSource": "Independent review §3, R02",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/security/oidc/OidcConfiguration.java",
+        "src/main/java/org/busystack/caldav/security/oidc/OidcLinkController.java",
+        "src/main/java/org/busystack/caldav/security/oidc/ProviderNavigation.java"
+      ],
+      "implementationReferences": [
+        "ProviderNavigation.java",
+        "OidcLinkController.java",
+        "OidcConfiguration.java"
+      ],
+      "regressions": [
+        "KeycloakOidcIT#explicitMfaLinkingKeepsOwnershipAndReplacesTheOldSecurityContext",
+        "LinkingAuthorizationRequestResolverTest"
+      ],
+      "evidence": [
+        "maven"
+      ],
+      "acceptance": [
+        "A09",
+        "A10",
+        "A25"
+      ]
+    },
+    "R03": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Read navigation reserved all eight pending issuance slots and then blocked access to revocation.",
+      "baselineEvidence": [
+        "baselineCapacity"
+      ],
+      "baselineSource": "Independent review §3, R03",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/ManagementController.java",
+        "src/main/resources/templates/connections.html",
+        "src/main/resources/templates/credentials.html"
+      ],
+      "implementationReferences": [
+        "ManagementController.java",
+        "credentials.html",
+        "connections.html"
+      ],
+      "regressions": [
+        "PortalManagementIT#credentialInspectionAndRevocationStayAvailableAtIssuanceCapacity"
+      ],
+      "evidence": [
+        "maven",
+        "browser"
+      ],
+      "acceptance": [
+        "A21",
+        "A23",
+        "A25"
+      ]
+    },
+    "R04": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "The bad-password redirect dropped the explicit return handle.",
+      "baselineEvidence": [
+        "reviewSourceProbes"
+      ],
+      "baselineSource": "Independent review §3, R04",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/security/AuthenticationJourney.java",
+        "src/main/java/org/busystack/caldav/security/passkey/PasskeyPages.java",
+        "src/main/resources/templates/login.html"
+      ],
+      "implementationReferences": [
+        "AuthenticationJourney.java",
+        "PasskeyPages.java",
+        "login.html"
+      ],
+      "regressions": [
+        "PortalManagementIT#simultaneousAnonymousDestinationsAndWrongPasswordKeepTheirOwnFlow"
+      ],
+      "evidence": [
+        "maven",
+        "additionalContinuation"
+      ],
+      "acceptance": [
+        "A11",
+        "A13"
+      ]
+    },
+    "R05": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Concurrent writes could lose one journey, and provider state shared one callback slot.",
+      "baselineEvidence": [
+        "reviewSourceProbes"
+      ],
+      "baselineSource": "Independent review §3, R05",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/security/AuthenticationJourney.java",
+        "src/main/java/org/busystack/caldav/security/BrowserFlowStore.java",
+        "src/main/java/org/busystack/caldav/security/oidc/ProviderNavigation.java",
+        "src/main/resources/db/migration/V19__browser_navigation_flows.sql"
+      ],
+      "implementationReferences": [
+        "BrowserFlowStore.java",
+        "AuthenticationJourney.java",
+        "ProviderNavigation.java",
+        "V19__browser_navigation_flows.sql"
+      ],
+      "regressions": [
+        "PortalManagementIT#simultaneousAnonymousDestinationsAndWrongPasswordKeepTheirOwnFlow",
+        "PortalManagementIT#anonymousContinuationEvictsTheOldestAndRejectsExpiredRows",
+        "KeycloakOidcIT#explicitMfaLinkingKeepsOwnershipAndReplacesTheOldSecurityContext"
+      ],
+      "evidence": [
+        "maven",
+        "additionalContinuation",
+        "proxyBrowser"
+      ],
+      "acceptance": [
+        "A11",
+        "A12",
+        "A37"
+      ]
+    },
+    "R06": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Member removal, native-app registration, pending consent and recovery-code use lost context at reauthentication.",
+      "baselineEvidence": [
+        "reviewSourceProbes",
+        "reviewLinkProbe"
+      ],
+      "baselineSource": "Independent review §3, R06",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/ReviewFormController.java",
+        "src/main/java/org/busystack/caldav/security/BrowserFormDrafts.java",
+        "src/main/java/org/busystack/caldav/security/oauth/RecentMfaAuthorizationFilter.java",
+        "src/main/java/org/busystack/caldav/security/recovery/RecoveryController.java"
+      ],
+      "implementationReferences": [
+        "BrowserFormDrafts.java",
+        "ReviewFormController.java",
+        "OAuthConsentController.java",
+        "RecentMfaAuthorizationFilter.java",
+        "RecoveryController.java"
+      ],
+      "regressions": [
+        "PortalManagementIT#aStaleMemberDraftRetainsTheOriginalGrantReviewAfterReauthentication",
+        "PortalManagementIT#nativeAppDraftRetainsOnlyEditableRegistrationFields",
+        "PortalManagementIT#staleConsentGetAndPostReturnToTheSamePendingAppRequest",
+        "PortalManagementIT#stalePrimaryReturnsToRecoveryCodeEntryWithoutARegisteredKey"
+      ],
+      "evidence": [
+        "maven",
+        "teamBundle"
+      ],
+      "acceptance": [
+        "A12",
+        "A13",
+        "A24",
+        "A34"
+      ]
+    },
+    "R07": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Membership review could recompute the grant version after explicit confirmation had already been requested.",
+      "baselineEvidence": [],
+      "baselineSource": "Independent review §3, R07",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/GroupManagementController.java",
+        "src/main/java/org/busystack/caldav/management/ReviewFormController.java"
+      ],
+      "implementationReferences": [
+        "ReviewFormController.java",
+        "GroupManagementController.java"
+      ],
+      "regressions": [
+        "PortalManagementIT#aStaleMemberDraftRetainsTheOriginalGrantReviewAfterReauthentication"
+      ],
+      "evidence": [
+        "maven"
+      ],
+      "acceptance": [
+        "A13",
+        "A32"
+      ]
+    },
+    "R08": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "The primary Connect action omitted the selected resource and safe destinations discarded its parameter.",
+      "baselineEvidence": [
+        "reviewSourceProbes"
+      ],
+      "baselineSource": "Independent review §3, R08",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/ManagementController.java",
+        "src/main/java/org/busystack/caldav/security/AuthenticationJourney.java",
+        "src/main/resources/templates/collection.html",
+        "src/main/resources/templates/connections.html"
+      ],
+      "implementationReferences": [
+        "collection.html",
+        "AuthenticationJourney.java",
+        "ManagementController.java",
+        "connections.html"
+      ],
+      "regressions": [
+        "PortalManagementIT#clientAndAuthorizedResourceSurvivePagingValidationAndCredentialIssuance",
+        "P0 shared-resource sign-in and assertion"
+      ],
+      "evidence": [
+        "maven",
+        "rootBundle",
+        "teamBundle"
+      ],
+      "acceptance": [
+        "A20"
+      ]
+    },
+    "R09": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Group creation lost the originating sharing page after errors or reauthentication.",
+      "baselineEvidence": [],
+      "baselineSource": "Independent review §3, R09",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/GroupManagementController.java",
+        "src/main/java/org/busystack/caldav/management/ReviewFormController.java",
+        "src/main/java/org/busystack/caldav/security/BrowserFormDrafts.java"
+      ],
+      "implementationReferences": [
+        "GroupManagementController.java",
+        "BrowserFormDrafts.java",
+        "ReviewFormController.java"
+      ],
+      "regressions": [
+        "PortalManagementIT#groupCreationReturnsToSharingAfterValidationAndFreshAuthentication"
+      ],
+      "evidence": [
+        "maven"
+      ],
+      "acceptance": [
+        "A13",
+        "A32"
+      ]
+    },
+    "R10": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Membership and sharing additions offered already-added accounts and groups.",
+      "baselineEvidence": [],
+      "baselineSource": "Independent review §3, R10",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/GroupManagementController.java",
+        "src/main/java/org/busystack/caldav/management/SharingManagementService.java",
+        "src/main/java/org/busystack/caldav/sharing/GroupService.java",
+        "src/main/resources/templates/collection-sharing.html"
+      ],
+      "implementationReferences": [
+        "GroupService.java",
+        "SharingManagementService.java",
+        "GroupManagementController.java",
+        "collection-sharing.html"
+      ],
+      "regressions": [
+        "PortalManagementIT#groupCreationReturnsToSharingAfterValidationAndFreshAuthentication",
+        "Maintained Groups browser traversal"
+      ],
+      "evidence": [
+        "maven",
+        "standardBrowser"
+      ],
+      "acceptance": [
+        "A19",
+        "A32"
+      ]
+    },
+    "R11": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "The unavailable import report’s recovery link returned to the same unavailable report.",
+      "baselineEvidence": [],
+      "baselineSource": "Independent review §3, R11",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/ImportStaging.java",
+        "src/main/java/org/busystack/caldav/management/PortalErrors.java"
+      ],
+      "implementationReferences": [
+        "ImportStaging.java",
+        "PortalErrors.java",
+        "portal-error.html"
+      ],
+      "regressions": [
+        "PortalManagementIT#aReplacedImportReportLeadsToTheAuthorizedImportPicker",
+        "PortalManagementIT#httpRollbackRetainsEditableConfirmationBeforeAndAfterResourceWrites",
+        "Packaged proxy transaction interruption"
+      ],
+      "evidence": [
+        "maven",
+        "rootBundle",
+        "teamBundle",
+        "proxyBrowser"
+      ],
+      "acceptance": [
+        "A28"
+      ]
+    },
+    "R12": {
+      "priority": "P2",
+      "baselineStatus": "Failed",
+      "baselineObservation": "Direct and group grant removal lacked the required named confirmation.",
+      "baselineEvidence": [],
+      "baselineSource": "Independent review §3, R12",
+      "status": "Passed",
+      "changedFiles": [
+        "src/main/java/org/busystack/caldav/management/SharingReviewController.java",
+        "src/main/java/org/busystack/caldav/security/BrowserFormDrafts.java",
+        "src/main/resources/templates/collection-sharing.html"
+      ],
+      "implementationReferences": [
+        "SharingReviewController.java",
+        "confirm-action.html",
+        "collection-sharing.html",
+        "BrowserFormDrafts.java"
+      ],
+      "regressions": [
+        "PortalManagementIT#sharingRemovalNamesThePermissionAndRequiresUnchangedGrantAfterVerification",
+        "P0 named review and Cancel",
+        "Maintained overlapping group/direct grant browser walkthrough"
+      ],
+      "evidence": [
+        "maven",
+        "rootBundle",
+        "teamBundle",
+        "standardBrowser"
+      ],
+      "acceptance": [
+        "A19",
+        "A25",
+        "A32"
+      ]
+    }
+  },
   "acceptance": {
     "A01": {
       "status": "Passed",
@@ -227,7 +634,8 @@
         "teamBundle",
         "maven"
       ],
-      "observation": "Operator issuance, trusted HTTPS setup, sign-in redirect and preservation of the legacy setup entry were exercised at the root and /team."
+      "observation": "Operator issuance, trusted HTTPS setup, sign-in redirect and preservation of the legacy setup entry were exercised at the root and /team.",
+      "previousStatus": "Passed"
     },
     "A02": {
       "status": "Passed",
@@ -236,7 +644,8 @@
         "browser",
         "maven"
       ],
-      "observation": "The browser corrected a password mismatch without clearing the form. InitializationIT exercised malformed usernames, Unicode password byte limits, five failures, code replacement and expiry, both concurrent claims and transaction rollback."
+      "observation": "The browser corrected a password mismatch without clearing the form. InitializationIT exercised malformed usernames, Unicode password byte limits, five failures, code replacement and expiry, both concurrent claims and transaction rollback.",
+      "previousStatus": "Passed"
     },
     "A03": {
       "status": "Passed",
@@ -244,9 +653,10 @@
       "evidence": [
         "maven",
         "operations",
-        "upgradeV17"
+        "upgradeV18"
       ],
-      "observation": "Initialization and OIDC boundary tests ran. Both upgrade and restore retained the closed initialization latch."
+      "observation": "Initialization and OIDC boundary tests ran. Both upgrade and restore retained the closed initialization latch.",
+      "previousStatus": "Passed"
     },
     "A04": {
       "status": "Passed",
@@ -257,7 +667,8 @@
         "teamBundle",
         "maven"
       ],
-      "observation": "Primary-only, registered and asserted sessions were exercised using accepted WebAuthn signatures. Incomplete sessions exposed the authentication shell."
+      "observation": "Primary-only, registered and asserted sessions were exercised using accepted WebAuthn signatures. Incomplete sessions exposed the authentication shell.",
+      "previousStatus": "Passed"
     },
     "A05": {
       "status": "Passed",
@@ -267,7 +678,8 @@
         "rootBundle",
         "teamBundle"
       ],
-      "observation": "First sign-in progressed through registration and one explicit assertion to Overview. Returning sign-in used one assertion."
+      "observation": "First sign-in progressed through registration and one explicit assertion to Overview. Returning sign-in used one assertion.",
+      "previousStatus": "Passed"
     },
     "A06": {
       "status": "Blocked",
@@ -276,8 +688,11 @@
         "browser",
         "maven"
       ],
-      "observation": "The browser exercised registration cancellation and reconciled a genuinely committed registration with an intercepted response. HTTP and unit tests exercised challenge validation.",
-      "remaining": "Exercise provider/API unavailability and expiry messaging in actual browsers and authenticators."
+      "observation": "The browser exercised cancelled registration and reconciled an actual committed registration after response loss. WebAuthn challenge validation also ran over HTTPS.",
+      "previousStatus": "Blocked",
+      "previousObservation": "The browser exercised registration cancellation and reconciled a genuinely committed registration with an intercepted response. HTTP and unit tests exercised challenge validation.",
+      "remaining": "Real provider/API unavailability, authenticator expiry messaging and physical ceremonies still need direct user-environment evidence.",
+      "reviewFindings": []
     },
     "A07": {
       "status": "Blocked",
@@ -286,18 +701,23 @@
         "maven",
         "browser"
       ],
-      "observation": "Typed factor and session tests separate factor freshness from completed browser access.",
-      "remaining": "Record the completed-session metadata and both factor decisions at 9:59, 10:00 and 10:01 together in a controlled-clock browser or HTTP fixture."
+      "observation": "The shared deterministic predicate tests both factor timestamps at ages 599, 600 and 601 seconds. Actual HTTP tests separately exercise stale primary and passkey recovery, including native registration, member removal, consent and recovery-code entry.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Typed factor and session tests separate factor freshness from completed browser access.",
+      "remaining": "The same exact-boundary matrix for every sensitive route over a live browser/HTTP clock remains open.",
+      "reviewFindings": []
     },
     "A08": {
-      "status": "Blocked",
+      "status": "Passed",
       "criteria": "Thirty-minute idle/eight-hour overall boundaries and explicit Stay signed in: server enforcement, no background keepalive, no refreshed factor time, no overall extension from page views. Test actual overall reauthentication.",
       "evidence": [
         "maven",
         "browser"
       ],
-      "observation": "BrowserSessionTest tested the exact eight-hour proof deadline and a removed authenticating credential.",
-      "remaining": "Record production idle, explicit extension and end-to-end browser reauthentication at overall expiry."
+      "observation": "The production JDBC session expiry was advanced in the HTTPS fixture. Explicit extension preserved both factors and the eight-hour deadline. The test then reauthenticated to the original resource and exercised idle expiration.",
+      "previousStatus": "Blocked",
+      "previousObservation": "BrowserSessionTest tested the exact eight-hour proof deadline and a removed authenticating credential.",
+      "reviewFindings": []
     },
     "A09": {
       "status": "Passed",
@@ -309,7 +729,13 @@
         "localBrowserRestore",
         "operations"
       ],
-      "observation": "Signed HTTP WebAuthn rejected cross-account, forged and disabled credentials. Factor and browser-session tests checked future evidence, revocation, epoch changes and the original live key. The browser removed the last key and denied sensitive actions until new enrollment. Restore rejected the previously live cookie."
+      "observation": "Reopened for R01/R02. The corrected real provider callback rejected a link after removal of the original proving key and preserved the other proving key and current credential. Existing wrong-account, future proof, disable and restore cases remain covered.",
+      "previousStatus": "Passed",
+      "previousObservation": "Signed HTTP WebAuthn rejected cross-account, forged and disabled credentials. Factor and browser-session tests checked future evidence, revocation, epoch changes and the original live key. The browser removed the last key and denied sensitive actions until new enrollment. Restore rejected the previously live cookie.",
+      "reviewFindings": [
+        "R01",
+        "R02"
+      ]
     },
     "A10": {
       "status": "Passed",
@@ -317,29 +743,47 @@
       "evidence": [
         "maven",
         "oidcBrowser",
-        "operations"
+        "operations",
+        "providerBrowserRestore"
       ],
-      "observation": "Real Keycloak browser and HTTP profiles exercised allowlisted subject mapping, linking, fresh upstream auth_time, outage and disablement. The final browser rerun passed code recovery and re-enrollment while preserving local-password fallback and upstream role denials."
+      "observation": "Reopened for R01/R02. The real Keycloak tests separated ordinary sign-in from the associated linking ceremony and still verified allowlisting, outage, local fallback denial, replay and managed roles. The restore fixture uses a username and display name that differ.",
+      "previousStatus": "Passed",
+      "previousObservation": "Real Keycloak browser and HTTP profiles exercised allowlisted subject mapping, linking, fresh upstream auth_time, outage and disablement. The final browser rerun passed code recovery and re-enrollment while preserving local-password fallback and upstream role denials.",
+      "reviewFindings": [
+        "R01",
+        "R02"
+      ]
     },
     "A11": {
-      "status": "Blocked",
+      "status": "Passed",
       "criteria": "Anonymous safe continuation, authenticated draft, fixation rotation, two tabs, changed account, expired/evicted intent and unsafe next values: proper binding, single consumption, no cross-account leakage or POST replay.",
       "evidence": [
         "maven",
-        "browser"
+        "browser",
+        "additionalContinuation"
       ],
-      "observation": "AuthenticationJourneyTest exercised path validation, session rotation, independent handles, rejection of replay and changed accounts.",
-      "remaining": "Verify simultaneous JDBC-session writes, same-handle contention and eviction across actual browser tabs."
+      "observation": "Reopened for R04/R05. Real same-cookie concurrent HTTPS starts preserve both handles in PostgreSQL. The wrong-password retry and WebAuthn rotation retain each target. Additional HTTPS regressions verify exactly one simultaneous claimant, eviction and expiry. Provider-state and changed-account checks also ran.",
+      "previousStatus": "Blocked",
+      "previousObservation": "AuthenticationJourneyTest exercised path validation, session rotation, independent handles, rejection of replay and changed accounts.",
+      "reviewFindings": [
+        "R04",
+        "R05"
+      ]
     },
     "A12": {
-      "status": "Blocked",
+      "status": "Passed",
       "criteria": "OAuth continuation with encoded redirect/state/PKCE at root and /team: legitimate request preserved; external/path-prefix/encoding/auth-loop attacks rejected.",
       "evidence": [
         "maven",
         "teamBundle"
       ],
-      "observation": "Root and /team path validation, OAuth boundary and continuation tests ran.",
-      "remaining": "Retest the complete encoded OAuth authorization request with a browser at both deployment paths."
+      "observation": "Reopened for R05/R06. HTTPS consent retains the exact authorization request and explicit decision through fresh MFA under /team. The root and reverse-proxy OAuth profiles exercised S256 and the original native token flows. Rejected URL inputs are covered by the continuation and security tests.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Root and /team path validation, OAuth boundary and continuation tests ran.",
+      "reviewFindings": [
+        "R05",
+        "R06"
+      ]
     },
     "A13": {
       "status": "Blocked",
@@ -347,8 +791,16 @@
       "evidence": [
         "maven"
       ],
-      "observation": "Safe form drafts are route- and account-bound and require a GET review before resubmission.",
-      "remaining": "Exercise stale version plus fresh CSRF in a real browser and cover every supported draft route."
+      "observation": "Reopened for R04/R06/R07/R09/R12. HTTP cases cover membership version conflicts, safe registration fields, consent re-entry/CSRF, group-create and named share-removal re-entry. Recovery codes are deliberately entered again after primary sign-in.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Safe form drafts are route- and account-bound and require a GET review before resubmission.",
+      "remaining": "A separate interruption and exact factor boundary check still needs evidence for every supported mutation and account-change permutation.",
+      "reviewFindings": [
+        "R04",
+        "R06",
+        "R07",
+        "R09"
+      ]
     },
     "A14": {
       "status": "Blocked",
@@ -358,7 +810,8 @@
         "maven"
       ],
       "observation": "Invalid sharing preserved the signed-in shell. HTTP form tests exercised field associations and retained safe values.",
-      "remaining": "Exercise every browser-facing form and its revocation and outage paths. The follow-up test covered the oversized multipart form and header paths."
+      "remaining": "Exercise every browser-facing form and its revocation and outage paths. The follow-up test covered the oversized multipart form and header paths.",
+      "previousStatus": "Blocked"
     },
     "A15": {
       "status": "Blocked",
@@ -369,7 +822,8 @@
         "teamBundle"
       ],
       "observation": "One Overview identity was observed for the initialized administrator and a shared-only account. A shared-only account can proceed without creating an owned resource.",
-      "remaining": "Record the ordinary-empty, owned-only and mixed next-action choices and stale-auth text as explicit assertions."
+      "remaining": "Record the ordinary-empty, owned-only and mixed next-action choices and stale-auth text as explicit assertions.",
+      "previousStatus": "Blocked"
     },
     "A16": {
       "status": "Blocked",
@@ -379,7 +833,8 @@
         "browser"
       ],
       "observation": "HTTP tests exercised bounded isolation, row recovery, search and paging. The browser exercised All and Shared scopes.",
-      "remaining": "Cover every scope/filter combination and all exact edge counts in the revised UI."
+      "remaining": "Cover every scope/filter combination and all exact edge counts in the revised UI.",
+      "previousStatus": "Blocked"
     },
     "A17": {
       "status": "Passed",
@@ -389,7 +844,8 @@
         "maven",
         "clients"
       ],
-      "observation": "Calendar, task list and journal creation, metadata and color paths exercised type labels, stable identifiers, escaped text and stale writes. Clients exercised the calendar color and content round trips."
+      "observation": "Calendar, task list and journal creation, metadata and color paths exercised type labels, stable identifiers, escaped text and stale writes. Clients exercised the calendar color and content round trips.",
+      "previousStatus": "Passed"
     },
     "A18": {
       "status": "Passed",
@@ -398,18 +854,26 @@
         "maven",
         "browser"
       ],
-      "observation": "HTTP tests exercised owner, writable and read-only recipient actions, DAV permissions and role separation. Signed-in sharing controls matched scoped access in the browser."
+      "observation": "HTTP tests exercised owner, writable and read-only recipient actions, DAV permissions and role separation. Signed-in sharing controls matched scoped access in the browser.",
+      "previousStatus": "Passed"
     },
     "A19": {
-      "status": "Failed",
+      "status": "Passed",
       "criteria": "Sharing empty/direct/group/overlapping/disabled cases: correct effective access, precise removal result, ordinary-user directory privacy, admin group guidance and stale/concurrent grant behavior.",
       "evidence": [
         "maven",
         "browser",
-        "standardBrowser"
+        "standardBrowser",
+        "rootBundle",
+        "teamBundle"
       ],
-      "observation": "Direct, group and overlapping effective access have an authoritative backend projection with separate pagination.",
-      "remaining": "A signed HTTP regression checks that a same-count grant permission edit invalidates membership review before mutation. Dedicated final review is still missing for some grant revocations."
+      "observation": "R12 replaced inline revocation with named direct and group reviews that show the resource, recipient, permission and continuing access. Actual HTTPS and browser checks exercised cancellation, effective access, stale review and current authority.",
+      "previousStatus": "Failed",
+      "previousObservation": "Direct, group and overlapping effective access have an authoritative backend projection with separate pagination.",
+      "reviewFindings": [
+        "R10",
+        "R12"
+      ]
     },
     "A20": {
       "status": "Blocked",
@@ -418,10 +882,16 @@
         "browser",
         "clients",
         "teamBundle",
-        "followupTests"
+        "followupTests",
+        "nativeGnome"
       ],
-      "observation": "Client-specific setup and a one-time secret were shown together and worked in both clients. HTTP exercised authorized resource context through paging, validation recovery and issuance, and denied cross-account access.",
-      "remaining": "Record a completed browser step-up with the optional resource and rerun the native GNOME flow where its graphical dependencies are available."
+      "observation": "R08 preserved the resource chosen on the actual Connect link through shared-user sign-in, session rotation and app setup. Tests checked resource scope on paging, validation and issuance at root and /team. The native GNOME result is indexed separately.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Client-specific setup and a one-time secret were shown together and worked in both clients. HTTP exercised authorized resource context through paging, validation recovery and issuance, and denied cross-account access.",
+      "reviewFindings": [
+        "R08"
+      ],
+      "remaining": "The pinned native GNOME Calendar 50.0 and EDS 3.56.2 profile could not run on this host’s 46.1 and 3.52.3 versions. The browser resource/context path passed in both packages."
     },
     "A21": {
       "status": "Blocked",
@@ -431,8 +901,13 @@
         "browser",
         "operations"
       ],
-      "observation": "Concurrent transactional service requests and sequential browser replays exercised the issuance ledger. The browser checked that the secret did not appear after leaving the result.",
-      "remaining": "Inject an issuance rollback and lost commit response at the HTTP boundary and verify expiration and normal refresh on both issuance types."
+      "observation": "R03 separated credential inspection from issuance. HTTPS verifies eight mixed pending intentions leave contextual navigation and revocation usable. Real browser interception drops successful password and recovery-set issuance responses. The repeated intent returns only the safe receipt, and the interrupted application credential appears once.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Concurrent transactional service requests and sequential browser replays exercised the issuance ledger. The browser checked that the secret did not appear after leaving the result.",
+      "remaining": "A dedicated forced issuance rollback with browser refresh and both intent expiry cases remains open.",
+      "reviewFindings": [
+        "R03"
+      ]
     },
     "A22": {
       "status": "Passed",
@@ -440,16 +915,23 @@
       "evidence": [
         "maven"
       ],
-      "observation": "ConcurrentIssuanceAndRecoveryGenerationRejectReplayAndStaleSets exercised different intents and rejected the stale generation."
+      "observation": "ConcurrentIssuanceAndRecoveryGenerationRejectReplayAndStaleSets exercised different intents and rejected the stale generation.",
+      "previousStatus": "Passed"
     },
     "A23": {
       "status": "Blocked",
       "criteria": "Secret-page normal refresh and Back/Forward cache; page departure versus simple focus loss; clipboard denied/unavailable: no reissuance or secret resurrection, useful copy fallback, no premature secret loss.",
       "evidence": [
-        "browser"
+        "browser",
+        "oneTimeHistory"
       ],
-      "observation": "Page-departure and clipboard fallback logic exists. Guide screenshots redact one-time values before capture.",
-      "remaining": "Actual BFCache restore, focus-only loss and denied clipboard need full browser evidence."
+      "observation": "The browser checked focus-only loss, clipboard denial, keyboard focus, regular departure, Back and normal reload for both one-time results. Values did not reappear or regenerate. The screenshots were masked before capture.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Page-departure and clipboard fallback logic exists. Guide screenshots redact one-time values before capture.",
+      "remaining": "Chromium diagnostics report HTTPMethodNotGET for both POST results. A browser/provider configuration that actually restores such results from BFCache remains unverified.",
+      "reviewFindings": [
+        "R03"
+      ]
     },
     "A24": {
       "status": "Passed",
@@ -460,7 +942,12 @@
         "standardBrowser",
         "oidcBrowser"
       ],
-      "observation": "Browser profiles used a code without the old passkey, denied anonymous use and replay, revoked the old DAV/OAuth grants, and reenrolled. Transactional integration covered replacement of the existing set, invalid and cross-account secrets, expiration and rollback. Offline local and external recovery also ran."
+      "observation": "R06 added a primary-only refresh return with no passkey. The signed HTTPS test returns to a clean code field and the browser profiles tested replay denial, security reset and fresh enrollment. Transactional code and offline recovery checks remain in the verification set.",
+      "previousStatus": "Passed",
+      "previousObservation": "Browser profiles used a code without the old passkey, denied anonymous use and replay, revoked the old DAV/OAuth grants, and reenrolled. Transactional integration covered replacement of the existing set, invalid and cross-account secrets, expiration and rollback. Offline local and external recovery also ran.",
+      "reviewFindings": [
+        "R06"
+      ]
     },
     "A25": {
       "status": "Blocked",
@@ -469,18 +956,29 @@
         "maven",
         "browser"
       ],
-      "observation": "Typed Security actions render named reviews and preserve account-generation invalidation.",
-      "remaining": "Run every named revocation, password and identity-linking workflow with an actual browser and verify the current and other session effects."
+      "observation": "R01/R02 protect the original linking browser and distinguish ordinary sign-in. Targeted signed tests exercised the affected linking, named revoke and fresh review paths.",
+      "previousStatus": "Blocked",
+      "previousObservation": "Typed Security actions render named reviews and preserve account-generation invalidation.",
+      "remaining": "Complete real browser evidence for each password-change and current/other-session revocation permutation remains open.",
+      "reviewFindings": [
+        "R01",
+        "R02",
+        "R03",
+        "R12"
+      ]
     },
     "A26": {
-      "status": "Blocked",
+      "status": "Passed",
       "criteria": "Empty export for all three types and a content-change race: no false download success, neutral correct guidance and authorization before revealing emptiness.",
       "evidence": [
         "browser",
-        "maven"
+        "maven",
+        "emptyExport"
       ],
-      "observation": "The revised empty Task list returns neutral resource-specific feedback and no download.",
-      "remaining": "Run the same case for Calendars and Journals, including the race after authorized admission."
+      "observation": "The packaged browser exercised empty calendars, task lists and journals. A real DAV deletion after rendering an export action led to neutral empty feedback without a download, and an unrelated account could not inspect the empty state.",
+      "previousStatus": "Blocked",
+      "previousObservation": "The revised empty Task list returns neutral resource-specific feedback and no download.",
+      "reviewFindings": []
     },
     "A27": {
       "status": "Passed",
@@ -490,7 +988,8 @@
         "maven",
         "clients"
       ],
-      "observation": "HTTP import/export tests exercised conflicts, malformed input, denied destinations, preserved bytes and native fixtures. Browser evidence includes a populated Journal with a GET import result."
+      "observation": "HTTP import/export tests exercised conflicts, malformed input, denied destinations, preserved bytes and native fixtures. Browser evidence includes a populated Journal with a GET import result.",
+      "previousStatus": "Passed"
     },
     "A28": {
       "status": "Passed",
@@ -500,17 +999,27 @@
         "browser",
         "proxyBrowser"
       ],
-      "observation": "The revised browser follows preview and confirm to GET reports. HTTP and staging tests exercised paging, preview replacement, stale authority, expiry, concurrent confirmation and rollback. The proxy profile interrupted a real transaction, restarted, rejected the old preview and imported from a fresh preview."
+      "observation": "R11 corrected the unreachable recovery action. The browser followed the rendered link to import selection. HTTPS exercises preview replacement and rollback/retry. The packaged /team interruption proved rollback, rejected the old preview after restart and imported from a new preview.",
+      "previousStatus": "Passed",
+      "previousObservation": "The revised browser follows preview and confirm to GET reports. HTTP and staging tests exercised paging, preview replacement, stale authority, expiry, concurrent confirmation and rollback. The proxy profile interrupted a real transaction, restarted, rejected the old preview and imported from a fresh preview.",
+      "reviewFindings": [
+        "R11"
+      ]
     },
     "A29": {
-      "status": "Blocked",
+      "status": "Passed",
       "criteria": "Maximum-size/overlapping/capacity/disk-exhaustion/crash cases required by the existing portability gates: resource budget, private permissions, cleanup, retry and immutable source data remain correct.",
       "evidence": [
         "maven",
-        "proxyBrowser"
+        "proxyBrowser",
+        "maximumPortability",
+        "temporaryStorage",
+        "diskFullExport"
       ],
-      "observation": "HTTP capacity and upload checks exercised real byte limits. The proxy fixture interrupted a transaction and checked rollback, restart and a fresh import.",
-      "remaining": "Run an independent filesystem-full scenario and verify cleanup and retry on a dedicated volume."
+      "observation": "The maximum-size HTTPS case provisions 10,000 resources and more than 60 MiB with overlapping exports and admission failure. The exact image passed crash/restart, private temporary storage and actual ENOSPC. The isolated 8 MiB export filesystem produced 503 with no partial download or leaked staging file. After space was restored, the export matched its original bytes.",
+      "previousStatus": "Blocked",
+      "previousObservation": "HTTP capacity and upload checks exercised real byte limits. The proxy fixture interrupted a transaction and checked rollback, restart and a fresh import.",
+      "reviewFindings": []
     },
     "A30": {
       "status": "Passed",
@@ -520,7 +1029,8 @@
         "teamBundle",
         "maven"
       ],
-      "observation": "Account creation, safe handoff, combinations of directory status and identity method, and separation of managed and local accounts ran across the browser and HTTP suites."
+      "observation": "Account creation, safe handoff, combinations of directory status and identity method, and separation of managed and local accounts ran across the browser and HTTP suites.",
+      "previousStatus": "Passed"
     },
     "A31": {
       "status": "Passed",
@@ -529,7 +1039,8 @@
         "maven",
         "operations"
       ],
-      "observation": "OpposingBrowserDisablesKeepAnEnabledAdministrator exercised concurrent administrators. Offline recovery ran in its own extracted fixture."
+      "observation": "OpposingBrowserDisablesKeepAnEnabledAdministrator exercised concurrent administrators. Offline recovery ran in its own extracted fixture.",
+      "previousStatus": "Passed"
     },
     "A32": {
       "status": "Passed",
@@ -540,7 +1051,15 @@
         "standardBrowser",
         "followupTests"
       ],
-      "observation": "The maintained browser profile exercised group creation, validation, rename, membership add/remove, named group deletion and overlapping grants. The HTTP suite exercised bounded capacity, reconciliation, disabled membership and rejection of a stale grant review at the same count."
+      "observation": "Reopened for R06/R07/R09/R10. Tests verified eligibility, duplicate membership, redirects back to sharing, stale member-removal review and the original grant precondition. The maintained browser flow exercised add/remove, rename and deletion.",
+      "previousStatus": "Passed",
+      "previousObservation": "The maintained browser profile exercised group creation, validation, rename, membership add/remove, named group deletion and overlapping grants. The HTTP suite exercised bounded capacity, reconciliation, disabled membership and rejection of a stale grant review at the same count.",
+      "reviewFindings": [
+        "R07",
+        "R09",
+        "R10",
+        "R12"
+      ]
     },
     "A33": {
       "status": "Blocked",
@@ -550,7 +1069,8 @@
         "maven"
       ],
       "observation": "Audit page uses human labels, current names where available and technical details. Audit pruning and transactional rollback tests ran.",
-      "remaining": "Verify every historical/unknown/deleted category and filtering and pagination edge case in the revised view."
+      "remaining": "Verify every historical/unknown/deleted category and filtering and pagination edge case in the revised view.",
+      "previousStatus": "Blocked"
     },
     "A34": {
       "status": "Passed",
@@ -561,7 +1081,12 @@
         "proxyBrowser",
         "nativeAppReview"
       ],
-      "observation": "The final extracted /team fixture exercised invalid redirect recovery with an associated field error, cancellation, and named application removal. OAuth HTTP and storage tests exercised atomic removal with active grants and in-flight exchanges and refreshes."
+      "observation": "Reopened for R06. Safe fields survive stale native-app registration. Packaged browser cases cover invalid redirect, accessible field correction, cancel and named removal. The authoritative protocol and grant-revocation tests also ran.",
+      "previousStatus": "Passed",
+      "previousObservation": "The final extracted /team fixture exercised invalid redirect recovery with an associated field error, cancellation, and named application removal. OAuth HTTP and storage tests exercised atomic removal with active grants and in-flight exchanges and refreshes.",
+      "reviewFindings": [
+        "R06"
+      ]
     },
     "A35": {
       "status": "Blocked",
@@ -572,7 +1097,8 @@
         "teamBundle"
       ],
       "observation": "Diagnostics were rendered for root and /team and security/diagnostics tests checked real origin and bounded request records.",
-      "remaining": "Verify history windows and database outage against the exact extracted proxy fixture."
+      "remaining": "Verify history windows and database outage against the exact extracted proxy fixture.",
+      "previousStatus": "Blocked"
     },
     "A36": {
       "status": "Blocked",
@@ -582,7 +1108,8 @@
         "manual"
       ],
       "observation": "Keyboard menu opening and Escape/focus, 320px/390px/desktop, dark, forced colors and reduced motion were exercised.",
-      "remaining": "Manual keyboard coverage of every primary task, screen reader announcements, browser zoom/text sizing and the actual passkey provider remain."
+      "remaining": "Manual keyboard coverage of every primary task, screen reader announcements, browser zoom/text sizing and the actual passkey provider remain.",
+      "previousStatus": "Blocked"
     },
     "A37": {
       "status": "Passed",
@@ -590,11 +1117,16 @@
       "evidence": [
         "maven",
         "operations",
-        "upgradeV17",
+        "upgradeV18",
         "localBrowserRestore",
         "providerBrowserRestore"
       ],
-      "observation": "Fresh V18 and V9/V17 migrations, journal preservation and closed initialization were tested. Restoring a real pending issuance row cleared it and invalidated old credentials."
+      "observation": "V19 and V18 same-version/upgrade fixtures preserved data and ETags, rejected unsupported history, and cleared pending V18/V19 state on restore. A V9-only archive was invalidated and upgraded. Local and provider browser restoration checked live credentials before backup and fresh access after restore.",
+      "previousStatus": "Passed",
+      "previousObservation": "Fresh V18 and V9/V17 migrations, journal preservation and closed initialization were tested. Restoring a real pending issuance row cleared it and invalidated old credentials.",
+      "reviewFindings": [
+        "R05"
+      ]
     },
     "A38": {
       "status": "Passed",
@@ -607,9 +1139,24 @@
         "rootBundle",
         "teamBundle",
         "manual",
-        "reproducibleBundle"
+        "reproducibleBundle",
+        "manualVerification"
       ],
-      "observation": "Validated guide links, anchors and 27 reviewed captures, built the unpublished archive, walked through extracted root and /team installs, completed independent client content operations, and verified a fresh uninitialized manual fixture. The receipt marks manual testing pending."
+      "observation": "The final guide validates with 30 screenshots, the two asset sets matched byte-for-byte, and the exact image was walked through from extracted root and /team directories. Native client results and the fresh uninitialized manual fixture are indexed separately.",
+      "previousStatus": "Passed",
+      "previousObservation": "Validated guide links, anchors and 27 reviewed captures, built the unpublished archive, walked through extracted root and /team installs, completed independent client content operations, and verified a fresh uninitialized manual fixture. The receipt marks manual testing pending.",
+      "reviewFindings": []
     }
+  },
+  "summary": {
+    "reviewFindings": {
+      "Passed": 12
+    },
+    "acceptance": {
+      "Passed": 25,
+      "Blocked": 13
+    },
+    "publicAssetDownload": "Not applicable to unpublished local acceptance",
+    "manualAcceptance": "Pending user browser, provider and assistive-technology validation"
   }
 }
