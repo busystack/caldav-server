@@ -615,12 +615,18 @@ class PortalManagementIT {
                 .assertCredential(transport.options(browser), key, "correct", 0x0d)
                 .statusCode())
         .isEqualTo(200);
-    assertThat(
-            get(browser, "/auth/continue?flow=" + flow)
-                .headers()
-                .firstValue("Location")
-                .orElseThrow())
-        .contains("/team" + resource);
+    String continuePath = "/auth/continue?flow=" + flow;
+    try (var requests = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      var ready = new java.util.concurrent.CyclicBarrier(2);
+      java.util.concurrent.Callable<String> claim =
+          () -> {
+            ready.await();
+            return location(get(browser, continuePath));
+          };
+      var a = requests.submit(claim);
+      var b = requests.submit(claim);
+      assertThat(List.of(a.get(), b.get())).containsExactlyInAnyOrder(resource, "/?interrupted");
+    }
     assertThat(
             get(browser, "/auth/continue?flow=" + otherFlow)
                 .headers()
@@ -633,6 +639,46 @@ class PortalManagementIT {
                 .firstValue("Location")
                 .orElseThrow())
         .endsWith("/team/?interrupted");
+  }
+
+  @Test
+  void anonymousContinuationEvictsTheOldestAndRejectsExpiredRows() throws Exception {
+    var browser = transport.browser();
+    get(browser, "/login");
+    var logins = new java.util.ArrayList<String>();
+    for (int request = 0; request < 9; request++) {
+      logins.add(location(get(browser, "/collections?scope=owned")));
+    }
+    assertThat(logins).doesNotHaveDuplicates().allMatch(path -> path.startsWith("/login?flow="));
+    String current = logins.getLast();
+    String handle = current.substring(current.indexOf("flow=") + 5);
+    String evicted = logins.getFirst().substring(logins.getFirst().indexOf("flow=") + 5);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM browser_flow_state WHERE section='journey' AND payload LIKE ?",
+                Integer.class,
+                "%" + evicted + "%"))
+        .isZero();
+    assertThat(
+            jdbc.update(
+                "UPDATE browser_flow_state SET expires_at = now() WHERE section = 'journey' AND payload LIKE ?",
+                "%" + handle + "%"))
+        .isEqualTo(1);
+    var expired = get(browser, current);
+    var signed =
+        post(
+            browser,
+            "/login",
+            Map.of(
+                "_csrf",
+                csrf(expired.body()),
+                "flow",
+                handle,
+                "username",
+                "portal-owner",
+                "password",
+                "correct horse battery staple"));
+    assertThat(location(signed)).isEqualTo("/auth/continue?interrupted");
   }
 
   @Test
