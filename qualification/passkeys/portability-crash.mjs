@@ -8,7 +8,7 @@ export async function qualifyImportProcessInterruption(page,base,waitFor) {
     await page.goto(base+'/portability?destination='+id);
     const upload=page.locator('form').filter({has:page.locator(`input[name=destination][value="${id}"]`)});
     await upload.locator('[name=file]').setInputFiles({name:'interruption.ics',mimeType:'text/calendar',buffer:Buffer.from(file)});
-    await Promise.all([page.waitForURL(base+'/portability/preview'),upload.getByRole('button',{name:'Validate and preview import',exact:true}).click()]);
+    await Promise.all([page.waitForURL(url=>url.pathname.startsWith(prefixOf(base)+'/portability/import/')),upload.getByRole('button',{name:'Validate and preview import',exact:true}).click()]);
     const form=page.locator('form').filter({has:page.getByRole('button',{name:'Confirm import',exact:true})});
     await form.locator('[name=confirmed]').check();
     return form;

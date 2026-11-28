@@ -173,6 +173,30 @@ try {
   await shot(page,'22-import-result');
   await page.goto(base+'/admin/audit');await shot(page,'23-audit');
   await page.goto(base+'/admin/diagnostics');await shot(page,'24-diagnostics');
+  await page.goto(base+'/admin/oauth-clients');
+  const nativeName = 'Demo native app';
+  await page.getByLabel('Client ID',{exact:true}).fill('demo-native');
+  await page.getByLabel('Name',{exact:true}).fill(nativeName);
+  const nativeRedirects = page.locator('#native-app-redirects');
+  await nativeRedirects.fill('not a URI');
+  const [invalidRegistration] = await Promise.all([
+    page.waitForResponse(response=>response.url()===base+'/admin/oauth-clients' && response.request().method()==='POST'),
+    page.getByRole('button',{name:'Register application',exact:true}).click()
+  ]);
+  check(invalidRegistration.status()===400,'Invalid native application redirect returns editable validation');
+  check(await page.getByLabel('Name',{exact:true}).inputValue()===nativeName,'Native application name survives validation');
+  check(await nativeRedirects.getAttribute('aria-describedby')==='native-app-redirects-error','Native redirect error is associated with its editable field');
+  await nativeRedirects.fill('http://127.0.0.1:32123/callback');
+  await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Register application',exact:true}).click()]);
+  const nativeRow = page.getByRole('row').filter({hasText:nativeName});
+  await nativeRow.getByRole('link',{name:'Remove registration',exact:true}).click();
+  await page.getByRole('heading',{name:'Remove '+nativeName+'?',exact:true}).waitFor();
+  check(await page.getByText('All user grants for this application will be revoked.',{exact:false}).isVisible(),'Application registration review names the server-wide effect');
+  await page.getByRole('link',{name:'Cancel',exact:true}).click();
+  check(await nativeRow.count()===1,'Cancel preserves the application registration');
+  await nativeRow.getByRole('link',{name:'Remove registration',exact:true}).click();
+  await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Remove application registration',exact:true}).click()]);
+  check(await nativeRow.count()===0,'Explicit confirmation removes the application registration');
   const userContext=await browser.newContext({viewport:{width:1280,height:900},colorScheme:'light'});
   const user=await userContext.newPage();await virtual(userContext,user);
   await user.goto(base+'/connections?client=thunderbird');

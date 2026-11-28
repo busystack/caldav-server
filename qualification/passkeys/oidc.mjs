@@ -6,22 +6,31 @@ import {readFileSync} from 'node:fs';
 export function accountLocation(url, base) {
   const publicUrl = new URL(base);
   const prefix = publicUrl.pathname.replace(/\/$/, '');
-  return url.origin === publicUrl.origin && url.pathname === prefix + '/auth/continue' && !url.hash
-    && (url.search === '' || (url.searchParams.size === 1 && url.searchParams.get('continue') === ''));
+  if (url.origin !== publicUrl.origin || url.pathname !== prefix + '/auth/continue' || url.hash) return false;
+  if (new Set(url.searchParams.keys()).size !== url.searchParams.size) return false;
+  return [...url.searchParams].every(([key, value]) =>
+    key === 'continue' && value === ''
+      || key === 'flow' && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value));
 }
 
 export async function organizationPrimary(page, base, privateValues, requirePasswordForm = false) {
   const password = readFileSync(process.env.BUSYSTACK_UPSTREAM_PASSWORD_FILE, 'utf8').trimEnd();
   privateValues.push(password);
   await page.goto(base + '/login');
-  await page.getByRole('link', {name: "Sign in with your organization's identity provider", exact: true}).click();
+  const failedRequests = [];
+  const recordFailure = request => {
+    if (!request.isNavigationRequest()) return;
+    const url = new URL(request.url());
+    failedRequests.push({origin: url.origin, path: url.pathname, error: request.failure()?.errorText});
+  };
+  page.on('requestfailed', recordFailure);
   const dashboard = page.getByRole('heading', {name: /^(Create a passkey|Verify your passkey|Overview)$/});
+  const providerLogin = page.locator('#kc-login');
   let destination;
   try {
-    destination = await Promise.race([
-      page.locator('#kc-login').waitFor().then(() => 'provider-password'),
-      dashboard.waitFor().then(() => 'application')
-    ]);
+    await page.getByRole('link', {name: "Sign in with your organization's identity provider", exact: true}).click();
+    await providerLogin.or(dashboard).first().waitFor();
+    destination = await providerLogin.isVisible() ? 'provider-password' : 'application';
   } catch (error) {
     // No URL query, form values, cookies or tokens enter retained diagnostics.
     const location = new URL(page.url());
@@ -29,9 +38,11 @@ export async function organizationPrimary(page, base, privateValues, requirePass
     console.error('ORGANIZATION_PRIMARY_FAILURE=' + JSON.stringify({
       origin: location.origin, path: location.pathname,
       headings: headings.map(value => privateValues.reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value)).slice(0, 8),
-      requirePasswordForm
+      requirePasswordForm, failedRequests: failedRequests.slice(-6)
     }));
     throw error;
+  } finally {
+    page.off('requestfailed', recordFailure);
   }
   if (requirePasswordForm) assert.equal(destination, 'provider-password', 'The first organization login must exercise real upstream password authentication');
   if (destination === 'provider-password') {
