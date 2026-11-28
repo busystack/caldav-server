@@ -8,19 +8,19 @@
   <section th:if="${client == null}">
     <h2>Choose your app</h2>
     <ul class="resource-list">
-      <li><a th:href="@{/connections(client='thunderbird')}">Thunderbird</a><span>Calendars and task lists</span></li>
-      <li><a th:href="@{/connections(client='gnome')}">GNOME Calendar</a><span>Calendars</span></li>
-      <li><a th:href="@{/connections(client='generic')}">Generic CalDAV</a><span>Resource types depend on the app</span></li>
+      <li><a th:href="@{/connections(client='thunderbird',resource=${connectionResourceId})}">Thunderbird</a><span>Calendars and task lists</span></li>
+      <li><a th:href="@{/connections(client='gnome',resource=${connectionResourceId})}">GNOME Calendar</a><span>Calendars</span></li>
+      <li><a th:href="@{/connections(client='generic',resource=${connectionResourceId})}">Generic CalDAV</a><span>Resource types depend on the app</span></li>
     </ul>
     <p>Use a separate BusyStack application password for each app or device. Supported registered applications can use browser authorization instead.</p>
   </section>
   <th:block th:if="${client != null}">
-    <p><a th:href="@{/connections}">Choose another app</a></p>
+    <p><a th:href="@{/connections(resource=${connectionResourceId})}">Choose another app</a></p>
     <section>
       <h2>Application password</h2>
       <p>Your app uses a separate password from your browser sign-in. Set up a new one for this app or use an existing application password.</p>
       <div class="actions">
-        <a class="button" th:href="@{/security/credentials(client=${client},from='connect')}">Create application password</a>
+        <a class="button" th:href="@{/security/credentials(client=${client},from='connect',resource=${connectionResourceId})}">Create application password</a>
         <a href="#existing-password">I already have an application password</a>
       </div>
     </section>

@@ -31,15 +31,15 @@ export async function qualifyGroups(page,base,privateValues) {
   await Promise.all([page.waitForURL(/\/admin\/groups\/[a-f0-9-]{36}$/i),create.getByRole('button',{name:'Create group',exact:true}).click()]);
   const group=new URL(page.url()).pathname.split('/').at(-1);
   const add=page.locator(`form[method="post"][action="${prefix}/admin/groups/${group}/members"]`);
-  await add.locator('input[name=username]').fill('missing-account');await add.locator('input[name=confirmed]').check();
+  await add.locator('input[name=username]').fill('missing-account');
   await expectFieldError(page,add,'username',400,'member-add');
-  await add.locator('input[name=username]').fill(member);await add.locator('input[name=confirmed]').check();
+  await add.locator('input[name=username]').fill(member);
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),add.getByRole('button',{name:'Add member',exact:true}).click()]);
   const row=page.locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
   await row.getByRole('link',{name:'Remove member',exact:true}).click();
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),page.getByRole('button',{name:'Remove member',exact:true}).click()]);
   assert.equal(await row.count(),0);
-  await add.locator('input[name=username]').fill(member);await add.locator('input[name=confirmed]').check();
+  await add.locator('input[name=username]').fill(member);
   await Promise.all([page.waitForURL(base+'/admin/groups/'+group),add.getByRole('button',{name:'Add member',exact:true}).click()]);
   const rename=page.locator(`form[method="post"][action="${prefix}/admin/groups/${group}"]`);
   await page.getByText('Rename group',{exact:true}).click();
@@ -98,8 +98,8 @@ export async function qualifyGroups(page,base,privateValues) {
   await page.goto(base+'/collections/'+collection+'/sharing');
   assert.equal(await page.locator(`option[value="${group}"]`).count(),0);
   await page.goto(base+'/admin/accounts/'+account);
+  await page.getByRole('link',{name:'Disable account',exact:true}).click();
   const disable=page.locator(`form[method="post"][action="${prefix}/admin/accounts/${account}/disable"]`);
-  await disable.locator('input[name=confirmed]').check();
   await Promise.all([page.waitForURL(base+'/admin/accounts/'+account),disable.getByRole('button',{name:'Disable account',exact:true}).click()]);
   assert.equal(await page.getByText('Disabled',{exact:true}).count(),1);
   await page.goto(base+'/admin/accounts?q='+encodeURIComponent(member)+'&status=disabled');

@@ -44,7 +44,7 @@ final class BrowserFormDrafts {
               "groupPage",
               "effectivePage");
     else if (path.equals("/credentials"))
-      fields = List.of("label", "days", "client", "from", "intent");
+      fields = List.of("label", "days", "client", "from", "intent", "resource");
     else return null;
 
     var values = new LinkedHashMap<String, String>();

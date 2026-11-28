@@ -86,6 +86,9 @@ public final class FormRecovery {
               Objects.requireNonNullElse(request.getParameter("client"), "generic")));
       model.addAttribute(
           "credentialOrigin", PortalController.credentialOrigin(request.getParameter("from")));
+      String resource = request.getParameter("resource");
+      if ("connect".equals(request.getParameter("from")) && resource != null && !resource.isBlank())
+        PortalController.connectionResource(portal, auth, UUID.fromString(resource), model);
       model.addAttribute("issuanceIntent", request.getParameter("intent"));
       model.addAttribute("credentialPage", portal.credentials(auth, 0));
       view = "credentials";

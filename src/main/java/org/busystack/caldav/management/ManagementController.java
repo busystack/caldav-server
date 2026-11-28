@@ -81,13 +81,17 @@ public class ManagementController {
       @RequestParam(defaultValue = "generic") String client,
       @RequestParam(defaultValue = "security") String from,
       @RequestParam(required = false) UUID intent,
+      @RequestParam(required = false) UUID resource,
       Model model,
       jakarta.servlet.http.HttpServletResponse response) {
     model.addAttribute("client", PortalController.client(client));
     model.addAttribute("label", label);
     model.addAttribute("credentialOrigin", PortalController.credentialOrigin(from));
+    UUID selected = PortalController.credentialResource(from, resource);
+    PortalController.connectionResource(portal, auth, selected, model);
     var result =
-        management.issue(auth, label, days, intent, PortalController.issuanceContext(client, from));
+        management.issue(
+            auth, label, days, intent, PortalController.issuanceContext(client, from, selected));
     org.busystack.caldav.security.IssuancePages.protect(response);
     if (result.secret() == null) {
       model.addAttribute("issuedId", result.credentialId());

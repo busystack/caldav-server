@@ -341,6 +341,9 @@ Open **Connect an app** and choose your app. The server address includes any
 configured subpath. Use the exact address, username and a separate application
 password. Supported registered apps may use browser authorization.
 
+From a resource's **CalDAV address** section, choose **Connect an app to this
+resource** to keep its individual address available during setup.
+
 ![GNOME Calendar settings with the configured username-bearing address](images/getting-started/17-client-configuration.png)
 
 Choose **I already have an application password** to use existing settings, or

@@ -97,17 +97,11 @@ public class GroupManagementController {
       @PathVariable UUID id,
       @RequestParam(defaultValue = "") String username,
       @RequestParam(defaultValue = "false") boolean confirmed,
-      @RequestParam(required = false) Long expectedGrants,
+      @RequestParam(defaultValue = "") String expectedGrants,
       RedirectAttributes flash) {
     var group = groups.detail(auth, id);
     groups.changeMember(
-        auth,
-        id,
-        username,
-        null,
-        true,
-        confirmed || group.grants() == 0,
-        expectedGrants == null ? group.grants() : expectedGrants);
+        auth, id, username, null, true, confirmed || group.grants() == 0, expectedGrants);
     flash.addFlashAttribute("notice", "Added " + username + " to " + group.name() + ".");
     return "redirect:/admin/groups/" + id;
   }
@@ -132,7 +126,7 @@ public class GroupManagementController {
     model.addAttribute(
         "actionPath", "/admin/groups/" + id + "/members/" + account + "/remove" + parameters);
     model.addAttribute("cancelPath", "/admin/groups/" + id + parameters);
-    model.addAttribute("expectedGrants", group.grants());
+    model.addAttribute("expectedGrants", group.grantState());
     return "confirm-action";
   }
 
@@ -142,7 +136,7 @@ public class GroupManagementController {
       @PathVariable UUID id,
       @PathVariable UUID account,
       @RequestParam(defaultValue = "false") boolean confirmed,
-      @RequestParam(required = false) Long expectedGrants,
+      @RequestParam(defaultValue = "") String expectedGrants,
       @RequestParam(defaultValue = "") String q,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(required = false) String memberQuery,
@@ -154,14 +148,7 @@ public class GroupManagementController {
         memberSearch(memberQuery == null ? q : memberQuery, memberPage == null ? page : memberPage);
     if (!confirmed)
       return "redirect:/admin/groups/" + id + "/members/" + account + "/remove" + parameters;
-    groups.changeMember(
-        auth,
-        id,
-        null,
-        account,
-        false,
-        true,
-        expectedGrants == null ? group.grants() : expectedGrants);
+    groups.changeMember(auth, id, null, account, false, true, expectedGrants);
     flash.addFlashAttribute(
         "notice", "Removed " + member.username() + " from " + group.name() + ".");
     return "redirect:/admin/groups/" + id + parameters;

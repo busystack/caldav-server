@@ -55,8 +55,8 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await primary();
   await primaryCannotMutate(page, base);
   await cdp.send('WebAuthn.setAutomaticPresenceSimulation', {authenticatorId, enabled: false});
-  await page.goto(base + '/security/recovery');
-  assert.equal(await page.locator('main p').filter({hasText:/^Unused codes:/}).locator('strong').innerText(), '10', 'Anonymous recovery must not consume a valid code');
+  await page.goto(base + '/security/recovery/use');
+  assert.equal(await page.locator('.section-nav').count(), 0, 'Recovery use is available after primary sign-in without the portal shell');
   await page.getByLabel('Recovery code', {exact: true}).fill(codes[0]);
   await Promise.all([page.waitForURL(url => url.pathname === prefix + '/login' && url.searchParams.has('recovered')),
     page.getByRole('button', {name: 'Use code and reset account access', exact: true}).click()]);
@@ -71,8 +71,7 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await assertRejectedPasskey(page,base);
   await cdp.send('WebAuthn.clearCredentials', {authenticatorId});
   await primary();
-  await page.goto(base + '/security/recovery');
-  assert.equal(await page.locator('main p').filter({hasText:/^Unused codes:/}).locator('strong').innerText(), '9');
+  await page.goto(base + '/security/recovery/use');
   await page.getByLabel('Recovery code', {exact: true}).fill(codes[0]);
   const [replay] = await Promise.all([page.waitForResponse(response => response.request().method() === 'POST'
     && response.url() === base + '/security/recovery/use'), page.getByRole('button', {name: 'Use code and reset account access', exact: true}).click()]);
@@ -81,5 +80,8 @@ export async function qualifyAccountRecovery({page, base, privateValues, adminis
   await page.getByRole('button', {name: 'Create passkey', exact: true}).click();
   await page.locator('#security-status').filter({hasText: 'Passkey saved.'}).waitFor();
   await verifyPasskey(page,base);
+  await page.goto(base + '/security/recovery');
+  assert.equal(await page.locator('main p').filter({hasText:/^Unused codes:/}).locator('strong').innerText(), '9',
+    'Only the accepted recovery consumed a code; anonymous and replay attempts did not');
   console.log('BROWSER_SINGLE_USE_PRIMARY_PLUS_RECOVERY_CODE_RESET_AND_FRESH_MFA_PASSED');
 }

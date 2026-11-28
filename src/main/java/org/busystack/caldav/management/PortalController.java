@@ -110,8 +110,10 @@ public class PortalController {
       Authentication auth,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(required = false) String client,
+      @RequestParam(required = false) UUID resource,
       Model model) {
     if (client != null) model.addAttribute("client", client(client));
+    connectionResource(portal, auth, resource, model);
     model.addAttribute("collectionPage", portal.collections(auth, "all", "", page));
     return "connections";
   }
@@ -128,10 +130,13 @@ public class PortalController {
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "generic") String client,
       @RequestParam(defaultValue = "security") String from,
+      @RequestParam(required = false) UUID resource,
       Model model,
       jakarta.servlet.http.HttpServletResponse response) {
     model.addAttribute("client", client(client));
     model.addAttribute("credentialOrigin", credentialOrigin(from));
+    UUID selected = credentialResource(from, resource);
+    connectionResource(portal, auth, selected, model);
     if (page == 0)
       model.addAttribute(
           "issuanceIntent",
@@ -139,7 +144,7 @@ public class PortalController {
               .prepare(
                   auth,
                   org.busystack.caldav.security.IssuanceIntents.Purpose.APPLICATION_PASSWORD,
-                  issuanceContext(client, from))
+                  issuanceContext(client, from, selected))
               .id());
     org.busystack.caldav.security.IssuancePages.protect(response);
     model.addAttribute("credentialPage", portal.credentials(auth, page));
@@ -150,8 +155,20 @@ public class PortalController {
     return "connect".equals(from) ? "connect" : "security";
   }
 
-  static String issuanceContext(String client, String from) {
-    return client(client) + ":" + credentialOrigin(from);
+  static UUID credentialResource(String from, UUID resource) {
+    return "connect".equals(from) ? resource : null;
+  }
+
+  static void connectionResource(
+      PortalService portal, Authentication auth, UUID resource, Model model) {
+    if (resource == null) return;
+    model.addAttribute("connectionResource", portal.collection(auth, resource));
+    model.addAttribute("connectionResourceId", resource);
+  }
+
+  static String issuanceContext(String client, String from, UUID resource) {
+    String context = client(client) + ":" + credentialOrigin(from);
+    return resource == null ? context : context + ":" + resource;
   }
 
   static String client(String client) {

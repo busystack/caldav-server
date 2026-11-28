@@ -8,7 +8,7 @@
   <p class="notice info" role="status" th:text="${issuanceMessage}"></p>
   <p th:if="${issuedId != null}">Credential reference <code th:text="${issuedId}"></code></p>
   <a th:if="${recoveryIssuance}" th:href="@{/security/recovery}">Review recovery settings</a>
-  <a th:unless="${recoveryIssuance}" th:href="@{/security/credentials(client=${client},from=${credentialOrigin})}">Review application passwords</a>
+  <a th:unless="${recoveryIssuance}" th:href="@{/security/credentials(client=${client},from=${credentialOrigin},resource=${connectionResourceId})}">Review application passwords</a>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>

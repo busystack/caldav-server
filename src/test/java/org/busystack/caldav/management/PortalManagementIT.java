@@ -428,6 +428,74 @@ class PortalManagementIT {
   }
 
   @Test
+  void changedGroupPermissionInvalidatesMembershipReviewEvenWhenGrantCountMatches()
+      throws Exception {
+    var administrator = browser(admin, true);
+    UUID group = groups.create(auth(admin, true), "Review revision", Set.of());
+    sharing.group(auth(owner, true), collection, group, "READ", "NONE");
+    var review = groups.detail(auth(admin, true), group);
+    String path = "/admin/groups/" + group;
+    var form = get(administrator, path);
+    assertThat(form.body()).contains(review.grantState());
+    sharing.group(auth(owner, true), collection, group, "WRITE", "READ");
+    var current = groups.detail(auth(admin, true), group);
+    assertThat(current.grants()).isEqualTo(review.grants());
+    assertThat(current.grantState()).isNotEqualTo(review.grantState());
+    var stale =
+        post(
+            administrator,
+            path + "/members",
+            Map.of(
+                "_csrf",
+                csrf(form.body()),
+                "username",
+                "portal-reader",
+                "confirmed",
+                "true",
+                "expectedGrants",
+                review.grantState()));
+    assertThat(stale.statusCode()).isEqualTo(412);
+    assertThat(groups.members(auth(admin, true), group, "", 0).rows()).isEmpty();
+    denied(() -> dav.permission(reader, collection));
+  }
+
+  @Test
+  void clientAndAuthorizedResourceSurvivePagingValidationAndCredentialIssuance() throws Exception {
+    var browser = browser(owner, true);
+    var address = portal.collection(auth(owner, true), collection).address();
+    String context = "client=thunderbird&resource=" + collection;
+    var connections = get(browser, "/connections?page=1&" + context);
+    assertThat(connections.body())
+        .contains("Set up Thunderbird", "selected-resource-address", address, "page=0")
+        .contains("resource=" + collection);
+    var form = get(browser, "/security/credentials?from=connect&" + context);
+    var intent =
+        java.util.regex.Pattern.compile("name=\"intent\" value=\"([a-f0-9-]{36})\"")
+            .matcher(form.body());
+    assertThat(intent.find()).isTrue();
+    var fields = new java.util.HashMap<String, String>();
+    fields.put("_csrf", csrf(form.body()));
+    fields.put("from", "connect");
+    fields.put("client", "thunderbird");
+    fields.put("resource", collection.toString());
+    fields.put("days", "90");
+    fields.put("intent", intent.group(1));
+    fields.put("label", "");
+    var invalid = post(browser, "/credentials", fields);
+    fieldError(invalid, 400, "credential-create", "label");
+    assertThat(invalid.body()).contains("name=\"resource\" value=\"" + collection + "\"");
+    fields.put("label", "Test app");
+    var issued = post(browser, "/credentials", fields);
+    assertThat(issued.statusCode()).isEqualTo(200);
+    assertThat(
+            issued.body().contains("Set up Thunderbird")
+                && issued.body().contains("issued-secret")
+                && issued.body().contains(address))
+        .isTrue();
+    assertThat(get(browser(other, true), "/connections?" + context).statusCode()).isEqualTo(403);
+  }
+
+  @Test
   void accountProfileCannotChangeIdentityRolesOrMappings() {
     var original = accounts.find(owner);
     administration.edit(auth(admin, true), owner, original.displayName(), "Updated owner");
@@ -1177,7 +1245,7 @@ class PortalManagementIT {
         .contains(
             "value=\"Retain name\"",
             ">Retain description</textarea>",
-            "value=\"VTODO\" selected=\"selected\"");
+            "value=\"VTODO\" checked=\"checked\"");
     fieldError(
         post(
             user,
@@ -1213,11 +1281,21 @@ class PortalManagementIT {
         400,
         "group-rename",
         "name");
+    sharing.group(auth(owner, true), collection, group, "READ", "NONE");
+    String reviewedGrants = groups.detail(auth(admin, true), group).grantState();
     fieldError(
         post(
             administrator,
             "/admin/groups/" + group + "/members",
-            Map.of("_csrf", adminCsrf, "username", "missing-account", "confirmed", "true")),
+            Map.of(
+                "_csrf",
+                adminCsrf,
+                "username",
+                "missing-account",
+                "confirmed",
+                "true",
+                "expectedGrants",
+                reviewedGrants)),
         400,
         "member-add",
         "username");
@@ -1225,7 +1303,10 @@ class PortalManagementIT {
         post(
             administrator,
             "/admin/groups/" + group + "/members",
-            Map.of("_csrf", adminCsrf, "username", "portal-reader")),
+            Map.of(
+                "_csrf", adminCsrf,
+                "username", "portal-reader",
+                "expectedGrants", reviewedGrants)),
         400,
         "member-add",
         "confirmed");
@@ -1257,7 +1338,7 @@ class PortalManagementIT {
         post(
             user,
             "/credentials",
-            Map.of("_csrf", userCsrf, "label", "Retain device", "days", "366")),
+            Map.of("_csrf", userCsrf, "label", "Retain device", "days", "366", "intent", intentId)),
         400,
         "credential-create",
         "days");
@@ -1265,7 +1346,7 @@ class PortalManagementIT {
         post(
             user,
             "/credentials",
-            Map.of("_csrf", userCsrf, "label", "Retain device", "days", "abc")),
+            Map.of("_csrf", userCsrf, "label", "Retain device", "days", "abc", "intent", intentId)),
         400,
         "credential-create",
         "days");

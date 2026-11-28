@@ -36,7 +36,11 @@ public class PortalPageAdvice {
             + path
             + (request.getQueryString() == null ? "" : "?" + request.getQueryString()));
     model.addAttribute("administrationArea", path.equals("/admin") || path.startsWith("/admin/"));
-    model.addAttribute("section", section(path, request.getParameter("from")));
+    String origin =
+        path.startsWith("/credentials") || path.startsWith("/security/credentials")
+            ? request.getParameter("from")
+            : null;
+    model.addAttribute("section", section(path, origin));
     model.addAttribute("applicationShell", false);
     model.addAttribute("viewer", null);
     model.addAttribute("primaryCurrent", RecentAuthentication.primaryCurrent(auth));

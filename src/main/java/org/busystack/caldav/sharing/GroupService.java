@@ -29,7 +29,12 @@ public class GroupService {
 
   public record Choice(UUID id, String name) {}
 
-  public record Summary(UUID id, String name, long members, long grants) {}
+  public record Summary(UUID id, String name, long members, long grants, String grantState) {}
+
+  private static final String GRANT_STATE =
+      "encode(sha256(convert_to(coalesce(string_agg("
+          + "c.collection_id::text || ':' || c.permission, ',' ORDER BY c.collection_id),"
+          + "''), 'UTF8')), 'hex')";
 
   public record MemberView(UUID account, String username, String displayName, boolean enabled) {}
 
@@ -43,7 +48,11 @@ public class GroupService {
             "SELECT g.id,g.name,(SELECT count(*) FROM sharing_group_members m WHERE m.group_id=g.id),(SELECT count(*) FROM collection_group_members c WHERE c.group_id=g.id) FROM sharing_groups g WHERE strpos(lower(g.name),lower(?))>0 ORDER BY g.name,g.id LIMIT 51 OFFSET ?",
             (rs, row) ->
                 new Summary(
-                    rs.getObject(1, UUID.class), rs.getString(2), rs.getLong(3), rs.getLong(4)),
+                    rs.getObject(1, UUID.class),
+                    rs.getString(2),
+                    rs.getLong(3),
+                    rs.getLong(4),
+                    null),
             query,
             org.busystack.caldav.management.PortalPage.offset(page)),
         page);
@@ -53,10 +62,25 @@ public class GroupService {
     administrator(auth);
     var rows =
         jdbc.query(
-            "SELECT g.id,g.name,(SELECT count(*) FROM sharing_group_members m WHERE m.group_id=g.id),(SELECT count(*) FROM collection_group_members c WHERE c.group_id=g.id) FROM sharing_groups g WHERE g.id=?",
+            """
+            SELECT g.id, g.name,
+                   (SELECT count(*) FROM sharing_group_members m WHERE m.group_id=g.id),
+                   grants.total, grants.state
+            FROM sharing_groups g
+            CROSS JOIN LATERAL (
+              SELECT count(*) AS total, %s AS state
+              FROM collection_group_members c WHERE c.group_id=g.id
+            ) grants
+            WHERE g.id=?
+            """
+                .formatted(GRANT_STATE),
             (rs, row) ->
                 new Summary(
-                    rs.getObject(1, UUID.class), rs.getString(2), rs.getLong(3), rs.getLong(4)),
+                    rs.getObject(1, UUID.class),
+                    rs.getString(2),
+                    rs.getLong(3),
+                    rs.getLong(4),
+                    rs.getString(5)),
             group);
     if (rows.isEmpty()) throw new StoreException(StoreException.Kind.NOT_FOUND);
     return rows.getFirst();
@@ -122,7 +146,7 @@ public class GroupService {
       UUID member,
       boolean add,
       boolean confirmed,
-      Long expectedGrants) {
+      String expectedGrants) {
     RecentAuthentication.requireMfa(auth);
     DavMutationLock.exclusive(jdbc);
     UUID actor = administrator(auth);
@@ -130,7 +154,7 @@ public class GroupService {
     if (!confirmed)
       throw org.busystack.caldav.management.FormValidation.field(
           "confirmed", "Confirm the effect on existing and future group access.");
-    if (expectedGrants != null && !expectedGrants.equals(grantCount(group)))
+    if (expectedGrants != null && !expectedGrants.equals(grantState(group)))
       throw new StoreException(StoreException.Kind.PRECONDITION);
     if (add) member = accounts(Set.of(username)).iterator().next();
     if (member == null) throw new IllegalArgumentException("An account is required");
@@ -173,9 +197,11 @@ public class GroupService {
         member);
   }
 
-  private Long grantCount(UUID group) {
+  private String grantState(UUID group) {
     return jdbc.queryForObject(
-        "SELECT count(*) FROM collection_group_members WHERE group_id=?", Long.class, group);
+        "SELECT " + GRANT_STATE + " FROM collection_group_members c WHERE c.group_id=?",
+        String.class,
+        group);
   }
 
   public MemberView member(Authentication auth, UUID group, UUID account) {

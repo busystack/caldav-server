@@ -24,6 +24,7 @@
   <summary>CalDAV address</summary>
   <label for="collection-address">Address for this resource</label>
   <div class="copy-field"><input id="collection-address" readonly th:value="${collection.address}"><button type="button" data-copy="collection-address">Copy address</button></div>
+  <p><a th:href="@{/connections(resource=${collection.id})}">Connect an app to this resource</a></p>
 </details>
 <p th:if="${collection.owned}"><a th:href="@{/collections/{id}/delete(id=${collection.id})}" th:text="${'Delete ' + #strings.toLowerCase(collection.type)}"></a></p>
 </main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

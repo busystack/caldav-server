@@ -20,6 +20,13 @@
     <input id="dav-username" th:value="${davConnection.username}" readonly>
     <button type="button" class="secondary" data-copy="dav-username">Copy username</button>
   </div>
+  <div th:if="${connectionResource != null}">
+    <label for="selected-resource-address" th:text="${'Resource address for ' + connectionResource.name}"></label>
+    <div class="copy-field">
+      <input id="selected-resource-address" th:value="${connectionResource.address}" readonly>
+      <button type="button" class="secondary" data-copy="selected-resource-address">Copy resource address</button>
+    </div>
+  </div>
 </section>
 <section th:fragment="instructions">
   <h2 th:text="${client == 'thunderbird' ? 'Set up Thunderbird' : (client == 'gnome' ? 'Set up GNOME Calendar' : 'Set up a CalDAV app')}"></h2>
