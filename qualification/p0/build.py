@@ -17,7 +17,11 @@ def descriptor_digest(config):
     return digest
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--image',required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__)
+    output=parser.add_mutually_exclusive_group(required=True)
+    output.add_argument('--image',help='Optional named local test image')
+    output.add_argument('--iidfile',type=Path,help='Write an immutable image ID without adding a tag')
+    args=parser.parse_args()
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     dirty=subprocess.check_output(['git','status','--porcelain=v1','--untracked-files=all'],cwd=ROOT,text=True).splitlines()
     assert all(line[3:].startswith('qualification/') for line in dirty),'Commit implementation and documentation before a local qualification image build'
@@ -35,8 +39,10 @@ def main():
             if name.startswith('META-INF/licenses/') and not name.endswith('/'):
                 target=inputs/'third-party'/name.removeprefix('META-INF/licenses/');target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(archive.read(name))
     (inputs/'version').write_text(version+'\n');(inputs/'revision').write_text(revision+'\n');(inputs/'SHA256SUMS').write_text(checksum+'  application.jar\n')
-    subprocess.run(['docker','build','--platform','linux/amd64','--build-arg','APPLICATION_VERSION='+version,'--build-arg','SOURCE_REVISION='+revision,'--tag',args.image,str(context)],check=True)
-    config=builder.identity(args.image,version,revision,checksum)
+    image_output=['--tag',args.image] if args.image else ['--iidfile',str(args.iidfile.resolve())]
+    subprocess.run(['docker','build','--platform','linux/amd64','--build-arg','APPLICATION_VERSION='+version,'--build-arg','SOURCE_REVISION='+revision,*image_output,str(context)],check=True)
+    image=args.image if args.image else args.iidfile.read_text().strip()
+    config=builder.identity(image,version,revision,checksum)
     proof={'qualificationKind':'local-unpublished','sourceCommit':revision,'imageId':config['Id'],'descriptorDigest':descriptor_digest(config),'jarSha256':checksum,'runtimeInputs':{name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in names},'uncommittedQualificationPaths':[line[3:] for line in dirty]}
     (ROOT/'target/p0-image-inputs.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n');print(json.dumps({k:v for k,v in proof.items() if k!='runtimeInputs'},indent=2))
 if __name__=='__main__':main()
