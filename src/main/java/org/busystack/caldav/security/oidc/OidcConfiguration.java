@@ -38,10 +38,18 @@ public class OidcConfiguration {
     }
   }
 
-  public static void configure(
+  @Bean
+  ProviderNavigation providerNavigation(
+      org.busystack.caldav.security.BrowserFlowStore store,
+      org.busystack.caldav.security.AuthenticationJourney journey) {
+    return new ProviderNavigation(store, journey);
+  }
+
+  public void configure(
       HttpSecurity http,
       ClientRegistrationRepository registrations,
       OidcLoginSupport users,
+      org.busystack.caldav.security.BrowserFlowStore flows,
       org.busystack.caldav.security.AuthenticationJourney journey)
       throws Exception {
     var resolver =
@@ -62,10 +70,16 @@ public class OidcConfiguration {
                 .loginPage("/login")
                 .authorizationEndpoint(
                     endpoint ->
-                        endpoint.authorizationRequestResolver(
-                            new LinkingAuthorizationRequestResolver(resolver, journey)))
+                        endpoint
+                            .authorizationRequestResolver(resolver)
+                            .authorizationRequestRepository(providerNavigation(flows, journey)))
                 .userInfoEndpoint(endpoint -> endpoint.oidcUserService(users))
                 .authorizedClientRepository(repository)
+                .failureHandler(
+                    (request, response, failure) -> {
+                      if (ProviderNavigation.link(request) != null) linkEnded(request, response);
+                      else journey.primaryFailure(request, response, failure);
+                    })
                 .successHandler(
                     (request, response, authentication) -> {
                       // This service uses upstream OIDC only for login, so discard access/refresh
@@ -73,7 +87,33 @@ public class OidcConfiguration {
                       repository.removeAuthorizedClient(
                           "upstream", authentication, request, response);
                       journey.primarySuccess(request, response, authentication);
+                    })
+                .withObjectPostProcessor(
+                    new org.springframework.security.config.ObjectPostProcessor<
+                        org.springframework.security.oauth2.client.web
+                            .OAuth2AuthorizationRequestRedirectFilter>() {
+                      @Override
+                      public <
+                              T extends
+                                  org.springframework.security.oauth2.client.web
+                                          .OAuth2AuthorizationRequestRedirectFilter>
+                          T postProcess(T filter) {
+                        filter.setAuthenticationFailureHandler(
+                            (request, response, failure) -> {
+                              if (request.getParameter("link") != null)
+                                linkEnded(request, response);
+                              else journey.primaryFailure(request, response, failure);
+                            });
+                        return filter;
+                      }
                     }));
+  }
+
+  private static void linkEnded(
+      HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response)
+      throws java.io.IOException {
+    response.setHeader("Cache-Control", "no-store");
+    response.sendRedirect(request.getContextPath() + "/login?error&linkEnded");
   }
 
   /** Used only by WebAuthn; the form-password provider retains the local-only service. */

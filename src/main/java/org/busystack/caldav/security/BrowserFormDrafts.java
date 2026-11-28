@@ -19,10 +19,15 @@ final class BrowserFormDrafts {
     else if (path.equals("/admin/accounts")) fields = List.of("username", "displayName");
     else if (path.matches("/admin/accounts/" + ID + "/edit"))
       fields = List.of("expected", "displayName");
-    else if (path.equals("/admin/groups")) fields = List.of("name");
+    else if (path.equals("/admin/groups")) fields = List.of("name", "returnCollection");
     else if (path.matches("/admin/groups/" + ID)) fields = List.of("name", "expected");
     else if (path.matches("/admin/groups/" + ID + "/members"))
       fields = List.of("username", "memberPage", "memberQuery", "expectedGrants");
+    else if (path.matches("/admin/groups/" + ID + "/members/" + ID + "/remove"))
+      fields = List.of("expectedGrants", "q", "page", "memberQuery", "memberPage");
+    else if (path.equals("/admin/oauth-clients")) fields = List.of("clientId", "name", "redirects");
+    else if (path.matches("/collections/" + ID + "/sharing/(account|group)/[^/]+/remove"))
+      fields = List.of("expected", "directPage", "groupPage", "effectivePage");
     else if (path.equals("/shares"))
       fields =
           List.of(

@@ -64,18 +64,15 @@ export async function qualifyGroups(page,base,privateValues) {
   await sharing.locator('select[name=permission]').selectOption('READ');
   await Promise.all([page.waitForURL(base+'/collections/'+collection+'/sharing'),sharing.getByRole('button',{name:'Grant group access',exact:true}).click()]);
   const grant=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Groups with grants for this collection'})}).locator('tbody tr').filter({hasText:'Browser group renamed'});
-  for(const permission of ['WRITE','REVOKE']) {
-    await grant.locator('select[name=permission]').selectOption(permission);
-    await Promise.all([page.waitForURL(base+'/collections/'+collection+'/sharing'),grant.getByRole('button',{name:'Save group grant',exact:true}).click()]);
-    if(permission==='WRITE') {
-      await grantDirect(page,base,collection,member,'READ');
-      const effective=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Combined direct and group access'})}).locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
-      assert.ok((await effective.innerText()).includes('Read and write'));
-      await captureWorkflow(page,'effective-direct-group-access');
-      await revokeDirect(page,base,collection,member);
-      assert.ok((await effective.innerText()).includes('Read and write'),'Removing direct access must preserve the effective group write grant');
-    }
-  }
+  await grant.locator('select[name=permission]').selectOption('WRITE');
+  await Promise.all([page.waitForURL(base+'/collections/'+collection+'/sharing'),grant.getByRole('button',{name:'Save group grant',exact:true}).click()]);
+  await grantDirect(page,base,collection,member,'READ');
+  const effective=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Combined direct and group access'})}).locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
+  assert.ok((await effective.innerText()).includes('Read and write'));
+  await captureWorkflow(page,'effective-direct-group-access');
+  await revokeDirect(page,base,collection,member);
+  assert.ok((await effective.innerText()).includes('Read and write'),'Removing direct access must preserve the effective group write grant');
+  await removeGroupGrant(page,base,collection,grant);
   assert.equal(await grant.count(),0);
   const journal=await createCollection(page,base,'Journal group QA','VJOURNAL');
   await page.goto(base+'/collections/'+journal+'/sharing');
@@ -86,8 +83,7 @@ export async function qualifyGroups(page,base,privateValues) {
   await grantDirect(page,base,journal,member,'READ');
   const journalEffective=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Combined direct and group access'})}).locator('tbody tr').filter({has:page.getByText(member,{exact:true})});
   assert.ok((await journalEffective.innerText()).includes('Read and write'));
-  await grant.locator('select[name=permission]').selectOption('REVOKE');
-  await Promise.all([page.waitForURL(base+'/collections/'+journal+'/sharing'),grant.getByRole('button',{name:'Save group grant',exact:true}).click()]);
+  await removeGroupGrant(page,base,journal,grant);
   await revokeDirect(page,base,journal,member);
   console.log('PORTAL_JOURNAL_DIRECT_READER_GROUP_WRITER_AND_REVOCATION_PASSED');
   await page.goto(base+'/admin/groups/'+group);
@@ -116,6 +112,12 @@ export async function qualifyGroups(page,base,privateValues) {
   console.log('BROWSER_GROUP_MEMBERSHIP_UPDATE_DELETE_AND_OWNER_GRANTS_PASSED');
 }
 
+async function removeGroupGrant(page,base,collection,row) {
+  await row.getByRole('link',{name:'Remove group grant',exact:true}).click();
+  await Promise.all([page.waitForURL(url=>url.pathname===prefixOf(base)+'/collections/'+collection+'/sharing'),
+    page.getByRole('button',{name:'Remove group grant',exact:true}).click()]);
+}
+
 export async function qualifySharingCapacity(page,administratorPage,base,fixture) {
   const prefix=prefixOf(base);
   assert.equal(fixture.collections.length,25);
@@ -132,10 +134,9 @@ export async function qualifySharingCapacity(page,administratorPage,base,fixture
   const id=fixture.collections[0];
   await page.goto(base+'/collections/'+id+'/sharing');
   const rows=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Groups with grants for this collection'})}).locator('tbody tr');
-  const remove=rows.first().locator('form');
+  const remove=rows.first();
   const removedGroup=await remove.locator('input[name=group]').inputValue();
-  await remove.locator('select[name=permission]').selectOption('REVOKE');
-  await Promise.all([page.waitForURL(base+'/collections/'+id+'/sharing'),remove.getByRole('button',{name:'Save group grant',exact:true}).click()]);
+  await removeGroupGrant(page,base,id,remove);
   assert.equal(await rows.count(),50);
   await administratorPage.goto(base+'/admin/groups/'+fixture.firstGroup);
   await administratorPage.getByText('Rename group',{exact:true}).click();

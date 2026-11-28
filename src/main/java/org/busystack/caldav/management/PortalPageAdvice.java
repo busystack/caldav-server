@@ -27,7 +27,7 @@ public class PortalPageAdvice {
 
   @ModelAttribute
   public void layout(Authentication auth, HttpServletRequest request, Model model) {
-    String path = request.getServletPath();
+    String path = ReviewFormController.route(request);
     if (path.equals("/dav") || path.startsWith("/dav/") || path.startsWith("/.well-known/")) return;
     model.addAttribute("portalPath", path);
     model.addAttribute(

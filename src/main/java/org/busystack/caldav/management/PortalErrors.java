@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
       PortalController.class,
       AdministrationController.class,
       GroupManagementController.class,
+      SharingReviewController.class,
       PortabilityController.class,
       ReviewFormController.class,
       OperationalDiagnostics.class,
@@ -152,7 +153,10 @@ public class PortalErrors {
       message =
           "Temporary portability capacity is busy. Retry later or discard an unused preview. Existing data and previews are preserved.";
     }
-    if (request.getServletPath().startsWith("/portability/import/") && status == 404) {
+    boolean terminalImport =
+        request.getServletPath().startsWith("/portability/import/")
+            && (failure instanceof ImportStaging.Unavailable || status == 404 || status == 403);
+    if (terminalImport) {
       title = "Import report unavailable";
       message =
           "This report may have expired, been replaced, or been lost after a restart. If you submitted confirmation, inspect the destination before importing again.";
@@ -162,9 +166,11 @@ public class PortalErrors {
     model.addAttribute("errorTitle", title);
     model.addAttribute("message", message);
     model.addAttribute("requestReference", response.getHeader("X-Request-ID"));
-    String path = request.getServletPath();
+    String path = ReviewFormController.route(request);
     String retry = "/";
     if (path.equals("/collections")) retry = "/collections/new";
+    else if (path.matches("/collections/[a-f0-9-]{36}/sharing/(account|group)/[^/]+/remove"))
+      retry = path.substring(0, path.indexOf("/sharing/")) + "/sharing";
     else if (path.startsWith("/collections/")) retry = path.replaceFirst("/(edit|delete)$", "");
     else if (path.equals("/admin/accounts")) retry = "/admin/accounts/new";
     else if (path.startsWith("/admin/accounts/")) retry = path.replaceFirst("/(edit|disable)$", "");
@@ -176,6 +182,7 @@ public class PortalErrors {
           "/security/credentials?client="
               + PortalController.client(
                   java.util.Objects.requireNonNullElse(request.getParameter("client"), "generic"));
+    else if (terminalImport) retry = "/portability";
     else if (path.matches("/portability/import/[a-f0-9-]{36}")) retry = path;
     else if (path.startsWith("/portability")) retry = "/portability";
     else if (path.equals("/shares") || path.equals("/group-shares")) {

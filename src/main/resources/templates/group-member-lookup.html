@@ -9,7 +9,7 @@
     <label>Search username or display name<input name="q" th:value="${query}" maxlength="200"></label>
     <button type="submit">Search</button>
   </form>
-  <p th:if="${lookupPage.rows.isEmpty()}">No enabled accounts on this page.</p>
+  <p th:if="${lookupPage.rows.isEmpty()}">No eligible enabled accounts on this page. Existing members are listed on the group page.</p>
   <ul th:unless="${lookupPage.rows.isEmpty()}" class="resource-list">
     <li th:each="account : ${lookupPage.rows}">
       <a th:href="@{/admin/groups/{id}(id=${group.id},member=${account.username})}"

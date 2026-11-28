@@ -3,8 +3,11 @@
 <head th:replace="~{fragments/layout :: head('Create group')}"></head>
 <body><header th:replace="~{fragments/layout :: header}"></header>
 <main id="main" tabindex="-1">
-  <a th:href="@{/admin/groups}">Back to groups</a>
+  <a th:if="${returnCollection != null}" th:href="@{/collections/{id}/sharing(id=${returnCollection})}">Back to sharing</a>
+  <a th:unless="${returnCollection != null}" th:href="@{/admin/groups}">Back to groups</a>
   <h1>Create group</h1>
+  <p th:if="${returnCollection != null}">After creating the group, return to sharing <strong th:text="${returnCollectionName}"></strong> to decide whether to grant access.</p>
+  <p th:if="${sharingReturnUnavailable}" class="notice warning" role="status">The original resource is no longer available for sharing. You can still create a group here.</p>
   <p>Group membership lets resource owners share access with many accounts at once.</p>
   <th:block th:replace="~{fragments/layout :: feedback}"></th:block>
 <form method="post" th:action="@{/admin/groups}" th:with="formKey=${'group-create'},activeForm=${formValues != null and errorFormKey == ('group-create')}"><input type="hidden" name="returnCollection" th:value="${returnCollection}"><label>Group name<input name="name" required maxlength="200" th:id="${formKey + '-name'}" th:attr="aria-invalid=${activeForm and fieldErrors.containsKey('name') ? 'true' : null},aria-describedby=${activeForm and fieldErrors.containsKey('name') ? formKey + '-name-error' : null}" th:value="${activeForm and formValues.containsKey('name') ? formValues['name'] : ''}"></label><p class="field-error" th:if="${activeForm and fieldErrors.containsKey('name')}" th:id="${formKey + '-name-error'}" th:text="${fieldErrors['name']}"></p><button>Create group</button></form>

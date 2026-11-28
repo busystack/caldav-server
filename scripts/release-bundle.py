@@ -87,6 +87,9 @@ SCREENSHOTS = tuple(f'docs/images/getting-started/{name}.png' for name in (
     '25-shared-overview',
     '26-returning-verification',
     '27-sharing-error',
+    '28-share-removal-review',
+    '29-credential-management',
+    '30-import-report-unavailable',
 ))
 
 

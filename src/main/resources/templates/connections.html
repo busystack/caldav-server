@@ -4,7 +4,7 @@
 <body><header th:replace="~{fragments/layout :: header}"></header>
 <main id="main" tabindex="-1">
   <th:block th:replace="~{fragments/layout :: feedback}"></th:block>
-  <h1>Connect an app</h1>
+  <h1 th:text="${client == null ? 'Connect an app' : (client == 'thunderbird' ? 'Connect Thunderbird' : client == 'gnome' ? 'Connect GNOME Calendar' : 'Connect a CalDAV app')}">Connect an app</h1>
   <section th:if="${client == null}">
     <h2>Choose your app</h2>
     <ul class="resource-list">
@@ -20,7 +20,7 @@
       <h2>Application password</h2>
       <p>Your app uses a separate password from your browser sign-in. Set up a new one for this app or use an existing application password.</p>
       <div class="actions">
-        <a class="button" th:href="@{/security/credentials(client=${client},from='connect',resource=${connectionResourceId})}">Create application password</a>
+        <a class="button" th:href="@{/security/credentials/new(client=${client},from='connect',resource=${connectionResourceId})}">Create application password</a>
         <a href="#existing-password">I already have an application password</a>
       </div>
     </section>

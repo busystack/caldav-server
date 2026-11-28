@@ -14,11 +14,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class RecoveryController {
   private final RecoveryService recovery;
   private final org.busystack.caldav.security.IssuanceIntents intents;
+  private final org.busystack.caldav.security.AuthenticationJourney journey;
 
   public RecoveryController(
-      RecoveryService recovery, org.busystack.caldav.security.IssuanceIntents intents) {
+      RecoveryService recovery,
+      org.busystack.caldav.security.IssuanceIntents intents,
+      org.busystack.caldav.security.AuthenticationJourney journey) {
     this.recovery = recovery;
     this.intents = intents;
+    this.journey = journey;
   }
 
   @GetMapping("/security/recovery")
@@ -62,9 +66,9 @@ public class RecoveryController {
   }
 
   @GetMapping("/security/recovery/use")
-  String useForm(Authentication auth, HttpServletResponse response) {
+  String useForm(Authentication auth, HttpServletRequest request, HttpServletResponse response) {
     if (!org.busystack.caldav.security.RecentAuthentication.primaryCurrent(auth))
-      return "redirect:/login?reauthenticate";
+      return primaryAgain(auth, request);
     org.busystack.caldav.security.IssuancePages.protect(response);
     return "recovery-use";
   }
@@ -76,11 +80,13 @@ public class RecoveryController {
       HttpServletRequest request,
       HttpServletResponse response,
       Model model) {
+    if (!org.busystack.caldav.security.RecentAuthentication.primaryCurrent(authentication))
+      return primaryAgain(authentication, request);
     try {
       recovery.recover(authentication, code, request.getRemoteAddr());
     } catch (RecoveryService.RejectedCode invalid) {
       if (!org.busystack.caldav.security.RecentAuthentication.primaryCurrent(authentication))
-        return "redirect:/login?reauthenticate";
+        return primaryAgain(authentication, request);
       response.setStatus(400);
       org.busystack.caldav.security.IssuancePages.protect(response);
       model.addAttribute(
@@ -88,10 +94,19 @@ public class RecoveryController {
           java.util.Map.of("code", "Enter an unused recovery code for this account."));
       model.addAttribute("errorFormKey", "recovery-use");
       return "recovery-use";
+    } catch (org.springframework.security.access.AccessDeniedException denied) {
+      if (!org.busystack.caldav.security.RecentAuthentication.primaryCurrent(authentication))
+        return primaryAgain(authentication, request);
+      throw denied;
     }
     SecurityContextHolder.clearContext();
     var session = request.getSession(false);
     if (session != null) session.invalidate();
     return "redirect:/login?recovered";
+  }
+
+  private String primaryAgain(Authentication auth, HttpServletRequest request) {
+    return "redirect:/login?reauthenticate&flow="
+        + journey.start(request, request.getContextPath() + "/security/recovery/use", auth);
   }
 }

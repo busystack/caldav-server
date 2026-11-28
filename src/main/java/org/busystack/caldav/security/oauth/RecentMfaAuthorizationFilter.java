@@ -56,10 +56,39 @@ final class RecentMfaAuthorizationFilter extends OncePerRequestFilter {
               request.getContextPath()
                   + (authentication == null ? "/login?session&flow=" : "/auth/continue?flow=")
                   + flow);
+        } else if ("POST".equals(request.getMethod())
+            && authentication != null
+            && browserNavigation(request)) {
+          String client = request.getParameter("client_id");
+          String consentState = request.getParameter("state");
+          if (client == null
+              || client.length() > 200
+              || consentState == null
+              || consentState.length() > 1024) {
+            response.sendError(403);
+            return;
+          }
+          String destination =
+              org.springframework.web.util.UriComponentsBuilder.fromPath(
+                      request.getContextPath() + "/oauth/consent")
+                  .queryParam("client_id", "{client}")
+                  .queryParam("state", "{state}")
+                  .encode()
+                  .buildAndExpand(client, consentState)
+                  .toUriString();
+          String flow = journey.start(request, destination, authentication);
+          response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+          response.setHeader("Cache-Control", "no-store");
+          response.setHeader("Location", request.getContextPath() + "/auth/continue?flow=" + flow);
         } else response.sendError(403, "Recent primary and passkey verification required");
         return;
       }
     }
     chain.doFilter(request, response);
+  }
+
+  private static boolean browserNavigation(HttpServletRequest request) {
+    return "navigate".equals(request.getHeader("Sec-Fetch-Mode"))
+        || request.getHeader("Accept") != null && request.getHeader("Accept").contains("text/html");
   }
 }

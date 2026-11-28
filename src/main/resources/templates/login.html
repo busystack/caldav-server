@@ -9,6 +9,8 @@
 <p th:if="${param.recovered}" role="status">Recovery completed. Sign in again, then create a new passkey.</p>
 <p th:if="${param.session}" role="status">Your browser session ended. Sign in again.</p>
 <p th:if="${param.error}" class="notice error" role="alert">Sign in failed. Check your account details. If your account was disabled, contact your administrator.</p>
+<p th:if="${param.interrupted}" class="notice warning" role="status">This sign-in request ended. After signing in, open the task again.</p>
+<p th:if="${param.linkEnded}" class="notice warning" role="status">This identity-link request ended. Sign in and verify your passkey, then start a new link from Security.</p>
 <p th:if="${oidcEnabled}"><a th:href="@{/oauth2/authorization/upstream(flow=${signInFlow})}">Sign in with your organization's identity provider</a></p>
 <p th:if="${viewer != null and externallyManaged}">Your organization manages sign-in. Use the identity provider link above.</p>
 <form th:unless="${viewer != null and externallyManaged}" th:action="@{/login}" method="post"><input type="hidden" name="flow" th:value="${signInFlow}"><label for="username">Username</label><input id="username" name="username" th:value="${initialUsername != null ? initialUsername : (viewer != null ? viewer.username : null)}" autocomplete="username" required autofocus><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form>

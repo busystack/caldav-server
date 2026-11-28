@@ -66,6 +66,12 @@ class PortalManagementIT {
   @Autowired JdbcTemplate jdbc;
   @Autowired org.busystack.caldav.security.IssuanceIntents issuance;
   @Autowired org.busystack.caldav.security.recovery.RecoveryService recovery;
+  @Autowired org.busystack.caldav.security.oauth.OAuthClientService oauthClients;
+
+  @Autowired
+  org.springframework.session.SessionRepository<? extends org.springframework.session.Session>
+      sessions;
+
   private SignedPasskeyClient transport;
   private final Map<UUID, SignedPasskeyClient.Credential> browserKeys = new HashMap<>();
   @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
@@ -78,7 +84,7 @@ class PortalManagementIT {
     transport = new SignedPasskeyClient(port, "/team", "https://localhost");
     FixtureDatabase.reset(
         jdbc,
-        "TRUNCATE spring_session,security_audit RESTART IDENTITY CASCADE",
+        "TRUNCATE spring_session,security_audit,browser_flow_state RESTART IDENTITY CASCADE",
         "TRUNCATE accounts CASCADE");
     admin =
         accounts.provision("portal-admin", "Administrator", "correct horse battery staple", true);
@@ -468,7 +474,7 @@ class PortalManagementIT {
     assertThat(connections.body())
         .contains("Set up Thunderbird", "selected-resource-address", address, "page=0")
         .contains("resource=" + collection);
-    var form = get(browser, "/security/credentials?from=connect&" + context);
+    var form = get(browser, "/security/credentials/new?from=connect&" + context);
     var intent =
         java.util.regex.Pattern.compile("name=\"intent\" value=\"([a-f0-9-]{36})\"")
             .matcher(form.body());
@@ -493,6 +499,530 @@ class PortalManagementIT {
                 && issued.body().contains(address))
         .isTrue();
     assertThat(get(browser(other, true), "/connections?" + context).statusCode()).isEqualTo(403);
+  }
+
+  @Test
+  void credentialInspectionAndRevocationStayAvailableAtIssuanceCapacity() throws Exception {
+    var browser = browser(owner, true);
+    var credential =
+        accounts.issueDavCredential(
+            owner, "Existing app device", java.time.Instant.now().plusSeconds(3600));
+    String context = "?from=connect&client=thunderbird&resource=" + collection;
+    for (int n = 0; n < 9; n++)
+      assertThat(get(browser, "/security/credentials" + context).statusCode()).isEqualTo(200);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM browser_issuance_intents WHERE account_id=?",
+                Long.class,
+                owner))
+        .isZero();
+    for (int n = 0; n < 8; n++) {
+      String url =
+          n % 2 == 0 ? "/security/recovery/codes/new" : "/security/credentials/new" + context;
+      assertThat(get(browser, url).statusCode()).isEqualTo(200);
+    }
+    var denied = get(browser, "/security/credentials/new" + context);
+    assertThat(denied.statusCode()).isEqualTo(503);
+    assertThat(denied.body())
+        .contains(
+            "Issuance is busy", "Existing app device", "Back to app setup", "application-shell");
+    var list = get(browser, "/security/credentials" + context);
+    assertThat(list.statusCode()).isEqualTo(200);
+    assertThat(get(browser, "/security/credentials?page=1").statusCode()).isEqualTo(200);
+    String revoke = "/credentials/" + credential.id() + "/revoke";
+    var review = get(browser, revoke);
+    assertThat(review.body()).contains("Revoke Existing app device?");
+    assertThat(
+            post(browser, revoke, Map.of("_csrf", csrf(review.body()), "confirmed", "true"))
+                .statusCode())
+        .isEqualTo(302);
+    assertThat(accounts.verifyDav("portal-owner", credential.secret())).isFalse();
+  }
+
+  @Test
+  void simultaneousAnonymousDestinationsAndWrongPasswordKeepTheirOwnFlow() throws Exception {
+    var browser = transport.browser();
+    String password = "correct horse battery staple";
+    get(browser, "/login");
+    String resource = "/connections?client=thunderbird&resource=" + collection;
+    String list = "/collections?scope=owned";
+    String first;
+    String second;
+    try (var requests = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      var ready = new java.util.concurrent.CyclicBarrier(2);
+      var a =
+          requests.submit(
+              () -> {
+                ready.await();
+                return get(browser, resource);
+              });
+      var b =
+          requests.submit(
+              () -> {
+                ready.await();
+                return get(browser, list);
+              });
+      first = transport.localPath(a.get().headers().firstValue("Location").orElseThrow());
+      second = transport.localPath(b.get().headers().firstValue("Location").orElseThrow());
+    }
+    assertThat(first).startsWith("/login?flow=").isNotEqualTo(second);
+    assertThat(second).startsWith("/login?flow=");
+    String flow = first.substring(first.indexOf("flow=") + 5);
+    String otherFlow = second.substring(second.indexOf("flow=") + 5);
+    assertThat(
+            jdbc.queryForList(
+                "SELECT payload FROM browser_flow_state WHERE section='journey' AND payload LIKE ?",
+                String.class,
+                "%" + flow + "%"))
+        .singleElement()
+        .asString()
+        .contains(otherFlow);
+    var originalForm = get(browser, first);
+    var failed =
+        post(
+            browser,
+            "/login",
+            Map.of(
+                "_csrf",
+                csrf(originalForm.body()),
+                "flow",
+                flow,
+                "username",
+                "portal-owner",
+                "password",
+                "deliberately incorrect"));
+    String retry = transport.localPath(failed.headers().firstValue("Location").orElseThrow());
+    assertThat(retry).contains("error", "flow=" + flow).doesNotContain(otherFlow);
+    var secondForm = get(browser, retry);
+    var signed =
+        post(
+            browser,
+            "/login",
+            Map.of(
+                "_csrf",
+                csrf(secondForm.body()),
+                "flow",
+                flow,
+                "username",
+                "portal-owner",
+                "password",
+                password));
+    assertThat(signed.headers().firstValue("Location").orElseThrow())
+        .contains("/auth/continue", flow);
+    var key = transport.enroll(browser);
+    assertThat(
+            transport
+                .assertCredential(transport.options(browser), key, "correct", 0x0d)
+                .statusCode())
+        .isEqualTo(200);
+    assertThat(
+            get(browser, "/auth/continue?flow=" + flow)
+                .headers()
+                .firstValue("Location")
+                .orElseThrow())
+        .contains("/team" + resource);
+    assertThat(
+            get(browser, "/auth/continue?flow=" + otherFlow)
+                .headers()
+                .firstValue("Location")
+                .orElseThrow())
+        .contains("/team" + list);
+    assertThat(
+            get(browser, "/auth/continue?flow=" + flow)
+                .headers()
+                .firstValue("Location")
+                .orElseThrow())
+        .endsWith("/team/?interrupted");
+  }
+
+  @Test
+  void aStaleMemberDraftRetainsTheOriginalGrantReviewAfterReauthentication() throws Exception {
+    var administrator = browser(admin, true);
+    UUID group = groups.create(auth(admin, true), "Draft grant revision", Set.of());
+    sharing.group(auth(owner, true), collection, group, "READ", "NONE");
+    String page = "/admin/groups/" + group;
+    var original = get(administrator, page);
+    String expected = groups.detail(auth(admin, true), group).grantState();
+    ageFactors(administrator, java.time.Duration.ofSeconds(601), null);
+    assertThat(get(administrator, page).statusCode()).isEqualTo(200);
+    var pending =
+        navigatePost(
+            administrator,
+            page + "/members",
+            Map.of(
+                "_csrf",
+                csrf(original.body()),
+                "username",
+                "portal-reader",
+                "confirmed",
+                "true",
+                "expectedGrants",
+                expected));
+    assertThat(pending.statusCode()).isEqualTo(303);
+    sharing.group(auth(owner, true), collection, group, "WRITE", "READ");
+    var review = resumeDraft(administrator, pending, admin, true);
+    assertThat(review.statusCode()).isEqualTo(200);
+    assertThat(review.body())
+        .contains("value=\"" + expected + "\"", "portal-reader")
+        .doesNotContain("value=\"" + groups.detail(auth(admin, true), group).grantState() + "\"");
+    var rejected =
+        post(
+            administrator,
+            page + "/members",
+            Map.of(
+                "_csrf",
+                csrf(review.body()),
+                "username",
+                "portal-reader",
+                "confirmed",
+                "true",
+                "expectedGrants",
+                expected));
+    assertThat(rejected.statusCode()).isEqualTo(412);
+    assertThat(groups.members(auth(admin, true), group, "", 0).rows()).isEmpty();
+  }
+
+  @Test
+  void stalePrimaryReturnsToRecoveryCodeEntryWithoutARegisteredKey() throws Exception {
+    var browser = browser(owner, false);
+    var start = get(browser, "/security/recovery/use");
+    assertThat(start.statusCode()).isEqualTo(200);
+    ageFactors(browser, java.time.Duration.ofSeconds(601), null);
+    String submittedCode = "private-recovery-fixture-value";
+    var pending =
+        post(
+            browser,
+            "/security/recovery/use",
+            Map.of("_csrf", csrf(start.body()), "code", submittedCode));
+    String login = location(pending);
+    assertThat(login).startsWith("/login?reauthenticate&flow=");
+    var form = get(browser, login);
+    assertThat(form.body()).doesNotContain(submittedCode);
+    var signed =
+        post(
+            browser,
+            "/login",
+            Map.of(
+                "_csrf",
+                csrf(form.body()),
+                "username",
+                "portal-owner",
+                "password",
+                "correct horse battery staple",
+                "flow",
+                login.substring(login.indexOf("flow=") + 5)));
+    assertThat(location(signed)).isEqualTo("/security/recovery/use");
+    var entry = get(browser, location(signed));
+    assertThat(entry.statusCode()).isEqualTo(200);
+    assertThat(entry.body())
+        .contains("Recovery code")
+        .doesNotContain(submittedCode, "class=\"section-nav");
+  }
+
+  @Test
+  void sharingRemovalNamesThePermissionAndRequiresUnchangedGrantAfterVerification()
+      throws Exception {
+    var browser = browser(owner, true);
+    UUID group = groups.create(auth(admin, true), "Review group", Set.of("portal-reader"));
+    sharing.direct(auth(owner, true), collection, "portal-reader", "READ", "NONE");
+    sharing.group(auth(owner, true), collection, group, "WRITE", "NONE");
+    String sharingPath = "/collections/" + collection + "/sharing";
+    String direct = sharingPath + "/account/portal-reader/remove";
+    String groupReview = sharingPath + "/group/" + group + "/remove";
+    assertThat(get(browser, sharingPath).body()).contains(direct, groupReview);
+    var confirm = get(browser, direct);
+    assertThat(confirm.body())
+        .contains("Remove direct access for portal-reader?", "read-only", "group grants", "Cancel");
+    assertThat(get(browser, sharingPath).statusCode()).isEqualTo(200);
+    ageFactors(browser, java.time.Duration.ofSeconds(601), null);
+    var pending =
+        navigatePost(
+            browser,
+            direct,
+            Map.of("_csrf", csrf(confirm.body()), "confirmed", "true", "expected", "READ"));
+    assertThat(pending.statusCode()).isEqualTo(303);
+    sharing.direct(auth(owner, true), collection, "portal-reader", "WRITE", "READ");
+    var outOfDate = resumeDraft(browser, pending, owner, false);
+    assertThat(outOfDate.statusCode()).isEqualTo(412);
+    assertThat(outOfDate.body()).contains(sharingPath);
+    var current = get(browser, direct);
+    assertThat(
+            post(
+                    browser,
+                    direct,
+                    Map.of("_csrf", csrf(current.body()), "confirmed", "true", "expected", "WRITE"))
+                .statusCode())
+        .isEqualTo(302);
+    assertThat(dav.permission(reader, collection)).isEqualTo("WRITE");
+    var groupForm = get(browser, groupReview);
+    assertThat(groupForm.body())
+        .contains("Remove group access for Review group?", "One enabled account will lose access");
+    assertThat(
+            post(
+                    browser,
+                    groupReview,
+                    Map.of(
+                        "_csrf", csrf(groupForm.body()), "confirmed", "true", "expected", "WRITE"))
+                .statusCode())
+        .isEqualTo(302);
+    denied(() -> dav.permission(reader, collection));
+  }
+
+  @Test
+  void aReplacedImportReportLeadsToTheAuthorizedImportPicker() throws Exception {
+    var browser = browser(owner, true);
+    String root = "/portability/import/";
+    var first = portability.preview(auth(owner, true), collection, event("first-preview"));
+    var second = portability.preview(auth(owner, true), collection, event("second-preview"));
+    var gone = get(browser, root + first.token());
+    assertThat(gone.statusCode()).isEqualTo(412);
+    assertThat(gone.body())
+        .contains(
+            "Import report unavailable", "inspect the destination", "href=\"/team/portability\"");
+    assertThat(get(browser, "/portability").statusCode()).isEqualTo(200);
+    assertThat(get(browser, root + second.token()).statusCode()).isEqualTo(200);
+  }
+
+  @Test
+  void groupCreationReturnsToSharingAfterValidationAndFreshAuthentication() throws Exception {
+    var browser = browser(admin, true);
+    UUID resource = portal.create(auth(admin, true), "Group destination", "VTODO", "", "");
+    UUID existing = groups.create(auth(admin, true), "Existing group", Set.of("portal-owner"));
+    sharing.group(auth(admin, true), resource, existing, "READ", "NONE");
+    String sharingPage = "/collections/" + resource + "/sharing";
+    String entry = "/admin/groups/new?returnCollection=" + resource;
+    assertThat(get(browser, sharingPage).body())
+        .contains(entry)
+        .doesNotContain("<option value=\"" + existing + "\"");
+    var form = get(browser, entry);
+    assertThat(form.body()).contains("Group destination", sharingPage);
+    var duplicate =
+        post(
+            browser,
+            "/admin/groups",
+            Map.of(
+                "_csrf",
+                csrf(form.body()),
+                "name",
+                "Existing group",
+                "returnCollection",
+                resource.toString()));
+    assertThat(duplicate.statusCode()).isEqualTo(409);
+    assertThat(duplicate.body()).contains("Group destination", "value=\"" + resource + "\"");
+    ageFactors(browser, Duration.ofSeconds(601), null);
+    var pending =
+        navigatePost(
+            browser,
+            "/admin/groups",
+            Map.of(
+                "_csrf",
+                csrf(duplicate.body()),
+                "name",
+                "New group after review",
+                "returnCollection",
+                resource.toString()));
+    var resumed = resumeDraft(browser, pending, admin, false);
+    assertThat(resumed.body()).contains("New group after review", "Group destination", sharingPage);
+    var created =
+        post(
+            browser,
+            "/admin/groups",
+            Map.of(
+                "_csrf",
+                csrf(resumed.body()),
+                "name",
+                "New group after review",
+                "returnCollection",
+                resource.toString()));
+    assertThat(location(created)).isEqualTo(sharingPage);
+    assertThat(portal.groupGrants(auth(admin, true), resource, 0).rows()).hasSize(1);
+    var members = get(browser, "/admin/groups/" + existing + "/members/new?q=portal-owner");
+    assertThat(members.body()).contains("No eligible enabled accounts");
+    assertThat(get(browser, "/admin/groups/" + existing + "/members/new?q=portal-reader").body())
+        .contains("portal-reader");
+  }
+
+  @Test
+  void nativeAppDraftRetainsOnlyEditableRegistrationFields() throws Exception {
+    var browser = browser(admin, true);
+    String route = "/admin/oauth-clients";
+    var form = get(browser, route);
+    ageFactors(browser, Duration.ofSeconds(601), null);
+    var pending =
+        navigatePost(
+            browser,
+            route,
+            Map.of(
+                "_csrf",
+                csrf(form.body()),
+                "clientId",
+                "draft-client",
+                "name",
+                "Retained App",
+                "redirects",
+                "http://127.0.0.1:23898/callback",
+                "secret",
+                "private-unused-fixture"));
+    var resumed = resumeDraft(browser, pending, admin, false);
+    assertThat(resumed.body())
+        .contains("draft-client", "Retained App", "http://127.0.0.1:23898/callback")
+        .doesNotContain("private-unused-fixture");
+    assertThat(oauthClients.list(auth(admin, true)))
+        .extracting(org.busystack.caldav.security.oauth.OAuthClientService.Client::id)
+        .doesNotContain("draft-client");
+    assertThat(
+            post(
+                    browser,
+                    route,
+                    Map.of(
+                        "_csrf",
+                        csrf(resumed.body()),
+                        "clientId",
+                        "draft-client",
+                        "name",
+                        "Retained App",
+                        "redirects",
+                        "http://127.0.0.1:23898/callback"))
+                .statusCode())
+        .isEqualTo(302);
+    assertThat(oauthClients.list(auth(admin, true)))
+        .extracting(org.busystack.caldav.security.oauth.OAuthClientService.Client::id)
+        .contains("draft-client");
+  }
+
+  @Test
+  void staleConsentGetAndPostReturnToTheSamePendingAppRequest() throws Exception {
+    var browser = browser(owner, true);
+    oauthClients.registerNative(
+        auth(admin, true),
+        "review-native",
+        "Review Native",
+        Set.of("http://127.0.0.1:23898/callback"));
+    String verifier = "fixture-abcdefghijklmnopqrstuvwxyz-0123456789-ABC";
+    String challenge =
+        Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(
+                java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(verifier.getBytes(StandardCharsets.US_ASCII)));
+    String authorization =
+        "/oauth2/authorize?client_id=review-native&response_type=code"
+            + "&scope=dav&state=application%3Dstate&redirect_uri=http%3A%2F%2F127.0.0.1%3A23898%2Fcallback"
+            + "&code_challenge_method=S256&code_challenge="
+            + challenge;
+    String consent = location(get(browser, authorization));
+    assertThat(consent).startsWith("/oauth/consent?").contains("client_id=review-native", "state=");
+    ageFactors(browser, null, Duration.ofSeconds(601));
+    String flow = location(get(browser, consent));
+    assertThat(flow).startsWith("/auth/continue?flow=");
+    assertThat(get(browser, flow).body()).contains("Verify and continue");
+    assertThat(
+            transport
+                .assertCredential(
+                    transport.options(browser), browserKeys.get(owner), "correct", 0x0d)
+                .statusCode())
+        .isEqualTo(200);
+    String returned = location(get(browser, flow));
+    var sameConsent = get(browser, returned);
+    assertThat(sameConsent.statusCode()).isEqualTo(200);
+    assertThat(sameConsent.body()).contains("Review Native", "Authorize application");
+    var state =
+        java.util.regex.Pattern.compile("name=\"state\" value=\"([^\"]+)\"")
+            .matcher(sameConsent.body());
+    assertThat(state.find()).isTrue();
+    String consentState = state.group(1);
+    ageFactors(browser, Duration.ofSeconds(601), null);
+    var pending =
+        navigatePost(
+            browser,
+            "/oauth2/authorize",
+            Map.of(
+                "_csrf",
+                csrf(sameConsent.body()),
+                "client_id",
+                "review-native",
+                "state",
+                consentState,
+                "scope",
+                "dav"));
+    assertThat(pending.statusCode()).isEqualTo(303);
+    String resumed = resume(browser, pending, owner, false);
+    assertThat(resumed).startsWith("/oauth/consent?").contains("client_id=review-native", "state=");
+    var review = get(browser, resumed);
+    assertThat(review.statusCode()).isEqualTo(200);
+    assertThat(review.body()).contains(consentState, "Deny access");
+    var declined =
+        navigatePost(
+            browser,
+            "/oauth2/authorize",
+            Map.of(
+                "_csrf", csrf(review.body()), "client_id", "review-native", "state", consentState));
+    assertThat(declined.headers().firstValue("Location").orElseThrow())
+        .startsWith("http://127.0.0.1:23898/callback?")
+        .contains("error=access_denied");
+  }
+
+  @Test
+  void idleExtensionKeepsFactorsAndOverallExpiryReauthenticatesToTheRequestedResource()
+      throws Exception {
+    var browser = browser(owner, true);
+    String target = "/connections?client=thunderbird&resource=" + collection;
+    var page = get(browser, target);
+    String sessionId = sessionId(browser);
+    String proofKey =
+        org.busystack.caldav.security.session.BrowserSession.class.getName() + ".proof";
+    var proof =
+        sessions
+            .findById(sessionId)
+            .<org.busystack.caldav.security.session.BrowserSession.Proof>getAttribute(proofKey);
+    long clock = System.currentTimeMillis();
+    jdbc.update(
+        "UPDATE spring_session SET last_access_time=?, expiry_time=? WHERE session_id=?",
+        clock - 1740000,
+        clock + 60000,
+        sessionId);
+    var extended =
+        post(browser, "/session/stay", Map.of("_csrf", SignedPasskeyClient.csrf(page.body())));
+    assertThat(extended.statusCode()).isEqualTo(200);
+    var deadlines = SignedPasskeyClient.JSON.readTree(extended.body());
+    assertThat(deadlines.path("overallDeadline").asLong())
+        .isEqualTo(proof.established().plus(Duration.ofHours(8)).toEpochMilli());
+    assertThat(deadlines.path("idleDeadline").asLong()).isGreaterThan(clock + 60000);
+    assertThat(sessions.findById(sessionId).<Object>getAttribute(proofKey)).isEqualTo(proof);
+    expireOverall(sessions, sessionId, proofKey, proof);
+    String login = location(get(browser, target));
+    assertThat(login).startsWith("/login?session&flow=");
+    assertThat(sessions.findById(sessionId)).isNull();
+    String flow = login.substring(login.indexOf("flow=") + 5);
+    var signIn = get(browser, login);
+    var signed =
+        post(
+            browser,
+            "/login",
+            Map.of(
+                "_csrf",
+                csrf(signIn.body()),
+                "username",
+                "portal-owner",
+                "password",
+                "correct horse battery staple",
+                "flow",
+                flow));
+    assertThat(location(signed)).endsWith("flow=" + flow);
+    assertThat(get(browser, location(signed)).body()).contains("Verify and continue");
+    assertThat(
+            transport
+                .assertCredential(
+                    transport.options(browser), browserKeys.get(owner), "correct", 0x0d)
+                .statusCode())
+        .isEqualTo(200);
+    assertThat(location(get(browser, "/auth/continue?flow=" + flow))).isEqualTo(target);
+    jdbc.update(
+        "UPDATE spring_session SET last_access_time=?, expiry_time=? WHERE session_id=?",
+        clock - 1800001,
+        clock - 1,
+        sessionId(browser));
+    assertThat(location(get(browser, target))).startsWith("/login?flow=");
   }
 
   @Test
@@ -1328,7 +1858,7 @@ class PortalManagementIT {
         400,
         "direct-add",
         "username");
-    var credentialForm = get(user, "/security/credentials");
+    var credentialForm = get(user, "/security/credentials/new");
     var intent =
         java.util.regex.Pattern.compile("name=\"intent\" value=\"([a-f0-9-]{36})\"")
             .matcher(credentialForm.body());
@@ -1799,6 +2329,148 @@ class PortalManagementIT {
             .GET()
             .build(),
         HttpResponse.BodyHandlers.ofString());
+  }
+
+  private String location(HttpResponse<?> response) {
+    return transport.localPath(response.headers().firstValue("Location").orElseThrow());
+  }
+
+  private HttpResponse<String> navigatePost(
+      HttpClient browser, String path, Map<String, String> fields) throws Exception {
+    return browser.send(
+        HttpRequest.newBuilder(URI.create(base() + path))
+            .timeout(Duration.ofSeconds(30))
+            .header("Accept", "text/html")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .POST(HttpRequest.BodyPublishers.ofString(SignedPasskeyClient.form(fields)))
+            .build(),
+        HttpResponse.BodyHandlers.ofString());
+  }
+
+  private HttpResponse<String> resumeDraft(
+      HttpClient browser, HttpResponse<?> pending, UUID actor, boolean wrongPassword)
+      throws Exception {
+    String review = resume(browser, pending, actor, wrongPassword);
+    assertThat(review).startsWith("/forms/");
+    return get(browser, review);
+  }
+
+  private String resume(
+      HttpClient browser, HttpResponse<?> pending, UUID actor, boolean wrongPassword)
+      throws Exception {
+    String flow = location(pending);
+    String handle = flow.substring(flow.indexOf("flow=") + 5);
+    String login = location(get(browser, flow));
+    assertThat(login).startsWith("/login?reauthenticate").contains(handle);
+    var form = get(browser, login);
+    var fields =
+        new HashMap<>(
+            Map.of(
+                "_csrf",
+                csrf(form.body()),
+                "username",
+                accounts.find(actor).username(),
+                "flow",
+                handle));
+    if (wrongPassword) {
+      fields.put("password", "deliberately incorrect");
+      var failure = post(browser, "/login", fields);
+      assertThat(location(failure)).contains("error", "flow=" + handle);
+      fields.put("_csrf", csrf(get(browser, location(failure)).body()));
+    }
+    fields.put("password", "correct horse battery staple");
+    var signed = post(browser, "/login", fields);
+    assertThat(location(signed)).isEqualTo(flow);
+    var verification = get(browser, flow);
+    assertThat(verification.body()).contains("Verify and continue");
+    assertThat(SignedPasskeyClient.csrf(verification.body())).isNotEqualTo(fields.get("_csrf"));
+    var asserted =
+        transport.assertCredential(
+            transport.options(browser), browserKeys.get(actor), "correct", 0x0d);
+    assertThat(asserted.statusCode()).isEqualTo(200);
+    return location(get(browser, flow));
+  }
+
+  private void ageFactors(HttpClient browser, Duration primaryAge, Duration passkeyAge) {
+    ageFactors(sessions, sessionId(browser), primaryAge, passkeyAge);
+  }
+
+  private static String sessionId(HttpClient browser) {
+    var cookies = (java.net.CookieManager) browser.cookieHandler().orElseThrow();
+    return cookies.getCookieStore().getCookies().stream()
+        .filter(cookie -> cookie.getName().equals("JSESSIONID"))
+        .map(
+            cookie ->
+                new String(Base64.getDecoder().decode(cookie.getValue()), StandardCharsets.UTF_8))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private static <S extends org.springframework.session.Session> void expireOverall(
+      org.springframework.session.SessionRepository<S> repository,
+      String id,
+      String key,
+      org.busystack.caldav.security.session.BrowserSession.Proof proof) {
+    S session = repository.findById(id);
+    session.setAttribute(
+        key,
+        new org.busystack.caldav.security.session.BrowserSession.Proof(
+            proof.account(),
+            proof.epoch(),
+            proof.key(),
+            java.time.Instant.now().minus(Duration.ofHours(8)),
+            proof.asserted()));
+    repository.save(session);
+  }
+
+  private <S extends org.springframework.session.Session> void ageFactors(
+      org.springframework.session.SessionRepository<S> repository,
+      String id,
+      Duration primaryAge,
+      Duration passkeyAge) {
+    S session = repository.findById(id);
+    String contextKey =
+        org.springframework.security.web.context.HttpSessionSecurityContextRepository
+            .SPRING_SECURITY_CONTEXT_KEY;
+    org.springframework.security.core.context.SecurityContext context =
+        session.getAttribute(contextKey);
+    var auth = context.getAuthentication();
+    var now = java.time.Instant.now();
+    var authorities = new ArrayList<GrantedAuthority>();
+    for (var authority : auth.getAuthorities()) {
+      if (authority instanceof FactorGrantedAuthority factor) {
+        Duration age =
+            FactorGrantedAuthority.PASSWORD_AUTHORITY.equals(factor.getAuthority())
+                ? primaryAge
+                : passkeyAge;
+        if (age != null) {
+          authorities.add(
+              FactorGrantedAuthority.withAuthority(factor.getAuthority())
+                  .issuedAt(now.minus(age))
+                  .build());
+          continue;
+        }
+      }
+      authorities.add(authority);
+    }
+    context.setAuthentication(
+        UsernamePasswordAuthenticationToken.authenticated(auth.getName(), null, authorities));
+    session.setAttribute(contextKey, context);
+    if (passkeyAge != null) {
+      String storageKey =
+          org.busystack.caldav.security.session.BrowserSession.class.getName() + ".proof";
+      org.busystack.caldav.security.session.BrowserSession.Proof proof =
+          session.getAttribute(storageKey);
+      session.setAttribute(
+          storageKey,
+          new org.busystack.caldav.security.session.BrowserSession.Proof(
+              proof.account(),
+              proof.epoch(),
+              proof.key(),
+              proof.established(),
+              now.minus(passkeyAge)));
+    }
+    repository.save(session);
   }
 
   private HttpResponse<String> post(HttpClient browser, String path, Map<String, String> fields)

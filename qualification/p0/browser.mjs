@@ -112,6 +112,10 @@ try {
   const calendar=await createCollection(page,base,'Demo calendar','VEVENT');
   await createCollection(page,base,'Demo tasks','VTODO');await shot(page,'11-empty-task-list');
   const journal=await createCollection(page,base,'Demo journal','VJOURNAL');
+  await page.goto(base+'/collections/'+calendar);
+  const contextualConnect = page.locator('main').getByRole('link',{name:'Connect an app',exact:true});
+  const connectionStart = new URL(await contextualConnect.getAttribute('href'),base);
+  check(connectionStart.searchParams.get('resource')===calendar,'The primary resource action carries the selected resource');
   await page.goto(base+'/collections');await shot(page,'12-resources');
   await grantDirect(page,base,calendar,'demo-user','READ');await shot(page,'13-sharing');
   const grant = page.locator('form').filter({has:page.locator('input[name=username]:not([type=hidden])')});
@@ -122,6 +126,12 @@ try {
   check(await page.locator('.section-nav [aria-current=page]').textContent()==='Calendars, tasks & journals','Collection navigation stays current after validation');
   check(await page.locator('#direct-add-username').inputValue()==='unknown-demo-user','Recipient input survives validation');
   await shot(page,'27-sharing-error');
+  await page.getByRole('link',{name:'Remove direct grant',exact:true}).click();
+  await page.getByRole('heading',{name:'Remove direct access for demo-user?',exact:true}).waitFor();
+  check(await page.getByRole('button',{name:'Remove direct grant',exact:true}).isVisible(),'Sharing removal requires a named final action');
+  await shot(page,'28-share-removal-review');
+  await page.getByRole('link',{name:'Cancel',exact:true}).click();
+  check(await page.getByText('demo-user',{exact:true}).count()>=1,'Cancel preserves the grant');
   await page.goto(base+'/security');await shot(page,'14-security');
   await page.goto(base+'/security/recovery/codes/new');
   await page.getByRole('button',{name:'Generate ten codes',exact:true}).click();
@@ -163,6 +173,9 @@ try {
   await page.getByRole('link',{name:'Done',exact:true}).click();
   check(page.url().includes('client=gnome'),'Selected client preserved through issuance');
   check(!(await page.content()).includes(secret),'Secret absent from subsequent response');
+  await page.goto(base+'/security/credentials');
+  check(await page.getByRole('link',{name:'Create application password',exact:true}).isVisible(),'Password inspection has a separate creation link');
+  await shot(page,'29-credential-management');
   await page.goto(base+'/portability?destination='+journal);await shot(page,'20-import-destination');
   await page.locator('input[type=file]').setInputFiles({name:'synthetic-journal.ics',mimeType:'text/calendar',buffer:Buffer.from('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BusyStack//Acceptance//EN\r\nBEGIN:VJOURNAL\r\nUID:ux-journal-fixture\r\nDTSTAMP:20261126T180000Z\r\nDTSTART;VALUE=DATE:20261126\r\nSUMMARY:Demo journal entry\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n')});
   await Promise.all([page.waitForURL(/\/portability\/import\/[0-9a-f-]+/),page.getByRole('button',{name:'Validate and preview import'}).click()]);
@@ -171,6 +184,12 @@ try {
   await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Confirm import'}).click()]);
   await page.getByRole('heading',{name:'Import results',exact:true}).waitFor();
   await shot(page,'22-import-result');
+  const unavailable = await page.goto(base+'/portability/import/00000000-0000-4000-8000-000000000000');
+  check(unavailable.status()===412,'An unavailable import report keeps its error status');
+  await page.getByRole('heading',{name:'Import report unavailable',exact:true}).waitFor();
+  await shot(page,'30-import-report-unavailable');
+  await page.getByRole('link',{name:'Return to this workflow',exact:true}).click();
+  check(new URL(page.url()).pathname===prefix+'/portability','Terminal report recovery opens a usable import picker');
   await page.goto(base+'/admin/audit');await shot(page,'23-audit');
   await page.goto(base+'/admin/diagnostics');await shot(page,'24-diagnostics');
   await page.goto(base+'/admin/oauth-clients');
@@ -199,10 +218,12 @@ try {
   check(await nativeRow.count()===0,'Explicit confirmation removes the application registration');
   const userContext=await browser.newContext({viewport:{width:1280,height:900},colorScheme:'light'});
   const user=await userContext.newPage();await virtual(userContext,user);
-  await user.goto(base+'/connections?client=thunderbird');
+  connectionStart.searchParams.set('client','thunderbird');
+  await user.goto(connectionStart.toString());
   await signIn(user,'demo-user');await enroll(user);await verify(user);
   const continued=new URL(user.url());
-  check(continued.origin===new URL(base).origin && continued.pathname===prefix+'/connections' && continued.searchParams.get('client')==='thunderbird', 'Primary/session rotation preserves the intended application workflow; observed path='+continued.pathname+' query keys='+[...continued.searchParams.keys()].join(','));
+  check(continued.origin===new URL(base).origin && continued.pathname===prefix+'/connections' && continued.searchParams.get('client')==='thunderbird' && continued.searchParams.get('resource')===calendar, 'Primary/session rotation preserves the selected client and shared resource');
+  check(await user.locator('#selected-resource-address').count()===1,'The shared resource address is available after verification');
   await user.goto(base+'/');await shot(user,'25-shared-overview');
   check(await user.getByRole('link',{name:'Server administration',exact:true}).count()===0,'No administrator UI for ordinary user');
   check(/shared/i.test(await user.locator('main').innerText()),'Shared collections offered in onboarding');
@@ -219,8 +240,8 @@ try {
   check(await mutate(user,'/credentials',{label:'Removed factor',days:'1'})===403,'Removed key does not authorize issuance');
   check(errors.length===0,'No page script errors');
   check(remoteAssets.length===0,'No externally loaded frontend resources');
-  writeFileSync(output+'/browser-result.json',JSON.stringify({status:'passed',assertions,playwright:'1.61.1',chromium:browser.version(),base,manualFirefoxBitwarden:'pending',screenshots:27},null,2));
-  console.log('P0_BROWSER_PASSED assertions='+assertions+' screenshots=27');
+  writeFileSync(output+'/browser-result.json',JSON.stringify({status:'passed',assertions,playwright:'1.61.1',chromium:browser.version(),base,manualFirefoxBitwarden:'pending',screenshots:30},null,2));
+  console.log('P0_BROWSER_PASSED assertions='+assertions+' screenshots=30');
 } catch(error) {
   let diagnostic=String(error.stack||error);
   for(const value of privateValues)diagnostic=diagnostic.replaceAll(value,'[redacted]');

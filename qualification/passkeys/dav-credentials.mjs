@@ -5,6 +5,7 @@ import {captureWorkflow} from './portal-helpers.mjs';
 
 export async function issueDavCredential(page, base, privateValues, label, username = process.env.BUSYSTACK_BROWSER_USERNAME) {
   await page.goto(base + '/security/credentials');
+  await page.getByRole('link', {name: 'Create application password', exact: true}).click();
   const form = page.locator('form').filter({has: page.locator('input[name=label]')});
   await form.locator('input[name=label]').fill(label);
   await form.locator('input[name=days]').fill('1');
@@ -12,11 +13,11 @@ export async function issueDavCredential(page, base, privateValues, label, usern
     form.getByRole('button', {name: 'Create application password', exact: true}).click()]);
   assert.ok((response.headers()['cache-control'] || '').includes('no-store'));
   await page.getByRole('heading', {name: 'Application password created', exact: true}).waitFor();
-  const credential = await page.locator('code').innerText();
+  const credential = await page.locator('#issued-secret').innerText();
   assert.equal(credential.length, 80);
   const encoded = Buffer.from(username + ':' + credential).toString('base64');
   privateValues.push(credential, encoded);
-  await captureWorkflow(page,'credential-once',[page.locator('main dd').filter({has:page.locator('#issued-secret')})]);
+  await captureWorkflow(page,'credential-once',[page.locator('[data-one-time-secret]')]);
   await page.goto(base + '/security/credentials');
   assert.ok(!(await page.content()).includes(credential), 'A device secret must not appear again in management');
   return {credential, encoded};

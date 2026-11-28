@@ -30,7 +30,6 @@ import org.springframework.security.oauth2.server.authorization.token.Delegating
 import org.springframework.security.oauth2.server.authorization.token.OAuth2AccessTokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -225,21 +224,11 @@ public class OAuthConfiguration {
                                       })));
             })
         .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
-        .requestCache(
-            cache -> {
-              var safe =
-                  new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
-              safe.setRequestMatcher(
-                  request ->
-                      "GET".equals(request.getMethod())
-                          && "/oauth2/authorize".equals(request.getServletPath()));
-              cache.requestCache(safe);
-            })
+        .requestCache(cache -> cache.disable())
         .exceptionHandling(
             exceptions ->
                 exceptions.defaultAuthenticationEntryPointFor(
-                    new LoginUrlAuthenticationEntryPoint("/login"),
-                    new MediaTypeRequestMatcher(MediaType.TEXT_HTML)));
+                    journey::loginRequired, new MediaTypeRequestMatcher(MediaType.TEXT_HTML)));
     // Before client authentication replaces a browser principal with the public client's identity.
     http.addFilterAfter(
         new ActiveAccountFilter(accounts),

@@ -362,9 +362,9 @@ COMMIT;""")
                 upgraded_history = json.loads(sql(environment, "SELECT json_agg(row_to_json(h) ORDER BY installed_rank) FROM flyway_schema_history h;"))
                 previous_history = json.loads(baseline_history)
                 assert upgraded_history[:len(previous_history)] == previous_history
-                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 19)]
+                assert [row['version'] for row in upgraded_history] == [str(n) for n in range(1, 20)]
                 assert sql(environment, "SELECT initialized FROM installation_state WHERE id=1;") == "t"
-                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15_V16_V17_V18", flush=True)
+                print("OPERATIONS_BASELINE_REPLACEMENT_PRESERVED_DATA_ETAGS_AND_PRIOR_MIGRATION_HISTORY_ADDED_V15_V16_V17_V18_V19", flush=True)
             compose(environment, "restart", "application")
             compose(environment, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
             checks(environment)
@@ -374,6 +374,9 @@ COMMIT;""")
                     SELECT gen_random_uuid(),id,security_epoch,'APPLICATION_PASSWORD','generic:security',now()+interval '15 minutes'
                     FROM accounts WHERE username='opsadmin';""")
                 assert sql(environment, "SELECT count(*) FROM browser_issuance_intents;") == "1"
+                sql(environment, """INSERT INTO browser_flow_state(scope,section,payload,expires_at)
+                    VALUES ('ops-browser-scope','journey','{}',now()+interval '15 minutes');""")
+                assert sql(environment, "SELECT count(*) FROM browser_flow_state;") == "1"
                 execute(["./scripts/backup.sh", str(archive)], environment)
             execute(["./scripts/backup.sh", str(archive)], environment, expected=2)
             compose(environment, "stop", "application")
@@ -389,6 +392,8 @@ COMMIT;""")
             if initial_version is None:
                 assert sql(restored, "SELECT count(*) FROM browser_issuance_intents;") == "0"
                 print("OPERATIONS_RESTORED_ISSUANCE_INTENTS_CLEARED", flush=True)
+                assert sql(restored, "SELECT count(*) FROM browser_flow_state;") == "0"
+                print("OPERATIONS_RESTORED_BROWSER_FLOWS_CLEARED", flush=True)
             if journal_checksum is not None:
                 assert sql(restored, """SELECT c.component || '|' || encode(sha256(r.content),'hex')
                     || '|' || r.etag FROM calendar_resources r JOIN collections c ON c.id=r.collection_id
@@ -406,9 +411,9 @@ COMMIT;""")
                 compose(restored, "up", "-d", "--no-build", "--wait", "--wait-timeout", "240", "application")
                 checks(restored)
                 assert sql(restored, "SELECT count(*) FROM accounts WHERE enabled;") == "0"
-                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"
+                assert sql(restored, "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19"
                 compose(restored, "stop", "application")
-                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V18_PASSED", flush=True)
+                print("OPERATIONS_V9_INVALIDATION_THEN_STARTUP_UPGRADE_TO_V19_PASSED", flush=True)
             result = json.loads(
                 sql(
                     restored,
@@ -526,7 +531,7 @@ def negative_restores(source, private, projects, networks=None):
     restore_history = "DELETE FROM flyway_schema_history; INSERT INTO flyway_schema_history SELECT * FROM json_populate_recordset(NULL::flyway_schema_history,'" + escaped + "'::json);"
     appended = "INSERT INTO flyway_schema_history(installed_rank,version,description,type,script,checksum,installed_by,execution_time,success) SELECT max(installed_rank)+1,{version},'Deliberate negative fixture','SQL','negative.sql',0,'busystack',0,true FROM flyway_schema_history;"
     cases = [
-        ("future", appended.format(version="'19'"), "supports schema versions 1 through 18"),
+        ("future", appended.format(version="'20'"), "supports schema versions 1 through 19"),
         ("failed", "UPDATE flyway_schema_history SET success=false WHERE version='13';", "Failed migration history"),
         ("gap", "DELETE FROM flyway_schema_history WHERE version='6';", "Gap in migration history"),
         ("duplicate", appended.format(version="'13'"), "Duplicate migration versions"),

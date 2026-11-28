@@ -299,7 +299,8 @@ a resource with you, give them your exact username.
 Open **Calendars, tasks & journals → Create a resource**. Select **Calendar** for
 events, **Task list** for tasks, or **Journal** for journal entries. Enter a name.
 Description and color are optional. A color can be six hex digits or eight if it
-includes opacity. The type is fixed after creation.
+includes opacity. **Choose a color** keeps the opacity digits you entered.
+Clear the value to remove the color. The type is fixed after creation.
 
 ![Empty task list explaining how to add tasks and why there is no export](images/getting-started/11-empty-task-list.png)
 
@@ -323,6 +324,13 @@ also allows permitted content and metadata changes and import. The owner alone
 manages sharing or deletes the resource. Any read/write grant makes read/write
 access effective. Removing one grant leaves other grants in effect.
 
+Choose **Remove direct grant** or **Remove group grant** in the existing row.
+Review the recipient, resource, permission and remaining access. **Cancel**
+returns to sharing with the grant intact. If BusyStack asks you to verify again,
+review the grant before confirming its removal.
+
+![Named sharing removal review with the resource, permission and cancellation](images/getting-started/28-share-removal-review.png)
+
 ![Sharing error with the typed username, linked correction and signed-in navigation](images/getting-started/27-sharing-error.png)
 
 If BusyStack cannot find the recipient, check their exact username, correct the
@@ -330,8 +338,11 @@ highlighted field and submit again.
 
 Administrators create and manage groups from **Server administration → Groups**.
 Open the group, find or enter the member's account, and review how many current
-grants apply. Future grants follow membership. Group deletion removes memberships
-and grants while retaining underlying resources. See [Groups](groups.md).
+grants apply. The account lookup shows enabled accounts eligible to join.
+Existing members stay listed on the group page. When you create a group from
+sharing, BusyStack returns you to the resource. Choose whether to grant access
+there. Future grants follow membership. Group deletion removes memberships and
+grants while retaining underlying resources. See [Groups](groups.md).
 
 ## 12 — Connect an app
 
@@ -341,8 +352,8 @@ Open **Connect an app** and choose your app. The server address includes any
 configured subpath. Use the exact address, username and a separate application
 password. Supported registered apps may use browser authorization.
 
-From a resource's **CalDAV address** section, choose **Connect an app to this
-resource** to keep its individual address available during setup.
+Choose **Connect an app** from a resource's detail page to keep its individual
+address available during setup and after signing in again.
 
 ![GNOME Calendar settings with the configured username-bearing address](images/getting-started/17-client-configuration.png)
 
@@ -362,6 +373,12 @@ If you lose the password, review existing credentials and deliberately issue a
 replacement. BusyStack cannot display an issued password again. Configure your
 app with the replacement before revoking its previous password. Verify actual
 synchronization in the app with a synthetic item.
+
+![Application password management with a separate creation action and a revoke link](images/getting-started/29-credential-management.png)
+
+Open **Security → Application passwords** to check active credentials or revoke
+one. This list stays available while issuance is busy. Use an already open
+creation form or wait for unused requests to expire before starting another.
 
 ### Thunderbird
 
@@ -483,6 +500,11 @@ The report shows committed results. If the browser loses the response, open the
 retained report again. If it has expired or the server restarted, check the
 destination in a connected app before trying again. A still-valid preview can
 be retried when BusyStack can establish a rollback.
+
+![Unavailable import report with a working route back to destination selection](images/getting-started/30-import-report-unavailable.png)
+
+An unavailable report returns you to import selection. Check the destination
+before choosing another file if you submitted confirmation.
 
 For export, open a resource and select **Export events**, **Export tasks** or
 **Export journal entries** when content is available. An empty resource explains
@@ -689,7 +711,7 @@ to make an error disappear.
 | Import preview expired after restart | Preview tokens are temporary and do not survive restart. | Check destination if an outcome was uncertain, upload again, review and confirm the new preview. |
 | Backup refuses to overwrite | Archive or `.sha256` already exists. | Choose a new private filename. Preserve the earlier backup. |
 | Restore refuses running/nonempty target | Safety checks protect existing data. | Stop all application instances and use a separately configured empty database/project. Never remove production data to satisfy the check. |
-| Restore reports unsupported/failed/gapped history | Archive history is outside reviewed schema V1–V18 or invalid. | Keep application stopped; use the matching reviewed recovery procedure and original archive. Do not suppress the check. |
+| Restore reports unsupported/failed/gapped history | Archive history is outside reviewed schema V1–V19 or invalid. | Keep application stopped; use the matching reviewed recovery procedure and original archive. Do not suppress the check. |
 | Restored accounts cannot sign in | Restore deliberately disables accounts and revokes credentials. | Independently verify each user and run the documented local/external recovery command, then re-enroll factors. |
 
 For deeper reference: [operations](operations.md), [portal](portal.md),

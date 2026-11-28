@@ -11,7 +11,7 @@ class AuthenticationJourneyTest {
   @Test
   void handlesKeepIndependentDestinationsAndRejectReplayAndChangedAccounts() {
     var base = URI.create("https://calendar.example/team");
-    var journey = new AuthenticationJourney(new DeploymentProperties(base, base, false));
+    var journey = journey(base);
     var request = new org.springframework.mock.web.MockHttpServletRequest();
     var actor = browserIdentity("owner");
     var other = browserIdentity("other");
@@ -48,7 +48,7 @@ class AuthenticationJourneyTest {
   @Test
   void validatedContinuationSurvivesPrimarySessionRotationWithoutKeepingOrdinaryState() {
     var base = URI.create("https://calendar.example/team");
-    var journey = new AuthenticationJourney(new DeploymentProperties(base, base, false));
+    var journey = journey(base);
     var request = new org.springframework.mock.web.MockHttpServletRequest();
     var response = new org.springframework.mock.web.MockHttpServletResponse();
     request.setRequestedSessionIdValid(true);
@@ -73,7 +73,7 @@ class AuthenticationJourneyTest {
   void continuationsStayInsideRootAndPrefixedApplications() {
     for (String prefix : List.of("", "/team")) {
       var base = URI.create("https://calendar.example" + prefix);
-      var journey = new AuthenticationJourney(new DeploymentProperties(base, base, false));
+      var journey = journey(base);
       assertThat(journey.safe(prefix + "/connections?client=gnome"))
           .isEqualTo(prefix + "/connections?client=gnome");
       for (String unsafe :
@@ -90,5 +90,10 @@ class AuthenticationJourneyTest {
               prefix + "/\r\nLocation: attacker"))
         assertThat(journey.safe(unsafe)).as(unsafe).isEqualTo(prefix + "/");
     }
+  }
+
+  private static AuthenticationJourney journey(URI base) {
+    return new AuthenticationJourney(
+        new DeploymentProperties(base, base, false), null, FlowStoreFixture.create());
   }
 }

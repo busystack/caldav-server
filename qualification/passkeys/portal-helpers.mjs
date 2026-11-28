@@ -81,8 +81,10 @@ export async function grantDirect(page,base,collection,username,permission) {
 export async function revokeDirect(page,base,collection,username) {
   await page.goto(base+'/collections/'+collection+'/sharing');
   const row=page.locator('table').filter({has:page.locator('caption').filter({hasText:'Accounts with direct grants'})}).locator('tbody tr').filter({has:page.getByText(username,{exact:true})});
-  await row.locator('select[name=permission]').selectOption('REVOKE');
-  await Promise.all([page.waitForURL(base+'/collections/'+collection+'/sharing'),row.getByRole('button',{name:'Save direct grant',exact:true}).click()]);
+  await row.getByRole('link',{name:'Remove direct grant',exact:true}).click();
+  await page.getByRole('heading',{name:'Remove direct access for '+username+'?',exact:true}).waitFor();
+  await Promise.all([page.waitForURL(url=>url.pathname===prefixOf(base)+'/collections/'+collection+'/sharing'),
+    page.getByRole('button',{name:'Remove direct grant',exact:true}).click()]);
 }
 
 export async function expectFieldError(page,form,field,status,label) {

@@ -11,14 +11,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class OidcLinkController {
   private final ExternalIdentityService identities;
 
-  public OidcLinkController(ExternalIdentityService identities) {
+  private final ProviderNavigation navigation;
+
+  public OidcLinkController(ExternalIdentityService identities, ProviderNavigation navigation) {
     this.identities = identities;
+    this.navigation = navigation;
   }
 
   @PostMapping("/security/identities/link")
   String link(Authentication authentication, HttpServletRequest request) {
-    var intent = identities.prepareLink(authentication);
-    request.getSession().setAttribute(LinkingAuthorizationRequestResolver.PENDING_LINK, intent);
-    return "redirect:/oauth2/authorization/upstream";
+    var intent = identities.prepareLink(authentication, request);
+    return "redirect:/oauth2/authorization/upstream?link=" + navigation.startLink(request, intent);
   }
 }

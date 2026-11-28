@@ -5,6 +5,7 @@
 <body><header th:replace="~{fragments/layout :: header}"></header><main tabindex="-1" id="main" class="auth-page">
 <div id="enrollment-stage">
   <h1>Create a passkey</h1>
+<p th:if="${continuationUnavailable}" class="notice warning" role="status">This task request ended. Verify your sign-in, then open the task again.</p>
   <p>Your browser will show the available options on this device, such as a password manager, device unlock, a phone or a security key.</p>
   <button type="button" id="register-passkey" th:attr="data-context=@{/}">Create passkey</button>
 </div>

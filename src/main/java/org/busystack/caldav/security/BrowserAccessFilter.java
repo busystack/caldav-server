@@ -116,6 +116,7 @@ public final class BrowserAccessFilter extends OncePerRequestFilter {
     if (path.equals("/session/stay") || path.equals("/welcome")) return Admission.COMPLETED;
     if (!read
         || path.startsWith("/portability/import/")
+        || path.startsWith("/forms/")
         || path.endsWith("/export")
         || path.equals("/oauth/consent")
         || path.equals("/security/identities/link")

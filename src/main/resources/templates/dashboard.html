@@ -6,7 +6,8 @@
 <main id="main" tabindex="-1">
   <th:block th:replace="~{fragments/layout :: feedback}"></th:block>
   <h1>Overview</h1>
-  <p th:text="${account.displayName == account.username ? ('Signed in as ' + account.username + '.') : ('Signed in as ' + account.displayName + ' (' + account.username + ').')}"></p>
+  <p th:if="${param.interrupted}" class="notice warning" role="status">That task request ended. Open the task again to continue.</p>
+  <p>Signed in as <span th:text="${account.displayName}"></span><th:block th:if="${account.displayName != account.username}"> (<span th:text="${account.username}"></span>)</th:block>.</p>
   <section th:if="${recentCollections.rows.isEmpty()}">
     <h2>Start with a calendar, task list or journal</h2>
     <p>Use a compatible CalDAV app to edit events, tasks and journal entries. Resources shared with you will also appear here.</p>

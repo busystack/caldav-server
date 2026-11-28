@@ -45,7 +45,7 @@ public class OidcLoginSupport implements OAuth2UserService<OidcUserRequest, Oidc
     OidcUser verified = delegate.loadUser(request);
     var servletRequest = requests.getObject();
     var session = servletRequest.getSession(false);
-    var link = LinkingAuthorizationRequestResolver.consume(servletRequest);
+    var link = ProviderNavigation.link(servletRequest);
     Instant authenticationTime = verified.getClaimAsInstant("auth_time");
     org.busystack.caldav.account.AccountService.Account account;
     try {
@@ -55,7 +55,8 @@ public class OidcLoginSupport implements OAuth2UserService<OidcUserRequest, Oidc
               verified.getSubject(),
               authenticationTime,
               link,
-              SecurityContextHolder.getContext().getAuthentication());
+              SecurityContextHolder.getContext().getAuthentication(),
+              servletRequest);
     } catch (DuplicateKeyException ex) {
       throw ExternalIdentityService.denied();
     }

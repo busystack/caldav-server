@@ -33,11 +33,13 @@ public class PasskeyPages {
       jakarta.servlet.http.HttpServletResponse response) {
     response.setHeader("Cache-Control", "no-store");
     if (initialization.available()) return "redirect:/setup";
-    journey.capture(request, response);
     String next = request.getParameter("next");
     String flow = next == null ? journey.handle(request) : journey.start(request, next, auth);
     model.addAttribute("signInFlow", flow);
     model.addAttribute("verifiedAction", journey.action(request, auth, flow));
+    String retryUsername = journey.retryUsername(request, auth, flow);
+    if (retryUsername != null && !model.containsAttribute("initialUsername"))
+      model.addAttribute("initialUsername", retryUsername);
     if (org.busystack.caldav.security.session.BrowserSession.completed(request)
         && request.getParameter("reauthenticate") == null
         && flow.isEmpty()) return "redirect:/";
@@ -56,14 +58,21 @@ public class PasskeyPages {
       @org.springframework.web.bind.annotation.RequestParam(required = false) String next) {
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Referrer-Policy", "no-referrer");
-    journey.capture(request, response);
     String flow = next == null ? journey.handle(request) : journey.start(request, next, auth);
     boolean completed = org.busystack.caldav.security.session.BrowserSession.completed(request);
+    boolean interrupted =
+        request.getParameter("interrupted") != null
+            || !flow.isEmpty() && !journey.available(request, auth, flow);
+    if (interrupted) {
+      if (completed) return "redirect:/?interrupted";
+      model.addAttribute("continuationUnavailable", true);
+      flow = "";
+    }
     if (completed
         && (flow.isEmpty() || org.busystack.caldav.security.RecentAuthentication.mfaCurrent(auth)))
       return "redirect:" + stripContext(request, journey.consume(request, auth, flow));
     if (!org.busystack.caldav.security.RecentAuthentication.primaryCurrent(auth))
-      return "redirect:/login?reauthenticate&flow=" + flow;
+      return "redirect:/login?reauthenticate&flow=" + flow + (interrupted ? "&interrupted" : "");
     model.addAttribute("signInFlow", flow);
     model.addAttribute("verifiedAction", journey.action(request, auth, flow));
     model.addAttribute("confirmingAction", completed);

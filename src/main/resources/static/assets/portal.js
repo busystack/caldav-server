@@ -156,6 +156,9 @@ document.querySelectorAll('[data-collection-type]').forEach(form => {
   };
   form.addEventListener('change', update);
   update();
+});
+
+document.querySelectorAll('[data-resource-color]').forEach(form => {
   const button = form.querySelector('[data-color-picker]');
   const picker = form.querySelector('input[type=color]');
   button.hidden = false;

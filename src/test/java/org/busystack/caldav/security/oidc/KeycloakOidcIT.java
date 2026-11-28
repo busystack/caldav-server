@@ -18,6 +18,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -269,8 +270,9 @@ class KeycloakOidcIT {
     accounts.disable(account.id());
     var revoked = client.send(get(BASE + "/probe/oidc"), HttpResponse.BodyHandlers.ofString());
     assertThat(revoked.statusCode()).isEqualTo(302);
-    assertThat(URI.create(BASE).resolve(revoked.headers().firstValue("Location").orElseThrow()))
-        .isEqualTo(URI.create(BASE + "/login"));
+    var retry = URI.create(BASE).resolve(revoked.headers().firstValue("Location").orElseThrow());
+    assertThat(retry.getPath()).isEqualTo("/login");
+    assertThat(retry.getQuery()).matches("flow=[a-f0-9-]{36}");
     var result = login(browser(), "realm-alice");
     assertThat(result.headers().firstValue("Location").orElse("")).contains("error");
   }
@@ -310,14 +312,12 @@ class KeycloakOidcIT {
     assertThat(csrf).isNotBlank();
     assertThat(post(client, BASE + "/security/identities/link", Map.of()).statusCode())
         .isEqualTo(403);
-    URI unrelatedAuthorization = beginAuthorization(client);
     var begin = post(client, BASE + "/security/identities/link", Map.of("_csrf", csrf));
     assertThat(begin.statusCode()).isEqualTo(302);
-    assertThat(URI.create(BASE).resolve(begin.headers().firstValue("Location").orElseThrow()))
-        .isEqualTo(URI.create(BASE + "/oauth2/authorization/upstream"));
-    URI linkAuthorization = beginAuthorization(client);
-    // Complete an earlier parallel request first. Its callback must leave the account
-    // untouched and must not consume the linking request's state-bound intent.
+    URI unrelatedAuthorization = beginAuthorization(client);
+    URI linkAuthorization =
+        beginAuthorization(client, begin.headers().firstValue("Location").orElseThrow());
+    // The linking redirect was paused while an unrelated tab started ordinary sign-in.
     var unrelated = completeLogin(client, unrelatedAuthorization, "realm-bob");
     assertThat(unrelated.statusCode()).isEqualTo(302);
     assertThat(unrelated.headers().firstValue("Location").orElse("")).contains("error");
@@ -368,6 +368,63 @@ class KeycloakOidcIT {
         .contains("ROLE_ADMIN", "BUSYSTACK_TRUSTED_UPSTREAM", "FACTOR_AUTHORIZATION_CODE")
         .doesNotContain("FACTOR_PASSWORD", "FACTOR_WEBAUTHN");
     transport.close();
+  }
+
+  @Test
+  @Order(4)
+  void removingTheProvingKeyBeforeTheProviderCallbackPreservesTheLocalAccount() throws Exception {
+    String password = "Existing local account password";
+    UUID owner = accounts.provision("link-proof-owner", "Proof owner", password, true);
+    var original = accounts.find(owner);
+    var dav =
+        accounts.issueDavCredential(owner, "Before callback", Instant.now().plusSeconds(3600));
+    try (var transport = new org.busystack.caldav.testing.SignedPasskeyClient(BASE, "", BASE)) {
+      var first = transport.passwordLogin(original.username(), password);
+      var proving = transport.enroll(first);
+      assertThat(
+              transport
+                  .assertCredential(transport.options(first), proving, "correct", 0x0d)
+                  .statusCode())
+          .isEqualTo(200);
+      var other = transport.passwordLogin(original.username(), password);
+      assertThat(
+              transport
+                  .assertCredential(transport.options(other), proving, "correct", 0x0d)
+                  .statusCode())
+          .isEqualTo(200);
+      var survivor = transport.enroll(other);
+      assertThat(
+              transport
+                  .assertCredential(transport.options(other), survivor, "correct", 0x0d)
+                  .statusCode())
+          .isEqualTo(200);
+      var created =
+          post(
+              first,
+              BASE + "/security/identities/link",
+              Map.of("_csrf", transport.csrf(first, "/")));
+      assertThat(created.statusCode()).isEqualTo(302);
+      URI authorization =
+          beginAuthorization(first, created.headers().firstValue("Location").orElseThrow());
+      var removed =
+          transport.request(
+              other,
+              "/webauthn/register/" + proving.id(),
+              "DELETE",
+              transport.csrf(other, "/"),
+              null);
+      assertThat(removed.statusCode()).isBetween(200, 299);
+      var callback = completeLogin(first, authorization, "realm-alice");
+      assertThat(callback.headers().firstValue("Location").orElse("")).contains("error");
+      assertThat(accounts.find(owner).passwordHash()).isEqualTo(original.passwordHash());
+      assertThat(accounts.find(owner).securityEpoch()).isEqualTo(original.securityEpoch());
+      assertThat(accounts.verifyDav(original.username(), dav.secret())).isTrue();
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM external_identities WHERE account_id=?", Long.class, owner))
+          .isZero();
+      assertThat(transport.get(other, "/").statusCode()).isEqualTo(200);
+    }
   }
 
   @Test
@@ -442,9 +499,14 @@ class KeycloakOidcIT {
   }
 
   private URI beginAuthorization(HttpClient client) throws Exception {
+    return beginAuthorization(client, BASE + "/oauth2/authorization/upstream");
+  }
+
+  private URI beginAuthorization(HttpClient client, String startUrl) throws Exception {
     var start =
         client.send(
-            get(BASE + "/oauth2/authorization/upstream"), HttpResponse.BodyHandlers.ofString());
+            get(URI.create(BASE + "/").resolve(startUrl).toString()),
+            HttpResponse.BodyHandlers.ofString());
     assertThat(start.statusCode()).isEqualTo(302);
     var authorization = URI.create(start.headers().firstValue("Location").orElseThrow());
     assertThat(authorization.toString())

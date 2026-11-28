@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @Controller
 public class ReviewFormController {
+  private static final String RECOVERED_PATH = ReviewFormController.class.getName() + ".path";
   private final AuthenticationJourney journey;
   private final FormRecovery forms;
   private final PortalPageAdvice pages;
@@ -46,6 +47,7 @@ public class ReviewFormController {
       model.addAttribute("retryPath", "/");
       return "portal-error";
     }
+    request.setAttribute(RECOVERED_PATH, draft.path());
     var original =
         new HttpServletRequestWrapper(request) {
           @Override
@@ -67,5 +69,11 @@ public class ReviewFormController {
         "Sign-in confirmed. Review your details, re-enter any required secret and submit again.");
     model.addAttribute("noticeSeverity", "info");
     return view;
+  }
+
+  static String route(HttpServletRequest request) {
+    return request.getAttribute(RECOVERED_PATH) instanceof String path
+        ? path
+        : request.getServletPath();
   }
 }

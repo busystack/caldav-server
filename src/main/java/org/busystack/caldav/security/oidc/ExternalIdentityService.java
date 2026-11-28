@@ -1,10 +1,14 @@
 package org.busystack.caldav.security.oidc;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.UUID;
 import org.busystack.caldav.account.AccountService;
+import org.busystack.caldav.security.BrowserFlowStore;
 import org.busystack.caldav.security.RecentAuthentication;
+import org.busystack.caldav.security.session.BrowserSession;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -14,34 +18,46 @@ import org.springframework.transaction.annotation.Transactional;
 /** Only the configured issuer and exact subject pair can select an internal account. */
 @Service
 public class ExternalIdentityService {
-  public record LinkIntent(UUID accountId, String username, Instant issuedAt)
-      implements java.io.Serializable {}
+  public record LinkIntent(
+      UUID accountId,
+      String username,
+      Instant issuedAt,
+      String sessionBinding,
+      BrowserSession.Proof proof) {}
 
   private final JdbcTemplate jdbc;
   private final OidcProperties properties;
   private final AccountService accounts;
   private final org.busystack.caldav.security.session.ClientAccessRevocation revocation;
-  private final org.busystack.caldav.security.session.SessionSecurity sessions;
+  private final BrowserSession browser;
 
   public ExternalIdentityService(
       JdbcTemplate jdbc,
       OidcProperties properties,
       AccountService accounts,
       org.busystack.caldav.security.session.ClientAccessRevocation revocation,
-      org.busystack.caldav.security.session.SessionSecurity sessions) {
+      BrowserSession browser) {
     this.jdbc = jdbc;
     this.properties = properties;
     this.accounts = accounts;
     this.revocation = revocation;
-    this.sessions = sessions;
+    this.browser = browser;
   }
 
-  public LinkIntent prepareLink(Authentication authentication) {
+  public LinkIntent prepareLink(Authentication authentication, HttpServletRequest request) {
     RecentAuthentication.requireMfa(authentication);
-    sessions.assertCurrent(authentication);
+    var proof = browser.requireProof(request, authentication);
     var account = accounts.find(authentication.getName());
-    if (account == null || !account.enabled() || !properties.enabled()) throw denied();
-    return new LinkIntent(account.id(), account.username(), Instant.now());
+    if (account == null
+        || !account.enabled()
+        || !properties.enabled()
+        || accounts.isExternallyManaged(account.id())) throw denied();
+    return new LinkIntent(
+        account.id(),
+        account.username(),
+        Instant.now(),
+        BrowserFlowStore.fingerprint(request.getSession(false).getId()),
+        proof);
   }
 
   @Transactional
@@ -51,6 +67,17 @@ public class ExternalIdentityService {
       Instant authenticatedAt,
       LinkIntent link,
       Authentication current) {
+    return verifiedLogin(issuer, subject, authenticatedAt, link, current, null);
+  }
+
+  @Transactional
+  public AccountService.Account verifiedLogin(
+      String issuer,
+      String subject,
+      Instant authenticatedAt,
+      LinkIntent link,
+      Authentication current,
+      HttpServletRequest request) {
     Instant now = Instant.now();
     if (!properties.enabled()
         || !properties.issuer().toString().equals(issuer)
@@ -71,16 +98,17 @@ public class ExternalIdentityService {
             subject);
     UUID accountId;
     if (link != null) {
-      RecentAuthentication.requireMfa(current);
       jdbc.query("SELECT id FROM accounts WHERE id=? FOR UPDATE", rs -> {}, link.accountId());
       try {
-        sessions.assertCurrent(current);
-      } catch (org.springframework.security.access.AccessDeniedException ex) {
+        RecentAuthentication.requireMfa(current);
+        if (request == null
+            || !link.issuedAt().isAfter(Instant.now().minusSeconds(300))
+            || !link.username().equals(current.getName())
+            || !link.accountId().equals(link.proof().account())) throw denied();
+        browser.lockLinkProof(request, current, link.sessionBinding(), link.proof());
+      } catch (AccessDeniedException ex) {
         throw denied();
       }
-      if (!link.issuedAt().isAfter(now.minusSeconds(300))
-          || current == null
-          || !link.username().equals(current.getName())) throw denied();
       var target = accounts.find(link.accountId());
       if (target == null || !target.enabled() || !target.username().equals(link.username()))
         throw denied();

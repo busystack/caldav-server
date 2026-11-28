@@ -14,7 +14,7 @@ INTERNAL_USERNAME = "federated-browser"
 SUBJECT = "d0880a2f-bb8e-4f40-84dd-f0707fe08c77"
 
 
-def configure(root, directory, base, execute, environment, display_name="Federated Browser"):
+def configure(root, directory, base, execute, environment):
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -69,7 +69,7 @@ def configure(root, directory, base, execute, environment, display_name="Federat
                 "environment": {
                     "SPRING_APPLICATION_JSON": json.dumps({"busystack": {"oidc": {
                         "enabled": True, "issuer": issuer, "client-id": "busystack-browser-upstream",
-                        "allowed-users": [{"subject": SUBJECT, "username": INTERNAL_USERNAME, "display-name": display_name}]
+                        "allowed-users": [{"subject": SUBJECT, "username": INTERNAL_USERNAME, "display-name": "Federated Browser"}]
                     }}}),
                     "JDK_JAVA_OPTIONS": "@/tls/client-trust.args",
                 },

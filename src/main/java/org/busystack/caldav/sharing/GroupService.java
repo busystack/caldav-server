@@ -108,6 +108,35 @@ public class GroupService {
         page);
   }
 
+  public org.busystack.caldav.management.PortalPage<MemberView> eligibleMembers(
+      Authentication auth, UUID group, String query, int page) {
+    administrator(auth);
+    requireGroup(group);
+    if (query == null || query.length() > 200)
+      throw new IllegalArgumentException("Search is limited to 200 characters");
+    return org.busystack.caldav.management.PortalPage.of(
+        jdbc.query(
+            """
+            SELECT a.id,a.username,a.display_name,a.enabled FROM accounts a
+            WHERE a.enabled AND NOT EXISTS (
+              SELECT 1 FROM sharing_group_members m WHERE m.group_id=? AND m.account_id=a.id
+            )
+            AND (strpos(lower(a.username),lower(?))>0 OR strpos(lower(a.display_name),lower(?))>0)
+            ORDER BY a.username,a.id LIMIT 51 OFFSET ?
+            """,
+            (rs, row) ->
+                new MemberView(
+                    rs.getObject(1, UUID.class),
+                    rs.getString(2),
+                    rs.getString(3),
+                    rs.getBoolean(4)),
+            group,
+            query,
+            query,
+            org.busystack.caldav.management.PortalPage.offset(page)),
+        page);
+  }
+
   @Transactional(timeout = 30)
   public void rename(Authentication auth, UUID group, String expected, String name) {
     RecentAuthentication.requireMfa(auth);
@@ -183,7 +212,12 @@ public class GroupService {
                 "DELETE FROM sharing_group_members WHERE group_id=? AND account_id=?",
                 group,
                 member);
-    if (changed != 1) throw new StoreException(StoreException.Kind.PRECONDITION);
+    if (changed != 1) {
+      if (add)
+        throw org.busystack.caldav.management.FormValidation.conflict(
+            "username", "This account already belongs to the group. Review the current members.");
+      throw new StoreException(StoreException.Kind.PRECONDITION);
+    }
     reconcileAffected(group);
     jdbc.query("SELECT set_config('busystack.defer_dav_bindings','off',true)", rs -> {});
     audit.targeted(
@@ -281,6 +315,20 @@ public class GroupService {
             (rs, row) -> new Choice(rs.getObject(1, UUID.class), rs.getString(2)));
     if (choices.size() > 1000) limit();
     return List.copyOf(choices);
+  }
+
+  public List<Choice> eligibleGroups(Authentication auth, UUID collection) {
+    sessions.assertCurrent(auth);
+    return jdbc.query(
+        """
+        SELECT g.id,g.name FROM sharing_groups g
+        WHERE NOT EXISTS (
+          SELECT 1 FROM collection_group_members m WHERE m.collection_id=? AND m.group_id=g.id
+        )
+        ORDER BY g.name,g.id LIMIT 1000
+        """,
+        (rs, row) -> new Choice(rs.getObject(1, UUID.class), rs.getString(2)),
+        collection);
   }
 
   public List<Grant> ownedGrants(Authentication authentication) {

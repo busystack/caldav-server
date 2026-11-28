@@ -169,11 +169,8 @@ def main():
         issuer = None
         if args.oidc:
             operations.execute(["docker", "image", "inspect", oidc.IMAGE], environment)
-            # The protected restore probe matches the exact visible account label at backup.
-            # Give the synthetic restore principal its login name as that label.
-            display_name = oidc.INTERNAL_USERNAME if args.restore else "Federated Browser"
             upstream_override, issuer = oidc.configure(
-                ROOT, directory, base, operations.execute, environment, display_name=display_name)
+                ROOT, directory, base, operations.execute, environment)
             environment["COMPOSE_FILE"] += ":" + str(upstream_override)
         environments = [environment.copy()]
         checkpoint = recovery.Checkpoint(ROOT, directory, operations, base, oidc if args.oidc else None, issuer, environments) if args.restore else None

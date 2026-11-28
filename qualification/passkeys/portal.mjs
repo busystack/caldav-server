@@ -58,7 +58,7 @@ export async function qualifyPersonalPortal(page,base,privateValues,username,suf
   await confirmImport(page,base);
   await captureWorkflow(page,'import-results');
   assert.equal(await page.getByRole('cell',{name:'Imported',exact:true}).count(),2);
-  await page.goto(base+'/security/credentials');
+  await page.goto(base+'/security/credentials/new');
   const credential=page.locator('form').filter({has:page.getByRole('button',{name:'Create application password',exact:true})});
   await credential.locator('[name=label]').fill('Retain device'); await credential.locator('[name=days]').fill('366');
   await expectFieldError(page,credential,'days',400,'credential-create');

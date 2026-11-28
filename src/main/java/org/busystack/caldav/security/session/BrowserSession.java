@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import org.busystack.caldav.security.BrowserFlowStore;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.FactorGrantedAuthority;
@@ -25,7 +26,7 @@ public class BrowserSession {
     EXPIRED
   }
 
-  private record Proof(UUID account, UUID epoch, String key, Instant established, Instant asserted)
+  public record Proof(UUID account, UUID epoch, String key, Instant established, Instant asserted)
       implements Serializable {}
 
   private final JdbcTemplate jdbc;
@@ -88,6 +89,46 @@ public class BrowserSession {
 
   public static boolean completed(HttpServletRequest request) {
     return Boolean.TRUE.equals(request.getAttribute(CURRENT));
+  }
+
+  public Proof requireProof(HttpServletRequest request, Authentication authentication) {
+    if (state(request, authentication) != State.CURRENT)
+      throw new org.springframework.security.access.AccessDeniedException(
+          "Current passkey verification is required");
+    return (Proof) request.getSession(false).getAttribute(PROOF);
+  }
+
+  /** Called with the account locked in the privileged transaction. */
+  public void lockLinkProof(
+      HttpServletRequest request,
+      Authentication authentication,
+      String sessionBinding,
+      Proof bound) {
+    var session = request.getSession(false);
+    if (session == null
+        || !sessionBinding.equals(BrowserFlowStore.fingerprint(session.getId()))
+        || !bound.equals(requireProof(request, authentication)))
+      throw new org.springframework.security.access.AccessDeniedException(
+          "Link verification ended");
+    var current =
+        jdbc.queryForList(
+            "SELECT session_id FROM spring_session WHERE session_id=? AND expiry_time>? FOR UPDATE",
+            String.class,
+            session.getId(),
+            clock.millis());
+    var keys =
+        jdbc.queryForList(
+            """
+        SELECT c.credential_id FROM user_credentials c
+        JOIN user_entities u ON u.id=c.user_entity_user_id
+        WHERE c.credential_id=? AND u.account_id=? FOR UPDATE OF c
+        """,
+            String.class,
+            bound.key(),
+            bound.account());
+    if (current.isEmpty() || keys.isEmpty())
+      throw new org.springframework.security.access.AccessDeniedException(
+          "Link verification ended");
   }
 
   public Instant overallDeadline(HttpServletRequest request) {

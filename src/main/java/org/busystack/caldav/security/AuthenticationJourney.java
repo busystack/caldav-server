@@ -13,7 +13,6 @@ import java.util.UUID;
 import org.busystack.caldav.config.DeploymentProperties;
 import org.busystack.caldav.security.session.SessionSecurity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -22,37 +21,47 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Component
 public class AuthenticationJourney {
-  private static final String FLOWS = "SPRING_SECURITY_BUSYSTACK_FLOWS";
-  private static final String UPSTREAM = "SPRING_SECURITY_BUSYSTACK_UPSTREAM_FLOW";
-  private static final String DEFAULT = "SPRING_SECURITY_BUSYSTACK_FLOW";
+  private static final String SECTION = "journey";
+  private static final String PROVIDER_FLOW =
+      AuthenticationJourney.class.getName() + ".providerFlow";
   private static final Duration LIFETIME = Duration.ofMinutes(15);
   private static final int MAX_FLOWS = 8;
   private static final int MAX_PATH_BYTES = 4096;
   private final String prefix;
   private final SessionSecurity sessions;
-  private final HttpSessionRequestCache cache = new HttpSessionRequestCache();
+  private final BrowserFlowStore store;
+
+  private record FlowState(
+      LinkedHashMap<String, Flow> flows, java.util.Map<String, String> defaults) {
+    FlowState() {
+      this(new LinkedHashMap<>(), new java.util.HashMap<>());
+    }
+  }
 
   private record Owner(UUID account, String username, UUID epoch) implements Serializable {}
 
-  private record Flow(String destination, Owner owner, Instant expires, Draft draft, boolean ready)
+  private record Flow(
+      String destination,
+      Owner owner,
+      Instant expires,
+      Draft draft,
+      boolean ready,
+      String retryUsername)
       implements Serializable {
     boolean belongsTo(Owner current) {
       return owner == null || owner.equals(current);
     }
 
     Flow bind(Owner current) {
-      return new Flow(destination, current, expires, draft, ready);
+      return new Flow(destination, current, expires, draft, ready, null);
     }
   }
 
-  AuthenticationJourney(DeploymentProperties deployment) {
-    this(deployment, null);
-  }
-
-  @org.springframework.beans.factory.annotation.Autowired
-  public AuthenticationJourney(DeploymentProperties deployment, SessionSecurity sessions) {
+  public AuthenticationJourney(
+      DeploymentProperties deployment, SessionSecurity sessions, BrowserFlowStore store) {
     prefix = deployment.publicBaseUrl().getPath();
     this.sessions = sessions;
+    this.store = store;
   }
 
   private Owner owner(Authentication authentication) {
@@ -98,41 +107,58 @@ public class AuthenticationJourney {
       String query = uri.getRawQuery();
       if (query == null) return path;
       var allowed =
-          local.equals("/oauth2/authorize")
-              ? java.util.Set.of(
-                  "response_type",
-                  "client_id",
-                  "redirect_uri",
-                  "scope",
-                  "state",
-                  "code_challenge",
-                  "code_challenge_method")
-              : java.util.Set.of(
-                  "client",
-                  "from",
-                  "destination",
-                  "scope",
-                  "q",
-                  "status",
-                  "method",
-                  "page",
-                  "directPage",
-                  "groupPage",
-                  "effectivePage",
-                  "component",
-                  "action",
-                  "outcome",
-                  "username",
-                  "returnCollection",
-                  "member");
+          local.equals("/oauth/consent")
+              ? java.util.Set.of("client_id", "state")
+              : local.equals("/oauth2/authorize")
+                  ? java.util.Set.of(
+                      "response_type",
+                      "client_id",
+                      "redirect_uri",
+                      "scope",
+                      "state",
+                      "code_challenge",
+                      "code_challenge_method")
+                  : java.util.Set.of(
+                      "client",
+                      "from",
+                      "destination",
+                      "scope",
+                      "q",
+                      "status",
+                      "method",
+                      "page",
+                      "directPage",
+                      "groupPage",
+                      "effectivePage",
+                      "component",
+                      "action",
+                      "outcome",
+                      "username",
+                      "returnCollection",
+                      "member");
       var fields =
           java.util.Arrays.stream(query.split("&"))
-              .filter(parameter -> allowed.contains(parameter.split("=", 2)[0]))
+              .filter(parameter -> allowedQuery(allowed, local, parameter))
               .toList();
       return fields.isEmpty() ? path : path + "?" + String.join("&", fields);
     } catch (IllegalArgumentException invalid) {
       return prefix + "/";
     }
+  }
+
+  private static boolean allowedQuery(
+      java.util.Set<String> allowed, String path, String parameter) {
+    String[] field = parameter.split("=", 2);
+    if (field.length != 2) return false;
+    if (field[0].equals("resource"))
+      return (path.equals("/connections")
+              || path.equals("/security/credentials")
+              || path.equals("/security/credentials/new"))
+          && validHandle(field[1]);
+    if (field[0].equals("returnCollection")) return validHandle(field[1]);
+    if (field[0].equals("memberQuery") || field[0].equals("memberPage"))
+      return path.startsWith("/admin/groups/");
+    return allowed.contains(field[0]);
   }
 
   public record Draft(String path, java.util.Map<String, String> fields) implements Serializable {
@@ -147,20 +173,31 @@ public class AuthenticationJourney {
 
   public String start(
       HttpServletRequest request, String destination, Authentication auth, Draft draft) {
-    var session = request.getSession();
-    var flows = flows(request);
+    return store.update(
+        request,
+        true,
+        SECTION,
+        FlowState.class,
+        FlowState::new,
+        state -> add(state, destination, owner(auth), draft));
+  }
+
+  private String add(FlowState state, String destination, Owner owner, Draft draft) {
+    var flows = flows(state);
     String handle = UUID.randomUUID().toString();
-    var flow = new Flow(safe(destination), owner(auth), Instant.now().plus(LIFETIME), draft, false);
-    flows.put(handle, flow);
+    flows.put(
+        handle,
+        new Flow(safe(destination), owner, Instant.now().plus(LIFETIME), draft, false, null));
     while (flows.size() > MAX_FLOWS
         || flows.values().stream().mapToInt(AuthenticationJourney::bytes).sum() > 32768)
       flows.pollFirstEntry();
-    session.setAttribute(FLOWS, flows);
     return handle;
   }
 
   private static int bytes(Flow flow) {
-    int size = flow.destination().getBytes(StandardCharsets.UTF_8).length;
+    int size =
+        flow.destination().getBytes(StandardCharsets.UTF_8).length
+            + (flow.retryUsername() == null ? 0 : flow.retryUsername().length());
     if (flow.draft() != null) {
       size += flow.draft().path().length();
       for (var field : flow.draft().fields().entrySet())
@@ -170,67 +207,124 @@ public class AuthenticationJourney {
   }
 
   public void remember(HttpServletRequest request, String destination) {
-    request.getSession().setAttribute(DEFAULT, start(request, destination, null));
+    store.update(
+        request,
+        true,
+        SECTION,
+        FlowState.class,
+        FlowState::new,
+        state -> {
+          state.defaults().put("default", add(state, destination, null, null));
+          return null;
+        });
   }
 
-  public void capture(HttpServletRequest request, HttpServletResponse response) {
-    var saved = cache.getRequest(request, response);
-    if (saved == null) return;
-    try {
-      if ("GET".equals(saved.getMethod())) {
-        URI uri = URI.create(saved.getRedirectUrl());
-        remember(
-            request, uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery()));
-      }
-    } finally {
-      cache.removeRequest(request, response);
-    }
+  private FlowState state(HttpServletRequest request) {
+    return store.read(request, SECTION, FlowState.class, FlowState::new);
   }
 
-  @SuppressWarnings("unchecked")
-  private LinkedHashMap<String, Flow> flows(HttpServletRequest request) {
-    var session = request.getSession(false);
-    Object value = session == null ? null : session.getAttribute(FLOWS);
-    var flows =
-        value instanceof LinkedHashMap<?, ?> stored
-            ? new LinkedHashMap<>((LinkedHashMap<String, Flow>) stored)
-            : new LinkedHashMap<String, Flow>();
-    Instant now = Instant.now();
-    flows.values().removeIf(flow -> !flow.expires().isAfter(now));
-    return flows;
+  private static LinkedHashMap<String, Flow> flows(FlowState state) {
+    state.flows().values().removeIf(flow -> !BrowserFlowStore.current(flow.expires()));
+    return state.flows();
   }
 
-  private record ProviderFlow(String state, String handle) implements Serializable {}
-
-  public void rememberProviderFlow(HttpServletRequest request, String state) {
-    String handle = handle(request);
-    if (state != null && !handle.isEmpty() && flows(request).containsKey(handle))
-      request.getSession().setAttribute(UPSTREAM, new ProviderFlow(state, handle));
+  public static boolean validHandle(String handle) {
+    return handle != null && handle.matches("[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}");
   }
 
-  private String providerFlow(HttpServletRequest request) {
-    var session = request.getSession(false);
-    if (session == null
-        || !(session.getAttribute(UPSTREAM) instanceof ProviderFlow flow)
-        || !flow.state().equals(request.getParameter("state"))) return null;
-    session.removeAttribute(UPSTREAM);
-    return flow.handle();
+  public void providerCallback(HttpServletRequest request, String handle) {
+    request.setAttribute(PROVIDER_FLOW, handle == null ? "" : handle);
   }
 
   public String handle(HttpServletRequest request) {
     String explicit = request.getParameter("flow");
-    if (explicit != null) return explicit.matches("[a-f0-9-]{36}") ? explicit : "";
-    var session = request.getSession(false);
-    return session != null && session.getAttribute(DEFAULT) instanceof String handle ? handle : "";
+    if (explicit != null) return validHandle(explicit) ? explicit : "";
+    return state(request).defaults().getOrDefault("default", "");
+  }
+
+  public boolean available(HttpServletRequest request, Authentication auth, String handle) {
+    var flow = flows(state(request)).get(handle);
+    return flow != null && flow.belongsTo(owner(auth));
   }
 
   public String destination(HttpServletRequest request) {
-    var flow = flows(request).get(handle(request));
+    var flow = flows(state(request)).get(handle(request));
     return flow != null && flow.owner() == null ? flow.destination() : prefix + "/";
   }
 
+  public void loginRequired(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      org.springframework.security.core.AuthenticationException ignored)
+      throws IOException {
+    if (!"GET".equals(request.getMethod())
+        || "/".equals(request.getServletPath()) && request.getQueryString() == null) {
+      response.sendRedirect(prefix + "/login");
+      return;
+    }
+    response.sendRedirect(
+        prefix + "/login?flow=" + start(request, BrowserAccessFilter.destination(request), null));
+  }
+
+  public void primaryFailure(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      org.springframework.security.core.AuthenticationException ignored)
+      throws IOException {
+    String handle = requestedHandle(request);
+    var flow = flows(state(request)).get(handle);
+    String target = prefix + "/login?error";
+    if (flow != null) {
+      target += (flow.owner() == null ? "" : "&reauthenticate") + "&flow=" + handle;
+      String username = request.getParameter("username");
+      if (flow.owner() == null
+          && "/login".equals(request.getServletPath())
+          && username != null
+          && username.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")) {
+        store.update(
+            request,
+            false,
+            SECTION,
+            FlowState.class,
+            FlowState::new,
+            state -> {
+              state
+                  .flows()
+                  .computeIfPresent(
+                      handle,
+                      (key, current) ->
+                          current.owner() == null
+                              ? new Flow(
+                                  current.destination(),
+                                  null,
+                                  current.expires(),
+                                  current.draft(),
+                                  current.ready(),
+                                  username)
+                              : current);
+              return null;
+            });
+      }
+    } else if (!handle.isEmpty()
+        || request.getParameter("flow") != null && !request.getParameter("flow").isEmpty()) {
+      target += "&interrupted";
+    }
+    response.setHeader("Cache-Control", "no-store");
+    response.sendRedirect(target);
+  }
+
+  public String retryUsername(
+      HttpServletRequest request, Authentication authentication, String handle) {
+    var flow = flows(state(request)).get(handle);
+    return flow != null && flow.belongsTo(owner(authentication)) ? flow.retryUsername() : null;
+  }
+
+  private String requestedHandle(HttpServletRequest request) {
+    return request.getAttribute(PROVIDER_FLOW) instanceof String handle ? handle : handle(request);
+  }
+
   public String action(HttpServletRequest request, Authentication auth, String handle) {
-    var flow = flows(request).get(handle);
+    var flow = flows(state(request)).get(handle);
     if (flow == null || flow.owner() == null || !flow.belongsTo(owner(auth))) return null;
     String path =
         flow.draft() == null
@@ -251,47 +345,77 @@ public class AuthenticationJourney {
   }
 
   public String consume(HttpServletRequest request, Authentication auth, String handle) {
-    var flows = flows(request);
-    var flow = flows.remove(handle);
-    String target = prefix + "/";
-    if (flow != null && flow.belongsTo(owner(auth)) && !flow.ready()) {
-      target = flow.destination();
-      if (flow.draft() != null) {
-        flows.put(
-            handle, new Flow(flow.destination(), flow.owner(), flow.expires(), flow.draft(), true));
-        target = prefix + "/forms/" + handle;
-      }
-    }
-    var session = request.getSession(false);
-    if (session != null) {
-      session.setAttribute(FLOWS, flows);
-      if (handle.equals(session.getAttribute(DEFAULT))) session.removeAttribute(DEFAULT);
-    }
-    return target;
+    if (!validHandle(handle)) return prefix + "/";
+    Owner current = owner(auth);
+    return store.update(
+        request,
+        false,
+        SECTION,
+        FlowState.class,
+        FlowState::new,
+        state -> {
+          var flows = flows(state);
+          var flow = flows.get(handle);
+          if (flow == null || !flow.belongsTo(current) || flow.ready()) return prefix + "/";
+          state.defaults().remove("default", handle);
+          if (flow.draft() == null) {
+            flows.remove(handle);
+            return flow.destination();
+          }
+          flows.put(
+              handle,
+              new Flow(flow.destination(), current, flow.expires(), flow.draft(), true, null));
+          return prefix + "/forms/" + handle;
+        });
   }
 
   public Draft takeDraft(HttpServletRequest request, Authentication auth, String handle) {
-    var flows = flows(request);
-    var flow = flows.get(handle);
-    if (flow == null || !flow.ready() || !flow.belongsTo(owner(auth))) return null;
-    flows.remove(handle);
-    request.getSession().setAttribute(FLOWS, flows);
-    return flow.draft();
+    if (!validHandle(handle)) return null;
+    Owner current = owner(auth);
+    return store.update(
+        request,
+        false,
+        SECTION,
+        FlowState.class,
+        FlowState::new,
+        state -> {
+          var flows = flows(state);
+          var flow = flows.get(handle);
+          if (flow == null || !flow.ready() || !flow.belongsTo(current)) return null;
+          flows.remove(handle);
+          return flow.draft();
+        });
   }
 
   public void primarySuccess(
       HttpServletRequest request, HttpServletResponse response, Authentication auth)
       throws IOException {
-    capture(request, response);
-    var flows = flows(request);
-    String upstream = providerFlow(request);
-    String handle = upstream == null ? handle(request) : upstream;
-    Owner current = owner(auth);
-    flows.values().removeIf(flow -> !flow.belongsTo(current));
-    if (flows.containsKey(handle))
-      flows.computeIfPresent(handle, (key, flow) -> flow.bind(current));
-    request.getSession().setAttribute(FLOWS, flows);
-    response.sendRedirect(prefix + "/auth/continue" + (handle.isEmpty() ? "" : "?flow=" + handle));
+    String handle = requestedHandle(request);
+    String target = prefix + "/auth/continue";
+    if (validHandle(handle)) {
+      Owner current = owner(auth);
+      target =
+          store.update(
+              request,
+              false,
+              SECTION,
+              FlowState.class,
+              FlowState::new,
+              state -> {
+                var flows = flows(state);
+                var flow = flows.get(handle);
+                if (flow == null || !flow.belongsTo(current) || flow.ready())
+                  return prefix + "/auth/continue?interrupted";
+                if (flow.destination().equals(prefix + "/security/recovery/use")) {
+                  flows.remove(handle);
+                  state.defaults().remove("default", handle);
+                  return flow.destination();
+                }
+                flows.put(handle, flow.bind(current));
+                return prefix + "/auth/continue?flow=" + handle;
+              });
+    }
+    response.sendRedirect(target);
   }
 
   public void passkeySuccess(

@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component;
 /** Account/epoch-bound previews; filesystem cleanup is deliberately outside database atomicity. */
 @Component
 public class ImportStaging {
+  static final class Unavailable extends StoreException {
+    Unavailable() {
+      super(Kind.PRECONDITION);
+    }
+  }
+
   public enum State {
     AVAILABLE,
     CONFIRMING,
@@ -116,8 +122,7 @@ public class ImportStaging {
         || !stage.epoch.equals(epoch)
         || stage.state == State.CANCELLED
         || stage.state == State.EXPIRED
-        || stage.state == State.UNAVAILABLE)
-      throw new StoreException(StoreException.Kind.PRECONDITION);
+        || stage.state == State.UNAVAILABLE) throw new Unavailable();
     return stage;
   }
 

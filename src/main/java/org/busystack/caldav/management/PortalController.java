@@ -101,7 +101,7 @@ public class PortalController {
     model.addAttribute("directGrants", portal.direct(auth, id, directPage));
     model.addAttribute("groupGrants", portal.groupGrants(auth, id, groupPage));
     model.addAttribute("effectiveMembers", portal.effective(auth, id, effectivePage));
-    model.addAttribute("groupChoices", groups.choices(auth));
+    model.addAttribute("groupChoices", groups.eligibleGroups(auth, id));
     return "collection-sharing";
   }
 
@@ -133,11 +133,37 @@ public class PortalController {
       @RequestParam(required = false) UUID resource,
       Model model,
       jakarta.servlet.http.HttpServletResponse response) {
+    return credentialPage(auth, page, client, from, resource, model, response, false);
+  }
+
+  @GetMapping("/security/credentials/new")
+  String prepareCredential(
+      Authentication auth,
+      @RequestParam(defaultValue = "generic") String client,
+      @RequestParam(defaultValue = "security") String from,
+      @RequestParam(required = false) UUID resource,
+      Model model,
+      jakarta.servlet.http.HttpServletResponse response) {
+    return credentialPage(auth, 0, client, from, resource, model, response, true);
+  }
+
+  private String credentialPage(
+      Authentication auth,
+      int page,
+      String client,
+      String from,
+      UUID resource,
+      Model model,
+      jakarta.servlet.http.HttpServletResponse response,
+      boolean prepare) {
     model.addAttribute("client", client(client));
     model.addAttribute("credentialOrigin", credentialOrigin(from));
     UUID selected = credentialResource(from, resource);
     connectionResource(portal, auth, selected, model);
-    if (page == 0)
+    model.addAttribute("credentialPage", portal.credentials(auth, page));
+    org.busystack.caldav.security.IssuancePages.protect(response);
+    if (!prepare) return "credentials";
+    try {
       model.addAttribute(
           "issuanceIntent",
           intents
@@ -146,8 +172,11 @@ public class PortalController {
                   org.busystack.caldav.security.IssuanceIntents.Purpose.APPLICATION_PASSWORD,
                   issuanceContext(client, from, selected))
               .id());
-    org.busystack.caldav.security.IssuancePages.protect(response);
-    model.addAttribute("credentialPage", portal.credentials(auth, page));
+    } catch (org.busystack.caldav.security.IssuanceIntents.Unavailable unavailable) {
+      if (!unavailable.busy()) throw unavailable;
+      response.setStatus(503);
+      model.addAttribute("issuanceMessage", unavailable.getMessage());
+    }
     return "credentials";
   }
 

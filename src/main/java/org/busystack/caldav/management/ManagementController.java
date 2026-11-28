@@ -66,6 +66,11 @@ public class ManagementController {
       @RequestParam(defaultValue = "") String permission,
       @RequestParam String expected,
       RedirectAttributes flash) {
+    if ("REVOKE".equals(permission)) {
+      if (!username.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}"))
+        throw FormValidation.field("username", "Choose the exact username of the recipient.");
+      return "redirect:/collections/" + collection + "/sharing/account/" + username + "/remove";
+    }
     sharing.direct(auth, collection, username, permission, expected);
     flash.addFlashAttribute(
         "notice",

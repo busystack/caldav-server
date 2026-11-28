@@ -16,18 +16,24 @@ public final class FormRecovery {
   private final AdministrationService administration;
   private final GroupService groups;
   private final PortabilityService portability;
+  private final SharingManagementService sharing;
+  private final org.busystack.caldav.security.oauth.OAuthClientService oauthClients;
 
   public FormRecovery(
       ManagementService management,
       PortalService portal,
       AdministrationService administration,
       GroupService groups,
-      PortabilityService portability) {
+      PortabilityService portability,
+      SharingManagementService sharing,
+      org.busystack.caldav.security.oauth.OAuthClientService oauthClients) {
     this.management = management;
     this.portal = portal;
     this.administration = administration;
     this.groups = groups;
     this.portability = portability;
+    this.sharing = sharing;
+    this.oauthClients = oauthClients;
   }
 
   private static int page(HttpServletRequest request, String name) {
@@ -60,7 +66,26 @@ public final class FormRecovery {
       view = "collection";
     } else if (path.equals("/admin/groups")) {
       groups.search(auth, "", 0);
+      String target = request.getParameter("returnCollection");
+      GroupManagementController.renderReturn(
+          portal, auth, target == null || target.isBlank() ? null : UUID.fromString(target), model);
       view = "group-new";
+    } else if (path.matches("/admin/groups/[a-f0-9-]{36}/members/[a-f0-9-]{36}/remove")) {
+      String[] segments = path.split("/");
+      String q =
+          Objects.requireNonNullElse(
+              request.getParameter("memberQuery"),
+              Objects.requireNonNullElse(request.getParameter("q"), ""));
+      int page = page(request, request.getParameter("memberPage") == null ? "page" : "memberPage");
+      return GroupManagementController.memberRemoval(
+          groups,
+          auth,
+          UUID.fromString(segments[3]),
+          UUID.fromString(segments[5]),
+          q,
+          page,
+          Objects.requireNonNullElse(request.getParameter("expectedGrants"), ""),
+          model);
     } else if (path.matches("/admin/groups/[a-f0-9-]{36}(/members(/[a-f0-9-]{36}/remove)?)?")) {
       UUID id = UUID.fromString(path.split("/")[3]);
       model.addAttribute("group", groups.detail(auth, id));
@@ -70,6 +95,25 @@ public final class FormRecovery {
           "memberPage", groups.members(auth, id, query, page(request, "memberPage")));
       model.addAttribute("query", query);
       view = "group-detail";
+    } else if (path.equals("/admin/oauth-clients")) {
+      model.addAttribute("clients", oauthClients.list(auth));
+      model.addAttribute("clientId", request.getParameter("clientId"));
+      model.addAttribute("clientName", request.getParameter("name"));
+      model.addAttribute("redirects", request.getParameter("redirects"));
+      view = "oauth-clients";
+    } else if (path.matches("/collections/[a-f0-9-]{36}/sharing/(account|group)/[^/]+/remove")) {
+      String[] segments = path.split("/");
+      return SharingReviewController.review(
+          sharing,
+          auth,
+          UUID.fromString(segments[2]),
+          segments[4],
+          segments[5],
+          page(request, "directPage"),
+          page(request, "groupPage"),
+          page(request, "effectivePage"),
+          Objects.requireNonNullElse(request.getParameter("expected"), ""),
+          model);
     } else if (path.equals("/shares") || path.equals("/group-shares")) {
       UUID id = UUID.fromString(Objects.requireNonNullElse(request.getParameter("collection"), ""));
       model.addAttribute("collection", portal.owner(auth, id));
@@ -77,7 +121,7 @@ public final class FormRecovery {
       model.addAttribute("groupGrants", portal.groupGrants(auth, id, page(request, "groupPage")));
       model.addAttribute(
           "effectiveMembers", portal.effective(auth, id, page(request, "effectivePage")));
-      model.addAttribute("groupChoices", groups.choices(auth));
+      model.addAttribute("groupChoices", groups.eligibleGroups(auth, id));
       view = "collection-sharing";
     } else if (path.equals("/credentials")) {
       model.addAttribute(
@@ -121,6 +165,7 @@ public final class FormRecovery {
           case "collection-new" -> "collection-create";
           case "collection" -> "collection-edit";
           case "group-new" -> "group-create";
+          case "oauth-clients" -> "native-app";
           case "group-detail" ->
               path.endsWith("/remove")
                   ? "member-remove-" + path.split("/")[5]
@@ -153,6 +198,7 @@ public final class FormRecovery {
             "permission",
             "group",
             "expected",
+            "expectedGrants",
             "state")) {
       String value = request.getParameter(field);
       if (value != null) values.put(field, value.substring(0, Math.min(value.length(), 8001)));

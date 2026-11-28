@@ -146,6 +146,8 @@ public class SecurityConfiguration {
       org.busystack.caldav.security.session.SessionSecurity sessions,
       org.busystack.caldav.security.throttle.LoginThrottleService throttle,
       AuthenticationJourney journey,
+      BrowserFlowStore flows,
+      org.busystack.caldav.security.oidc.OidcConfiguration oidc,
       org.busystack.caldav.security.session.BrowserSession browserSessions,
       org.busystack.caldav.account.InitializationService initialization,
       org.springframework.beans.factory.ObjectProvider<
@@ -178,15 +180,16 @@ public class SecurityConfiguration {
                     .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
-        .requestCache(
-            cache -> {
-              var safe =
-                  new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
-              safe.setRequestMatcher(request -> "GET".equals(request.getMethod()));
-              cache.requestCache(safe);
-            })
+        .requestCache(cache -> cache.disable())
+        .exceptionHandling(
+            exceptions -> exceptions.authenticationEntryPoint(journey::loginRequired))
         .formLogin(
-            login -> login.loginPage("/login").successHandler(journey::primarySuccess).permitAll())
+            login ->
+                login
+                    .loginPage("/login")
+                    .successHandler(journey::primarySuccess)
+                    .failureHandler(journey::primaryFailure)
+                    .permitAll())
         // This endpoint only returns a configured 308; it has no cookie-authenticated mutation.
         .csrf(csrf -> csrf.ignoringRequestMatchers("/.well-known/caldav"))
         .logout(logout -> logout.invalidateHttpSession(true).deleteCookies("JSESSIONID"))
@@ -219,8 +222,7 @@ public class SecurityConfiguration {
         http, deployment, passkeyUsers, ceremonies, journey, browserSessions);
     var upstream = upstreamUsers.getIfAvailable();
     if (upstream != null)
-      org.busystack.caldav.security.oidc.OidcConfiguration.configure(
-          http, upstreamRegistrations.getObject(), upstream, journey);
+      oidc.configure(http, upstreamRegistrations.getObject(), upstream, flows, journey);
     return http.build();
   }
 }

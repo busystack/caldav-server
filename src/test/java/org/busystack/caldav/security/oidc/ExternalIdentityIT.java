@@ -118,30 +118,16 @@ class ExternalIdentityIT {
   }
 
   @Test
-  void existingAccountNamesRequireExplicitRecentMfaLinking() {
+  void existingAccountNamesRequireExplicitLinkingWithCompletedBrowserProof() {
     var id = accounts.provision("allowed", "Existing admin", "correct horse battery staple", true);
     assertThatThrownBy(
             () -> identities.verifiedLogin(ISSUER, "subject-one", Instant.now(), null, null))
         .isInstanceOf(OAuth2AuthenticationException.class);
     var auth = mfa("allowed");
-    var link = identities.prepareLink(auth);
-    var linked = identities.verifiedLogin(ISSUER, "subject-one", Instant.now(), link, auth);
-    assertThat(linked.id()).isEqualTo(id);
-    assertThat(linked.administrator()).isTrue();
-    assertThat(linked.passwordHash()).isNull();
-    assertThatThrownBy(
-            () -> identities.verifiedLogin(ISSUER, "different-subject", Instant.now(), link, auth))
-        .isInstanceOf(OAuth2AuthenticationException.class);
-    assertThatThrownBy(
-            () ->
-                identities.verifiedLogin(
-                    ISSUER,
-                    "subject-one",
-                    Instant.now(),
-                    new ExternalIdentityService.LinkIntent(
-                        id, "allowed", Instant.now().minusSeconds(301)),
-                    auth))
-        .isInstanceOf(OAuth2AuthenticationException.class);
+    var request = new org.springframework.mock.web.MockHttpServletRequest();
+    assertThatThrownBy(() -> identities.prepareLink(auth, request))
+        .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    assertThat(accounts.find(id).passwordHash()).isNotNull();
   }
 
   @Test

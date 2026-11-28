@@ -13,13 +13,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class GroupManagementController {
   private final GroupService groups;
   private final SharingManagementService sharing;
-  private final AdministrationService administration;
+  private final PortalService portal;
 
   public GroupManagementController(
-      GroupService groups, SharingManagementService sharing, AdministrationService administration) {
+      GroupService groups, SharingManagementService sharing, PortalService portal) {
     this.groups = groups;
     this.sharing = sharing;
-    this.administration = administration;
+    this.portal = portal;
   }
 
   @GetMapping("/admin/groups")
@@ -34,8 +34,9 @@ public class GroupManagementController {
   }
 
   @GetMapping("/admin/groups/new")
-  String createForm(@RequestParam(required = false) UUID returnCollection, Model model) {
-    model.addAttribute("returnCollection", returnCollection);
+  String createForm(
+      Authentication auth, @RequestParam(required = false) UUID returnCollection, Model model) {
+    renderReturn(portal, auth, returnCollection, model);
     return "group-new";
   }
 
@@ -62,8 +63,35 @@ public class GroupManagementController {
       RedirectAttributes flash) {
     UUID id = groups.create(auth, name, Set.of());
     flash.addFlashAttribute("notice", "Group created.");
-    if (returnCollection != null) return "redirect:/collections/" + returnCollection + "/sharing";
+    if (returnCollection != null) {
+      var destination = sharingDestination(portal, auth, returnCollection);
+      if (destination != null) return "redirect:/collections/" + destination.id() + "/sharing";
+      flash.addFlashAttribute(
+          "notice", "Group created. The original resource is no longer available for sharing.");
+    }
     return "redirect:/admin/groups/" + id;
+  }
+
+  static void renderReturn(PortalService portal, Authentication auth, UUID id, Model model) {
+    if (id == null) return;
+    var collection = sharingDestination(portal, auth, id);
+    if (collection == null) model.addAttribute("sharingReturnUnavailable", true);
+    else {
+      model.addAttribute("returnCollection", collection.id());
+      model.addAttribute("returnCollectionName", collection.name());
+    }
+  }
+
+  private static PortalService.CollectionView sharingDestination(
+      PortalService portal, Authentication auth, UUID id) {
+    try {
+      return portal.owner(auth, id);
+    } catch (org.busystack.caldav.storage.StoreException unavailable) {
+      if (unavailable.kind() == org.busystack.caldav.storage.StoreException.Kind.FORBIDDEN
+          || unavailable.kind() == org.busystack.caldav.storage.StoreException.Kind.NOT_FOUND)
+        return null;
+      throw unavailable;
+    }
   }
 
   @PostMapping("/admin/groups/{id}")
@@ -86,7 +114,7 @@ public class GroupManagementController {
       @RequestParam(defaultValue = "0") int page,
       Model model) {
     model.addAttribute("group", groups.detail(auth, id));
-    model.addAttribute("lookupPage", administration.accounts(auth, q, "enabled", "all", page));
+    model.addAttribute("lookupPage", groups.eligibleMembers(auth, id, q, page));
     model.addAttribute("query", q);
     return "group-member-lookup";
   }
@@ -114,8 +142,23 @@ public class GroupManagementController {
       @RequestParam(defaultValue = "") String q,
       @RequestParam(defaultValue = "0") int page,
       Model model) {
+    return memberRemoval(groups, auth, id, account, q, page, null, model);
+  }
+
+  static String memberRemoval(
+      GroupService groups,
+      Authentication auth,
+      UUID id,
+      UUID account,
+      String q,
+      int page,
+      String expected,
+      Model model) {
     var group = groups.detail(auth, id);
     var member = groups.member(auth, id, account);
+    if (expected != null && !expected.equals(group.grantState()))
+      throw new org.busystack.caldav.storage.StoreException(
+          org.busystack.caldav.storage.StoreException.Kind.PRECONDITION);
     String parameters = memberSearch(q, page);
     model.addAttribute(
         "actionTitle", "Remove " + member.username() + " from " + group.name() + "?");
@@ -198,6 +241,8 @@ public class GroupManagementController {
       @RequestParam(defaultValue = "") String permission,
       @RequestParam String expected,
       RedirectAttributes flash) {
+    if ("REVOKE".equals(permission))
+      return "redirect:/collections/" + collection + "/sharing/group/" + group + "/remove";
     sharing.group(auth, collection, group, permission, expected);
     flash.addFlashAttribute(
         "notice", "Group grant saved. Review effective permissions for remaining access.");
