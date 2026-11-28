@@ -381,8 +381,26 @@ class OAuthHttpIT {
             HttpResponse.BodyHandlers.ofString());
     assertThat(ordinary.statusCode()).isEqualTo(302);
     assertThat(extension.statusCode()).isEqualTo(ordinary.statusCode());
-    assertThat(extension.headers().firstValue("Location"))
-        .isEqualTo(ordinary.headers().firstValue("Location"));
+    var redirects =
+        List.of(ordinary, extension).stream()
+            .map(response -> response.headers().firstValue("Location").orElseThrow())
+            .map(URI::create)
+            .toList();
+    assertThat(redirects).doesNotHaveDuplicates();
+    for (var redirect : redirects) {
+      assertThat(redirect.toString())
+          .matches("https://calendar\\.example/login\\?flow=[a-f0-9-]{36}");
+      var handle = redirect.getRawQuery().substring("flow=".length());
+      assertThat(
+              jdbc.queryForList(
+                  "SELECT payload FROM browser_flow_state WHERE section='journey' AND payload LIKE ?",
+                  String.class,
+                  "%" + handle + "%"))
+          .singleElement()
+          .asString()
+          .contains("/oauth2/authorize?" + common)
+          .doesNotContain("unrecognized-audit-extension");
+    }
     assertThat(jdbc.queryForObject("SELECT count(*) FROM oauth2_authorization", Long.class))
         .isZero();
     String omittedResponse =
