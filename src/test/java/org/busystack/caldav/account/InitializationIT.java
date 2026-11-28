@@ -233,7 +233,10 @@ class InitializationIT {
     assertThat(complete.headers().firstValue("Location").orElseThrow()).endsWith("/team/");
     assertThat(http.get(browser, "/").body())
         .contains("Overview", "Open server administration", "Create a resource");
-    var credentialForm = http.get(browser, "/security/credentials?client=gnome&from=connect");
+    String createPath = "/security/credentials/new?client=gnome&from=connect";
+    assertThat(http.get(browser, "/connections?client=gnome").body())
+        .contains("/team" + createPath.replace("&", "&amp;"));
+    var credentialForm = http.get(browser, createPath);
     var matcher =
         java.util.regex.Pattern.compile("name=\"intent\" value=\"([a-f0-9-]{36})\"")
             .matcher(credentialForm.body());
@@ -243,7 +246,7 @@ class InitializationIT {
             browser,
             "/credentials",
             "POST",
-            http.csrf(browser, "/security/credentials"),
+            SignedPasskeyClient.csrf(credentialForm.body()),
             SignedPasskeyClient.form(
                 Map.of(
                     "label",
